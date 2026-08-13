@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #141a22;
+  --ink-soft: #4c566a;
+  --line: #e3e6eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1016;
+    --surface: #151b24;
+    --ink: #e9ecf1;
+    --ink-soft: #aeb6c2;
+    --line: #232b37;
+  }
+}
+html { color-scheme: light dark; }
+body { background: var(--bg); color: var(--ink); }
+
+.prata { font-family: "Prata", Georgia, serif; }
+.card { background: var(--surface); border: 1px solid var(--line); }
+.inp {
+  width: 100%; padding: 9px 11px; border: 1px solid var(--line);
+  border-radius: 9px; background: var(--bg); color: var(--ink); font-size: 0.9rem;
+}
+.inp:focus { outline: 2px solid #1e63c7; outline-offset: 1px; }
+.btn { padding: 9px 15px; border-radius: 9px; font-weight: 600; font-size: 0.88rem; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.btn-primary { background: #1e63c7; border-color: #1e63c7; color: #fff; }
+.btn-primary:hover { background: #1852a8; }
+
+/* Leaflet price pill markers (giống homigo.life) */
+.price-pin .pp {
+  background: #1c1c1e; color: #fff; font-weight: 800; font-size: 12px;
+  padding: 4px 9px; border-radius: 9px; white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(0,0,0,.35); transform: translate(-50%, -120%);
+  position: relative; width: max-content;
+}
+.price-pin .pp::after {
+  content: ""; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: #1c1c1e; border-bottom: 0;
+}
+.leaflet-container { font: inherit; background: var(--surface); }
