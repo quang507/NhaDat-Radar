@@ -8,7 +8,8 @@ export function verifyZaloSignature(rawBody: string, signatureHeader: string | n
   const appId = process.env.ZALO_APP_ID;
   const secret = process.env.ZALO_OA_SECRET;
   if (!appId || !secret) return false;
-  if (process.env.ZALO_SKIP_VERIFY === "1") return true; // chỉ để test local
+  // bỏ verify CHỈ khi test local (không bao giờ ở production)
+  if (process.env.ZALO_SKIP_VERIFY === "1" && process.env.NODE_ENV !== "production") return true;
   if (!signatureHeader || !timeStamp) return false;
   const mac = crypto.createHash("sha256").update(appId + rawBody + timeStamp + secret).digest("hex");
   const got = signatureHeader.replace(/^mac=/, "").trim();

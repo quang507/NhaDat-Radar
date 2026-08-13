@@ -51,9 +51,11 @@ export default function ListingCard({ x }: { x: Listing }) {
             </span>
           ) : null}
         </div>
-        <div className="text-[0.7rem] text-emerald-600 mt-auto pt-1">
-          🕒 {fresh(x.first_seen_at ? null : 60)}
-        </div>
+        {x.first_seen_at && (
+          <div className="text-[0.7rem] text-emerald-600 mt-auto pt-1">
+            🕒 {fresh(Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000))}
+          </div>
+        )}
       </div>
     </Link>
   );

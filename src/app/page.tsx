@@ -13,12 +13,12 @@ function shortPrice(v: number | null): string {
   return Math.round(v / 1e6) + "tr";
 }
 
-const CATS: { t: string; f: (x: Listing) => boolean }[] = [
-  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban" },
-  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban" },
-  { t: "Căn hộ", f: (x) => x.kind === "can_ho" },
-  { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue" },
-  { t: "Mặt bằng & khác", f: (x) => x.kind === "mat_bang" || x.kind === "khac" },
+const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
+  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/?kind=nha&deal=ban" },
+  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/?kind=dat&deal=ban" },
+  { t: "Căn hộ", f: (x) => x.kind === "can_ho", href: "/?kind=can_ho" },
+  { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/?kind=nha&deal=cho_thue" },
+  { t: "Mặt bằng & khác", f: (x) => x.kind === "mat_bang" || x.kind === "khac", href: "/?kind=mat_bang" },
 ];
 const PROVINCES = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng"];
 const PRICE_BUCKETS: [string, string][] = [
@@ -160,9 +160,7 @@ export default async function Home({
           {CATS.map((c) => {
             const items = listings.filter(c.f).slice(0, 8);
             if (!items.length) return null;
-            const catHref = c.f({ kind: "nha", deal: "ban" } as Listing)
-              ? "/?kind=nha&deal=ban"
-              : "/";
+            const catHref = c.href;
             return (
               <section key={c.t} className="mt-9">
                 <div className="flex items-baseline gap-3 mb-3">

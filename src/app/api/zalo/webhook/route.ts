@@ -21,6 +21,11 @@ export async function POST(req: Request) {
   if (!verifyZaloSignature(raw, sig, ts)) {
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
+  // chống replay: chỉ nhận event trong vòng 5 phút
+  const tsNum = Number(ts);
+  if (tsNum && Math.abs(Date.now() - tsNum) > 5 * 60 * 1000) {
+    return NextResponse.json({ error: "stale event" }, { status: 401 });
+  }
 
   let event: { event_name?: string; sender?: { id?: string }; message?: { text?: string } };
   try { event = JSON.parse(raw); } catch { return NextResponse.json({ ok: true }); }
@@ -37,7 +42,8 @@ export async function POST(req: Request) {
   // 1) NGƯỜI RAO cung cấp tin -> ghi lại (có consent vì họ chủ động gửi)
   if (ai.intent === "dang_tin" && ai.listing) {
     const L = ai.listing;
-    await admin.from("listings").insert({
+    const KIND = ["nha", "dat", "can_ho", "mat_bang", "phong_tro", "khac"];
+    const { error: insErr } = await admin.from("listings").insert({
       source: "zalo_oa",
       source_site: "zalo_oa",
       title: L.title || text.slice(0, 80),
@@ -45,8 +51,8 @@ export async function POST(req: Request) {
       price_vnd: L.price_vnd ?? null,
       area_m2: L.area_m2 ?? null,
       bedrooms: L.bedrooms ?? null,
-      deal: L.listing_type || "cho_thue",
-      kind: L.property_type || "khac",
+      deal: L.listing_type === "ban" ? "ban" : "cho_thue",
+      kind: KIND.includes(L.property_type || "") ? L.property_type : "khac",
       province: L.province ?? null,
       district: L.district ?? null,
       ward: L.ward ?? null,
@@ -57,6 +63,10 @@ export async function POST(req: Request) {
       poster_role_guess: "chu_nha",
       status: "pending", // chờ duyệt trước khi hiện public
     });
+    if (insErr) {
+      await sendZaloText(userId, "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏");
+      return NextResponse.json({ ok: true });
+    }
     await sendZaloText(
       userId,
       `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd ?? null, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}\n\nTin sẽ hiển thị sau khi duyệt. Cảm ơn anh/chị! 🏠`,

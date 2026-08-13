@@ -10,8 +10,10 @@ export function fmtPrice(v: number | null, deal?: string): string {
 }
 
 export function fresh(min: number | null): string {
-  const m = min ?? 60;
-  if (m < 60) return `${m} phút trước`;
+  if (min == null) return "";
+  const m = Math.max(0, min);
+  if (m < 1) return "vừa xong";
+  if (m < 60) return `${Math.round(m)} phút trước`;
   if (m < 1440) return `${Math.round(m / 60)} giờ trước`;
   return `${Math.round(m / 1440)} ngày trước`;
 }
