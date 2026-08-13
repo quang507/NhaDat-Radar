@@ -27,7 +27,7 @@ export default async function ProjectsPage() {
                 {[p.district, p.province].filter(Boolean).join(", ")}
               </div>
               <div className="text-brand font-bold">
-                {fmtPrice(p.price_min, "ban")} – {fmtPrice(p.price_max, "ban")}
+                {fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}
               </div>
             </Link>
           ))}

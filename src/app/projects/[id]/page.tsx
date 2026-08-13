@@ -38,7 +38,7 @@ export default async function ProjectDetail({
           <h1 className="prata text-3xl">{p.name}</h1>
           <div className="text-brand font-semibold">{p.investor}</div>
           <div className="text-sm text-[var(--ink-soft)] mt-1">
-            📍 {[p.address, p.district, p.province].filter(Boolean).join(", ") || "—"}
+            📍 {[p.address, p.district, p.province].filter(Boolean).join(", ") || "-"}
           </div>
 
           <div className="card rounded-2xl p-5 mt-5">
@@ -79,10 +79,10 @@ export default async function ProjectDetail({
           <div className="card rounded-2xl p-5 sticky top-20">
             <div className="text-xs text-[var(--ink-soft)] uppercase">Mức giá từ</div>
             <div className="prata text-2xl text-brand mb-4">
-              {fmtPrice(p.price_min, "ban")} – {fmtPrice(p.price_max, "ban")}
+              {fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}
             </div>
-            <Row k="Chủ đầu tư" v={p.investor || "—"} />
-            <Row k="Khu vực" v={[p.district, p.province].filter(Boolean).join(", ") || "—"} />
+            <Row k="Chủ đầu tư" v={p.investor || "-"} />
+            <Row k="Khu vực" v={[p.district, p.province].filter(Boolean).join(", ") || "-"} />
             <Row k="Số tin đang bán" v={String(listings.length)} />
             <button className="btn btn-primary w-full mt-4">📞 Liên hệ tư vấn</button>
           </div>

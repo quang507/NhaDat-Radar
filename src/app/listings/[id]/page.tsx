@@ -20,11 +20,11 @@ export default async function ListingDetail({
   const t = thumb(x.kind);
 
   const details: [string, string, string][] = [
-    ["🧭", "Hướng", x.direction || "—"],
-    ["📜", "Pháp lý", x.legal_status || "—"],
-    ["🏢", "Số tầng", x.floors ? `${x.floors} tầng` : "—"],
-    ["🛋", "Nội thất", x.furnishing || "—"],
-    ["🅿", "Chỗ đậu xe", x.amenities?.includes("parking") ? "Có" : "—"],
+    ["🧭", "Hướng", x.direction || "-"],
+    ["📜", "Pháp lý", x.legal_status || "-"],
+    ["🏢", "Số tầng", x.floors ? `${x.floors} tầng` : "-"],
+    ["🛋", "Nội thất", x.furnishing || "-"],
+    ["🅿", "Chỗ đậu xe", x.amenities?.includes("parking") ? "Có" : "-"],
     ["🏷", "Mã tin", x.id.slice(0, 8)],
   ];
 
@@ -51,7 +51,7 @@ export default async function ListingDetail({
         <div>
           <h1 className="prata text-2xl md:text-3xl">{x.title}</h1>
           <div className="text-[var(--ink-soft)] text-sm mt-1">
-            📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "—"}
+            📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
           </div>
         </div>
         <div className="prata text-2xl text-brand">{fmtPrice(x.price_vnd, x.deal)}</div>
@@ -60,7 +60,7 @@ export default async function ListingDetail({
       <div className="flex flex-wrap gap-x-6 gap-y-2 py-4 my-3 border-y border-[var(--line)] text-sm">
         <span>🛏 {x.bedrooms ?? 0} phòng ngủ</span>
         <span>🛁 {x.bathrooms ?? 0} phòng tắm</span>
-        <span>📐 {x.area_m2 ?? "—"} m²</span>
+        <span>📐 {x.area_m2 ?? "-"} m²</span>
         <span>🏠 {PROP[x.kind]}</span>
         <span>{x.deal === "ban" ? "🏷 Bán" : "🔑 Cho thuê"}</span>
         {x.ai_score ? <span className="text-amber-600 font-semibold">★ {x.ai_score}/100</span> : null}
@@ -110,7 +110,7 @@ export default async function ListingDetail({
           <div className="card rounded-2xl p-5">
             <h3 className="font-bold mb-2">Vị trí</h3>
             <div className="text-sm text-[var(--ink-soft)] mb-3">
-              📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "—"}
+              📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
             </div>
             <div className="h-56 rounded-xl grid place-items-center text-[var(--ink-soft)] bg-[var(--bg)] border border-[var(--line)]">
               🗺️ Khung bản đồ Google Maps / Mapbox (geocode ở bản thật)

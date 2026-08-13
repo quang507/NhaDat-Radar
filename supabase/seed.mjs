@@ -25,6 +25,7 @@ const rows = raw.listings.map((x) => ({
   province: x.province, district: x.district,
   lat: x.lat ?? null, lng: x.lng ?? null,
   amenities: x.amenities,
+  images: x.images || [],               // link ảnh thật (Chợ Tốt)
   contact_phone: null,                  // ẩn SĐT ở bản tổng hợp (NĐ13)
   ai_score: x.ai_score,
   trust_score: x.price_warning ? 55 : 78,
@@ -36,8 +37,9 @@ const rows = raw.listings.map((x) => ({
   first_seen_at: new Date().toISOString(),
 }));
 
-const { data, error } = await sb.from("listings")
-  .upsert(rows, { onConflict: "source_post_id", ignoreDuplicates: true })
-  .select("id");
+// Xoá tin crawl cũ (nếu chạy lại) rồi nạp mới — idempotent, không cần unique constraint.
+const { error: delErr } = await sb.from("listings").delete().eq("source", "crawl");
+if (delErr) { console.error("Xoá tin cũ lỗi:", delErr.message); process.exit(1); }
+const { data, error } = await sb.from("listings").insert(rows).select("id");
 if (error) { console.error("Seed lỗi:", error.message); process.exit(1); }
 console.log(`Đã nạp ${data?.length ?? 0}/${rows.length} tin crawl vào Supabase.`);

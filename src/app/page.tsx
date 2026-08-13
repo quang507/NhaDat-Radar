@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ListingCard from "@/components/ListingCard";
-import type { Listing } from "@/lib/types";
+import { fmtPrice, PROP } from "@/lib/format";
+import type { Listing, Project } from "@/lib/types";
 
 const CATS: { t: string; f: (x: Listing) => boolean }[] = [
   { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban" },
@@ -12,81 +13,157 @@ const CATS: { t: string; f: (x: Listing) => boolean }[] = [
   { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue" },
   { t: "Mặt bằng & khác", f: (x) => x.kind === "mat_bang" || x.kind === "khac" },
 ];
+const PROVINCES = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng"];
+const PRICE_BUCKETS: [string, string][] = [
+  ["", "Mức giá"], ["500000000", "Dưới 500 triệu"], ["1000000000", "Dưới 1 tỷ"],
+  ["3000000000", "Dưới 3 tỷ"], ["5000000000", "Dưới 5 tỷ"], ["10000000000", "Dưới 10 tỷ"],
+];
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ deal?: string; q?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
+  const { deal, kind, province, bedrooms, priceMax, q } = sp;
   const supabase = await createClient();
 
   let query = supabase.from("listings").select("*").eq("status", "published");
-  if (sp.deal === "ban" || sp.deal === "cho_thue") query = query.eq("deal", sp.deal);
-  if (sp.q) query = query.ilike("title", `%${sp.q}%`);
+  if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
+  if (kind) query = query.eq("kind", kind);
+  if (province) query = query.ilike("province", `%${province}%`);
+  if (bedrooms) query = query.gte("bedrooms", Number(bedrooms));
+  if (priceMax) query = query.lte("price_vnd", Number(priceMax));
+  if (q) query = query.ilike("title", `%${q}%`);
   const { data } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(150);
   const listings = (data ?? []) as Listing[];
 
+  const { data: projData } = await supabase.from("projects").select("*").eq("status", "published").limit(6);
+  const projects = (projData ?? []) as Project[];
+
+  const hasFilter = Boolean(deal || kind || province || bedrooms || priceMax || q);
+
+  const sel = "inp appearance-none pr-8 cursor-pointer";
   return (
     <div>
-      <section className="py-6">
-        <h1 className="prata text-3xl md:text-4xl mb-2">
+      <section className="pt-6 pb-2">
+        <h1 className="prata text-3xl md:text-[2.6rem] leading-tight mb-2 text-balance">
           Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
         </h1>
-        <p className="text-[var(--ink-soft)] mb-4 max-w-2xl">
-          Tổng hợp tin từ nhiều nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, tự phân loại chính chủ /
-          môi giới và cảnh báo giá ảo.
+        <p className="text-[var(--ink-soft)] mb-5 max-w-2xl">
+          Tổng hợp tin từ nhiều nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, tự phân loại chính chủ / môi giới
+          và cảnh báo giá ảo.
         </p>
-        <form action="/" className="flex gap-2 card rounded-2xl p-2 pl-4 shadow-sm max-w-3xl items-center">
-          <span className="text-[var(--ink-soft)]">🔍</span>
-          <input
-            name="q"
-            defaultValue={sp.q}
-            placeholder="Bạn muốn tìm nhà đất ở đâu? (quận, dự án, từ khoá...)"
-            className="flex-1 bg-transparent outline-none text-base py-2"
-          />
-          <button className="btn btn-primary" type="submit">Tìm kiếm</button>
+
+        {/* Bộ lọc nâng cao kiểu batdongsan */}
+        <form action="/" className="card rounded-2xl p-3 shadow-sm">
+          <div className="flex flex-wrap gap-2 items-center">
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Từ khoá: quận, dự án, đường..."
+              className="inp flex-1 min-w-[180px]"
+            />
+            <select name="deal" defaultValue={deal || ""} className={sel}>
+              <option value="">Mua bán &amp; thuê</option>
+              <option value="ban">Mua bán</option>
+              <option value="cho_thue">Cho thuê</option>
+            </select>
+            <select name="kind" defaultValue={kind || ""} className={sel}>
+              <option value="">Loại BĐS</option>
+              {Object.entries(PROP).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+            <select name="province" defaultValue={province || ""} className={sel}>
+              <option value="">Toàn quốc</option>
+              {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <select name="priceMax" defaultValue={priceMax || ""} className={sel}>
+              {PRICE_BUCKETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+            <select name="bedrooms" defaultValue={bedrooms || ""} className={sel}>
+              <option value="">Phòng ngủ</option>
+              {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+ PN</option>)}
+            </select>
+            <button className="btn btn-primary px-6" type="submit">Tìm kiếm</button>
+          </div>
         </form>
       </section>
 
-      {sp.q || sp.deal ? (
-        <div>
-          <h2 className="text-xl font-bold mb-3">
-            {listings.length} kết quả{sp.q ? ` cho “${sp.q}”` : ""}
-          </h2>
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(250px,1fr))]">
-            {listings.map((x) => (
-              <ListingCard key={x.id} x={x} />
-            ))}
+      {hasFilter ? (
+        <section className="mt-6">
+          <div className="flex items-baseline justify-between mb-3">
+            <h2 className="prata text-xl">{listings.length} kết quả{q ? ` cho “${q}”` : ""}</h2>
+            <Link href="/" className="text-sm text-brand font-semibold">Xoá lọc</Link>
           </div>
-        </div>
+          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
+            {listings.map((x) => <ListingCard key={x.id} x={x} />)}
+          </div>
+          {!listings.length && (
+            <p className="text-[var(--ink-soft)] py-10 text-center">Không có tin khớp bộ lọc.</p>
+          )}
+        </section>
       ) : (
-        CATS.map((c) => {
-          const items = listings.filter(c.f).slice(0, 8);
-          if (!items.length) return null;
-          return (
-            <section key={c.t} className="mt-8">
+        <>
+          {projects.length > 0 && (
+            <section className="mt-9">
               <div className="flex items-baseline gap-3 mb-3">
-                <h2 className="text-xl font-bold">{c.t}</h2>
-                <Link href={`/?q=`} className="text-sm text-brand font-semibold ml-auto">
-                  Xem tất cả →
-                </Link>
+                <h2 className="prata text-xl">Dự án nổi bật</h2>
+                <Link href="/projects" className="text-sm text-brand font-semibold ml-auto">Xem tất cả →</Link>
               </div>
-              <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
-                {items.map((x) => (
-                  <ListingCard key={x.id} x={x} />
+              <div className="grid gap-4 md:grid-cols-3">
+                {projects.slice(0, 3).map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/projects/${p.id}`}
+                    className="card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition group"
+                  >
+                    <div className="h-32 bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white text-3xl">
+                      🏙️
+                    </div>
+                    <div className="p-4">
+                      <div className="text-[0.65rem] font-bold uppercase tracking-wide text-brand mb-1">Dự án</div>
+                      <h3 className="font-semibold leading-snug group-hover:text-brand transition">{p.name}</h3>
+                      <div className="text-xs text-[var(--ink-soft)] mt-1">
+                        {[p.district, p.province].filter(Boolean).join(", ")}
+                      </div>
+                      <div className="text-brand font-bold text-sm mt-2">
+                        {fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}
+                      </div>
+                    </div>
+                  </Link>
                 ))}
               </div>
             </section>
-          );
-        })
+          )}
+
+          {CATS.map((c) => {
+            const items = listings.filter(c.f).slice(0, 8);
+            if (!items.length) return null;
+            const catHref = c.f({ kind: "nha", deal: "ban" } as Listing)
+              ? "/?kind=nha&deal=ban"
+              : "/";
+            return (
+              <section key={c.t} className="mt-9">
+                <div className="flex items-baseline gap-3 mb-3">
+                  <h2 className="prata text-xl">{c.t}</h2>
+                  <Link href={catHref} className="text-sm text-brand font-semibold ml-auto">Xem tất cả →</Link>
+                </div>
+                <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
+                  {items.map((x) => <ListingCard key={x.id} x={x} />)}
+                </div>
+              </section>
+            );
+          })}
+        </>
       )}
 
-      {!listings.length ? (
+      {!listings.length && !hasFilter && (
         <p className="text-[var(--ink-soft)] py-10 text-center">
-          Chưa có dữ liệu. Chạy <code>schema.sql</code> + <code>node supabase/seed.mjs</code> để nạp 120 tin mẫu.
+          Chưa có dữ liệu. Chạy <code>node supabase/seed.mjs</code> để nạp tin.
         </p>
-      ) : null}
+      )}
     </div>
   );
 }

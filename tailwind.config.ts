@@ -5,10 +5,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: { DEFAULT: "#1E63C7", ink: "#1852A8", 2: "#0EA5A0" },
+        // terracotta gạch - chủ đạo, bớt "xanh AI"
+        brand: { DEFAULT: "#b23a1e", ink: "#90301a", 2: "#1f6f5c" },
       },
       fontFamily: {
-        serif: ['"Prata"', "Georgia", "serif"],
+        sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
+        serif: ["var(--font-lora)", "Georgia", "serif"],
       },
     },
   },

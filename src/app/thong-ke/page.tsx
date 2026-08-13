@@ -13,7 +13,7 @@ function median(a: number[]): number {
   return s[Math.floor(s.length / 2)];
 }
 function short(v: number): string {
-  if (!v) return "—";
+  if (!v) return "-";
   if (v >= 1e9) {
     const t = v / 1e9;
     return (t % 1 ? t.toFixed(1) : String(t)) + "tỷ";
@@ -63,8 +63,8 @@ export default async function ThongKe({
     sub: `${r.district} · ${r.n} tin`,
   }));
   const maxMed = Math.max(...rows.map((r) => r.med), 1);
-  const lo = rows.length ? short(Math.min(...rows.map((r) => r.med))) : "—";
-  const hi = rows.length ? short(Math.max(...rows.map((r) => r.med))) : "—";
+  const lo = rows.length ? short(Math.min(...rows.map((r) => r.med))) : "-";
+  const hi = rows.length ? short(Math.max(...rows.map((r) => r.med))) : "-";
 
   const tab = (href: string, label: string, active: boolean) => (
     <Link
@@ -92,7 +92,7 @@ export default async function ThongKe({
       <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
         <div className="card rounded-2xl p-3">
           <div className="text-sm text-[var(--ink-soft)] mb-2 px-1">
-            <b className="text-[var(--ink)]">{listings.length}</b> tin, giá {lo} – {hi} tại {city},{" "}
+            <b className="text-[var(--ink)]">{listings.length}</b> tin, giá {lo} - {hi} tại {city},{" "}
             {deal === "cho_thue" ? "cho thuê" : "rao bán"}
           </div>
           {points.length ? (

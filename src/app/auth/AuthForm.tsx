@@ -39,7 +39,7 @@ export default function AuthForm({
         </button>
       </form>
 
-      <div className="text-center text-xs text-[var(--ink-soft)] my-4">— HOẶC —</div>
+      <div className="text-center text-xs text-[var(--ink-soft)] my-4">- HOẶC -</div>
 
       {error ? (
         <div className="text-sm text-red-600 mb-3 text-center">{error}</div>

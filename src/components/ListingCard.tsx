@@ -28,7 +28,7 @@ export default function ListingCard({ x }: { x: Listing }) {
         <div className="text-brand font-extrabold text-lg">{fmtPrice(x.price_vnd, x.deal)}</div>
         <div className="font-semibold text-sm leading-snug line-clamp-2">{x.title}</div>
         <div className="text-xs text-[var(--ink-soft)]">
-          📍 {[x.district, x.province].filter(Boolean).join(", ") || "—"}
+          📍 {[x.district, x.province].filter(Boolean).join(", ") || "-"}
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-[var(--ink-soft)]">
           {x.bedrooms ? <span>🛏 {x.bedrooms} PN</span> : null}

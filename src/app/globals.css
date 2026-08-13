@@ -3,38 +3,70 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f5f6f8;
+  --bg: #f6f6f4;
   --surface: #ffffff;
-  --ink: #141a22;
-  --ink-soft: #4c566a;
-  --line: #e3e6eb;
+  --surface-2: #f0f0ee;
+  --ink: #17181c;
+  --ink-soft: #565a63;
+  --ink-faint: #8b8f98;
+  --line: #e6e6e2;
+  --line-strong: #d3d3ce;
+  --brand: #b23a1e;        /* terracotta-brick, hợp nhà đất, bớt "xanh AI" */
+  --brand-ink: #90301a;
+  --accent: #1f6f5c;       /* pine cho semantic phụ */
+  --gold: #b7791f;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c1016;
-    --surface: #151b24;
-    --ink: #e9ecf1;
-    --ink-soft: #aeb6c2;
-    --line: #232b37;
+    --bg: #14140f;
+    --surface: #1c1c19;
+    --surface-2: #100f0c;
+    --ink: #eceae2;
+    --ink-soft: #b3b1a6;
+    --ink-faint: #83817a;
+    --line: #2c2b26;
+    --line-strong: #3c3a33;
+    --brand: #e0714f;
+    --brand-ink: #ea8365;
+    --accent: #4fb39a;
+    --gold: #d9a94e;
   }
 }
 html { color-scheme: light dark; }
-body { background: var(--bg); color: var(--ink); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), "Inter", system-ui, -apple-system, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.006em;
+}
 
-.prata { font-family: "Prata", Georgia, serif; }
+/* Display serif = Lora */
+.prata, .display {
+  font-family: var(--font-lora), Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 .card { background: var(--surface); border: 1px solid var(--line); }
 .inp {
-  width: 100%; padding: 9px 11px; border: 1px solid var(--line);
-  border-radius: 9px; background: var(--bg); color: var(--ink); font-size: 0.9rem;
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line-strong);
+  border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 0.9rem;
+  transition: border-color .12s, box-shadow .12s;
 }
-.inp:focus { outline: 2px solid #1e63c7; outline-offset: 1px; }
-.btn { padding: 9px 15px; border-radius: 9px; font-weight: 600; font-size: 0.88rem; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
-.btn-primary { background: #1e63c7; border-color: #1e63c7; color: #fff; }
-.btn-primary:hover { background: #1852a8; }
+.inp:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent); }
+.btn {
+  padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  transition: background .12s, border-color .12s, transform .06s;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn-primary:hover { background: var(--brand-ink); }
 
-/* Leaflet price pill markers (giống homigo.life) */
+/* Leaflet price pill markers */
 .price-pin .pp {
-  background: #1c1c1e; color: #fff; font-weight: 800; font-size: 12px;
+  background: #1c1c1e; color: #fff; font-weight: 700; font-size: 12px;
   padding: 4px 9px; border-radius: 9px; white-space: nowrap;
   box-shadow: 0 3px 10px rgba(0,0,0,.35); transform: translate(-50%, -120%);
   position: relative; width: max-content;
