@@ -1,6 +1,7 @@
 // Crawler BATDONGSAN.COM.VN — Cloudflare nên fetch bằng Playwright (fallback plain fetch cho quy mô nhỏ).
 // Parser tách từ HTML trang kết quả (SRP). Test parser: node batdongsan.mjs --test bds.html
 import fs from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -73,7 +74,8 @@ export function parseBatdongsan(html, cityName) {
       province: cityName || null, district: pickLoc(block),
       lat: null, lng: null, amenities: [],
       poster_role: "khong_ro", ai_score: null,
-      image: (block.match(/data-img="([^"]+)"/) || [])[1] || null,
+      images: [...block.matchAll(/data-(?:img|src)="(https:\/\/file\d*\.batdongsan\.com\.vn\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/g)]
+        .map((m) => m[1]).filter((v, i, a) => a.indexOf(v) === i).slice(0, 5),
     });
   }
   return out;
@@ -123,4 +125,5 @@ async function main() {
   fs.writeFileSync(new URL("./batdongsan.json", import.meta.url), JSON.stringify({ summary: { source: "batdongsan.com.vn", total: all.length }, listings: all }, null, 0));
   console.error("DONE", all.length);
 }
-main();
+// Chỉ chạy khi gọi trực tiếp (không chạy khi bị import) - fix audit #12
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

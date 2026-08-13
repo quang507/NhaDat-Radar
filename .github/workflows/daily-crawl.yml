@@ -1,0 +1,23 @@
+name: Daily crawl - làm mới data BĐS
+
+on:
+  schedule:
+    - cron: "0 22 * * *"    # 22:00 UTC = 05:00 giờ Việt Nam mỗi ngày
+  workflow_dispatch: {}      # cho phép bấm chạy tay ở tab Actions
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - name: Crawl + seed Supabase
+        run: node crawler/daily.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

@@ -146,7 +146,12 @@ export default async function Home({
               <div className="grid gap-4 md:grid-cols-3">
                 {projects.slice(0, 3).map((p) => (
                   <Link key={p.id} href={`/projects/${p.id}`} className="card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition group">
-                    <div className="h-32 bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white text-3xl">🏙️</div>
+                    <div className="h-32 bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white text-3xl overflow-hidden">
+                      {p.images?.[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+                      ) : "🏙️"}
+                    </div>
                     <div className="p-4">
                       <div className="text-[0.65rem] font-bold uppercase tracking-wide text-brand mb-1">Dự án</div>
                       <h3 className="font-semibold leading-snug group-hover:text-brand transition">{p.name}</h3>
