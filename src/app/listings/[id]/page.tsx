@@ -32,19 +32,27 @@ export default async function ListingDetail({
     <div>
       <Link href="/" className="text-sm text-[var(--ink-soft)] font-semibold">← Quay lại</Link>
 
-      <div
-        className="rounded-2xl h-72 grid place-items-center text-white text-5xl my-4 relative"
-        style={{ background: t.bg }}
-      >
-        {x.images?.[0] ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={x.images[0]} alt={x.title} className="w-full h-full object-cover rounded-2xl" />
-        ) : (
-          <span>{t.icon}</span>
+      {/* Gallery ảnh - aspect cố định, không đè layout */}
+      <div className="my-4">
+        <div
+          className="relative rounded-2xl overflow-hidden aspect-[16/9] max-h-[460px] grid place-items-center text-white text-5xl"
+          style={{ background: t.bg }}
+        >
+          {x.images?.[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={x.images[0]} alt={x.title} className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <span>{t.icon}</span>
+          )}
+        </div>
+        {x.images && x.images.length > 1 && (
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mt-2">
+            {x.images.slice(1, 6).map((img, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={img} alt="" className="aspect-[4/3] w-full object-cover rounded-lg" />
+            ))}
+          </div>
         )}
-        <span className="absolute bottom-3 left-3 text-xs bg-black/60 px-2 py-1 rounded">
-          ảnh minh hoạ (bản thật lấy từ crawl)
-        </span>
       </div>
 
       <div className="flex flex-wrap justify-between gap-4 items-start">

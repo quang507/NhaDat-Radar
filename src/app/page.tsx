@@ -39,8 +39,8 @@ export default async function Home({
   if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
   if (kind) query = query.eq("kind", kind);
   if (province) query = query.ilike("province", `%${province}%`);
-  if (bedrooms) query = query.gte("bedrooms", Number(bedrooms));
-  if (priceMax) query = query.lte("price_vnd", Number(priceMax));
+  if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
+  if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
   if (q) query = query.ilike("title", `%${q}%`);
   const { data } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(150);
   const listings = (data ?? []) as Listing[];
@@ -48,6 +48,9 @@ export default async function Home({
   const { data: projData } = await supabase.from("projects").select("*").eq("status", "published").limit(6);
   const projects = (projData ?? []) as Project[];
 
+  const withImg = listings.filter((x) => x.images && x.images.length > 0);
+  const collage = withImg.slice(0, 3);
+  const featured = withImg.slice(0, 8);
   const hasFilter = Boolean(deal || kind || province || bedrooms || priceMax || q);
   const mapItems: MapItem[] = listings
     .filter((x) => x.lat != null && x.lng != null)
@@ -56,53 +59,66 @@ export default async function Home({
   const sel = "inp appearance-none pr-8 cursor-pointer";
   return (
     <div>
-      <section className="pt-6 pb-2">
-        <h1 className="prata text-3xl md:text-[2.6rem] leading-tight mb-2 text-balance">
-          Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
-        </h1>
-        <p className="text-[var(--ink-soft)] mb-5 max-w-2xl">
-          Tổng hợp tin từ nhiều nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, tự phân loại chính chủ / môi giới
-          và cảnh báo giá ảo.
-        </p>
+      {/* ===== HERO (chia đôi: nội dung trái + ảnh thật phải) ===== */}
+      <section className="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-10 items-center pt-3 pb-6">
+        <div className="hero-in">
+          <h1 className="prata text-[2rem] md:text-[2.7rem] leading-[1.1] mb-3 text-balance">
+            Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
+          </h1>
+          <p className="text-[var(--ink-soft)] mb-5 max-w-xl">
+            Tổng hợp tin từ nhiều nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, tự phân loại chính chủ / môi giới
+            và cảnh báo giá ảo.
+          </p>
+          <form action="/" className="card rounded-2xl p-3 shadow-sm hero-in-2">
+            <input name="q" defaultValue={q} placeholder="Từ khoá: quận, dự án, đường..." className="inp mb-2" />
+            <div className="flex flex-wrap gap-2">
+              <select name="deal" defaultValue={deal || ""} className={`${sel} flex-1 min-w-[120px]`}>
+                <option value="">Mua bán &amp; thuê</option>
+                <option value="ban">Mua bán</option>
+                <option value="cho_thue">Cho thuê</option>
+              </select>
+              <select name="kind" defaultValue={kind || ""} className={`${sel} flex-1 min-w-[110px]`}>
+                <option value="">Loại BĐS</option>
+                {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+              <select name="province" defaultValue={province || ""} className={`${sel} flex-1 min-w-[110px]`}>
+                <option value="">Toàn quốc</option>
+                {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select name="priceMax" defaultValue={priceMax || ""} className={`${sel} flex-1 min-w-[110px]`}>
+                {PRICE_BUCKETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+              <select name="bedrooms" defaultValue={bedrooms || ""} className={`${sel} w-[92px]`}>
+                <option value="">PN</option>
+                {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+</option>)}
+              </select>
+              <button className="btn btn-primary px-6" type="submit">Tìm kiếm</button>
+            </div>
+          </form>
+        </div>
 
-        {/* Bộ lọc nâng cao kiểu batdongsan */}
-        <form action="/" className="card rounded-2xl p-3 shadow-sm">
-          <div className="flex flex-wrap gap-2 items-center">
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="Từ khoá: quận, dự án, đường..."
-              className="inp flex-1 min-w-[180px]"
-            />
-            <select name="deal" defaultValue={deal || ""} className={sel}>
-              <option value="">Mua bán &amp; thuê</option>
-              <option value="ban">Mua bán</option>
-              <option value="cho_thue">Cho thuê</option>
-            </select>
-            <select name="kind" defaultValue={kind || ""} className={sel}>
-              <option value="">Loại BĐS</option>
-              {Object.entries(PROP).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-            <select name="province" defaultValue={province || ""} className={sel}>
-              <option value="">Toàn quốc</option>
-              {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-            <select name="priceMax" defaultValue={priceMax || ""} className={sel}>
-              {PRICE_BUCKETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-            <select name="bedrooms" defaultValue={bedrooms || ""} className={sel}>
-              <option value="">Phòng ngủ</option>
-              {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+ PN</option>)}
-            </select>
-            <button className="btn btn-primary px-6" type="submit">Tìm kiếm</button>
+        {collage.length >= 3 && (
+          <div className="hero-art hidden lg:grid grid-cols-2 grid-rows-2 gap-3 h-[380px]">
+            {collage.map((x, i) => (
+              <Link
+                key={x.id}
+                href={`/listings/${x.id}`}
+                className={`relative rounded-2xl overflow-hidden shadow-md ${i === 0 ? "row-span-2" : ""}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={x.images[0]} alt={x.title} className="w-full h-full object-cover" />
+                <span className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent" />
+                <span className="absolute bottom-2 left-2 text-white text-sm font-bold drop-shadow">
+                  {shortPrice(x.price_vnd)}
+                </span>
+              </Link>
+            ))}
           </div>
-        </form>
+        )}
       </section>
 
       {hasFilter ? (
-        <section className="mt-6">
+        <section className="mt-2">
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="prata text-xl">{listings.length} kết quả{q ? ` cho “${q}”` : ""}</h2>
             <Link href="/" className="text-sm text-brand font-semibold">Xoá lọc</Link>
@@ -126,51 +142,40 @@ export default async function Home({
       ) : (
         <>
           {projects.length > 0 && (
-            <section className="mt-9">
-              <div className="flex items-baseline gap-3 mb-3">
-                <h2 className="prata text-xl">Dự án nổi bật</h2>
-                <Link href="/projects" className="text-sm text-brand font-semibold ml-auto">Xem tất cả →</Link>
-              </div>
+            <Section title="Dự án nổi bật" href="/projects">
               <div className="grid gap-4 md:grid-cols-3">
                 {projects.slice(0, 3).map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/projects/${p.id}`}
-                    className="card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition group"
-                  >
-                    <div className="h-32 bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white text-3xl">
-                      🏙️
-                    </div>
+                  <Link key={p.id} href={`/projects/${p.id}`} className="card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition group">
+                    <div className="h-32 bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white text-3xl">🏙️</div>
                     <div className="p-4">
                       <div className="text-[0.65rem] font-bold uppercase tracking-wide text-brand mb-1">Dự án</div>
                       <h3 className="font-semibold leading-snug group-hover:text-brand transition">{p.name}</h3>
-                      <div className="text-xs text-[var(--ink-soft)] mt-1">
-                        {[p.district, p.province].filter(Boolean).join(", ")}
-                      </div>
-                      <div className="text-brand font-bold text-sm mt-2">
-                        {fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}
-                      </div>
+                      <div className="text-xs text-[var(--ink-soft)] mt-1">{[p.district, p.province].filter(Boolean).join(", ")}</div>
+                      <div className="text-brand font-bold text-sm mt-2">{fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}</div>
                     </div>
                   </Link>
                 ))}
               </div>
-            </section>
+            </Section>
+          )}
+
+          {featured.length > 0 && (
+            <Section title="Bất động sản nổi bật" href="/?deal=ban">
+              <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
+                {featured.map((x) => <ListingCard key={x.id} x={x} />)}
+              </div>
+            </Section>
           )}
 
           {CATS.map((c) => {
             const items = listings.filter(c.f).slice(0, 8);
             if (!items.length) return null;
-            const catHref = c.href;
             return (
-              <section key={c.t} className="mt-9">
-                <div className="flex items-baseline gap-3 mb-3">
-                  <h2 className="prata text-xl">{c.t}</h2>
-                  <Link href={catHref} className="text-sm text-brand font-semibold ml-auto">Xem tất cả →</Link>
-                </div>
+              <Section key={c.t} title={c.t} href={c.href}>
                 <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
                   {items.map((x) => <ListingCard key={x.id} x={x} />)}
                 </div>
-              </section>
+              </Section>
             );
           })}
         </>
@@ -182,5 +187,17 @@ export default async function Home({
         </p>
       )}
     </div>
+  );
+}
+
+function Section({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-9">
+      <div className="flex items-baseline gap-3 mb-3">
+        <h2 className="prata text-xl">{title}</h2>
+        <Link href={href} className="text-sm text-brand font-semibold ml-auto">Xem tất cả →</Link>
+      </div>
+      {children}
+    </section>
   );
 }

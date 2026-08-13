@@ -5,8 +5,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        // terracotta gạch - chủ đạo, bớt "xanh AI"
-        brand: { DEFAULT: "#b23a1e", ink: "#90301a", 2: "#1f6f5c" },
+        // xanh sạch như homigo.vn
+        brand: { DEFAULT: "#2563eb", ink: "#1d4ed8", 2: "#0ea5a0" },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],

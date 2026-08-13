@@ -3,33 +3,32 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f6f6f4;
+  --bg: #f5f7fa;
   --surface: #ffffff;
-  --surface-2: #f0f0ee;
-  --ink: #17181c;
-  --ink-soft: #565a63;
-  --ink-faint: #8b8f98;
-  --line: #e6e6e2;
-  --line-strong: #d3d3ce;
-  --brand: #b23a1e;        /* terracotta-brick, hợp nhà đất, bớt "xanh AI" */
-  --brand-ink: #90301a;
-  --accent: #1f6f5c;       /* pine cho semantic phụ */
-  --gold: #b7791f;
+  --surface-2: #eef1f6;
+  --ink: #141a22;
+  --ink-soft: #4c566a;
+  --ink-faint: #8b93a1;
+  --line: #e5e9f0;
+  --line-strong: #d3d9e3;
+  --brand: #2563eb;        /* xanh sạch như homigo.vn */
+  --brand-ink: #1d4ed8;
+  --accent: #0ea5a0;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14140f;
-    --surface: #1c1c19;
-    --surface-2: #100f0c;
-    --ink: #eceae2;
-    --ink-soft: #b3b1a6;
-    --ink-faint: #83817a;
-    --line: #2c2b26;
-    --line-strong: #3c3a33;
-    --brand: #e0714f;
-    --brand-ink: #ea8365;
-    --accent: #4fb39a;
-    --gold: #d9a94e;
+    --bg: #0b0f17;
+    --surface: #141a24;
+    --surface-2: #0d1219;
+    --ink: #e9edf4;
+    --ink-soft: #aab4c4;
+    --ink-faint: #7a8496;
+    --line: #232c3a;
+    --line-strong: #33405230;
+    --line-strong: #334052;
+    --brand: #5b9bf5;
+    --brand-ink: #7db0f7;
+    --accent: #3fc7c0;
   }
 }
 html { color-scheme: light dark; }
@@ -41,7 +40,6 @@ body {
   letter-spacing: -0.006em;
 }
 
-/* Display serif = Lora */
 .prata, .display {
   font-family: var(--font-lora), Georgia, "Times New Roman", serif;
   font-weight: 600;
@@ -54,7 +52,7 @@ body {
   border-radius: 10px; background: var(--surface); color: var(--ink); font-size: 0.9rem;
   transition: border-color .12s, box-shadow .12s;
 }
-.inp:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent); }
+.inp:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); }
 .btn {
   padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;
   border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
@@ -63,6 +61,19 @@ body {
 .btn:active { transform: translateY(1px); }
 .btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
 .btn-primary:hover { background: var(--brand-ink); }
+
+/* Hero entrance animation */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.hero-in { animation: fadeUp .6s cubic-bezier(.22,.61,.36,1) both; }
+.hero-in-2 { animation: fadeUp .6s cubic-bezier(.22,.61,.36,1) .12s both; }
+.hero-art { animation: fadeIn .8s ease .1s both; }
+.hero-art img { transition: transform .3s ease; }
+.hero-art:hover img { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) {
+  .hero-in, .hero-in-2, .hero-art { animation: none; }
+  .hero-art:hover img { transform: none; }
+}
 
 /* Leaflet price pill markers */
 .price-pin .pp {
