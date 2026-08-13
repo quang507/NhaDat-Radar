@@ -10,10 +10,11 @@ function step(cmd) {
   catch (e) { console.error("✗ lỗi:", cmd, e.message); return false; }
 }
 
-// 1) Crawl các nguồn headless
+// 1) Crawl các nguồn headless (Chợ Tốt API + nhadat HTTP + Mogi HTML)
 step("node chotot.mjs");
+step("node mogi.mjs");
 if (step("node crawl.js")) step("node geocode.mjs");   // nhadat -> geocode
-step("node merge.mjs");                                 // gộp chotot + nhadat + batdongsan.json (nếu có, đã commit)
+step("node merge.mjs");                                 // gộp + batdongsan.json/facebook.json (nếu có, đã commit)
 
 // 2) Seed vào Supabase (thay data crawl cũ)
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
