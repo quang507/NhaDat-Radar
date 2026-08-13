@@ -3,8 +3,15 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ListingCard from "@/components/ListingCard";
+import MapResults, { type MapItem } from "@/components/MapResults";
 import { fmtPrice, PROP } from "@/lib/format";
 import type { Listing, Project } from "@/lib/types";
+
+function shortPrice(v: number | null): string {
+  if (!v) return "TL";
+  if (v >= 1e9) { const t = v / 1e9; return (t % 1 ? t.toFixed(1) : String(t)) + "tỷ"; }
+  return Math.round(v / 1e6) + "tr";
+}
 
 const CATS: { t: string; f: (x: Listing) => boolean }[] = [
   { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban" },
@@ -42,6 +49,9 @@ export default async function Home({
   const projects = (projData ?? []) as Project[];
 
   const hasFilter = Boolean(deal || kind || province || bedrooms || priceMax || q);
+  const mapItems: MapItem[] = listings
+    .filter((x) => x.lat != null && x.lng != null)
+    .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, label: shortPrice(x.price_vnd), title: x.title }));
 
   const sel = "inp appearance-none pr-8 cursor-pointer";
   return (
@@ -97,12 +107,21 @@ export default async function Home({
             <h2 className="prata text-xl">{listings.length} kết quả{q ? ` cho “${q}”` : ""}</h2>
             <Link href="/" className="text-sm text-brand font-semibold">Xoá lọc</Link>
           </div>
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
-            {listings.map((x) => <ListingCard key={x.id} x={x} />)}
+          <div className="grid lg:grid-cols-[1fr_400px] gap-4 items-start">
+            <div>
+              <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+                {listings.map((x) => <ListingCard key={x.id} x={x} />)}
+              </div>
+              {!listings.length && (
+                <p className="text-[var(--ink-soft)] py-10 text-center">Không có tin khớp bộ lọc.</p>
+              )}
+            </div>
+            {mapItems.length > 0 && (
+              <div className="hidden lg:block sticky top-20 h-[calc(100vh-7rem)]">
+                <MapResults items={mapItems} />
+              </div>
+            )}
           </div>
-          {!listings.length && (
-            <p className="text-[var(--ink-soft)] py-10 text-center">Không có tin khớp bộ lọc.</p>
-          )}
         </section>
       ) : (
         <>
