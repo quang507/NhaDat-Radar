@@ -21,6 +21,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY2: ${{ secrets.GEMINI_API_KEY2 }}
+          GEMINI_API_KEY3: ${{ secrets.GEMINI_API_KEY3 }}
           # Facebook qua Apify (tùy chọn - có thì FB tự cào mỗi ngày)
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           FB_GROUP_URLS: ${{ vars.FB_GROUP_URLS }}

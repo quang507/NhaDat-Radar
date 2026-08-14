@@ -5,8 +5,14 @@
 //   node facebook.mjs --playwright           : tự cào bằng Playwright + fb-cookies.json (cookies clone của bạn, chạy ở MÁY BẠN)
 import fs from "node:fs";
 
-const KEY = process.env.GEMINI_API_KEY;
+// Xoay nhiều key Gemini (từ nhiều PROJECT/acc) để né 429. Cũng nhận GEMINI_API_KEYS="k1,k2,k3".
+const KEYS = [
+  ...(process.env.GEMINI_API_KEYS || "").split(",").map((s) => s.trim()),
+  process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
+  process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5,
+].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
 const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
+let _ki = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Nhóm mục tiêu (từ ảnh của bạn) — dùng cho chế độ Apify/Playwright
@@ -28,17 +34,22 @@ const SCHEMA = `Trả về DUY NHẤT 1 JSON:
  "scam_suspect":bool, "title_clean":string}`;
 
 async function gemini(text) {
-  if (!KEY) throw new Error("Thiếu GEMINI_API_KEY");
+  if (!KEYS.length) throw new Error("Thiếu GEMINI_API_KEY");
   const body = {
     systemInstruction: { parts: [{ text: SYS }] },
     contents: [{ parts: [{ text: SCHEMA + "\n\n--- BÀI ĐĂNG ---\n" + text }] }],
     generationConfig: { responseMimeType: "application/json", temperature: 0 },
   };
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${KEY}`,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const j = await res.json();
-  if (!res.ok) throw new Error("Gemini " + res.status + ": " + JSON.stringify(j).slice(0, 160));
-  return JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
+  for (let attempt = 0; attempt < KEYS.length; attempt++) {
+    const key = KEYS[_ki % KEYS.length];
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (res.status === 429) { _ki++; continue; }   // key hết quota -> xoay sang key khác
+    const j = await res.json();
+    if (!res.ok) throw new Error("Gemini " + res.status + ": " + JSON.stringify(j).slice(0, 160));
+    return JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
+  }
+  throw new Error("Tất cả " + KEYS.length + " key Gemini đều 429 (hết quota) - cần thêm key project khác hoặc bật trả phí");
 }
 
 // post thô {text, author, url, time} -> listing chuẩn (bỏ nếu không phải BĐS)
