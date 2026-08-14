@@ -21,6 +21,9 @@ export async function createLead(
   const row: Record<string, unknown> = { listing_id: listing_id || null, name, phone, message };
   if (project_id) row.project_id = project_id;
   const { error } = await supabase.from("leads").insert(row);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("createLead error:", error.message); // không rò chi tiết Postgres ra client
+    return { ok: false, error: "Không gửi được liên hệ, vui lòng thử lại." };
+  }
   return { ok: true };
 }

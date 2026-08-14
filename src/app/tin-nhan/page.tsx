@@ -81,7 +81,13 @@ function Chat() {
         (payload) => {
           if (stop) return;
           const m = payload.new as Msg;
-          setMsgs((prev) => (prev.some((p) => p.id === m.id) ? prev : [...prev.filter((p) => !p.id.startsWith("tmp")), m]));
+          setMsgs((prev) => {
+            if (prev.some((p) => p.id === m.id)) return prev; // đã có (poll load được trước)
+            // Gỡ ĐÚNG 1 tin optimistic khớp (cùng người gửi + nội dung), giữ các tmp khác đang chờ.
+            const idx = prev.findIndex((p) => p.id.startsWith("tmp") && p.sender_id === m.sender_id && p.body === m.body);
+            const base = idx >= 0 ? prev.filter((_, i) => i !== idx) : prev;
+            return [...base, m];
+          });
           markConvSeen(sel, m.created_at);
         })
       .subscribe();
@@ -96,9 +102,14 @@ function Chat() {
     const body = input.trim();
     if (!body || !sel || !uid) return;
     setInput("");
-    const optimistic: Msg = { id: "tmp" + Date.now(), conversation_id: sel, sender_id: uid, body, created_at: new Date().toISOString() };
+    const tmpId = "tmp" + Date.now() + Math.random().toString(36).slice(2, 7); // tránh trùng key khi gửi nhanh
+    const optimistic: Msg = { id: tmpId, conversation_id: sel, sender_id: uid, body, created_at: new Date().toISOString() };
     setMsgs((m) => [...m, optimistic]);
-    await supabase.from("messages").insert({ conversation_id: sel, sender_id: uid, body });
+    const { error } = await supabase.from("messages").insert({ conversation_id: sel, sender_id: uid, body });
+    if (error) {
+      setMsgs((m) => m.filter((x) => x.id !== tmpId)); // gửi lỗi -> gỡ tin optimistic, khỏi "mất im lặng"
+      setInput(body); // trả nội dung để người dùng gửi lại
+    }
   }
 
   if (!loaded) return <p className="text-center py-16 text-[var(--ink-soft)]">Đang tải…</p>;

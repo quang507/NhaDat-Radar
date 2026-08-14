@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ListingState = { ok: boolean; error?: string };
 
@@ -28,7 +29,10 @@ export async function createListing(
     if (Array.isArray(arr)) images = arr.filter((u) => typeof u === "string" && u.startsWith("http")).slice(0, 12);
   } catch { /* không có ảnh */ }
 
-  const { error } = await supabase.from("listings").insert({
+  // Ghi bằng service-role SAU KHI đã xác thực user + ép agent_id = user.id.
+  // Client thường không được insert listings nữa (migration 005 gỡ policy insert),
+  // để không ai gọi thẳng PostgREST tự đặt status/ai_score/trust_score giả.
+  const { error } = await createAdminClient().from("listings").insert({
     source: "agent",
     agent_id: user.id,
     deal: String(formData.get("deal") || "ban"),
@@ -70,8 +74,11 @@ export async function setAppointmentStatus(formData: FormData) {
   const id = String(formData.get("id") || "");
   const status = String(formData.get("status") || "");
   if (!id || !["confirmed", "cancelled", "requested"].includes(status)) return;
-  await supabase.from("appointments").update({ status })
-    .eq("id", id)
-    .or(`agent_id.eq.${user.id},buyer_id.eq.${user.id}`);
+  let q = supabase.from("appointments").update({ status }).eq("id", id);
+  // Chỉ NGƯỜI BÁN được "xác nhận"; "hủy"/khác thì cả hai bên đều được.
+  q = status === "confirmed"
+    ? q.eq("agent_id", user.id)
+    : q.or(`agent_id.eq.${user.id},buyer_id.eq.${user.id}`);
+  await q;
   revalidatePath("/dashboard");
 }
