@@ -63,10 +63,16 @@ export default async function AccountPage({
               <input className="inp" name="years_experience" type="number" min={0} max={60} defaultValue={p?.years_experience || 0} />
             </label>
           </div>
-          <label className="block mt-3">
-            <span className="lbl">Chuyên môn (phân cách bằng dấu phẩy)</span>
-            <input className="inp" name="specialties" defaultValue={(p?.specialties || []).join(", ")} placeholder="Nhà phố, Căn hộ, Cho thuê" />
-          </label>
+          <div className="grid sm:grid-cols-2 gap-4 mt-3">
+            <label className="block">
+              <span className="lbl">Chuyên môn (phân cách bằng dấu phẩy)</span>
+              <input className="inp" name="specialties" defaultValue={(p?.specialties || []).join(", ")} placeholder="Nhà phố, Căn hộ, Cho thuê" />
+            </label>
+            <label className="block">
+              <span className="lbl">Ngôn ngữ (phân cách bằng dấu phẩy)</span>
+              <input className="inp" name="languages" defaultValue={(p?.languages || []).join(", ")} placeholder="Tiếng Việt, English, 中文" />
+            </label>
+          </div>
           <label className="block mt-3">
             <span className="lbl">Giới thiệu bản thân</span>
             <textarea className="inp" name="bio" rows={3} defaultValue={p?.bio || ""} placeholder="Kinh nghiệm, khu vực hoạt động..." />

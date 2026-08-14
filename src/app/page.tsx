@@ -396,9 +396,10 @@ function Section({ title, href, children }: { title: string; href: string; child
 }
 
 function Stat({ n, label }: { n: number; label: string }) {
+  // "+" chỉ hợp lý với số lớn xấp xỉ; số nhỏ/đếm chính xác hiện đúng giá trị.
   return (
     <div>
-      <div className="text-xl font-extrabold text-brand">{n.toLocaleString("vi-VN")}+</div>
+      <div className="text-xl font-extrabold text-brand">{n.toLocaleString("vi-VN")}{n >= 100 ? "+" : ""}</div>
       <div className="text-xs text-[var(--ink-soft)]">{label}</div>
     </div>
   );

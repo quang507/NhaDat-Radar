@@ -86,6 +86,9 @@ export default async function AgentsPage() {
                       ))}
                     </div>
                   )}
+                  {!!a.languages?.length && (
+                    <div className="text-[0.7rem] text-[var(--ink-soft)] mt-1.5">🗣 {a.languages.slice(0, 4).join(" · ")}</div>
+                  )}
                   <div className="text-xs text-[var(--ink-soft)] mt-2">{counts.get(a.id) || 0} bất động sản</div>
                   <Link href={`/search?q=${encodeURIComponent(name)}`} className="btn mt-3 w-full text-sm">Xem tin đăng</Link>
                 </div>

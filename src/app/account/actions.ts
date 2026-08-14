@@ -23,6 +23,8 @@ export async function updateProfile(formData: FormData) {
     years_experience: Math.max(0, Math.min(60, Number(formData.get("years_experience") || 0))),
     specialties: String(formData.get("specialties") || "")
       .split(",").map((s) => s.trim()).filter(Boolean).slice(0, 8),
+    languages: String(formData.get("languages") || "")
+      .split(",").map((s) => s.trim()).filter(Boolean).slice(0, 8),
   };
   if (avatar_url) patch.avatar_url = avatar_url;
 
