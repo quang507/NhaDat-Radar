@@ -16,6 +16,7 @@ step("node mogi.mjs");
 if (step("node crawl.js")) step("node geocode.mjs");   // nhadat -> geocode
 if (process.env.APIFY_TOKEN && process.env.FB_GROUP_URLS) step("node facebook.mjs --apify-run"); // FB qua Apify (nếu có token + nhóm)
 step("node merge.mjs");                                 // gộp tất cả nguồn -> combined.json
+step("node geocode-all.mjs");                           // bù toạ độ cho MỌI tin thiếu (để tin nào cũng có map)
 
 // 2) Seed vào Supabase (thay data crawl cũ)
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
