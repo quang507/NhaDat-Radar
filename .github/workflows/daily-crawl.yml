@@ -15,20 +15,9 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-      # Facebook qua Playwright (free): cần secret FB_COOKIES_JSON (export cookies từ acc clone).
-      # Guard bằng shell (KHÔNG dùng secrets trong 'if:' - GitHub Actions cấm, gây startup_failure).
-      - name: Chuẩn bị Playwright cho Facebook
-        run: |
-          if [ -n "$FB_COOKIES_JSON" ]; then
-            echo "$FB_COOKIES_JSON" > crawler/fb-cookies.json
-            npm i playwright --no-save
-            npx playwright install chromium --with-deps
-            echo "FB Playwright sẵn sàng."
-          else
-            echo "Không có FB_COOKIES_JSON -> bỏ qua Playwright (FB sẽ dùng Apify nếu có token)."
-          fi
-        env:
-          FB_COOKIES_JSON: ${{ secrets.FB_COOKIES_JSON }}
+      # Facebook KHÔNG chạy trên CI: IP GitHub Actions bị FB chặn (kiểm chứng 14/8 —
+      # 13 nhóm đều trả trang login, 0 bài, tốn ~9 phút + 117MB Playwright mỗi run).
+      # Muốn cào FB: chạy crawl-local.bat trên máy nhà (IP dân cư) — daily.mjs tự nhận.
       - name: Crawl + seed Supabase
         run: node crawler/daily.mjs
         env:

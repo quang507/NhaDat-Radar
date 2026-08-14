@@ -15,8 +15,11 @@ step("node chotot.mjs");
 step("node mogi.mjs");
 step("node extra-sites.mjs");                          // batdongsantoanquoc + bannhadat123 + sosanhnha
 if (step("node crawl.js")) step("node geocode.mjs");   // nhadat -> geocode
-// FB: ưu tiên Playwright (free, cần secret FB_COOKIES_JSON ghi ra fb-cookies.json) -> fallback Apify (tốn phí)
-if (fs.existsSync(new URL("./fb-cookies.json", import.meta.url)) && process.env.FB_GROUP_URLS) {
+// FB: IP GitHub Actions bị Facebook chặn (kiểm chứng 14/8: 13 nhóm đều trả trang login,
+// 0 bài, tốn ~9 phút/run) -> CI BỎ QUA FB hẳn. Chạy máy nhà (IP dân cư) vẫn cào bình thường.
+if (process.env.GITHUB_ACTIONS) {
+  console.log("↷ Bỏ qua Facebook trên CI (IP datacenter bị chặn) — chạy crawl-local.bat trên máy nhà để lấy tin FB.");
+} else if (fs.existsSync(new URL("./fb-cookies.json", import.meta.url)) && process.env.FB_GROUP_URLS) {
   step("node facebook.mjs --playwright");
 } else if (process.env.APIFY_TOKEN && process.env.FB_GROUP_URLS) {
   step("node facebook.mjs --apify-run");
