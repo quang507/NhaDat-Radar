@@ -30,8 +30,8 @@ export default async function SearchPage({
   if (sort === "price_asc") query = query.order("price_vnd", { ascending: true, nullsFirst: false });
   else if (sort === "price_desc") query = query.order("price_vnd", { ascending: false, nullsFirst: false });
   else if (sort === "area_desc") query = query.order("area_m2", { ascending: false, nullsFirst: false });
-  else if (sort === "newest") query = query.order("first_seen_at", { ascending: false, nullsFirst: false });
-  else query = query.order("ai_score", { ascending: false, nullsFirst: false });
+  else if (sort === "score") query = query.order("ai_score", { ascending: false, nullsFirst: false });
+  else query = query.order("first_seen_at", { ascending: false, nullsFirst: false }); // mặc định: crawl mới nhất trước
 
   const [{ data }, { data: geoRows }] = await Promise.all([
     query.limit(200),

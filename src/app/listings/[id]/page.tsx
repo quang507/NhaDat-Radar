@@ -77,13 +77,13 @@ export default async function ListingDetail({
   const roleGuess = x.poster_role_guess;
   const seen = agoMin(x.first_seen_at);
 
-  const details: [string, string, string][] = [
-    ["🧭", "Hướng", x.direction || "-"],
-    ["📜", "Pháp lý", x.legal_status || "-"],
-    ["🏢", "Số tầng", x.floors ? `${x.floors} tầng` : "-"],
-    ["🛋", "Nội thất", x.furnishing || "-"],
-    ["🅿", "Chỗ đậu xe", x.amenities?.includes("parking") ? "Có" : "-"],
-    ["🏷", "Mã tin", x.id.slice(0, 8)],
+  const details: [string, string][] = [
+    ["Hướng", x.direction || "-"],
+    ["Pháp lý", x.legal_status || "-"],
+    ["Số tầng", x.floors ? `${x.floors} tầng` : "-"],
+    ["Nội thất", x.furnishing || "-"],
+    ["Chỗ đậu xe", x.amenities?.includes("parking") ? "Có" : "-"],
+    ["Mã tin", x.id.slice(0, 8)],
   ];
 
   return (
@@ -121,12 +121,12 @@ export default async function ListingDetail({
       </div>
 
       <div className="flex flex-wrap gap-x-6 gap-y-2 py-4 my-3 border-y border-[var(--line)] text-sm">
-        <span>🛏 {x.bedrooms ?? 0} phòng ngủ</span>
-        <span>🛁 {x.bathrooms ?? 0} phòng tắm</span>
-        <span>📐 {x.area_m2 ?? "-"} m²</span>
-        <span>🏠 {PROP[x.kind]}</span>
-        <span>{x.deal === "ban" ? "🏷 Bán" : "🔑 Cho thuê"}</span>
-        {x.ai_score ? <span className="text-amber-600 font-semibold">★ {x.ai_score}/100</span> : null}
+        <span><b>{x.bedrooms ?? 0}</b> phòng ngủ</span>
+        <span><b>{x.bathrooms ?? 0}</b> phòng tắm</span>
+        <span><b>{x.area_m2 ?? "-"}</b> m²</span>
+        <span>{PROP[x.kind]}</span>
+        <span>{x.deal === "ban" ? "Bán" : "Cho thuê"}</span>
+        {x.ai_score ? <span className="text-[var(--ink-soft)]" title="Điểm chất lượng tin">Điểm tin <b>{x.ai_score}/100</b></span> : null}
       </div>
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 mt-5">
@@ -139,7 +139,7 @@ export default async function ListingDetail({
               : "border-[var(--line)]"
             }`}>
               <div className="flex items-center gap-2 font-bold mb-1">
-                📊 So sánh giá
+                So sánh giá
                 <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
                   diffPct <= -5 ? "bg-emerald-500/15 text-emerald-600"
                   : diffPct >= 10 ? "bg-red-500/15 text-red-600"
@@ -159,7 +159,7 @@ export default async function ListingDetail({
           {/* Nhãn chính chủ / môi giới từ AI */}
           {roleGuess === "moi_gioi" && (
             <div className="card rounded-2xl p-4 border-sky-500/40 bg-sky-500/5 text-sm">
-              <div className="font-bold mb-1">ℹ️ Có dấu hiệu môi giới</div>
+              <div className="font-bold mb-1">Có dấu hiệu môi giới</div>
               <p className="text-[var(--ink-soft)]">
                 Đây là nhận định của AI dựa trên nội dung/tần suất đăng tin, không phải xác minh danh tính.
                 Hãy kiểm tra kỹ trước khi đặt cọc.
@@ -168,7 +168,7 @@ export default async function ListingDetail({
           )}
           {roleGuess === "chu_nha" && (
             <div className="card rounded-2xl p-4 border-emerald-500/40 bg-emerald-500/5 text-sm">
-              <div className="font-bold mb-1">✅ Có dấu hiệu chính chủ</div>
+              <div className="font-bold mb-1">Có dấu hiệu chính chủ</div>
               <p className="text-[var(--ink-soft)]">AI nhận định người đăng nhiều khả năng là chủ nhà. Vẫn nên xác minh sổ/giấy tờ khi giao dịch.</p>
             </div>
           )}
@@ -190,12 +190,9 @@ export default async function ListingDetail({
             <h3 className="font-bold mb-3">Chi tiết bất động sản</h3>
             <div className="grid grid-cols-2 gap-4">
               {details.map((d) => (
-                <div key={d[1]} className="flex gap-3">
-                  <span className="text-brand">{d[0]}</span>
-                  <div>
-                    <div className="text-xs text-[var(--ink-soft)] uppercase">{d[1]}</div>
-                    <div className="font-semibold text-sm">{d[2]}</div>
-                  </div>
+                <div key={d[0]} className="border-l-2 border-[var(--line)] pl-3">
+                  <div className="text-xs text-[var(--ink-soft)] uppercase">{d[0]}</div>
+                  <div className="font-semibold text-sm">{d[1]}</div>
                 </div>
               ))}
             </div>
@@ -231,8 +228,8 @@ export default async function ListingDetail({
           <div className="card rounded-2xl p-5">
             <h3 className="font-bold mb-3">Liên hệ người bán</h3>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-full grid place-items-center text-white font-bold bg-gradient-to-br from-brand to-brand-2">
-                {x.source === "agent" ? "✓" : "?"}
+              <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#16233a] text-xs">
+                {x.source === "agent" ? "BÁN" : "TIN"}
               </div>
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : "Người đăng tin")}</div>
@@ -247,7 +244,7 @@ export default async function ListingDetail({
                 href={`/tin-nhan?listing=${x.id}&agent=${x.agent_id}`}
                 className="btn w-full text-center block mb-3"
               >
-                💬 Nhắn tin với người bán
+                Nhắn tin với người bán
               </Link>
             )}
             <ContactForm listingId={x.id} listingTitle={x.title} />
@@ -270,12 +267,18 @@ export default async function ListingDetail({
 
           {/* Độ mới của tin (kiểu homigo.life) */}
           <div className="card rounded-2xl p-5 text-sm">
-            <h3 className="font-bold mb-2">🕒 Độ mới của tin</h3>
+            <h3 className="font-bold mb-2">Độ mới của tin</h3>
             <div className="grid grid-cols-[1fr_auto] gap-y-1.5">
               <span className="text-[var(--ink-soft)]">Radar thấy tin</span>
               <span className="font-semibold">{seen != null ? fresh(seen) : "—"}</span>
+              <span className="text-[var(--ink-soft)]">Thu thập lúc</span>
+              <span className="font-semibold">
+                {(x.crawled_at || x.first_seen_at)
+                  ? new Date(x.crawled_at || x.first_seen_at!).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })
+                  : "—"}
+              </span>
               <span className="text-[var(--ink-soft)]">Nguồn</span>
-              <span className="font-semibold">{x.source === "agent" ? "Tự đăng ✓" : x.source_site || "crawl"}</span>
+              <span className="font-semibold">{x.source === "agent" ? "Tự đăng" : x.source_site || "crawl"}</span>
               {x.trust_score ? (<><span className="text-[var(--ink-soft)]">Độ tin cậy AI</span><span className="font-semibold">{x.trust_score}/100</span></>) : null}
             </div>
           </div>

@@ -13,7 +13,7 @@ export default function ListingCard({ x }: { x: Listing }) {
   return (
     <Link
       href={`/listings/${x.id}`}
-      className="reveal group card rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col"
+      className="reveal group card rounded-xl overflow-hidden hover:border-[var(--line-strong)] hover:shadow-md transition-all duration-200 flex flex-col"
     >
       <div
         className="aspect-[16/10] grid place-items-center text-white relative overflow-hidden"
@@ -47,23 +47,27 @@ export default function ListingCard({ x }: { x: Listing }) {
           {x.title}
         </h3>
         <div className="text-xs text-[var(--ink-soft)] truncate">
-          📍 {[x.district, x.province].filter(Boolean).join(", ") || "—"}
+          {[x.district, x.province].filter(Boolean).join(", ") || "—"}
         </div>
-        <div className="flex items-center gap-2.5 text-xs text-[var(--ink-soft)] font-medium">
-          {x.area_m2 ? <span>📐 {x.area_m2}m²</span> : null}
-          {x.bedrooms ? <span>🛏 {x.bedrooms}</span> : null}
-          {x.bathrooms ? <span>🛁 {x.bathrooms}</span> : null}
-          <span className="ml-auto text-[0.68rem] text-[var(--ink-faint)]">{PROP[x.kind]}</span>
+        <div className="flex items-center gap-1 text-xs text-[var(--ink-soft)]">
+          <span className="truncate">
+            {[x.area_m2 ? `${x.area_m2} m²` : null, x.bedrooms ? `${x.bedrooms} PN` : null, x.bathrooms ? `${x.bathrooms} WC` : null]
+              .filter(Boolean).join(" · ") || PROP[x.kind]}
+          </span>
+          <span className="ml-auto text-[0.68rem] text-[var(--ink-faint)] shrink-0">{PROP[x.kind]}</span>
         </div>
         <div className="flex items-center gap-1.5 mt-auto pt-2 border-t border-[var(--line)] text-[0.66rem] font-bold">
           <span className={`px-1.5 py-0.5 rounded ${isAgent ? "text-emerald-600 bg-emerald-500/10" : "text-[var(--ink-soft)] bg-[var(--surface-2)]"}`}>
-            {isAgent ? "✓ Tự đăng" : x.source_site || "crawl"}
+            {isAgent ? "Tự đăng" : x.source_site || "crawl"}
           </span>
           {x.ai_score ? (
-            <span className="px-1.5 py-0.5 rounded text-amber-600 bg-amber-500/10">★ {x.ai_score}</span>
+            <span className="px-1.5 py-0.5 rounded text-[var(--ink-soft)] bg-[var(--surface-2)]" title="Điểm chất lượng tin (0-100)">{x.ai_score}/100</span>
           ) : null}
           {x.first_seen_at && (
-            <span className="ml-auto font-medium text-emerald-600">
+            <span
+              className="ml-auto font-medium text-emerald-600"
+              title={`Radar thu thập: ${new Date(x.first_seen_at).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`}
+            >
               {fresh(Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000))}
             </span>
           )}

@@ -34,6 +34,7 @@ export type Listing = {
   price_flag: PriceFlag | null;
   status: string;
   first_seen_at: string | null;
+  crawled_at: string | null;
   created_at: string;
 };
 

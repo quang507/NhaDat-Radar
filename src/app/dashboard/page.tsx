@@ -32,17 +32,17 @@ export default async function Dashboard() {
     ? await supabase.from("listings").select("id,title").in("id", apptListingIds)
     : { data: [] as { id: string; title: string }[] };
   const titleMap = new Map((apptListings ?? []).map((l) => [l.id, l.title]));
-  const STATUS: Record<string, string> = { requested: "🕐 Chờ xác nhận", confirmed: "✅ Đã xác nhận", cancelled: "✖ Đã hủy" };
+  const STATUS: Record<string, string> = { requested: "Chờ xác nhận", confirmed: "Đã xác nhận", cancelled: "Đã hủy" };
 
   return (
     <div>
       <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div>
           <h1 className="prata text-2xl">Kênh người bán</h1>
-          <p className="text-[var(--ink-soft)] text-sm">👤 {user.email}</p>
+          <p className="text-[var(--ink-soft)] text-sm">{user.email}</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/tin-nhan" className="btn">💬 Tin nhắn</Link>
+          <Link href="/tin-nhan" className="btn">Tin nhắn</Link>
           <Link href="/account" className="btn">Hồ sơ</Link>
           <Link href="/dashboard/new" className="btn btn-primary">+ Đăng tin mới</Link>
         </div>
@@ -50,7 +50,7 @@ export default async function Dashboard() {
 
       {appointments.length > 0 && (
         <div className="card rounded-2xl p-5 mb-6">
-          <h2 className="font-bold mb-3">📅 Lịch hẹn xem nhà ({appointments.length})</h2>
+          <h2 className="font-bold mb-3">Lịch hẹn xem nhà ({appointments.length})</h2>
           <div className="space-y-2 text-sm">
             {appointments.map((a) => (
               <div key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 border-b border-[var(--line)] last:border-0">
@@ -64,7 +64,7 @@ export default async function Dashboard() {
                   {a.agent_id === user.id && a.status === "requested" && (
                     <>
                       <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="confirmed" />
-                        <button className="btn !px-2.5 !py-1 text-xs !text-emerald-600">✓ Xác nhận</button></form>
+                        <button className="btn !px-2.5 !py-1 text-xs !text-emerald-600">Xác nhận</button></form>
                       <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="cancelled" />
                         <button className="btn !px-2.5 !py-1 text-xs !text-red-600">Từ chối</button></form>
                     </>
@@ -87,7 +87,7 @@ export default async function Dashboard() {
 
       {leads.length > 0 && (
         <div className="card rounded-2xl p-5 mb-6">
-          <h2 className="font-bold mb-3">📨 Liên hệ từ khách ({leads.length})</h2>
+          <h2 className="font-bold mb-3">Liên hệ từ khách ({leads.length})</h2>
           <div className="space-y-2 text-sm">
             {leads.map((l) => (
               <div key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 border-b border-[var(--line)] last:border-0">
