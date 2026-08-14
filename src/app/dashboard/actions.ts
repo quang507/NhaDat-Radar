@@ -22,6 +22,11 @@ export async function createListing(
 
   const area = Number(formData.get("area") || 0) || null;
   const amenities = formData.getAll("amenities").map(String);
+  let images: string[] = [];
+  try {
+    const arr = JSON.parse(String(formData.get("images") || "[]"));
+    if (Array.isArray(arr)) images = arr.filter((u) => typeof u === "string" && u.startsWith("http")).slice(0, 12);
+  } catch { /* không có ảnh */ }
 
   const { error } = await supabase.from("listings").insert({
     source: "agent",
@@ -43,6 +48,7 @@ export async function createListing(
     address: String(formData.get("address") || "") || null,
     contact_phone: String(formData.get("contact_phone") || "") || null,
     amenities,
+    images,
     ai_score: 90,
     poster_role_guess: "agent",
     status: "published",

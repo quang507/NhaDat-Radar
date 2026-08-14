@@ -156,7 +156,35 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
   if (parsed.bedrooms) q = q.gte("bedrooms", parsed.bedrooms);
   if (parsed.keyword) q = q.ilike("title", `%${parsed.keyword}%`);
   const { data } = await q.order("ai_score", { ascending: false, nullsFirst: false }).limit(5);
-  const found = data ?? [];
+  let found = data ?? [];
+
+  // Không có kết quả -> thử tìm NGỮ NGHĨA bằng pgvector (cần migration 003 + embed.mjs đã chạy)
+  if (!found.length) {
+    try {
+      const KEYS = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
+        process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5].filter(Boolean) as string[];
+      for (const k of KEYS) {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${k}`,
+          { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: { parts: [{ text: last.slice(0, 1000) }] } }) },
+        );
+        if (res.status === 429) continue;
+        const j = await res.json();
+        const vec = j?.embedding?.values;
+        if (!vec) break;
+        const { data: matches } = await supabase.rpc("match_listings", { query_embedding: vec, match_count: 5 });
+        const ids = (matches ?? []).filter((m: { similarity: number }) => m.similarity > 0.5).map((m: { id: string }) => m.id);
+        if (ids.length) {
+          const { data: sem } = await supabase
+            .from("listings").select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images")
+            .in("id", ids);
+          found = sem ?? [];
+        }
+        break;
+      }
+    } catch { /* chưa có pgvector/embedding - bỏ qua */ }
+  }
 
   let reply: string | null = null;
   if (found.length) {

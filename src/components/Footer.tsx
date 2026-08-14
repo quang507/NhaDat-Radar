@@ -31,6 +31,7 @@ export default function Footer() {
             <li><Link className="hover:text-brand" href="/huong-dan/ban">Hướng dẫn bán</Link></li>
             <li><Link className="hover:text-brand" href="/dinh-gia">AI định giá bất động sản</Link></li>
             <li><Link className="hover:text-brand" href="/tinh-lai-vay">Máy tính lãi vay</Link></li>
+            <li><Link className="hover:text-brand" href="/thue-hay-mua">Thuê hay mua?</Link></li>
             <li><Link className="hover:text-brand" href="/agents">Người bán chuyên nghiệp</Link></li>
           </ul>
         </div>
@@ -39,6 +40,7 @@ export default function Footer() {
           <ul className="space-y-2 text-[var(--ink-soft)]">
             <li><Link className="hover:text-brand" href="/ban">Đăng bán bất động sản</Link></li>
             <li><Link className="hover:text-brand" href="/dashboard">Quản lý tin đăng</Link></li>
+            <li><Link className="hover:text-brand" href="/tin-nhan">Tin nhắn 💬</Link></li>
             <li><Link className="hover:text-brand" href="/auth">Đăng nhập / Đăng ký</Link></li>
             <li><Link className="hover:text-brand" href="/yeu-thich">Tin đã lưu ♥</Link></li>
           </ul>

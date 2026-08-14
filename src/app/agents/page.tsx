@@ -22,10 +22,11 @@ const WHY = [
 
 export default async function AgentsPage() {
   const supabase = await createClient();
+  // Người bán = role agent/admin HOẶC đã điền hồ sơ người bán (tên công ty) ở /account
   const { data } = await supabase
     .from("profiles")
     .select("id,full_name,avatar_url,bio,agency_name,specialties,languages,years_experience,is_verified")
-    .in("role", ["agent", "admin"])
+    .or("role.eq.agent,role.eq.admin,agency_name.not.is.null")
     .order("years_experience", { ascending: false })
     .limit(60);
   const agents = (data ?? []) as AgentRow[];
@@ -48,7 +49,8 @@ export default async function AgentsPage() {
           Tìm những người bán giàu kinh nghiệm có thể hướng dẫn bạn qua từng bước trong hành trình
           bất động sản của bạn tại Việt Nam.
         </p>
-        <Link href="/auth?mode=register" className="btn btn-primary inline-block">Trở thành Người Bán</Link>
+        <Link href="/account" className="btn btn-primary inline-block">Trở thành Người Bán</Link>
+        <p className="text-xs text-[var(--ink-faint)] mt-2">Đăng nhập → vào Tài khoản → điền “Hồ sơ người bán” là xuất hiện tại đây.</p>
       </section>
 
       {/* Danh sách */}
@@ -97,7 +99,7 @@ export default async function AgentsPage() {
             <p className="text-[var(--ink-soft)] text-sm mb-4">
               Hãy là người bán đầu tiên trên NhaDat Radar — đăng ký miễn phí và đăng tin ngay hôm nay.
             </p>
-            <Link href="/auth?mode=register" className="btn btn-primary inline-block">Đăng ký làm người bán</Link>
+            <Link href="/account" className="btn btn-primary inline-block">Đăng ký làm người bán</Link>
           </div>
         )}
       </section>

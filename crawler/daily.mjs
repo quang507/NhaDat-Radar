@@ -14,7 +14,12 @@ function step(cmd) {
 step("node chotot.mjs");
 step("node mogi.mjs");
 if (step("node crawl.js")) step("node geocode.mjs");   // nhadat -> geocode
-if (process.env.APIFY_TOKEN && process.env.FB_GROUP_URLS) step("node facebook.mjs --apify-run"); // FB qua Apify (nếu có token + nhóm)
+// FB: ưu tiên Playwright (free, cần secret FB_COOKIES_JSON ghi ra fb-cookies.json) -> fallback Apify (tốn phí)
+if (fs.existsSync(new URL("./fb-cookies.json", import.meta.url)) && process.env.FB_GROUP_URLS) {
+  step("node facebook.mjs --playwright");
+} else if (process.env.APIFY_TOKEN && process.env.FB_GROUP_URLS) {
+  step("node facebook.mjs --apify-run");
+}
 step("node merge.mjs");                                 // gộp tất cả nguồn -> combined.json
 step("node geocode-all.mjs");                           // bù toạ độ cho MỌI tin thiếu (để tin nào cũng có map)
 
@@ -39,3 +44,8 @@ await sb.from("listings").delete().eq("source", "crawl");
 const { data, error } = await sb.from("listings").insert(rows).select("id");
 if (error) { console.error("Seed lỗi:", error.message); process.exit(1); }
 console.log(`✅ ${now.slice(0, 10)}: làm mới ${data.length} tin (${rows.filter((r) => r.images.length).length} có ảnh).`);
+
+// 3) Hậu xử lý: snapshot lịch sử giá + gửi email báo tin mới (đều tự bỏ qua nếu thiếu env)
+step("node price-history.mjs");
+step("node alerts.mjs");
+step("node embed.mjs"); // embedding cho tìm kiếm ngữ nghĩa (cần migration 003 + GEMINI key)

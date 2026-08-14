@@ -85,6 +85,27 @@ export async function signInWithGoogle() {
   if (data.url) redirect(data.url);
 }
 
+export async function resetPassword(formData: FormData) {
+  const email = String(formData.get("email") || "").trim();
+  if (!email) redirect("/auth?mode=forgot&error=" + encodeURIComponent("Nhập email đã đăng ký."));
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${await siteUrl()}/auth/callback?next=/auth/doi-mat-khau`,
+  });
+  if (error) redirect("/auth?mode=forgot&error=" + encodeURIComponent(viErr(error.message)));
+  redirect("/auth?message=" + encodeURIComponent(`Đã gửi link đặt lại mật khẩu tới ${email} — kiểm tra hộp thư (cả mục Spam).`));
+}
+
+export async function updatePassword(formData: FormData) {
+  const password = String(formData.get("password") || "");
+  if (password.length < 6) redirect("/auth/doi-mat-khau?error=" + encodeURIComponent("Mật khẩu phải có ít nhất 6 ký tự."));
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) redirect("/auth/doi-mat-khau?error=" + encodeURIComponent(viErr(error.message)));
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

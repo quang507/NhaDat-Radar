@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import NavFav from "./NavFav";
+import MobileMenu from "./MobileMenu";
 
 export default async function Nav() {
   const supabase = await createClient();
@@ -12,7 +13,8 @@ export default async function Nav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]/85 backdrop-blur">
-      <div className="max-w-6xl mx-auto px-5 py-3 flex items-center gap-3">
+      <div className="relative max-w-6xl mx-auto px-5 py-3 flex items-center gap-3">
+        <MobileMenu />
         <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap">
           <span className="w-7 h-7 rounded-lg grid place-items-center text-white text-sm bg-gradient-to-br from-brand to-brand-2">
             ◎
@@ -33,7 +35,7 @@ export default async function Nav() {
           {user ? (
             <>
               <Link
-                href="/dashboard"
+                href="/account"
                 title={user.email || ""}
                 className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold bg-gradient-to-br from-brand to-brand-2 shrink-0"
               >

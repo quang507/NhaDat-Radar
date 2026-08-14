@@ -120,7 +120,9 @@ Setup DB mới: Supabase → SQL Editor → chạy `supabase/schema.sql` rồi `
 ## 9. Checklist tính năng
 ✅ Feed đa nguồn + lọc (quận/giá/loại/phòng ngủ) · **trang /search hoàn chỉnh** (tỉnh/quận/phường + sort + ẩn/hiện lọc & map) · chi tiết + gallery + **map thật** · dự án + chi tiết dự án · thống kê giá theo quận (map + bảng) · auth email+Google · đăng tin (RLS) · form liên hệ (leads) · **chatbot web AI** (nút 💬, /api/chat, xoay key Gemini + fallback keyword) · **yêu thích ♥** (localStorage + badge trên Nav) · **/agents** · **hướng dẫn mua & bán** · **máy tính lãi vay** · **landing /ban** · **footer** · trang chủ kiểu homigo (cách hoạt động, vì sao chọn, testimonial, danh mục, CTA) · Zalo OA bot (code) · AI cò/cá nhân + cảnh báo giá ảo + lọc rác · crawl tự động hằng ngày · geocode mọi tin · xoay nhiều key Gemini.
 
-⏳ Cần làm nốt: **chạy `migration 001`** (bảo mật) · re-run workflow để FB cào nhiều hơn.
+✅ Đợt 2 (2026-08-14): quên mật khẩu + menu mobile ☰ + upload ảnh đăng tin (Storage) + trang cá nhân /account (kiêm hồ sơ người bán -> hiện ở /agents) + favorites sync DB + email báo tin mới (🔔 /search + crawler/alerts.mjs, cần RESEND_API_KEY) + nhắn tin mua-bán /tin-nhan + đặt lịch xem nhà + admin /admin + lịch sử giá (price_history + chart /thong-ke) + /thue-hay-mua (yield theo quận) + SEO (sitemap/robots/OG) + pgvector semantic search (migration 003 + crawler/embed.mjs + fallback chatbot) + FB ưu tiên Playwright (secret FB_COOKIES_JSON) fallback Apify.
+
+⏳ Cần làm nốt: **chạy `migration 001 + 002 + 003`** trong SQL Editor · (tuỳ chọn) secrets `RESEND_API_KEY`, `FB_COOKIES_JSON` · set role=admin cho tài khoản chủ trong Table Editor để dùng /admin.
 
 🔜 Bước 2 (mở rộng): email alert (cần Resend) · đăng ký Zalo OA thật (GPKD) · admin duyệt tin · thêm nguồn · crawl ảnh cho nhadat · tối ưu cache/tốc độ (Vercel ~4s cold start) · UI trau chuốt.
 
