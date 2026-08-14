@@ -30,3 +30,13 @@ export async function deleteListing(formData: FormData) {
   await createAdminClient().from("listings").delete().eq("id", id);
   revalidatePath("/admin");
 }
+
+export async function setVerified(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const verified = String(formData.get("verified") || "") === "true";
+  if (!id) return;
+  await createAdminClient().from("profiles").update({ is_verified: verified }).eq("id", id);
+  revalidatePath("/admin");
+  revalidatePath("/agents");
+}

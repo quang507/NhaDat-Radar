@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fmtPrice } from "@/lib/format";
 import type { Listing } from "@/lib/types";
-import { setListingStatus, deleteListing } from "./actions";
+import { setListingStatus, deleteListing, setVerified } from "./actions";
 
 export const metadata = { title: "Quản trị - NhaDat Radar" };
 
@@ -30,7 +30,64 @@ export default async function AdminPage({
     );
   }
 
-  const tab = sp.tab === "crawl" ? "crawl" : "user";
+  const tab = ["crawl", "leads", "agents"].includes(sp.tab || "") ? sp.tab! : "user";
+
+  // ===== Tab: Liên hệ (leads) =====
+  if (tab === "leads") {
+    type LeadRow = { id: string; name: string; phone: string; message: string | null; listing_id: string | null; project_id: string | null; created_at: string };
+    const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(100);
+    const leads = (data ?? []) as LeadRow[];
+    // gắn tên dự án cho lead đến từ trang dự án
+    const projIds = [...new Set(leads.map((l) => l.project_id).filter(Boolean))] as string[];
+    const { data: projRows } = projIds.length
+      ? await supabase.from("projects").select("id,name").in("id", projIds)
+      : { data: [] as { id: string; name: string }[] };
+    const projMap = new Map((projRows ?? []).map((p2) => [p2.id, p2.name]));
+    return (
+      <AdminShell tab={tab} q={sp.q}>
+        <div className="card rounded-2xl overflow-hidden">
+          {leads.length ? leads.map((l) => (
+            <div key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 border-b border-[var(--line)] last:border-0 text-sm">
+              <span className="font-semibold">{l.name}</span>
+              <a href={`tel:${l.phone}`} className="text-brand font-mono">{l.phone}</a>
+              {l.message && <span className="text-[var(--ink-soft)] truncate max-w-[420px]">“{l.message}”</span>}
+              {l.listing_id ? <Link href={`/listings/${l.listing_id}`} className="text-xs text-brand">xem tin →</Link>
+                : l.project_id ? <Link href={`/projects/${l.project_id}`} className="text-xs text-brand">🏙 {projMap.get(l.project_id) || "dự án"} →</Link>
+                : <span className="text-xs text-[var(--ink-faint)]">(liên hệ chung)</span>}
+              <span className="ml-auto text-xs text-[var(--ink-faint)]">{new Date(l.created_at).toLocaleString("vi-VN")}</span>
+            </div>
+          )) : <p className="p-8 text-center text-sm text-[var(--ink-soft)]">Chưa có liên hệ nào.</p>}
+        </div>
+      </AdminShell>
+    );
+  }
+
+  // ===== Tab: Người bán (xác minh) =====
+  if (tab === "agents") {
+    const { data: profs } = await supabase.from("profiles")
+      .select("id,full_name,agency_name,phone,is_verified,years_experience")
+      .or("role.eq.agent,role.eq.admin,agency_name.not.is.null").limit(100);
+    return (
+      <AdminShell tab={tab} q={sp.q}>
+        <div className="card rounded-2xl overflow-hidden">
+          {(profs ?? []).length ? (profs ?? []).map((p2: { id: string; full_name: string | null; agency_name: string | null; phone: string | null; is_verified: boolean }) => (
+            <div key={p2.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 border-b border-[var(--line)] last:border-0 text-sm">
+              {p2.is_verified && <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600">✓ đã xác minh</span>}
+              <span className="font-semibold">{p2.full_name || "(chưa đặt tên)"}</span>
+              {p2.agency_name && <span className="text-[var(--ink-soft)]">{p2.agency_name}</span>}
+              {p2.phone && <span className="text-xs font-mono text-[var(--ink-soft)]">{p2.phone}</span>}
+              <form action={setVerified} className="ml-auto">
+                <input type="hidden" name="id" value={p2.id} /><input type="hidden" name="verified" value={String(!p2.is_verified)} />
+                <button className="btn !px-2.5 !py-1 text-xs">{p2.is_verified ? "Bỏ xác minh" : "✓ Xác minh"}</button>
+              </form>
+            </div>
+          )) : <p className="p-8 text-center text-sm text-[var(--ink-soft)]">Chưa có người bán nào.</p>}
+        </div>
+      </AdminShell>
+    );
+  }
+
+  // ===== Tab: tin đăng (user / crawl) =====
   let query = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(60);
   query = tab === "user" ? query.neq("source", "crawl") : query.eq("source", "crawl");
   if (sp.q) query = query.ilike("title", `%${sp.q}%`);
@@ -43,18 +100,7 @@ export default async function AdminPage({
   };
 
   return (
-    <div>
-      <h1 className="prata text-2xl mb-4">Quản trị tin đăng</h1>
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <Link href="/admin?tab=user" className={`btn text-sm ${tab === "user" ? "!border-brand !text-brand" : ""}`}>Tin người dùng</Link>
-        <Link href="/admin?tab=crawl" className={`btn text-sm ${tab === "crawl" ? "!border-brand !text-brand" : ""}`}>Tin crawl</Link>
-        <form action="/admin" className="ml-auto flex gap-2">
-          <input type="hidden" name="tab" value={tab} />
-          <input className="inp !w-56" name="q" defaultValue={sp.q} placeholder="Tìm tiêu đề…" />
-          <button className="btn" type="submit">Tìm</button>
-        </form>
-      </div>
-
+    <AdminShell tab={tab} q={sp.q}>
       <div className="card rounded-2xl overflow-hidden">
         {rows.length ? rows.map((x) => (
           <div key={x.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 border-b border-[var(--line)] last:border-0 text-sm">
@@ -78,6 +124,35 @@ export default async function AdminPage({
           <p className="p-8 text-center text-sm text-[var(--ink-soft)]">Không có tin nào.</p>
         )}
       </div>
+    </AdminShell>
+  );
+}
+
+// Khung chung: tiêu đề + thanh tab + ô tìm kiếm, dùng lại cho mọi tab admin.
+function AdminShell({ tab, q, children }: { tab: string; q?: string; children: React.ReactNode }) {
+  const tabs = [
+    { key: "user", label: "Tin người dùng" },
+    { key: "crawl", label: "Tin crawl" },
+    { key: "leads", label: "Liên hệ" },
+    { key: "agents", label: "Người bán" },
+  ];
+  const showSearch = tab === "user" || tab === "crawl";
+  return (
+    <div>
+      <h1 className="prata text-2xl mb-4">Quản trị</h1>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        {tabs.map((t) => (
+          <Link key={t.key} href={`/admin?tab=${t.key}`} className={`btn text-sm ${tab === t.key ? "!border-brand !text-brand" : ""}`}>{t.label}</Link>
+        ))}
+        {showSearch && (
+          <form action="/admin" className="ml-auto flex gap-2">
+            <input type="hidden" name="tab" value={tab} />
+            <input className="inp !w-56" name="q" defaultValue={q} placeholder="Tìm tiêu đề…" />
+            <button className="btn" type="submit">Tìm</button>
+          </form>
+        )}
+      </div>
+      {children}
     </div>
   );
 }

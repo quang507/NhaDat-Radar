@@ -235,7 +235,7 @@ export default async function ListingDetail({
                 {x.source === "agent" ? "✓" : "?"}
               </div>
               <div>
-                <div className="font-bold text-sm">{x.source === "agent" ? "Người bán tự đăng" : "Người đăng tin"}</div>
+                <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : "Người đăng tin")}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
                   {x.contact_phone ? "SĐT được che, bấm để xem" : "SĐT ẩn theo NĐ13 — xem bài gốc"}
                 </div>

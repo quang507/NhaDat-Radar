@@ -6,7 +6,8 @@ import { AMEN, PROP } from "@/lib/format";
 import ImageUpload from "@/components/ImageUpload";
 
 const initial: ListingState = { ok: false };
-const AMEN_KEYS = ["furnished", "ac", "parking", "security", "elevator", "corner", "near_market", "pet"];
+// "furnished" bỏ khỏi đây vì đã có ô text "Nội thất" (furnishing) mô tả chi tiết hơn — tránh trùng.
+const AMEN_KEYS = ["ac", "parking", "security", "elevator", "corner", "near_market", "pet"];
 
 export default function ListingForm() {
   const [state, formAction, pending] = useActionState(createListing, initial);
@@ -59,7 +60,10 @@ export default function ListingForm() {
         <span className="block text-xs font-semibold text-[var(--ink-soft)] mb-1">Mô tả</span>
         <textarea className="inp" name="description" rows={4} placeholder="Mô tả chi tiết..." />
       </label>
-      <Field label="SĐT liên hệ" name="contact_phone" placeholder="09xxxxxxxx" required={false} />
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Tên liên hệ" name="contact_name" placeholder="VD: Anh Tuấn" required={false} />
+        <Field label="SĐT liên hệ" name="contact_phone" placeholder="09xxxxxxxx" required={false} />
+      </div>
       {state.error ? <div className="text-red-600 text-sm">{state.error}</div> : null}
       <button className="btn btn-primary" type="submit" disabled={pending}>
         {pending ? "Đang đăng..." : "Đăng tin →"}

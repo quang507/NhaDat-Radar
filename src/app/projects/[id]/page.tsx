@@ -7,6 +7,7 @@ import { fmtPrice, AMEN } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
+import ProjectContact from "./ProjectContact";
 import type { Project, Listing } from "@/lib/types";
 
 export default async function ProjectDetail({
@@ -25,7 +26,19 @@ export default async function ProjectDetail({
     .select("*")
     .eq("project_id", id)
     .eq("status", "published");
-  const listings = (ls ?? []) as Listing[];
+  let listings = (ls ?? []) as Listing[];
+
+  // Chưa có tin gắn trực tiếp dự án -> hiện tin cùng khu vực (quận/tỉnh) làm gợi ý
+  let related = false;
+  if (!listings.length && (p.district || p.province)) {
+    const { data: near } = await supabase
+      .from("listings").select("*").eq("status", "published")
+      .ilike(p.district ? "district" : "province", `%${p.district || p.province}%`)
+      .not("images", "eq", "{}")
+      .order("ai_score", { ascending: false, nullsFirst: false }).limit(8);
+    listings = (near ?? []) as Listing[];
+    related = listings.length > 0;
+  }
 
   return (
     <div>
@@ -70,7 +83,9 @@ export default async function ProjectDetail({
             </div>
           ) : null}
 
-          <h3 className="font-bold mt-6 mb-3">Bất động sản đang bán trong dự án</h3>
+          <h3 className="font-bold mt-6 mb-3">
+            {related ? `Bất động sản tại ${p.district || p.province}` : "Bất động sản đang bán trong dự án"}
+          </h3>
           {listings.length ? (
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
               {listings.map((x) => (
@@ -92,8 +107,8 @@ export default async function ProjectDetail({
             </div>
             <Row k="Chủ đầu tư" v={p.investor || "-"} />
             <Row k="Khu vực" v={[p.district, p.province].filter(Boolean).join(", ") || "-"} />
-            <Row k="Số tin đang bán" v={String(listings.length)} />
-            <button className="btn btn-primary w-full mt-4">📞 Liên hệ tư vấn</button>
+            <Row k={related ? "Tin gợi ý cùng khu vực" : "Số tin đang bán"} v={String(listings.length)} />
+            <ProjectContact projectId={p.id} projectName={p.name} />
           </div>
         </div>
       </div>

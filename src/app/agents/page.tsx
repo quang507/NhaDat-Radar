@@ -8,7 +8,7 @@ export const metadata = { title: "Người bán chuyên nghiệp - NhaDat Radar"
 type AgentRow = {
   id: string; full_name: string | null; avatar_url: string | null; bio: string | null;
   agency_name: string | null; specialties: string[] | null; languages: string[] | null;
-  years_experience: number | null; is_verified: boolean;
+  years_experience: number | null; is_verified: boolean; license_no: string | null;
 };
 
 const WHY = [
@@ -25,7 +25,7 @@ export default async function AgentsPage() {
   // Người bán = role agent/admin HOẶC đã điền hồ sơ người bán (tên công ty) ở /account
   const { data } = await supabase
     .from("profiles")
-    .select("id,full_name,avatar_url,bio,agency_name,specialties,languages,years_experience,is_verified")
+    .select("id,full_name,avatar_url,bio,agency_name,specialties,languages,years_experience,is_verified,license_no")
     .or("role.eq.agent,role.eq.admin,agency_name.not.is.null")
     .order("years_experience", { ascending: false })
     .limit(60);
@@ -85,6 +85,12 @@ export default async function AgentsPage() {
                         <span key={s} className="text-[0.65rem] font-semibold px-2 py-0.5 rounded-full bg-brand/10 text-brand border border-brand/30">{s}</span>
                       ))}
                     </div>
+                  )}
+                  {!!a.languages?.length && (
+                    <div className="text-[0.7rem] text-[var(--ink-soft)] mt-1.5">🗣 {a.languages.slice(0, 4).join(" · ")}</div>
+                  )}
+                  {a.license_no && (
+                    <div className="text-[0.65rem] text-[var(--ink-faint)] mt-1">📄 CCHN: {a.license_no}</div>
                   )}
                   <div className="text-xs text-[var(--ink-soft)] mt-2">{counts.get(a.id) || 0} bất động sản</div>
                   <Link href={`/search?q=${encodeURIComponent(name)}`} className="btn mt-3 w-full text-sm">Xem tin đăng</Link>

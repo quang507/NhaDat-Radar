@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 import NavFav from "./NavFav";
+import NavMsg from "./NavMsg";
 import MobileMenu from "./MobileMenu";
 
 export default async function Nav() {
@@ -33,6 +34,7 @@ export default async function Nav() {
           <NavFav />
           {user ? (
             <>
+              <NavMsg />
               <Link
                 href="/account"
                 title={user.email || ""}
