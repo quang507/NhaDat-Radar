@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import ListingCard from "@/components/ListingCard";
 import MapResults, { type MapItem } from "@/components/MapResults";
+import SaveSearchButton from "@/components/SaveSearchButton";
 import { PROP } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 
@@ -86,6 +87,7 @@ export default function SearchClient({
           Tìm Thấy {listings.length} Bất Động Sản
         </h1>
         <div className="ml-auto flex items-center gap-2">
+          <SaveSearchButton filters={f} />
           <button className="btn text-sm" onClick={() => setShowFilter((v) => !v)}>
             {showFilter ? "Ẩn Bộ Lọc" : "Hiện Bộ Lọc"}
           </button>

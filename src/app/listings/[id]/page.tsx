@@ -13,10 +13,30 @@ import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
 import PhoneReveal from "@/components/PhoneReveal";
 import FavButton from "@/components/FavButton";
+import AppointmentForm from "@/components/AppointmentForm";
 
 function agoMin(iso: string | null): number | null {
   if (!iso) return null;
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+}
+
+// SEO/OG: share link ra Facebook/Zalo có tiêu đề + ảnh + giá
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("listings").select("title,price_vnd,deal,district,province,images,description")
+    .eq("id", id).single();
+  if (!data) return { title: "Không tìm thấy tin - NhaDat Radar" };
+  const title = `${data.title} - ${fmtPrice(data.price_vnd, data.deal)}`;
+  const description = (data.description || "").slice(0, 160) ||
+    `${[data.district, data.province].filter(Boolean).join(", ")} · NhaDat Radar`;
+  const img = cleanImages(data.images || [])[0];
+  return {
+    title,
+    description,
+    openGraph: { title, description, ...(img ? { images: [{ url: img }] } : {}) },
+  };
 }
 
 export default async function ListingDetail({
@@ -222,7 +242,20 @@ export default async function ListingDetail({
               </div>
             </div>
             {x.contact_phone && <div className="mb-3"><PhoneReveal phone={x.contact_phone} /></div>}
+            {x.agent_id && (
+              <Link
+                href={`/tin-nhan?listing=${x.id}&agent=${x.agent_id}`}
+                className="btn w-full text-center block mb-3"
+              >
+                💬 Nhắn tin với người bán
+              </Link>
+            )}
             <ContactForm listingId={x.id} listingTitle={x.title} />
+            {x.agent_id && (
+              <div className="mt-4 pt-4 border-t border-[var(--line)]">
+                <AppointmentForm listingId={x.id} agentId={x.agent_id} />
+              </div>
+            )}
             {x.source_url && x.source_url !== "#" ? (
               <a
                 href={x.source_url}

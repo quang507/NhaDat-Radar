@@ -6,7 +6,7 @@ export default async function AuthPage({
   searchParams: Promise<{ mode?: string; error?: string; message?: string }>;
 }) {
   const sp = await searchParams;
-  const mode = sp.mode === "register" ? "register" : "login";
+  const mode = sp.mode === "register" ? "register" : sp.mode === "forgot" ? "forgot" : "login";
   return (
     <div className="max-w-md mx-auto mt-8">
       <AuthForm initialMode={mode} error={sp.error} message={sp.message} />

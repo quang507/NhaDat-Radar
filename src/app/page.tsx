@@ -274,6 +274,36 @@ export default async function Home({
             </div>
           </section>
 
+          {/* ===== Micro: bộ công cụ ===== */}
+          <section className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {([
+              ["/dinh-gia", "🏷️", "AI Định Giá", "Biết giá trị nhà trong 10 giây"],
+              ["/tinh-lai-vay", "🧮", "Tính Lãi Vay", "Ước tính khoản góp hàng tháng"],
+              ["/thue-hay-mua", "⚖️", "Thuê hay Mua?", "So sánh + yield từng quận"],
+              ["/thong-ke", "📊", "Bản Đồ Giá", "Giá trung vị theo khu vực"],
+            ] as const).map(([href, icon, t, d]) => (
+              <Link key={href} href={href} className="card rounded-2xl p-4 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all">
+                <span className="w-11 h-11 rounded-xl bg-brand/10 grid place-items-center text-xl shrink-0">{icon}</span>
+                <span>
+                  <span className="block font-bold text-sm">{t}</span>
+                  <span className="block text-xs text-[var(--ink-soft)]">{d}</span>
+                </span>
+              </Link>
+            ))}
+          </section>
+
+          {/* ===== Micro: nhận email tin mới ===== */}
+          <section className="mt-10 card rounded-3xl p-8 flex flex-col sm:flex-row items-center gap-5">
+            <span className="text-4xl">🔔</span>
+            <div className="flex-1 text-center sm:text-left">
+              <h2 className="font-bold text-lg">Đừng bỏ lỡ căn nhà ưng ý</h2>
+              <p className="text-sm text-[var(--ink-soft)]">
+                Lưu bộ lọc tìm kiếm của bạn — mỗi sáng có tin mới khớp, chúng tôi gửi thẳng vào email.
+              </p>
+            </div>
+            <Link href="/search" className="btn btn-primary whitespace-nowrap">Tạo thông báo ngay</Link>
+          </section>
+
           {/* ===== Duyệt theo danh mục ===== */}
           <section className="mt-16">
             <h2 className="prata text-2xl text-center mb-2">Duyệt Theo Danh Mục</h2>

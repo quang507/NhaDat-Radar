@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createListing, type ListingState } from "../actions";
 import { AMEN, PROP } from "@/lib/format";
+import ImageUpload from "@/components/ImageUpload";
 
 const initial: ListingState = { ok: false };
 const AMEN_KEYS = ["furnished", "ac", "parking", "security", "elevator", "corner", "near_market", "pet"];
@@ -49,6 +50,10 @@ export default function ListingForm() {
             </label>
           ))}
         </div>
+      </div>
+      <div>
+        <span className="block text-xs font-semibold text-[var(--ink-soft)] mb-2">Hình ảnh</span>
+        <ImageUpload name="images" />
       </div>
       <label className="block">
         <span className="block text-xs font-semibold text-[var(--ink-soft)] mb-1">Mô tả</span>

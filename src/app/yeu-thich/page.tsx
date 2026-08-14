@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ListingCard from "@/components/ListingCard";
-import { getFavs } from "@/components/FavButton";
+import { getFavs, pullDbFavs } from "@/components/FavButton";
 import type { Listing } from "@/lib/types";
 
 // Trang tin đã lưu ♥ — id lưu ở localStorage, không cần đăng nhập.
@@ -21,7 +21,7 @@ export default function FavouritesPage() {
       const order = new Map(ids.map((id, i) => [id, i]));
       setItems(((data ?? []) as Listing[]).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)));
     };
-    load();
+    pullDbFavs().finally(load); // gộp tin đã lưu trên DB (nếu đăng nhập) rồi hiển thị
     window.addEventListener("ndr:favs", load);
     return () => window.removeEventListener("ndr:favs", load);
   }, []);

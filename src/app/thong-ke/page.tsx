@@ -106,6 +106,7 @@ export default async function ThongKe({
 
         <div className="card rounded-2xl p-5">
           <h3 className="font-bold mb-3">Xếp hạng giá theo quận</h3>
+          <PriceHistoryChart city={city} deal={deal} />
           {rows.length ? (
             <div className="flex flex-col gap-2">
               {rows.map((r) => (
@@ -128,6 +129,65 @@ export default async function ThongKe({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Biểu đồ lịch sử giá/m² trung vị toàn thành phố (từ bảng price_history, snapshot mỗi ngày 5h sáng).
+async function PriceHistoryChart({ city, deal }: { city: string; deal: string }) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("price_history")
+    .select("day,median_ppm2,n")
+    .eq("province", city).eq("deal", deal).eq("district", "").eq("kind", "all")
+    .order("day", { ascending: true })
+    .limit(120)
+    .then((r) => r, () => ({ data: null })); // bảng chưa tạo (chưa chạy migration 003) -> ẩn êm
+
+  // Nếu chưa có dòng tổng hợp toàn tỉnh (district='') thì gộp theo ngày từ các quận
+  let series: { day: string; v: number }[] = (data ?? []).map((r) => ({ day: r.day, v: Number(r.median_ppm2) }));
+  if (!series.length) {
+    const { data: all } = await supabase
+      .from("price_history").select("day,median_ppm2")
+      .eq("province", city).eq("deal", deal)
+      .order("day", { ascending: true }).limit(2000)
+      .then((r) => r, () => ({ data: null }));
+    const byDay = new Map<string, number[]>();
+    for (const r of all ?? []) (byDay.get(r.day) ?? byDay.set(r.day, []).get(r.day)!).push(Number(r.median_ppm2));
+    series = [...byDay.entries()].map(([day, vs]) => ({ day, v: Math.round(vs.reduce((a, b) => a + b, 0) / vs.length) }));
+  }
+  if (series.length < 2) {
+    return (
+      <p className="text-xs text-[var(--ink-faint)] mb-4 rounded-lg bg-[var(--surface-2)] p-2.5">
+        📈 Lịch sử giá đang được tích luỹ mỗi ngày — biểu đồ xu hướng sẽ hiện tại đây sau vài ngày dữ liệu.
+      </p>
+    );
+  }
+
+  const W = 320, H = 90, PAD = 4;
+  const vs = series.map((s) => s.v);
+  const min = Math.min(...vs), max = Math.max(...vs), span = Math.max(1, max - min);
+  const path = series.map((s, i) => {
+    const px = PAD + (i / (series.length - 1)) * (W - PAD * 2);
+    const py = PAD + (1 - (s.v - min) / span) * (H - PAD * 2);
+    return `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`;
+  }).join(" ");
+  const changePct = Math.round(((vs[vs.length - 1] - vs[0]) / vs[0]) * 1000) / 10;
+
+  return (
+    <div className="mb-4 rounded-xl border border-[var(--line)] p-3">
+      <div className="flex items-baseline gap-2 text-sm">
+        <span className={`font-extrabold ${changePct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+          {changePct >= 0 ? "↑" : "↓"} {Math.abs(changePct)}%
+        </span>
+        <span className="text-xs text-[var(--ink-soft)]">
+          giá/m² trung vị {deal === "ban" ? "bán" : "thuê"} tại {city} ({series.length} ngày ghi nhận)
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto mt-1">
+        <path d={`${path} L${W - PAD},${H - PAD} L${PAD},${H - PAD} Z`} fill="var(--brand)" opacity={0.1} />
+        <path d={path} fill="none" stroke="var(--brand)" strokeWidth={2} strokeLinejoin="round" />
+      </svg>
     </div>
   );
 }

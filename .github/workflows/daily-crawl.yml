@@ -15,6 +15,15 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
+      # Facebook qua Playwright (free): cần secret FB_COOKIES_JSON (export cookies từ acc clone)
+      - name: Chuẩn bị Playwright cho Facebook
+        if: ${{ secrets.FB_COOKIES_JSON != '' }}
+        run: |
+          echo "$FB_COOKIES_JSON" > crawler/fb-cookies.json
+          npm i playwright --no-save
+          npx playwright install chromium --with-deps
+        env:
+          FB_COOKIES_JSON: ${{ secrets.FB_COOKIES_JSON }}
       - name: Crawl + seed Supabase
         run: node crawler/daily.mjs
         env:
@@ -29,3 +38,6 @@ jobs:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           FB_GROUP_URLS: ${{ vars.FB_GROUP_URLS }}
           FB_POSTS: ${{ vars.FB_POSTS }}
+          # Email báo tin mới (tùy chọn): key từ resend.com (free 100 mail/ngày)
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NEXT_PUBLIC_SITE_URL: https://nha-dat-radar-rkyn.vercel.app
