@@ -168,16 +168,23 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
     try {
       const KEYS = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
         process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5].filter(Boolean) as string[];
-      for (const k of KEYS) {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${k}`,
-          { method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: { parts: [{ text: last.slice(0, 1000) }] } }) },
-        );
-        if (res.status === 429) continue;
-        const j = await res.json();
-        const vec = j?.embedding?.values;
-        if (!vec) break;
+      // Cùng danh sách model với crawler/embed.mjs (vector câu hỏi phải cùng model với vector đã lưu)
+      let vec: number[] | null = null;
+      outer: for (const model of ["text-embedding-004", "gemini-embedding-001"]) {
+        for (const k of KEYS) {
+          const body: Record<string, unknown> = { content: { parts: [{ text: last.slice(0, 1000) }] } };
+          if (model === "gemini-embedding-001") body.outputDimensionality = 768;
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${k}`,
+            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+          );
+          if (res.status === 429) continue;
+          const j = await res.json();
+          if (j?.embedding?.values) { vec = j.embedding.values; break outer; }
+          break; // lỗi không phải quota -> đổi model
+        }
+      }
+      if (vec) {
         const { data: matches } = await supabase.rpc("match_listings", { query_embedding: vec, match_count: 5 });
         const ids = (matches ?? []).filter((m: { similarity: number }) => m.similarity > 0.5).map((m: { id: string }) => m.id);
         if (ids.length) {
@@ -186,7 +193,6 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
             .in("id", ids);
           found = sem ?? [];
         }
-        break;
       }
     } catch { /* chưa có pgvector/embedding - bỏ qua */ }
   }

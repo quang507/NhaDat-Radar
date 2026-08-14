@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { Listing } from "@/lib/types";
 import SearchClient, { type GeoTree } from "./SearchClient";
 
+// Chuẩn hoá tên quận: bỏ đuôi "(P. X mới)" mà vài nguồn crawl gắn kèm sau sáp nhập.
+const canonDistrict = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, "").trim();
+
 export const metadata = { title: "Tìm kiếm bất động sản - NhaDat Radar" };
 
 export default async function SearchPage({
@@ -19,13 +22,18 @@ export default async function SearchPage({
   if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
   if (kind) query = query.eq("kind", kind);
   if (province) query = query.ilike("province", `%${province}%`);
-  if (district) query = query.ilike("district", `%${district}%`);
+  // prefix-match rồi lọc chính xác phía dưới (tránh "Quận 1" khớp nhầm "Quận 10/11/12")
+  if (district) query = query.ilike("district", `${district}%`);
   if (ward) query = query.ilike("ward", `%${ward}%`);
   if (priceMin && !Number.isNaN(Number(priceMin))) query = query.gte("price_vnd", Number(priceMin));
   if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
   if (areaMin && !Number.isNaN(Number(areaMin))) query = query.gte("area_m2", Number(areaMin));
   if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
-  if (q) query = query.ilike("title", `%${q}%`);
+  if (q) {
+    // Học flow batdongsan: từ khoá khớp cả tiêu đề + địa chỉ/đường + phường + quận
+    const safe = q.replace(/[,()%]/g, " ").trim();
+    if (safe) query = query.or(`title.ilike.%${safe}%,address.ilike.%${safe}%,ward.ilike.%${safe}%,district.ilike.%${safe}%`);
+  }
 
   if (sort === "price_asc") query = query.order("price_vnd", { ascending: true, nullsFirst: false });
   else if (sort === "price_desc") query = query.order("price_vnd", { ascending: false, nullsFirst: false });
@@ -37,7 +45,8 @@ export default async function SearchPage({
     query.limit(200),
     supabase.from("listings").select("province,district,ward").eq("status", "published").limit(2000),
   ]);
-  const listings = (data ?? []) as Listing[];
+  let listings = (data ?? []) as Listing[];
+  if (district) listings = listings.filter((x) => canonDistrict(x.district || "").toLowerCase() === district.toLowerCase());
 
   // Dựng cây Tỉnh -> Quận -> Phường từ dữ liệu thật để đổ vào select phụ thuộc
   const geo: GeoTree = {};
@@ -45,10 +54,17 @@ export default async function SearchPage({
     const p = (r.province || "").trim();
     if (!p) continue;
     geo[p] ??= {};
-    const d = (r.district || "").trim();
+    const raw = (r.district || "").trim();
+    if (!raw) continue;
+    const d = canonDistrict(raw); // "Quận 9 (P. Long Bình mới)" -> "Quận 9"
     if (!d) continue;
     geo[p][d] ??= [];
-    const w = (r.ward || "").trim();
+    // ward: ưu tiên cột ward; thiếu thì tách từ đuôi "(P. X mới)" của quận
+    let w = (r.ward || "").trim();
+    if (!w) {
+      const m = raw.match(/\(\s*(?:P\.|Phường)?\s*([^)]*?)\s*(?:mới)?\s*\)\s*$/i);
+      if (m && m[1]) w = "Phường " + m[1].replace(/^(P\.|Phường)\s*/i, "");
+    }
     if (w && !geo[p][d].includes(w)) geo[p][d].push(w);
   }
   for (const p of Object.keys(geo)) for (const d of Object.keys(geo[p])) geo[p][d].sort();

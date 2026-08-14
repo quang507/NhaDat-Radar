@@ -10,21 +10,36 @@ if (!KEYS.length) { console.log("embed: chưa có GEMINI_API_KEY -> bỏ qua.");
 
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
+// Model theo thứ tự ưu tiên. Run 14/8 báo 0/300 sau ~1.5s (không phải 429) ->
+// nghi text-embedding-004 bị khai tử; thêm gemini-embedding-001 (ép 768 chiều
+// cho khớp cột vector(768) của migration 003).
+const MODELS = ["text-embedding-004", "gemini-embedding-001"];
+let loggedErr = false; // in lỗi thật 1 lần để chẩn đoán qua log CI
+
 async function embed(text) {
-  for (const k of KEYS) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 15000);
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${k}`,
-        { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 1500) }] } }), signal: ctrl.signal },
-      );
-      if (res.status === 429) continue;
-      const j = await res.json();
-      if (j?.embedding?.values) return j.embedding.values;
-    } catch { /* xoay key */ }
-    finally { clearTimeout(timer); }
+  for (const model of MODELS) {
+    for (const k of KEYS) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      try {
+        const body = { content: { parts: [{ text: text.slice(0, 1500) }] } };
+        if (model === "gemini-embedding-001") body.outputDimensionality = 768;
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${k}`,
+          { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body), signal: ctrl.signal },
+        );
+        if (res.status === 429) continue;
+        const j = await res.json();
+        if (j?.embedding?.values) return j.embedding.values;
+        if (!loggedErr) {
+          loggedErr = true;
+          console.error(`embed: ${model} -> HTTP ${res.status}:`, JSON.stringify(j?.error || j).slice(0, 300));
+        }
+        break; // lỗi không phải quota -> model này hỏng với mọi key, thử model kế
+      } catch { /* timeout/mạng -> xoay key */ }
+      finally { clearTimeout(timer); }
+    }
   }
   return null;
 }
