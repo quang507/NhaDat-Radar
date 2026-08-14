@@ -56,7 +56,7 @@ function norm(x) {
   };
 }
 
-const sources = [["listings3.json", 0], ["chotot.json", 0], ["batdongsan.json", 0], ["mogi.json", 0], ["facebook.json", 0]];
+const sources = [["listings3.json", 0], ["chotot.json", 0], ["batdongsan.json", 0], ["mogi.json", 0], ["facebook.json", 0], ["extra.json", 0]];
 let all = [];
 for (const [f] of sources) { const rows = load(f).map(norm); all = all.concat(rows); console.error(f, "->", rows.length); }
 

@@ -13,6 +13,7 @@ function step(cmd) {
 // 1) Crawl các nguồn headless (Chợ Tốt API + nhadat HTTP + Mogi HTML)
 step("node chotot.mjs");
 step("node mogi.mjs");
+step("node extra-sites.mjs");                          // batdongsantoanquoc + bannhadat123 + sosanhnha
 if (step("node crawl.js")) step("node geocode.mjs");   // nhadat -> geocode
 // FB: ưu tiên Playwright (free, cần secret FB_COOKIES_JSON ghi ra fb-cookies.json) -> fallback Apify (tốn phí)
 if (fs.existsSync(new URL("./fb-cookies.json", import.meta.url)) && process.env.FB_GROUP_URLS) {
