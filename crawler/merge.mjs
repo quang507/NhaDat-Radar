@@ -26,8 +26,19 @@ function heuristicScore(x) {
   return Math.max(45, Math.min(95, s));
 }
 
+// "Quận 9 (P. Long Bình mới)" -> district "Quận 9", phần ngoặc bù vào ward nếu trống
+function canonDistrict(raw) {
+  const s = (raw || "").trim();
+  if (!s) return { district: null, wardHint: null };
+  const m = s.match(/\(\s*(?:P\.|Phường)?\s*([^)]*?)\s*(?:mới)?\s*\)\s*$/i);
+  const district = s.replace(/\s*\([^)]*\)\s*$/, "").trim() || null;
+  const wardHint = m && m[1] ? "Phường " + m[1].replace(/^(P\.|Phường)\s*/i, "") : null;
+  return { district, wardHint };
+}
+
 function norm(x) {
   const price = x.price_vnd ?? null, area = x.area_m2 ?? null;
+  const dc = canonDistrict(x.district);
   return {
     id: x.id,
     source: x.source || "crawl",
@@ -41,7 +52,7 @@ function norm(x) {
     bedrooms: x.bedrooms ?? null, bathrooms: x.bathrooms ?? null, floors: x.floors ?? null,
     direction: x.direction ?? null, legal: x.legal ?? x.legal_status ?? null, furnishing: x.furnishing ?? null,
     listing_type: x.listing_type, property_type: x.property_type,
-    province: canonProvince(x.province), district: x.district ?? null, ward: x.ward ?? null,
+    province: canonProvince(x.province), district: dc.district, ward: x.ward ?? dc.wardHint ?? null,
     lat: x.lat ?? null, lng: x.lng ?? null,
     amenities: x.amenities || [],
     poster_role: x.poster_role || "khong_ro", poster_listing_count: x.poster_listing_count || 1,
