@@ -8,7 +8,7 @@ type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[] };
 
 const GREET: Msg = {
   role: "bot",
-  text: "Xin chào! Mình là trợ lý AI của NhaDat Radar 🏠 Hỏi mình kiểu: “căn hộ 2PN dưới 3 tỷ ở Hà Nội” hay “nhà cho thuê Đà Nẵng” nhé!",
+  text: "Xin chào! Mình là trợ lý AI của NhaDat Radar 🏠 Hỏi mình kiểu:\n• “căn hộ 2PN dưới 3 tỷ ở Hà Nội”\n• “quận nào ở Hà Nội đáng đầu tư?”\n• “giá thuê Đà Nẵng khu nào rẻ?”",
 };
 
 // Chatbot nổi góc phải: hỏi đáp tìm nhà bằng AI, trả về thẻ tin bấm được.
