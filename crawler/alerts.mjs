@@ -36,7 +36,10 @@ for (const s of searches ?? []) {
   ).join("");
   const criteria = [s.kind, s.deal === "ban" ? "bán" : s.deal === "cho_thue" ? "cho thuê" : null, s.district, s.province].filter(Boolean).join(" · ") || "tất cả";
 
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
   const res = await fetch("https://api.resend.com/emails", {
+    signal: ctrl.signal,
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -49,6 +52,7 @@ for (const s of searches ?? []) {
         <p style="color:#999;font-size:12px">Bạn nhận mail này vì đã bấm 🔔 trên trang tìm kiếm.</p></div>`,
     }),
   });
+  clearTimeout(timer);
   if (res.ok) {
     sent++;
     await sb.from("saved_searches").update({ last_notified_at: new Date().toISOString() }).eq("id", s.id);

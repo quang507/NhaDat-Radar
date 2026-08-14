@@ -8,11 +8,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function geocode(q) {
   const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=vn&q=${encodeURIComponent(q)}`;
-  const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" } });
-  if (!res.ok) return null;
-  const j = await res.json();
-  if (!j.length) return null;
-  return { lat: +j[0].lat, lng: +j[0].lon };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000); // timeout 8s -> không treo vô hạn khi Nominatim chặn
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" }, signal: ctrl.signal });
+    if (!res.ok) return null;
+    const j = await res.json();
+    if (!j.length) return null;
+    return { lat: +j[0].lat, lng: +j[0].lon };
+  } catch { return null; }
+  finally { clearTimeout(timer); }
 }
 
 // jitter ổn định theo id để marker cùng quận không chồng khít
