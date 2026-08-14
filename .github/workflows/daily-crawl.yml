@@ -23,6 +23,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_KEY2: ${{ secrets.GEMINI_API_KEY2 }}
           GEMINI_API_KEY3: ${{ secrets.GEMINI_API_KEY3 }}
+          GEMINI_API_KEY4: ${{ secrets.GEMINI_API_KEY4 }}
+          GEMINI_API_KEY5: ${{ secrets.GEMINI_API_KEY5 }}
           # Facebook qua Apify (tùy chọn - có thì FB tự cào mỗi ngày)
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           FB_GROUP_URLS: ${{ vars.FB_GROUP_URLS }}
