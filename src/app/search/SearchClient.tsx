@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import ListingCard from "@/components/ListingCard";
+import Link from "next/link";
+import ListingRow from "@/components/ListingRow";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import { PROP } from "@/lib/format";
@@ -59,6 +60,13 @@ export default function SearchClient({
     return [...withImg, ...noImg];
   }, [listings, sort]);
 
+  // Phân trang kiểu batdongsan: 20 tin/trang, đổi lọc thì về trang 1
+  const PER_PAGE = 20;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(display.length / PER_PAGE);
+  useEffect(() => { setPage(1); }, [listings]);
+  useEffect(() => { if (page > 1) window.scrollTo({ top: 0, behavior: "smooth" }); }, [page]);
+
   const mapItems: MapItem[] = useMemo(
     () => listings
       .filter((x) => x.lat != null && x.lng != null)
@@ -80,13 +88,29 @@ export default function SearchClient({
     setF((s) => k === "province" ? { ...s, province: v, district: "", ward: "" } : k === "district" ? { ...s, district: v, ward: "" } : { ...s, [k]: v });
   };
 
+  // Tiêu đề động kiểu batdongsan: "Mua bán nhà riêng Quận 7, Hồ Chí Minh"
+  const dealWord = f.deal === "cho_thue" ? "Cho thuê" : f.deal === "ban" ? "Mua bán" : "Mua bán & cho thuê";
+  const kindWord = f.kind ? (PROP as Record<string, string>)[f.kind]?.toLowerCase() : "nhà đất";
+  const locWord = [f.district, f.province].filter(Boolean).join(", ");
+  const pageTitle = `${dealWord} ${kindWord}${locWord ? " " + locWord : " toàn quốc"}`;
+
   return (
     <div>
+      {/* ===== Breadcrumb ===== */}
+      <nav className="text-xs text-[var(--ink-soft)] mb-2 flex flex-wrap gap-1 items-center">
+        <Link href="/" className="hover:text-brand">Trang chủ</Link>
+        <span>/</span>
+        <Link href={`/search${f.deal ? `?deal=${f.deal}` : ""}`} className="hover:text-brand">{dealWord}</Link>
+        {f.province && (<><span>/</span><button className="hover:text-brand" onClick={() => push({ ...f, district: "", ward: "" })}>{f.province}</button></>)}
+        {f.district && (<><span>/</span><span className="text-[var(--ink)]">{f.district}</span></>)}
+      </nav>
+
       {/* ===== Thanh header kết quả ===== */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <h1 className="prata text-xl md:text-2xl">
-          Tìm Thấy {listings.length} Bất Động Sản
-        </h1>
+        <div>
+          <h1 className="prata text-xl md:text-2xl">{pageTitle}</h1>
+          <p className="text-xs text-[var(--ink-soft)] mt-0.5">Hiện có {listings.length.toLocaleString("vi-VN")} bất động sản.</p>
+        </div>
         <div className="ml-auto flex items-center gap-2">
           <SaveSearchButton filters={f} />
           <button className="btn text-sm" onClick={() => setShowFilter((v) => !v)}>
@@ -187,9 +211,28 @@ export default function SearchClient({
       <div className={`grid gap-4 items-start ${showMap ? "lg:grid-cols-[1fr_420px]" : ""}`}>
         <div>
           {display.length ? (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
-              {display.map((x) => <ListingCard key={x.id} x={x} />)}
-            </div>
+            <>
+              <div className="flex flex-col gap-3">
+                {display.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((x) => <ListingRow key={x.id} x={x} />)}
+              </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1.5 mt-5">
+                  <button className="btn !px-3 text-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>‹</button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 2)
+                    .map((n, i, arr) => (
+                      <span key={n} className="flex items-center gap-1.5">
+                        {i > 0 && arr[i - 1] !== n - 1 && <span className="text-[var(--ink-faint)]">…</span>}
+                        <button
+                          className={`btn !px-3.5 text-sm ${n === page ? "!bg-brand !text-white !border-brand" : ""}`}
+                          onClick={() => setPage(n)}
+                        >{n}</button>
+                      </span>
+                    ))}
+                  <button className="btn !px-3 text-sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>›</button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="card rounded-2xl p-10 text-center">
               <div className="text-4xl mb-3">🔍</div>
@@ -207,6 +250,29 @@ export default function SearchClient({
           </div>
         )}
       </div>
+
+      {/* ===== Tìm kiếm phổ biến (kiểu footer SEO batdongsan) ===== */}
+      {(() => {
+        const prov = f.province || provinces[0];
+        const ds = prov && geo[prov] ? Object.keys(geo[prov]).sort().slice(0, 12) : [];
+        if (!ds.length) return null;
+        return (
+          <section className="mt-10 card rounded-xl p-5">
+            <h2 className="font-bold text-sm mb-3">Tìm kiếm nhiều tại {prov}</h2>
+            <div className="flex flex-wrap gap-2">
+              {ds.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => { setF((s) => ({ ...s, province: prov, district: d, ward: "" })); push({ ...f, province: prov, district: d, ward: "" }); }}
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition"
+                >
+                  {dealWord} nhà đất {d}
+                </button>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
     </div>
   );
 }
