@@ -15,7 +15,8 @@ function getSeen(): SeenMap {
 export function markConvSeen(convId: string, iso: string) {
   if (typeof window === "undefined") return;
   const m = getSeen();
-  if (!m[convId] || m[convId] < iso) {
+  // so bằng Date.parse (so chuỗi ISO sẽ sai nếu lẫn định dạng "+00:00" và "Z")
+  if (!m[convId] || Date.parse(m[convId]) < Date.parse(iso)) {
     m[convId] = iso;
     localStorage.setItem(KEY, JSON.stringify(m));
     window.dispatchEvent(new Event("ndr:msgseen"));
@@ -43,7 +44,7 @@ export default function NavMsg() {
     const seen = getSeen();
     let n = 0;
     for (const [cid, m] of latest) {
-      if (m.sender_id !== userId && (!seen[cid] || seen[cid] < m.created_at)) n++;
+      if (m.sender_id !== userId && (!seen[cid] || Date.parse(seen[cid]) < Date.parse(m.created_at))) n++;
     }
     setCount(n);
   }, [supabase]);

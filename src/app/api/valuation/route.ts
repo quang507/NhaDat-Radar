@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
 import { gemini, median, percentile } from "@/lib/gemini";
 import { PROP } from "@/lib/format";
 
@@ -28,6 +28,11 @@ type AiOut = {
 };
 
 export async function POST(req: NextRequest) {
+  // chặn spam: 10 request/phút mỗi IP (endpoint công khai + tốn quota Gemini)
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "?";
+  if (!rateLimit(`valuation:${ip}`, 10, 60_000)) {
+    return NextResponse.json({ error: "Bạn thao tác hơi nhanh, chờ một phút rồi thử lại." }, { status: 429 });
+  }
   let b: ValuationInput;
   try {
     b = await req.json();
@@ -41,7 +46,7 @@ export async function POST(req: NextRequest) {
   const deal = b.deal === "cho_thue" ? "cho_thue" : "ban";
 
   // Lấy tin so sánh (comps) từ DB: cùng loại + khu vực, có giá/m²
-  const supabase = createAdminClient();
+  const supabase = createAnonClient();
   const base = () =>
     supabase
       .from("listings")

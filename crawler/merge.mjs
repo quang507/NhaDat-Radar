@@ -10,6 +10,22 @@ function canonProvince(p) {
   if (/đà nẵng|da nang/.test(t)) return "Đà Nẵng";
   return p || null;
 }
+// Điểm heuristic khi nguồn không tự chấm (batdongsan/mogi): có phổ 45-95 theo độ đầy đủ
+// dữ liệu thay vì 75 phẳng hàng loạt.
+function heuristicScore(x) {
+  let s = 55;
+  if (x.price_vnd) s += 8;
+  if (x.area_m2) s += 7;
+  if (x.bedrooms) s += 4;
+  if (x.bathrooms) s += 3;
+  if ((x.images || []).length >= 3) s += 8;
+  else if ((x.images || []).length >= 1) s += 4;
+  if ((x.description || "").length > 200) s += 5;
+  if (x.district) s += 3;
+  if (x.price_warning) s -= 18;
+  return Math.max(45, Math.min(95, s));
+}
+
 function norm(x) {
   const price = x.price_vnd ?? null, area = x.area_m2 ?? null;
   return {
@@ -30,7 +46,7 @@ function norm(x) {
     amenities: x.amenities || [],
     poster_role: x.poster_role || "khong_ro", poster_listing_count: x.poster_listing_count || 1,
     phone_masked: x.phone_masked ?? null, phone_hash: x.phone_hash ?? null,
-    ai_score: x.ai_score ?? (x.price_warning ? 55 : 75),
+    ai_score: x.ai_score ?? heuristicScore(x),
     price_warning: x.price_warning ?? null,
     freshness_min: x.freshness_min ?? 60,
     // làm sạch ảnh: bỏ object rác + link album facebook (không phải file ảnh)
@@ -50,13 +66,16 @@ all = all.filter((x) => !isJunk(x.title, x.description));
 console.error("junk filter:", beforeJunk, "->", all.length, `(bỏ ${beforeJunk - all.length} tin rác)`);
 
 // khử trùng trong-nguồn theo id + cross-source theo dedupe_key (phone/giá/diện tích/quận)
-const seenId = new Set(), seenKey = new Set();
+// + fallback (site|title|giá) cho tin thiếu phone_hash (nhadat từng lọt trùng vì thiếu key này)
+const seenId = new Set(), seenKey = new Set(), seenTitle = new Set();
 all = all.filter((x) => {
   if (seenId.has(x.id)) return false; seenId.add(x.id);
   if (x.phone_hash && x.price_vnd && x.area_m2) {
     const k = [x.phone_hash, Math.round(x.price_vnd / 1e6), Math.round(x.area_m2), x.district].join("|");
     if (seenKey.has(k)) return false; seenKey.add(k);
   }
+  const tk = [x.source_site, (x.title || "").toLowerCase().trim(), x.price_vnd ?? 0].join("|");
+  if (x.title && seenTitle.has(tk)) return false; seenTitle.add(tk);
   return true;
 });
 
