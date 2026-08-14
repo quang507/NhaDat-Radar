@@ -51,8 +51,8 @@ export default function ChatWidget() {
       <button
         aria-label="Mở trợ lý AI"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full shadow-lg text-2xl grid place-items-center
-                   bg-gradient-to-br from-brand to-brand-2 text-white hover:scale-105 transition"
+        className={`fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full shadow-lg text-2xl grid place-items-center
+                   bg-gradient-to-br from-brand to-brand-2 text-white hover:scale-110 active:scale-95 transition ${open ? "" : "float-cta"}`}
       >
         {open ? "✕" : "💬"}
       </button>

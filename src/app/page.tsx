@@ -1,11 +1,21 @@
 export const dynamic = "force-dynamic";
 
+import fs from "node:fs";
+import path from "node:path";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ListingCard from "@/components/ListingCard";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import { fmtPrice, PROP } from "@/lib/format";
 import type { Listing, Project } from "@/lib/types";
+
+// Ảnh hero thương hiệu: đặt file tại public/hero.jpg (hoặc .png/.webp) là tự dùng.
+function heroImage(): string | null {
+  for (const f of ["hero.jpg", "hero.png", "hero.webp"]) {
+    if (fs.existsSync(path.join(process.cwd(), "public", f))) return "/" + f;
+  }
+  return null;
+}
 
 function shortPrice(v: number | null): string {
   if (!v) return "TL";
@@ -57,18 +67,45 @@ export default async function Home({
     .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, label: shortPrice(x.price_vnd), title: x.title }));
 
   const sel = "inp appearance-none pr-8 cursor-pointer";
+  const hero = heroImage();
   return (
     <div>
-      {/* ===== HERO (chia đôi: nội dung trái + ảnh thật phải) ===== */}
+      {/* ===== HERO banner thương hiệu (nếu có public/hero.jpg) ===== */}
+      {!hasFilter && hero && (
+        <section className="hero-art relative -mx-5 md:mx-0 md:rounded-3xl overflow-hidden mb-6 md:mt-1">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={hero} alt="NhaDat Radar" className="w-full h-[240px] md:h-[360px] object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-transparent" />
+          <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-12 max-w-2xl">
+            <h1 className="prata text-white text-[1.8rem] md:text-[3rem] leading-[1.08] mb-3 drop-shadow-lg hero-in">
+              Tìm nhà đất bán &amp; cho thuê<br />trên khắp Việt Nam
+            </h1>
+            <p className="text-white/90 mb-5 max-w-lg drop-shadow hero-in-2 hidden sm:block">
+              Tổng hợp tin đa nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, cảnh báo giá ảo.
+            </p>
+            <div className="flex gap-3 hero-in-2">
+              <Link href="/search" className="btn !bg-white !text-brand !border-white font-bold">Tìm kiếm ngay</Link>
+              <Link href="/dinh-gia" className="btn !bg-transparent !text-white !border-white/70 hover:!bg-white/10">Định giá AI</Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== HERO (chia đôi: nội dung trái + ảnh thật phải) — ẩn phần headline nếu đã có banner ===== */}
       <section className="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-10 items-center pt-3 pb-6">
         <div className="hero-in">
-          <h1 className="prata text-[2rem] md:text-[2.7rem] leading-[1.1] mb-3 text-balance">
-            Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
-          </h1>
-          <p className="text-[var(--ink-soft)] mb-5 max-w-xl">
-            Tổng hợp tin từ nhiều nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, tự phân loại chính chủ / môi giới
-            và cảnh báo giá ảo.
-          </p>
+          {!hero && (
+            <>
+              <h1 className="prata text-[2rem] md:text-[2.7rem] leading-[1.1] mb-3 text-balance">
+                Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
+              </h1>
+              <p className="text-[var(--ink-soft)] mb-5 max-w-xl">
+                Tổng hợp tin từ nhiều nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, tự phân loại chính chủ / môi giới
+                và cảnh báo giá ảo.
+              </p>
+            </>
+          )}
+          {hero && <h2 className="prata text-xl md:text-2xl mb-3">Bắt đầu tìm kiếm</h2>}
           <form action="/search" className="card rounded-2xl p-3 shadow-sm hero-in-2">
             <input name="q" defaultValue={q} placeholder="Từ khoá: quận, dự án, đường..." className="inp mb-2" />
             <div className="flex flex-wrap gap-2">

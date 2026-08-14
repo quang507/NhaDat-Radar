@@ -22,13 +22,13 @@ export default async function Nav() {
           NhaDat<span className="text-brand">Radar</span>
         </Link>
         <nav className="hidden md:flex gap-0.5 ml-1 text-sm font-semibold text-[var(--ink-soft)]">
-          <Link href="/search?deal=ban" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Mua Bán</Link>
-          <Link href="/search?deal=cho_thue" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Cho Thuê</Link>
-          <Link href="/projects" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Dự án</Link>
-          <Link href="/agents" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Người Bán</Link>
-          <Link href="/thong-ke" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Thống kê</Link>
-          <Link href="/dinh-gia" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Định Giá AI</Link>
-          <Link href="/tinh-lai-vay" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Lãi Vay</Link>
+          <Link href="/search?deal=ban" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Mua Bán</Link>
+          <Link href="/search?deal=cho_thue" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Cho Thuê</Link>
+          <Link href="/projects" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Dự án</Link>
+          <Link href="/agents" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Người Bán</Link>
+          <Link href="/thong-ke" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Thống kê</Link>
+          <Link href="/dinh-gia" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Định Giá AI</Link>
+          <Link href="/tinh-lai-vay" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Lãi Vay</Link>
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <NavFav />
