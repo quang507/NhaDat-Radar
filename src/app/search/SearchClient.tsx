@@ -15,7 +15,7 @@ const PRICE_OPTS: [string, string][] = [
   ["3000000000", "3 tỷ"], ["5000000000", "5 tỷ"], ["10000000000", "10 tỷ"], ["20000000000", "20 tỷ"],
 ];
 const SORTS: [string, string][] = [
-  ["", "Phù hợp nhất"], ["newest", "Mới nhất"], ["price_asc", "Giá thấp đến cao"],
+  ["", "Mới nhất"], ["score", "Điểm tin cao"], ["price_asc", "Giá thấp đến cao"],
   ["price_desc", "Giá cao đến thấp"], ["area_desc", "Diện tích lớn nhất"],
 ];
 
@@ -50,9 +50,10 @@ export default function SearchClient({
     [geo, f.province, f.district],
   );
 
-  // Sort mặc định: tin có ảnh lên trước (đẹp hơn hẳn); sort giá/diện tích thì giữ nguyên thứ tự server
+  // "Điểm tin cao": đẩy tin có ảnh lên trước; các sort khác (kể cả mặc định
+  // "Mới nhất") giữ nguyên thứ tự server để không phá trình tự thời gian crawl.
   const display = useMemo(() => {
-    if (sort) return listings;
+    if (sort !== "score") return listings;
     const withImg = listings.filter((x) => x.images && x.images.length > 0);
     const noImg = listings.filter((x) => !x.images || x.images.length === 0);
     return [...withImg, ...noImg];

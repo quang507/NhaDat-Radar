@@ -38,7 +38,7 @@ export default async function Nav() {
               <Link
                 href="/account"
                 title={user.email || ""}
-                className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold bg-gradient-to-br from-brand to-brand-2 shrink-0"
+                className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold bg-brand shrink-0"
               >
                 {initial}
               </Link>

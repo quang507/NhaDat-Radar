@@ -52,7 +52,7 @@ export default async function Home({
   if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
   if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
   if (q) query = query.ilike("title", `%${q}%`);
-  const { data } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(150);
+  const { data } = await query.order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150);
   const listings = (data ?? []) as Listing[];
 
   const { data: projData } = await supabase.from("projects").select("*").eq("status", "published").limit(6);
@@ -195,11 +195,13 @@ export default async function Home({
               <div className="grid gap-4 md:grid-cols-3">
                 {projects.slice(0, 3).map((p) => (
                   <Link key={p.id} href={`/projects/${p.id}`} className="card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition group">
-                    <div className="h-32 bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white text-3xl overflow-hidden">
+                    <div className="h-32 bg-[#16233a] grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
-                      ) : "🏙️"}
+                      ) : (
+                        <span className="prata text-white/40 text-lg px-4 text-center leading-snug">{p.name}</span>
+                      )}
                     </div>
                     <div className="p-4">
                       <div className="text-[0.65rem] font-bold uppercase tracking-wide text-brand mb-1">Dự án</div>
@@ -241,13 +243,12 @@ export default async function Home({
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               {([
-                ["🔍", "Khám Phá Bất Động Sản", "Duyệt hàng trăm tin đa nguồn với công cụ tìm kiếm, bộ lọc và bản đồ giá."],
-                ["📅", "Xem & So Sánh", "Lưu tin yêu thích ♥, so sánh giá/m² theo khu vực và liên hệ trực tiếp người bán."],
-                ["🔑", "Sở Hữu Ngay", "Chốt giao dịch tự tin với hướng dẫn pháp lý và cảnh báo giá ảo từ AI."],
-              ] as const).map(([icon, t, d], i) => (
-                <div key={t} className="card rounded-2xl p-6 text-center">
-                  <div className="w-14 h-14 mx-auto rounded-2xl bg-brand/10 grid place-items-center text-2xl mb-3">{icon}</div>
-                  <div className="text-[0.7rem] font-bold text-brand mb-1">BƯỚC {i + 1}</div>
+                ["Khám Phá Bất Động Sản", "Duyệt hàng trăm tin đa nguồn với công cụ tìm kiếm, bộ lọc và bản đồ giá."],
+                ["Xem & So Sánh", "Lưu tin yêu thích, so sánh giá/m² theo khu vực và liên hệ trực tiếp người bán."],
+                ["Sở Hữu Ngay", "Chốt giao dịch tự tin với hướng dẫn pháp lý và cảnh báo giá ảo."],
+              ] as const).map(([t, d], i) => (
+                <div key={t} className="card rounded-xl p-6">
+                  <div className="prata text-4xl text-brand/25 leading-none mb-3">{String(i + 1).padStart(2, "0")}</div>
                   <h3 className="font-bold mb-1">{t}</h3>
                   <p className="text-sm text-[var(--ink-soft)]">{d}</p>
                 </div>
@@ -269,9 +270,8 @@ export default async function Home({
                 ["🗺️", "Thông Tin Khu Vực", "Bản đồ giá và xếp hạng giá theo quận cập nhật từ dữ liệu thật hằng ngày."],
                 ["🔒", "Nguồn Minh Bạch", "Mọi tin đều ghi rõ nguồn gốc (Chợ Tốt, Batdongsan, Facebook…) kèm link bài gốc."],
                 ["📈", "Phân Tích Thị Trường", "Truy cập dữ liệu giá và xu hướng để đưa ra quyết định sáng suốt."],
-              ] as const).map(([icon, t, d]) => (
-                <div key={t} className="card rounded-2xl p-5">
-                  <div className="text-2xl mb-2">{icon}</div>
+              ] as const).map(([, t, d]) => (
+                <div key={t} className="card rounded-xl p-5 border-l-2 !border-l-brand/60">
                   <h3 className="font-bold mb-1">{t}</h3>
                   <p className="text-sm text-[var(--ink-soft)]">{d}</p>
                 </div>
@@ -303,11 +303,8 @@ export default async function Home({
                 ["📈", "Nhà đầu tư", "Trang thống kê giá theo quận và biểu đồ lịch sử gộp dữ liệu nhiều nguồn để nhìn thị trường nhanh.", "/thong-ke", "Xem thống kê"],
                 ["🏷️", "Người bán", "Đăng tin miễn phí, tin tự đăng có nhãn riêng nổi bật, nhận liên hệ khách ngay tại Kênh người bán.", "/dashboard/new", "Đăng tin"],
               ] as const).map(([icon, who, desc, href, cta]) => (
-                <div key={who} className="card rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-2 text-white grid place-items-center font-bold text-lg">{icon}</span>
-                    <div className="font-bold text-sm">{who}</div>
-                  </div>
+                <div key={who} className="card rounded-xl p-6">
+                  <div className="kicker mb-2">{who}</div>
                   <p className="text-sm text-[var(--ink-soft)] mb-3">{desc}</p>
                   <Link href={href} className="text-sm text-brand font-semibold">{cta} →</Link>
                 </div>
@@ -322,20 +319,16 @@ export default async function Home({
               ["/tinh-lai-vay", "🧮", "Tính Lãi Vay", "Ước tính khoản góp hàng tháng"],
               ["/thue-hay-mua", "⚖️", "Thuê hay Mua?", "So sánh + yield từng quận"],
               ["/thong-ke", "📊", "Bản Đồ Giá", "Giá trung vị theo khu vực"],
-            ] as const).map(([href, icon, t, d]) => (
-              <Link key={href} href={href} className="card rounded-2xl p-4 flex items-center gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all">
-                <span className="w-11 h-11 rounded-xl bg-brand/10 grid place-items-center text-xl shrink-0">{icon}</span>
-                <span>
-                  <span className="block font-bold text-sm">{t}</span>
-                  <span className="block text-xs text-[var(--ink-soft)]">{d}</span>
-                </span>
+            ] as const).map(([href, , t, d]) => (
+              <Link key={href} href={href} className="card rounded-xl p-4 hover:border-[var(--line-strong)] hover:shadow-md transition-all group/t">
+                <span className="block font-bold text-sm group-hover/t:text-brand transition-colors">{t} →</span>
+                <span className="block text-xs text-[var(--ink-soft)] mt-0.5">{d}</span>
               </Link>
             ))}
           </section>
 
           {/* ===== Micro: nhận email tin mới ===== */}
-          <section className="mt-10 card rounded-3xl p-8 flex flex-col sm:flex-row items-center gap-5">
-            <span className="text-4xl">🔔</span>
+          <section className="mt-10 card rounded-xl p-8 flex flex-col sm:flex-row items-center gap-5 border-l-2 !border-l-brand/60">
             <div className="flex-1 text-center sm:text-left">
               <h2 className="font-bold text-lg">Đừng bỏ lỡ căn nhà ưng ý</h2>
               <p className="text-sm text-[var(--ink-soft)]">
@@ -353,19 +346,19 @@ export default async function Home({
             </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {([
-                ["nha", "🏠", "Nhà Riêng", "Tìm ngôi nhà hoàn hảo cho gia đình", "from-blue-500 to-blue-800"],
-                ["can_ho", "🏢", "Căn Hộ", "Cuộc sống đô thị tuyệt vời nhất", "from-violet-500 to-violet-800"],
-                ["dat", "🌳", "Đất Nền", "Đầu tư cho tương lai vững chắc", "from-emerald-500 to-emerald-800"],
-                ["mat_bang", "🏬", "Mặt Bằng", "Không gian kinh doanh chuyên nghiệp", "from-amber-500 to-amber-700"],
-              ] as const).map(([kind, icon, t, d, grad]) => (
+                ["nha", "Nhà Riêng", "Tìm ngôi nhà hoàn hảo cho gia đình"],
+                ["can_ho", "Căn Hộ", "Cuộc sống đô thị tiện nghi"],
+                ["dat", "Đất Nền", "Đầu tư cho tương lai vững chắc"],
+                ["mat_bang", "Mặt Bằng", "Không gian kinh doanh chuyên nghiệp"],
+              ] as const).map(([kind, t, d]) => (
                 <Link
                   key={kind}
                   href={`/search?kind=${kind}`}
-                  className={`rounded-2xl p-6 text-white bg-gradient-to-br ${grad} shadow-sm hover:shadow-lg hover:scale-[1.02] transition`}
+                  className="rounded-xl p-6 bg-[#16233a] text-white hover:bg-[#1c2c48] transition group/c"
                 >
-                  <div className="text-3xl mb-3">{icon}</div>
-                  <h3 className="font-bold text-lg">{t}</h3>
-                  <p className="text-sm opacity-90">{d}</p>
+                  <h3 className="prata text-xl mb-1 group-hover/c:text-white/90">{t}</h3>
+                  <p className="text-sm text-white/60">{d}</p>
+                  <span className="inline-block mt-4 text-xs font-semibold text-white/70 group-hover/c:text-white transition">Xem tin →</span>
                 </Link>
               ))}
             </div>

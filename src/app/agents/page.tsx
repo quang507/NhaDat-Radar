@@ -65,14 +65,14 @@ export default async function AgentsPage() {
               const initials = name.split(" ").map((w) => w[0]).slice(-2).join("").toUpperCase();
               return (
                 <div key={a.id} className="card rounded-2xl p-5 shadow-sm hover:shadow-lg transition flex flex-col items-center text-center">
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-brand to-brand-2 text-white grid place-items-center text-xl font-bold mb-3">
+                  <div className="w-20 h-20 rounded-full overflow-hidden bg-[#16233a] text-white grid place-items-center text-xl font-bold mb-3">
                     {a.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={a.avatar_url} alt={name} className="w-full h-full object-cover" />
                     ) : initials}
                   </div>
                   <div className="text-[0.65rem] font-bold uppercase tracking-wide text-brand mb-1">
-                    {a.is_verified ? "✓ Đã xác minh" : "Người bán"}
+                    {a.is_verified ? "Đã xác minh" : "Người bán"}
                   </div>
                   <h3 className="font-bold leading-snug">{name}</h3>
                   {a.agency_name && <div className="text-xs text-[var(--ink-soft)] mt-0.5">{a.agency_name}</div>}
@@ -87,10 +87,10 @@ export default async function AgentsPage() {
                     </div>
                   )}
                   {!!a.languages?.length && (
-                    <div className="text-[0.7rem] text-[var(--ink-soft)] mt-1.5">🗣 {a.languages.slice(0, 4).join(" · ")}</div>
+                    <div className="text-[0.7rem] text-[var(--ink-soft)] mt-1.5">Ngôn ngữ: {a.languages.slice(0, 4).join(" · ")}</div>
                   )}
                   {a.license_no && (
-                    <div className="text-[0.65rem] text-[var(--ink-faint)] mt-1">📄 CCHN: {a.license_no}</div>
+                    <div className="text-[0.65rem] text-[var(--ink-faint)] mt-1">CCHN: {a.license_no}</div>
                   )}
                   <div className="text-xs text-[var(--ink-soft)] mt-2">{counts.get(a.id) || 0} bất động sản</div>
                   <Link href={`/search?q=${encodeURIComponent(name)}`} className="btn mt-3 w-full text-sm">Xem tin đăng</Link>
@@ -118,9 +118,8 @@ export default async function AgentsPage() {
           và cam kết dịch vụ xuất sắc.
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {WHY.map(([icon, t, d]) => (
-            <div key={t} className="card rounded-2xl p-5">
-              <div className="text-2xl mb-2">{icon}</div>
+          {WHY.map(([, t, d]) => (
+            <div key={t} className="card rounded-xl p-5 border-l-2 !border-l-brand/60">
               <h3 className="font-bold mb-1">{t}</h3>
               <p className="text-sm text-[var(--ink-soft)]">{d}</p>
             </div>
