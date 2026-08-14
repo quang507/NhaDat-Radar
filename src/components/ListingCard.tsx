@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Listing } from "@/lib/types";
 import { fmtPrice, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
+import SafeImg from "./SafeImg";
 
 export default function ListingCard({ x }: { x: Listing }) {
   const t = thumb(x.kind);
@@ -19,8 +20,7 @@ export default function ListingCard({ x }: { x: Listing }) {
         style={{ background: t.bg }}
       >
         {x.images?.[0] ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={x.images[0]} alt={x.title} className="lc-img w-full h-full object-cover" />
+          <SafeImg src={x.images[0]} alt={x.title} className="lc-img w-full h-full object-cover" />
         ) : (
           <span className="flex flex-col items-center gap-1.5 opacity-95">
             <span className="w-12 h-12 rounded-full bg-white/20 grid place-items-center text-2xl backdrop-blur-sm">{t.icon}</span>
