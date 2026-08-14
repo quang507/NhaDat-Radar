@@ -49,6 +49,14 @@ export default function SearchClient({
     [geo, f.province, f.district],
   );
 
+  // Sort mặc định: tin có ảnh lên trước (đẹp hơn hẳn); sort giá/diện tích thì giữ nguyên thứ tự server
+  const display = useMemo(() => {
+    if (sort) return listings;
+    const withImg = listings.filter((x) => x.images && x.images.length > 0);
+    const noImg = listings.filter((x) => !x.images || x.images.length === 0);
+    return [...withImg, ...noImg];
+  }, [listings, sort]);
+
   const mapItems: MapItem[] = useMemo(
     () => listings
       .filter((x) => x.lat != null && x.lng != null)
@@ -175,9 +183,9 @@ export default function SearchClient({
       {/* ===== Kết quả + bản đồ ===== */}
       <div className={`grid gap-4 items-start ${showMap ? "lg:grid-cols-[1fr_420px]" : ""}`}>
         <div>
-          {listings.length ? (
+          {display.length ? (
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
-              {listings.map((x) => <ListingCard key={x.id} x={x} />)}
+              {display.map((x) => <ListingCard key={x.id} x={x} />)}
             </div>
           ) : (
             <div className="card rounded-2xl p-10 text-center">

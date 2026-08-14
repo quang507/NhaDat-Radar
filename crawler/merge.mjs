@@ -1,5 +1,6 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
+import { isJunk } from "./junk.mjs";
 const load = (f) => { try { return JSON.parse(fs.readFileSync(new URL("./" + f, import.meta.url))).listings || []; } catch { return []; } };
 
 function canonProvince(p) {
@@ -39,6 +40,11 @@ function norm(x) {
 const sources = [["listings3.json", 0], ["chotot.json", 0], ["batdongsan.json", 0], ["mogi.json", 0], ["facebook.json", 0]];
 let all = [];
 for (const [f] of sources) { const rows = load(f).map(norm); all = all.concat(rows); console.error(f, "->", rows.length); }
+
+// Lọc tin rác (dịch vụ, tuyển dụng, vay vốn, hàng tiêu dùng...) trước khi dedupe
+const beforeJunk = all.length;
+all = all.filter((x) => !isJunk(x.title, x.description));
+console.error("junk filter:", beforeJunk, "->", all.length, `(bỏ ${beforeJunk - all.length} tin rác)`);
 
 // khử trùng trong-nguồn theo id + cross-source theo dedupe_key (phone/giá/diện tích/quận)
 const seenId = new Set(), seenKey = new Set();
