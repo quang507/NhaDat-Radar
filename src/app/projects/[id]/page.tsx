@@ -107,8 +107,8 @@ export default async function ProjectDetail({
             </div>
             <Row k="Chủ đầu tư" v={p.investor || "-"} />
             <Row k="Khu vực" v={[p.district, p.province].filter(Boolean).join(", ") || "-"} />
-            <Row k="Số tin đang bán" v={String(related ? 0 : listings.length)} />
-            <ProjectContact projectName={p.name} />
+            <Row k={related ? "Tin gợi ý cùng khu vực" : "Số tin đang bán"} v={String(listings.length)} />
+            <ProjectContact projectId={p.id} projectName={p.name} />
           </div>
         </div>
       </div>

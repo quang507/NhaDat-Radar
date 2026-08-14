@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ListingCard from "@/components/ListingCard";
+import { setAppointmentStatus } from "./actions";
 import type { Listing } from "@/lib/types";
 
 export default async function Dashboard() {
@@ -56,7 +57,28 @@ export default async function Dashboard() {
                 <span className="font-semibold">{new Date(a.slot).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</span>
                 <Link href={`/listings/${a.listing_id}`} className="text-brand truncate max-w-[280px]">{titleMap.get(a.listing_id) || "Tin đã gỡ"}</Link>
                 <span className="text-xs text-[var(--ink-soft)]">{a.agent_id === user.id ? "· khách đặt xem tin của bạn" : "· bạn đặt xem"}</span>
-                <span className="ml-auto text-xs font-bold">{STATUS[a.status] || a.status}</span>
+                {a.note && <span className="text-xs text-[var(--ink-soft)] italic truncate max-w-[220px]">“{a.note}”</span>}
+                <span className="text-xs font-bold">{STATUS[a.status] || a.status}</span>
+                <span className="ml-auto flex gap-1.5">
+                  {/* Người bán: xác nhận / từ chối khi còn chờ; hủy khi đã xác nhận */}
+                  {a.agent_id === user.id && a.status === "requested" && (
+                    <>
+                      <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="confirmed" />
+                        <button className="btn !px-2.5 !py-1 text-xs !text-emerald-600">✓ Xác nhận</button></form>
+                      <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="cancelled" />
+                        <button className="btn !px-2.5 !py-1 text-xs !text-red-600">Từ chối</button></form>
+                    </>
+                  )}
+                  {a.status === "confirmed" && (
+                    <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="cancelled" />
+                      <button className="btn !px-2.5 !py-1 text-xs !text-red-600">Hủy</button></form>
+                  )}
+                  {/* Khách: hủy lịch mình đặt khi còn chờ */}
+                  {a.buyer_id === user.id && a.status === "requested" && (
+                    <form action={setAppointmentStatus}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value="cancelled" />
+                      <button className="btn !px-2.5 !py-1 text-xs !text-red-600">Hủy</button></form>
+                  )}
+                </span>
               </div>
             ))}
           </div>

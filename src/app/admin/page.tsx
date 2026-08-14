@@ -34,16 +34,26 @@ export default async function AdminPage({
 
   // ===== Tab: Liên hệ (leads) =====
   if (tab === "leads") {
-    const { data: leads } = await supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(100);
+    type LeadRow = { id: string; name: string; phone: string; message: string | null; listing_id: string | null; project_id: string | null; created_at: string };
+    const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(100);
+    const leads = (data ?? []) as LeadRow[];
+    // gắn tên dự án cho lead đến từ trang dự án
+    const projIds = [...new Set(leads.map((l) => l.project_id).filter(Boolean))] as string[];
+    const { data: projRows } = projIds.length
+      ? await supabase.from("projects").select("id,name").in("id", projIds)
+      : { data: [] as { id: string; name: string }[] };
+    const projMap = new Map((projRows ?? []).map((p2) => [p2.id, p2.name]));
     return (
       <AdminShell tab={tab} q={sp.q}>
         <div className="card rounded-2xl overflow-hidden">
-          {(leads ?? []).length ? (leads ?? []).map((l: { id: string; name: string; phone: string; message: string | null; listing_id: string | null; created_at: string }) => (
+          {leads.length ? leads.map((l) => (
             <div key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 border-b border-[var(--line)] last:border-0 text-sm">
               <span className="font-semibold">{l.name}</span>
               <a href={`tel:${l.phone}`} className="text-brand font-mono">{l.phone}</a>
               {l.message && <span className="text-[var(--ink-soft)] truncate max-w-[420px]">“{l.message}”</span>}
-              {l.listing_id ? <Link href={`/listings/${l.listing_id}`} className="text-xs text-brand">xem tin →</Link> : <span className="text-xs text-[var(--ink-faint)]">(liên hệ dự án)</span>}
+              {l.listing_id ? <Link href={`/listings/${l.listing_id}`} className="text-xs text-brand">xem tin →</Link>
+                : l.project_id ? <Link href={`/projects/${l.project_id}`} className="text-xs text-brand">🏙 {projMap.get(l.project_id) || "dự án"} →</Link>
+                : <span className="text-xs text-[var(--ink-faint)]">(liên hệ chung)</span>}
               <span className="ml-auto text-xs text-[var(--ink-faint)]">{new Date(l.created_at).toLocaleString("vi-VN")}</span>
             </div>
           )) : <p className="p-8 text-center text-sm text-[var(--ink-soft)]">Chưa có liên hệ nào.</p>}

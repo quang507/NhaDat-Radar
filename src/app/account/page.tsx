@@ -63,6 +63,10 @@ export default async function AccountPage({
               <input className="inp" name="years_experience" type="number" min={0} max={60} defaultValue={p?.years_experience || 0} />
             </label>
           </div>
+          <label className="block mt-3">
+            <span className="lbl">Số giấy phép / chứng chỉ môi giới</span>
+            <input className="inp" name="license_no" defaultValue={p?.license_no || ""} placeholder="VD: CCHN 0123/CN-BĐS" />
+          </label>
           <div className="grid sm:grid-cols-2 gap-4 mt-3">
             <label className="block">
               <span className="lbl">Chuyên môn (phân cách bằng dấu phẩy)</span>

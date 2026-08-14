@@ -290,27 +290,25 @@ export default async function Home({
             </div>
           </section>
 
-          {/* ===== Khách hàng nói gì ===== */}
+          {/* ===== NhaDat Radar giúp gì (value props thật, không dựng review giả) ===== */}
           <section className="mt-16">
-            <h2 className="prata text-2xl text-center mb-2">Khách Hàng Nói Gì</h2>
+            <h2 className="prata text-2xl text-center mb-2">NhaDat Radar Giúp Bạn Thế Nào</h2>
             <p className="text-[var(--ink-soft)] text-center text-sm max-w-2xl mx-auto mb-7">
-              Trải nghiệm của những khách hàng đã tìm thấy bất động sản hoàn hảo qua NhaDat Radar
+              Ba nhóm người dùng, ba cách nền tảng tạo giá trị — bằng tính năng có thật trên trang.
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               {([
-                ["MT", "Minh Trang", "Mua nhà lần đầu", "“Bộ lọc và bản đồ giúp mình tìm đúng căn trong khu vực mong muốn. Nhãn cảnh báo giá lệch cứu mình khỏi một tin thổi giá!”"],
-                ["QH", "Quốc Huy", "Nhà đầu tư BĐS", "“Trang thống kê giá theo quận là công cụ mình mở mỗi sáng. Dữ liệu gộp từ nhiều nguồn nên nhìn thị trường rất nhanh.”"],
-                ["TL", "Thu Lan", "Người bán nhà", "“Đăng tin cực dễ, tin tự đăng có nhãn riêng nổi bật. Mình nhận được liên hệ ngay trong tuần đầu tiên.”"],
-              ] as const).map(([ini, name, role, quote]) => (
-                <div key={name} className="card rounded-2xl p-6">
+                ["🔎", "Người mua nhà", "Lọc theo giá/khu vực/loại hình, xem bản đồ, và nhãn cảnh báo giá lệch giúp bạn tránh tin thổi giá.", "/search", "Tìm kiếm ngay"],
+                ["📈", "Nhà đầu tư", "Trang thống kê giá theo quận và biểu đồ lịch sử gộp dữ liệu nhiều nguồn để nhìn thị trường nhanh.", "/thong-ke", "Xem thống kê"],
+                ["🏷️", "Người bán", "Đăng tin miễn phí, tin tự đăng có nhãn riêng nổi bật, nhận liên hệ khách ngay tại Kênh người bán.", "/dashboard/new", "Đăng tin"],
+              ] as const).map(([icon, who, desc, href, cta]) => (
+                <div key={who} className="card rounded-2xl p-6">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-2 text-white grid place-items-center font-bold text-sm">{ini}</span>
-                    <div>
-                      <div className="font-bold text-sm">{name}</div>
-                      <div className="text-xs text-[var(--ink-soft)]">{role}</div>
-                    </div>
+                    <span className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-2 text-white grid place-items-center font-bold text-lg">{icon}</span>
+                    <div className="font-bold text-sm">{who}</div>
                   </div>
-                  <p className="text-sm text-[var(--ink-soft)] italic">{quote}</p>
+                  <p className="text-sm text-[var(--ink-soft)] mb-3">{desc}</p>
+                  <Link href={href} className="text-sm text-brand font-semibold">{cta} →</Link>
                 </div>
               ))}
             </div>

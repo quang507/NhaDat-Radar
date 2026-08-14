@@ -19,6 +19,7 @@ export async function updateProfile(formData: FormData) {
     full_name: String(formData.get("full_name") || "").trim().slice(0, 120) || null,
     phone: String(formData.get("phone") || "").trim().slice(0, 30) || null,
     agency_name: String(formData.get("agency_name") || "").trim().slice(0, 160) || null,
+    license_no: String(formData.get("license_no") || "").trim().slice(0, 80) || null,
     bio: String(formData.get("bio") || "").trim().slice(0, 1000) || null,
     years_experience: Math.max(0, Math.min(60, Number(formData.get("years_experience") || 0))),
     specialties: String(formData.get("specialties") || "")

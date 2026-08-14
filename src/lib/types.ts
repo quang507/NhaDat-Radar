@@ -26,6 +26,7 @@ export type Listing = {
   lng: number | null;
   amenities: string[];
   images: string[];
+  contact_name: string | null;
   contact_phone: string | null;
   ai_score: number | null;
   trust_score: number | null;

@@ -5,8 +5,8 @@ import { createLead, type LeadState } from "@/app/listings/actions";
 
 const initial: LeadState = { ok: false };
 
-// Nút "Liên hệ tư vấn" ở trang dự án -> mở form, ghi vào bảng leads.
-export default function ProjectContact({ projectName }: { projectName: string }) {
+// Nút "Liên hệ tư vấn" ở trang dự án -> mở form, ghi vào bảng leads (kèm project_id).
+export default function ProjectContact({ projectId, projectName }: { projectId: string; projectName: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(createLead, initial);
 
@@ -25,6 +25,7 @@ export default function ProjectContact({ projectName }: { projectName: string })
   return (
     <form action={formAction} className="flex flex-col gap-3 mt-4">
       <input type="hidden" name="listing_id" value="" />
+      <input type="hidden" name="project_id" value={projectId} />
       <input className="inp" name="name" placeholder="Tên của bạn" required />
       <input className="inp" name="phone" placeholder="Số điện thoại" required />
       <textarea className="inp" name="message" rows={2}

@@ -10,18 +10,17 @@ export async function createLead(
   formData: FormData,
 ): Promise<LeadState> {
   const listing_id = String(formData.get("listing_id") || "");
+  const project_id = String(formData.get("project_id") || "");
   const name = String(formData.get("name") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
   const message = String(formData.get("message") || "").trim();
   if (!name || !phone) return { ok: false, error: "Nhập tên và số điện thoại." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("leads").insert({
-    listing_id: listing_id || null,
-    name,
-    phone,
-    message,
-  });
+  // Chỉ thêm project_id khi có (tránh lỗi nếu migration 004 chưa chạy trên DB).
+  const row: Record<string, unknown> = { listing_id: listing_id || null, name, phone, message };
+  if (project_id) row.project_id = project_id;
+  const { error } = await supabase.from("leads").insert(row);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }

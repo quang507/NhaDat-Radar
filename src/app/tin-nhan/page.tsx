@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { markConvSeen } from "@/components/NavMsg";
 
 type Conv = { id: string; listing_id: string | null; buyer_id: string; agent_id: string; created_at: string; title?: string; other?: string };
 type Msg = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
@@ -61,18 +62,31 @@ function Chat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Nạp + poll tin nhắn của hội thoại đang chọn
+  // Nạp tin nhắn của hội thoại đang chọn: realtime (nếu bật) + poll dự phòng 15s.
   useEffect(() => {
     if (!sel) return;
     let stop = false;
     const load = async () => {
       const { data } = await supabase.from("messages")
         .select("*").eq("conversation_id", sel).order("created_at", { ascending: true }).limit(200);
-      if (!stop) setMsgs((data ?? []) as Msg[]);
+      if (stop) return;
+      const rows = (data ?? []) as Msg[];
+      setMsgs(rows);
+      const last = rows[rows.length - 1];
+      if (last) markConvSeen(sel, last.created_at); // đang mở hội thoại -> coi như đã đọc
     };
     load();
-    const t = setInterval(load, 8000);
-    return () => { stop = true; clearInterval(t); };
+    const ch = supabase.channel(`msgs-${sel}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${sel}` },
+        (payload) => {
+          if (stop) return;
+          const m = payload.new as Msg;
+          setMsgs((prev) => (prev.some((p) => p.id === m.id) ? prev : [...prev.filter((p) => !p.id.startsWith("tmp")), m]));
+          markConvSeen(sel, m.created_at);
+        })
+      .subscribe();
+    const t = setInterval(load, 15000);
+    return () => { stop = true; supabase.removeChannel(ch); clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel]);
 
