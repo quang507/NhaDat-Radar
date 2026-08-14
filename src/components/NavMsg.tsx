@@ -50,20 +50,29 @@ export default function NavMsg() {
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let onSeen: (() => void) | null = null;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (!active || !user) return;
       setUid(user.id);
       recompute(user.id);
       // realtime (nếu publication bật) + poll dự phòng 20s
-      const ch = supabase.channel("nav-msg")
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => recompute(user.id))
+      ch = supabase.channel("nav-msg")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => { if (active) recompute(user.id); })
         .subscribe();
-      const t = setInterval(() => recompute(user.id), 20000);
-      const onSeen = () => recompute(user.id);
+      timer = setInterval(() => { if (active) recompute(user.id); }, 20000);
+      onSeen = () => { if (active) recompute(user.id); };
       window.addEventListener("ndr:msgseen", onSeen);
-      return () => { supabase.removeChannel(ch); clearInterval(t); window.removeEventListener("ndr:msgseen", onSeen); };
-    });
-    return () => { active = false; };
+    })();
+    // Cleanup Ở CẤP useEffect (trước đây nằm trong .then nên bị vứt -> rò rỉ).
+    return () => {
+      active = false;
+      if (ch) supabase.removeChannel(ch);
+      if (timer) clearInterval(timer);
+      if (onSeen) window.removeEventListener("ndr:msgseen", onSeen);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

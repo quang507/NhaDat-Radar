@@ -177,11 +177,10 @@ create policy "projects_write" on projects for all
 create policy "listings_read_public" on listings for select
   using (status = 'published' or agent_id = auth.uid()
          or exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'));
-create policy "listings_insert_own_agent" on listings for insert with check (
-  agent_id = auth.uid()
-  and source = 'agent'
-  and exists (select 1 from profiles p where p.id = auth.uid() and p.role in ('agent','admin'))
-);
+-- KHÔNG có policy insert cho client: tin tự đăng đi qua server action createListing
+-- (service_role, đã xác thực user + ép giá trị tin cậy). Tránh việc gọi thẳng
+-- PostgREST tự đặt status/ai_score/trust_score giả. Crawler cũng dùng service_role.
+-- (xem migration 005)
 create policy "listings_update_own" on listings for update
   using (agent_id = auth.uid() or exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'));
 create policy "listings_delete_own" on listings for delete
