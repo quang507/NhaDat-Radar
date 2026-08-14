@@ -79,6 +79,55 @@ body {
 .lc-img { transition: transform .35s ease; }
 .group:hover .lc-img { transform: scale(1.05); }
 
+/* ===== Micro-interactions / animations toàn web ===== */
+html { scroll-behavior: smooth; }
+::selection { background: color-mix(in srgb, var(--brand) 30%, transparent); }
+
+/* Entrance: phần tử .reveal trồi lên khi tải (stagger qua animation-delay inline) */
+@keyframes revealUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.reveal { animation: revealUp .5s cubic-bezier(.22,.61,.36,1) both; }
+
+/* Nút bấm: nhấc nhẹ + đổ bóng khi hover, lún khi nhấn */
+.btn { will-change: transform; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary:hover { box-shadow: 0 4px 14px color-mix(in srgb, var(--brand) 45%, transparent); }
+
+/* Link nav: gạch chân trượt từ trái */
+.navlink { position: relative; }
+.navlink::after {
+  content: ""; position: absolute; left: 10px; right: 10px; bottom: 2px; height: 2px;
+  background: var(--brand); border-radius: 2px; transform: scaleX(0); transform-origin: left;
+  transition: transform .22s ease;
+}
+.navlink:hover::after { transform: scaleX(1); }
+
+/* Ảnh: mờ dần khi mới tải (chống nháy) */
+img { transition: opacity .3s ease; }
+
+/* Chip/badge nảy nhẹ khi hover */
+.chip { transition: transform .12s ease, background .12s ease; }
+.chip:hover { transform: translateY(-1px); }
+
+/* Skeleton shimmer (khi cần placeholder tải) */
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.skeleton { position: relative; overflow: hidden; background: var(--surface-2); }
+.skeleton::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 6%, transparent), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+/* Nút nổi (chat) nhịp thở nhẹ để thu hút */
+@keyframes floatPulse { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.float-cta { animation: floatPulse 3s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal, .float-cta, .skeleton::after { animation: none; }
+  .btn:hover, .chip:hover { transform: none; }
+}
+
 /* Hero entrance animation */
 @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

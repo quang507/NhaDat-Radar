@@ -4,7 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fmtPrice, AMEN } from "@/lib/format";
+import { cleanImages } from "@/lib/img";
 import ListingCard from "@/components/ListingCard";
+import Gallery from "@/components/Gallery";
 import type { Project, Listing } from "@/lib/types";
 
 export default async function ProjectDetail({
@@ -29,20 +31,16 @@ export default async function ProjectDetail({
     <div>
       <Link href="/projects" className="text-sm text-[var(--ink-soft)] font-semibold">← Về danh sách dự án</Link>
 
-      <div className="rounded-2xl overflow-hidden aspect-[21/9] max-h-[420px] grid place-items-center text-white text-5xl my-4 bg-gradient-to-br from-brand to-brand-2">
-        {p.images?.[0] ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
-        ) : "🏙️"}
+      <div className="my-4">
+        {(() => {
+          const imgs = cleanImages(p.images || []);
+          return imgs.length ? (
+            <Gallery images={imgs} title={p.name} />
+          ) : (
+            <div className="rounded-2xl overflow-hidden aspect-[21/9] max-h-[420px] grid place-items-center text-white text-5xl bg-gradient-to-br from-brand to-brand-2">🏙️</div>
+          );
+        })()}
       </div>
-      {p.images && p.images.length > 1 && (
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          {p.images.slice(1, 5).map((img, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={img} alt="" className="aspect-[4/3] w-full object-cover rounded-lg" />
-          ))}
-        </div>
-      )}
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-6">
         <div>

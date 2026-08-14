@@ -13,7 +13,7 @@ export default function ListingCard({ x }: { x: Listing }) {
   return (
     <Link
       href={`/listings/${x.id}`}
-      className="group card rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col"
+      className="reveal group card rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col"
     >
       <div
         className="aspect-[16/10] grid place-items-center text-white relative overflow-hidden"
