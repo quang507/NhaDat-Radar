@@ -12,14 +12,17 @@ export default function ListingCard({ x }: { x: Listing }) {
       className="card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition flex flex-col"
     >
       <div
-        className="aspect-[16/10] grid place-items-center text-white text-3xl relative"
+        className="aspect-[16/10] grid place-items-center text-white relative"
         style={{ background: t.bg }}
       >
         {x.images?.[0] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={x.images[0]} alt={x.title} className="w-full h-full object-cover" />
         ) : (
-          <span>{t.icon}</span>
+          <span className="flex flex-col items-center gap-1.5 opacity-95">
+            <span className="w-12 h-12 rounded-full bg-white/20 grid place-items-center text-2xl backdrop-blur-sm">{t.icon}</span>
+            <span className="text-[0.65rem] font-bold uppercase tracking-widest opacity-80">{PROP[x.kind]}</span>
+          </span>
         )}
         <span className="absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded bg-black/60 text-white">
           {x.deal === "ban" ? "Để bán" : "Cho thuê"}
