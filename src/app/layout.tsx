@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
+import Footer from "@/components/Footer";
+import ChatWidget from "@/components/ChatWidget";
 
 // Body: Inter · Display: Lora (self-host qua next/font, không gọi link ngoài)
 const inter = Inter({ subsets: ["latin", "vietnamese"], variable: "--font-inter", display: "swap" });
@@ -18,6 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Nav />
         <main className="max-w-6xl mx-auto px-5 py-6">{children}</main>
+        <Footer />
+        <ChatWidget />
       </body>
     </html>
   );
