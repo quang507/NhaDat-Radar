@@ -1,0 +1,133 @@
+# NhaDat Radar - Tài liệu dự án (handoff)
+
+> Sàn nhà đất bán & cho thuê: **crawl đa nguồn → AI Gemini chuẩn hoá/chấm điểm → hiển thị theo tin + bản đồ**.
+> Gộp mô hình aggregator (homigo.life) + marketplace/dự án (homigo.vn). Chạy thật, tự cào mỗi ngày.
+
+Đọc file này là nắm toàn bộ để tiếp tục làm ở session Claude khác.
+
+---
+
+## 1. Link quan trọng
+| | |
+|---|---|
+| **GitHub repo** | https://github.com/quang507/NhaDat-Radar |
+| **Web live (Vercel)** | https://nha-dat-radar-rkyn.vercel.app |
+| **Supabase project** | `dlpedtfmbtuxmgrdnhij` · https://dlpedtfmbtuxmgrdnhij.supabase.co |
+| **Apify** | actor `apify/facebook-groups-scraper` (cào FB) |
+
+## 2. Trạng thái hiện tại (cập nhật 2026-08-14)
+- **448 tin thật** từ 5 nguồn: Chợ Tốt 198 · Batdongsan 123 · nhadat 82 · Mogi 30 · Facebook 15.
+- **366 tin có ảnh · 447 có toạ độ (map) · 30 dự án thật** (crawl từ batdongsan/du-an).
+- Web live, crawl tự động chạy (GitHub Actions - workflow "Daily crawl" Success).
+
+## 3. Tech stack
+| Lớp | Công nghệ |
+|---|---|
+| Frontend/Backend | **Next.js 15** (App Router, TS) + Tailwind |
+| DB + Auth | **Supabase** (Postgres + PostGIS + RLS) |
+| Bản đồ | **Leaflet + OpenStreetMap** (free; có `NEXT_PUBLIC_MAPBOX_TOKEN` thì dùng Mapbox) |
+| AI | **Google Gemini** `gemini-flash-lite-latest` (xoay tối đa 5 key) |
+| Crawler | Node (fetch/HTML parse) + Apify (FB) + Playwright (dự phòng) |
+| Deploy | **Vercel** (web) + **GitHub Actions** (crawl cron) + **Supabase** (DB) |
+| Font | Lora (display) + Inter (body), màu chủ đạo xanh `#2563eb` |
+
+## 4. Cấu trúc repo
+```
+nhadat-radar-app/
+  src/
+    app/
+      page.tsx                     # Trang chủ: hero + bộ lọc + dự án nổi bật + BĐS nổi bật + danh mục
+      listings/[id]/page.tsx       # Chi tiết tin: gallery ảnh + specs + map thật (ListingMap) + form liên hệ
+      projects/[id]/page.tsx       # Chi tiết dự án
+      thong-ke/page.tsx            # Bản đồ giá + xếp hạng giá theo quận
+      auth/                        # Đăng nhập/Đăng ký (email + Google OAuth) + callback
+      dashboard/                   # Người bán: tin của tôi + đăng tin
+      api/zalo/webhook/route.ts    # Bot Zalo OA (ghi tin + hỏi đáp)
+    components/  ListingCard, ListingMap, PriceMap, MapResults, Nav
+    lib/  supabase/{client,server,middleware,admin}, ai.ts, zalo.ts, format.ts, types.ts
+    middleware.ts                  # refresh session Supabase
+  supabase/
+    schema.sql                     # Bảng + RLS + trigger (chạy 1 lần khi setup mới)
+    migrations/001_security_fixes.sql   # ⚠️ VÁ BẢO MẬT - phải chạy trong SQL Editor
+    seed.mjs / seed-listings.json  # Nạp tin mẫu (dùng service_role)
+  crawler/
+    chotot.mjs        # Chợ Tốt - API JSON công khai (có sẵn lat/lng + ảnh + phường). NGON NHẤT.
+    mogi.mjs          # Mogi.vn - HTML SSR (fetch qua Cloudflare OK), có ảnh
+    crawl.js          # nhadat.vn (raovat, vBulletin) - HTTP, KHÔNG có ảnh
+    batdongsan.mjs    # Batdongsan - Cloudflare (Node fetch bị chặn -> curl HTML rồi --test), có ảnh
+    bds-projects.mjs  # Dự án thật từ batdongsan.com.vn/du-an
+    facebook.mjs      # FB: --apify-run (Apify API) | --apify <file> | --playwright | --demo
+    geocode.mjs       # geocode nhadat theo quận (Nominatim free)
+    geocode-all.mjs   # geocode BÙ mọi tin thiếu toạ độ -> tin nào cũng có map
+    merge.mjs         # Gộp tất cả *.json -> combined.json (chuẩn hoá tỉnh + dedupe cross-source)
+    ai-extract.mjs    # (tool) đo/trích field bằng Gemini
+    daily.mjs         # ORCHESTRATOR: chạy chuỗi crawl -> merge -> geocode-all -> seed Supabase
+    fb-cookies.json   # (gitignored) cookies clone FB cho --playwright
+  .github/workflows/daily-crawl.yml   # Cron 5h sáng VN mỗi ngày chạy daily.mjs
+```
+
+## 5. Luồng dữ liệu (pipeline)
+```
+Chợ Tốt(API) ─┐
+Mogi(HTML)   ─┤
+nhadat(HTTP) ─┼─► chuẩn hoá ─► AI Gemini (lọc rác + trích giá/DT/phường + cò/cá nhân + cảnh báo giá)
+Batdongsan   ─┤        (chỉ FB cần AI; các nguồn khác đã có field cấu trúc)
+Facebook(Apify)┘
+              └─► merge.mjs (dedupe) ─► geocode-all.mjs (bù toạ độ) ─► seed Supabase (delete source=crawl + insert)
+                                                                              │
+                          Next.js (Vercel) đọc Supabase ◄──────────────────┘
+Cron GitHub Actions 5h sáng/ngày = chạy toàn bộ chuỗi trên (daily.mjs)
+```
+
+## 6. Cấu hình / Secrets (KHÔNG lưu giá trị ở đây - chỉ vị trí)
+**Vercel → Settings → Environment Variables** (cho WEB chạy):
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `NEXT_PUBLIC_SITE_URL` (=domain vercel). Zalo (khi có): `ZALO_APP_ID`, `ZALO_OA_SECRET`, `ZALO_OA_ACCESS_TOKEN`.
+
+**GitHub → Settings → Secrets and variables → Actions** (cho CRAWL tự động):
+- Secrets: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `GEMINI_API_KEY2..5` (mỗi key từ 1 acc Google KHÁC = quota riêng), `APIFY_TOKEN`.
+- Variables: `FB_GROUP_URLS` (mảng JSON `["url1","url2"]` các nhóm BĐS public), `FB_POSTS` (vd 30).
+
+**Local `.env.local`** (gitignored) = như Vercel + thêm `APIFY_TOKEN`, `FB_GROUP_URLS` nếu chạy crawler ở máy.
+
+## 7. Chạy local
+```bash
+cd nhadat-radar-app
+npm install
+cp .env.local.example .env.local   # điền key (Supabase URL/anon/service_role + Gemini)
+npm run dev                        # http://localhost:3000
+# Nạp/làm mới data:
+node --env-file=.env.local supabase/seed.mjs     # nạp seed-listings.json
+node --env-file=.env.local crawler/daily.mjs     # cào mới tất cả nguồn + seed
+```
+Setup DB mới: Supabase → SQL Editor → chạy `supabase/schema.sql` rồi `migrations/001_security_fixes.sql`.
+
+## 8. Nguồn crawl - đặc điểm
+| Nguồn | Cách | Ảnh | Toạ độ | Tự động? | Ghi chú |
+|---|---|---|---|---|---|
+| **Chợ Tốt** | API JSON `gateway.chotot.com` | ✅ | ✅ có sẵn | ✅ | Tốt nhất. region: HN=12000 HCM=13000 ĐN=3000 |
+| **Mogi** | HTML SSR | ✅ | geocode | ✅ | Node fetch OK |
+| **nhadat** | HTTP (vBulletin) | ❌ text-only | geocode | ✅ | Tin chữ, đã ẩn khỏi feed chính |
+| **Batdongsan** | curl HTML (Cloudflare) | ✅ | geocode | bán tự động | Node fetch bị chặn -> curl rồi parse; committed batdongsan.json |
+| **Facebook** | Apify (public) hoặc Playwright+cookie (private) | ✅ | geocode | ✅ nếu có APIFY_TOKEN + keys | Tốn phí Apify (~$5/1000 bài). Cần nhiều key Gemini né 429 |
+
+## 9. Checklist tính năng
+✅ Feed đa nguồn + lọc (quận/giá/loại/phòng ngủ) · chi tiết + gallery + **map thật** · dự án + chi tiết dự án · thống kê giá theo quận (map + bảng) · auth email+Google · đăng tin (RLS) · form liên hệ (leads) · Zalo OA bot (code) · AI cò/cá nhân + cảnh báo giá ảo + lọc rác · crawl tự động hằng ngày · geocode mọi tin · xoay nhiều key Gemini.
+
+⏳ Cần làm nốt: **chạy `migration 001`** (bảo mật) · re-run workflow để FB cào nhiều hơn.
+
+🔜 Bước 2 (mở rộng): email alert (cần Resend) · đăng ký Zalo OA thật (GPKD) · admin duyệt tin · thêm nguồn · crawl ảnh cho nhadat · tối ưu cache/tốc độ (Vercel ~4s cold start) · UI trau chuốt.
+
+## 10. Lỗi/gotcha đã biết
+- **`migration 001` bắt buộc chạy**: nếu chưa, có lỗ hổng tự phong admin qua anon key (trigger đọc role từ metadata + policy profiles không chặn cột role). File: `supabase/migrations/001_security_fixes.sql`.
+- **Gemini 429**: key free cạn quota nhanh, quota theo PROJECT (nhiều key cùng project = vô ích). Giải: nhiều acc/project HOẶC bật trả phí (~$1-5/tháng). Code đã xoay `GEMINI_API_KEY..KEY5`.
+- **Apify tốn phí**: FB ~$5/1000 bài. Kiểm soát bằng `FB_POSTS` nhỏ + ít nhóm, hoặc dùng Playwright+cookie (free) local.
+- **nhadat & Batdongsan**: Node `fetch` bị Cloudflare chặn với batdongsan (dùng curl). nhadat không có ảnh (tin chữ đời cũ).
+- **Facebook cookies/token = credential sống** (`fb-cookies.json`, APIFY_TOKEN): đã gitignore, KHÔNG bao giờ commit. Dùng acc CLONE cho FB (đừng acc chính).
+- **daily seed** `delete source='crawl'` rồi insert -> KHÔNG động tới tin `source in (agent, zalo_oa)` (tin người dùng đăng vẫn giữ).
+- Windows: git cảnh báo LF->CRLF (vô hại).
+
+## 11. Tiếp tục ở session Claude mới
+- Repo là source of truth. Sửa code trong `src/`, build `npx next build`, commit + push -> Vercel tự deploy.
+- Crawl: sửa `crawler/*.mjs`, chạy `node crawler/daily.mjs` (local, cần .env.local) để test.
+- Data thật đã ở Supabase; web đọc trực tiếp (force-dynamic).
+- Ưu tiên đề xuất tiếp: **email alert** (bước 2 giá trị nhất), rồi Zalo OA thật, rồi admin moderation.
