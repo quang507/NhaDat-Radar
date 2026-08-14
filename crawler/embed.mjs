@@ -12,19 +12,25 @@ const sb = createClient(url, key, { auth: { persistSession: false } });
 
 async function embed(text) {
   for (const k of KEYS) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
     try {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${k}`,
         { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 1500) }] } }) },
+          body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 1500) }] } }), signal: ctrl.signal },
       );
       if (res.status === 429) continue;
       const j = await res.json();
       if (j?.embedding?.values) return j.embedding.values;
     } catch { /* xoay key */ }
+    finally { clearTimeout(timer); }
   }
   return null;
 }
+
+// Trần thời gian toàn bộ embed: 6 phút -> không kéo dài workflow
+const EMBED_DEADLINE = Date.now() + 6 * 60 * 1000;
 
 const { data, error } = await sb.from("listings")
   .select("id,title,description,district,province,kind,deal")
@@ -33,6 +39,7 @@ if (error) { console.error("embed:", error.message, "(đã chạy migration 003 
 
 let done = 0;
 for (const l of data ?? []) {
+  if (Date.now() > EMBED_DEADLINE) { console.log("embed: hết ngân sách thời gian, dừng (mai chạy tiếp)."); break; }
   const text = [l.title, l.description, l.kind, l.deal, l.district, l.province].filter(Boolean).join(" · ");
   const v = await embed(text);
   if (!v) break; // hết quota mọi key -> dừng, mai chạy tiếp
