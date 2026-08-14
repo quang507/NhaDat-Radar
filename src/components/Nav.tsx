@@ -13,7 +13,7 @@ export default async function Nav() {
   const initial = (user?.email || "?").charAt(0).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]/85 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]">
       <div className="relative max-w-6xl mx-auto px-5 py-3 flex items-center gap-3">
         <MobileMenu />
         <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap">
