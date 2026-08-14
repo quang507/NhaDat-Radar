@@ -1,0 +1,35 @@
+name: probe-sites
+# Thăm dò các trang BĐS ứng viên từ IP GitHub Actions: trang nào trả HTML thật
+# thì lưu mẫu làm artifact để viết parser. Chạy tay khi cần (workflow_dispatch).
+on: workflow_dispatch
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe candidate sites
+        run: |
+          mkdir -p samples
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          for u in \
+            "https://nhadat24h.com" \
+            "https://batdongsantoanquoc.vn" \
+            "https://rongbay.com/Ha-Noi/Nha-dat-c7.html" \
+            "https://nhadatuytin24h.com" \
+            "https://sosanhnha.com" \
+            "https://www.123nhadat.net" \
+            "https://timmuanhadat.com.vn" \
+            "https://bannhadat123.vn" \
+          ; do
+            name=$(echo "$u" | sed 's#https\?://##; s#[/.]#_#g' | cut -c1-40)
+            code=$(curl -sL --max-time 15 -A "$UA" -o "samples/$name.html" -w "%{http_code}" "$u" || echo "ERR")
+            size=$(wc -c < "samples/$name.html" 2>/dev/null || echo 0)
+            echo "$code  $size  $u"
+          done
+          ls -la samples/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-samples
+          path: samples/
+          retention-days: 3
