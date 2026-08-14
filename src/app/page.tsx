@@ -79,12 +79,12 @@ export default async function Home({
           {/* lớp phủ nhẹ, chỉ đậm ở mép trái để chữ dễ đọc */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
           <div className="absolute inset-0">
-            <div className="max-w-6xl mx-auto px-5 h-full flex flex-col justify-center">
-              <div className="max-w-xl">
-                <h1 className="prata text-white text-[1.35rem] md:text-[2rem] leading-[1.1] mb-2 drop-shadow-lg hero-in">
+            <div className="max-w-6xl mx-auto px-5 h-full flex flex-col justify-center pt-6 md:pt-16">
+              <div className="max-w-2xl">
+                <h1 className="prata text-white text-[1.6rem] md:text-[2.6rem] leading-[1.12] mb-2.5 drop-shadow-lg hero-in">
                   Tìm nhà đất bán &amp; cho thuê<br />trên khắp Việt Nam
                 </h1>
-                <p className="text-white/90 text-sm mb-3 max-w-md drop-shadow hero-in-2 hidden sm:block">
+                <p className="text-white/90 text-sm md:text-base mb-4 max-w-lg drop-shadow hero-in-2 hidden sm:block">
                   Tổng hợp tin đa nguồn, AI chuẩn hoá &amp; cảnh báo giá ảo.
                 </p>
                 <div className="flex gap-2.5 hero-in-2">
