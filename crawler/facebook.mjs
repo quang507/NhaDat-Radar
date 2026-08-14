@@ -77,10 +77,34 @@ async function toListing(post) {
 }
 function hash(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return h; }
 
+// Chuẩn hoá cookie export (Cookie-Editor / EditThisCookie) -> đúng schema Playwright cần.
+// Cookie-Editor dùng expirationDate + sameSite "no_restriction"/"lax"; Playwright cần expires + "None"/"Lax"/"Strict".
+function normalizeCookies(raw) {
+  const ss = { no_restriction: "None", lax: "Lax", strict: "Strict", none: "None" };
+  return raw
+    .filter((c) => c && c.name && c.value)
+    .map((c) => {
+      const out = {
+        name: c.name,
+        value: c.value,
+        domain: c.domain || ".facebook.com",
+        path: c.path || "/",
+        secure: c.secure !== false,
+        httpOnly: !!c.httpOnly,
+      };
+      const sameSite = ss[String(c.sameSite || "").toLowerCase()];
+      if (sameSite) out.sameSite = sameSite;
+      const exp = c.expires ?? c.expirationDate;
+      if (exp && !c.session) out.expires = Math.round(exp);
+      return out;
+    });
+}
+
 // ---- Chế độ Playwright: cào bằng cookies clone (chạy ở máy bạn) ----
 async function scrapePlaywright() {
   const { chromium } = await import("playwright"); // npm i playwright && npx playwright install chromium
-  const cookies = JSON.parse(fs.readFileSync(new URL("./fb-cookies.json", import.meta.url))); // bạn export từ trình duyệt đã login clone
+  const raw = JSON.parse(fs.readFileSync(new URL("./fb-cookies.json", import.meta.url))); // export từ Cookie-Editor (acc clone)
+  const cookies = normalizeCookies(raw);
   const ctx = await (await chromium.launch({ headless: true })).newContext();
   await ctx.addCookies(cookies);
   const page = await ctx.newPage();
