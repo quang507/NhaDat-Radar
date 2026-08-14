@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fmtPrice, PROP, AMEN, thumb } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
+import ListingMap from "@/components/ListingMap";
 
 export default async function ListingDetail({
   params,
@@ -120,9 +121,13 @@ export default async function ListingDetail({
             <div className="text-sm text-[var(--ink-soft)] mb-3">
               📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
             </div>
-            <div className="h-56 rounded-xl grid place-items-center text-[var(--ink-soft)] bg-[var(--bg)] border border-[var(--line)]">
-              🗺️ Khung bản đồ Google Maps / Mapbox (geocode ở bản thật)
-            </div>
+            {x.lat != null && x.lng != null ? (
+              <ListingMap lat={x.lat} lng={x.lng} title={x.title} />
+            ) : (
+              <div className="h-56 rounded-xl grid place-items-center text-[var(--ink-soft)] bg-[var(--bg)] border border-[var(--line)] text-sm">
+                📍 Tin này chưa có toạ độ chính xác
+              </div>
+            )}
           </div>
         </div>
 

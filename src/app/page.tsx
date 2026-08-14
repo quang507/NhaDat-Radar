@@ -173,7 +173,7 @@ export default async function Home({
           )}
 
           {CATS.map((c) => {
-            const items = listings.filter(c.f).slice(0, 8);
+            const items = listings.filter(c.f).filter((x) => x.images && x.images.length > 0).slice(0, 8);
             if (!items.length) return null;
             return (
               <Section key={c.t} title={c.t} href={c.href}>
