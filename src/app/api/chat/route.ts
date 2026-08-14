@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
 import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
 
@@ -58,7 +58,7 @@ function fallbackParse(text: string): Parsed {
 
 // Thống kê thị trường theo quận từ data thật (giá/m² trung vị bán & thuê + tỷ suất cho thuê)
 async function marketStats(province: string | null) {
-  const supabase = createAdminClient();
+  const supabase = createAnonClient();
   let q = supabase
     .from("listings")
     .select("district,province,deal,price_per_m2")
@@ -91,6 +91,11 @@ async function marketStats(province: string | null) {
 }
 
 export async function POST(req: NextRequest) {
+  // chặn spam: 20 request/phút mỗi IP (endpoint công khai + tốn quota Gemini)
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "?";
+  if (!rateLimit(`chat:${ip}`, 20, 60_000)) {
+    return NextResponse.json({ reply: "Bạn thao tác hơi nhanh, chờ một phút rồi thử lại nhé." }, { status: 429 });
+  }
   let body: { messages?: ChatMsg[] };
   try {
     body = await req.json();
@@ -142,7 +147,7 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
   }
 
   // ===== Tìm tin =====
-  const supabase = createAdminClient();
+  const supabase = createAnonClient();
   let q = supabase
     .from("listings")
     .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images")

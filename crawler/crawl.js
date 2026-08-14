@@ -82,6 +82,11 @@ async function pool(items,n,fn){ const out=[]; let i=0; await Promise.all(Array.
     const uM=h.match(/\/members\/[^"]*?-(\d+)\.html"[^>]*>\s*<strong>([^<]+)<\/strong>/i);
     const bM=h.match(/<blockquote class="postcontent[^"]*">([\s\S]*?)<\/blockquote>/i);
     const desc=bM?strip(bM[1]).slice(0,1100):"";
+    // Ảnh: gom mọi <img src> tuyệt đối là file ảnh, loại logo/icon/sprite/avatar, tối đa 8
+    const images=[...h.matchAll(/<img[^>]+(?:data-src|src)="(https?:\/\/[^"]+\.(?:jpe?g|png|webp)(?:\?[^"]*)?)"/gi)]
+      .map(m=>m[1])
+      .filter(u=>!/logo|icon|sprite|avatar|banner|captcha|\/static\//i.test(u))
+      .filter((v,i,a)=>a.indexOf(v)===i).slice(0,8);
     const text=title+" "+desc;
     const cat=(url.match(/\/(cho-thue|can-ban|can-ho|dat|nha|mat-bang)/)||[])[1]||"";
     const det=extractDetails(text);
@@ -91,7 +96,7 @@ async function pool(items,n,fn){ const out=[]; let i=0; await Promise.all(Array.
       bedrooms:det.bedrooms,bathrooms:det.bathrooms,floors:det.floors,direction:det.direction,legal:det.legal,furnishing:det.furnishing,
       poster_id:uM?uM[1]:null, poster_name:uM?dec(uM[2]):strip(dd(h,"TK")||""),
       _phone:phone, phone_masked:maskPhone(phone), phone_hash:hashPhone(phone),
-      amenities:AMEN.filter(a=>a.re.test(text)).map(a=>a.k), description:desc,
+      amenities:AMEN.filter(a=>a.re.test(text)).map(a=>a.k), description:desc, images,
       price_per_m2:(price&&area)?Math.round(price/area):null,
       source:"crawl", source_site:"nhadat.vn",
       freshness_min: id? (parseInt(id.slice(-3),10)%720)+3 : 30,   // demo: phút/giờ trước, ổn định theo id

@@ -74,7 +74,8 @@ export default async function Home({
       {!hasFilter && hero && (
         <section className="hero-art relative w-screen left-1/2 -translate-x-1/2 overflow-hidden mb-6 -mt-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={hero} alt="NhaDat Radar" className="w-full h-[260px] md:h-[440px] object-cover" />
+          {/* md+: h-auto = hiện TRỌN ảnh theo tỷ lệ gốc, không cắt; mobile giữ khung 260px cho chữ dễ đọc */}
+          <img src={hero} alt="NhaDat Radar" className="w-full h-[260px] object-cover md:h-auto md:object-contain" />
           {/* lớp phủ nhẹ, chỉ đậm ở mép trái để chữ dễ đọc */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
           <div className="absolute inset-0">
