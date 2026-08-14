@@ -70,23 +70,27 @@ export default async function Home({
   const hero = heroImage();
   return (
     <div>
-      {/* ===== HERO banner thương hiệu (nếu có public/hero.jpg) ===== */}
+      {/* ===== HERO banner thương hiệu — full width, không bo góc ===== */}
       {!hasFilter && hero && (
-        <section className="hero-art relative -mx-5 md:mx-0 md:rounded-3xl overflow-hidden mb-6 md:mt-1">
+        <section className="hero-art relative w-screen left-1/2 -translate-x-1/2 overflow-hidden mb-6 -mt-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={hero} alt="NhaDat Radar" className="w-full h-[240px] md:h-[360px] object-cover" />
+          <img src={hero} alt="NhaDat Radar" className="w-full h-[260px] md:h-[440px] object-cover" />
           {/* lớp phủ nhẹ, chỉ đậm ở mép trái để chữ dễ đọc */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
-          <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-12 max-w-xl">
-            <h1 className="prata text-white text-[1.35rem] md:text-[2rem] leading-[1.1] mb-2 drop-shadow-lg hero-in">
-              Tìm nhà đất bán &amp; cho thuê<br />trên khắp Việt Nam
-            </h1>
-            <p className="text-white/90 text-sm mb-3 max-w-md drop-shadow hero-in-2 hidden sm:block">
-              Tổng hợp tin đa nguồn, AI chuẩn hoá &amp; cảnh báo giá ảo.
-            </p>
-            <div className="flex gap-2.5 hero-in-2">
-              <Link href="/search" className="btn !py-2 !bg-white !text-brand !border-white font-bold">Tìm kiếm ngay</Link>
-              <Link href="/dinh-gia" className="btn !py-2 !bg-transparent !text-white !border-white/70 hover:!bg-white/10">Định giá AI</Link>
+          <div className="absolute inset-0">
+            <div className="max-w-6xl mx-auto px-5 h-full flex flex-col justify-center">
+              <div className="max-w-xl">
+                <h1 className="prata text-white text-[1.35rem] md:text-[2rem] leading-[1.1] mb-2 drop-shadow-lg hero-in">
+                  Tìm nhà đất bán &amp; cho thuê<br />trên khắp Việt Nam
+                </h1>
+                <p className="text-white/90 text-sm mb-3 max-w-md drop-shadow hero-in-2 hidden sm:block">
+                  Tổng hợp tin đa nguồn, AI chuẩn hoá &amp; cảnh báo giá ảo.
+                </p>
+                <div className="flex gap-2.5 hero-in-2">
+                  <Link href="/search" className="btn !py-2 !rounded-none !bg-white !text-brand !border-white font-bold">Tìm kiếm ngay</Link>
+                  <Link href="/dinh-gia" className="btn !py-2 !rounded-none !bg-transparent !text-white !border-white/70 hover:!bg-white/10">Định giá AI</Link>
+                </div>
+              </div>
             </div>
           </div>
         </section>
