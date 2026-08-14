@@ -16,9 +16,8 @@ export default async function Nav() {
       <div className="relative max-w-6xl mx-auto px-5 py-3 flex items-center gap-3">
         <MobileMenu />
         <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap">
-          <span className="w-7 h-7 rounded-lg grid place-items-center text-white text-sm bg-gradient-to-br from-brand to-brand-2">
-            ◎
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="NhaDat Radar" className="w-8 h-8 rounded-lg object-contain" />
           NhaDat<span className="text-brand">Radar</span>
         </Link>
         <nav className="hidden md:flex gap-0.5 ml-1 text-sm font-semibold text-[var(--ink-soft)]">

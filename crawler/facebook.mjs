@@ -100,25 +100,68 @@ function normalizeCookies(raw) {
     });
 }
 
-// ---- Chế độ Playwright: cào bằng cookies clone (chạy ở máy bạn) ----
+// ---- Chế độ Playwright: cào bằng cookies clone ----
 async function scrapePlaywright() {
-  const { chromium } = await import("playwright"); // npm i playwright && npx playwright install chromium
-  const raw = JSON.parse(fs.readFileSync(new URL("./fb-cookies.json", import.meta.url))); // export từ Cookie-Editor (acc clone)
+  const { chromium } = await import("playwright");
+  const raw = JSON.parse(fs.readFileSync(new URL("./fb-cookies.json", import.meta.url)));
   const cookies = normalizeCookies(raw);
-  const ctx = await (await chromium.launch({ headless: true })).newContext();
+  console.error(`FB: nạp ${cookies.length} cookie`);
+  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-blink-features=AutomationControlled"] });
+  const ctx = await browser.newContext({
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    viewport: { width: 1366, height: 900 },
+    locale: "vi-VN",
+  });
   await ctx.addCookies(cookies);
   const page = await ctx.newPage();
-  const groupUrls = JSON.parse(process.env.FB_GROUP_URLS || "[]"); // ["https://facebook.com/groups/xxxx", ...]
-  const posts = [];
-  for (const url of groupUrls) {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-    for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, 3000); await sleep(1800); } // cuộn như người
-    const texts = await page.$$eval('div[role="article"]', (nodes) =>
-      nodes.map((n) => ({ text: n.innerText || "", url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"]') || {}).href || "" })));
-    texts.filter((t) => t.text.length > 40).forEach((t) => posts.push(t));
-    await sleep(2500);
+
+  // Kiểm tra cookie còn sống: vào trang chủ, nếu bị đá về /login là cookie hỏng
+  await page.goto("https://www.facebook.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
+  await sleep(3000);
+  if (page.url().includes("/login") || (await page.$('input[name="pass"]'))) {
+    console.error("⚠ FB: cookie hết hạn / không đăng nhập được (bị đá về trang login). Export cookie mới bằng Cookie-Editor.");
+    await browser.close();
+    return [];
   }
-  await ctx.close();
+  console.error("FB: đăng nhập OK");
+
+  const groupUrls = JSON.parse(process.env.FB_GROUP_URLS || "[]");
+  const posts = [];
+  for (const raw0 of groupUrls) {
+    // ưu tiên xem bài mới nhất
+    const url = raw0.includes("?") ? raw0 : raw0.replace(/\/$/, "") + "/?sorting_setting=CHRONOLOGICAL";
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+      // chờ bài xuất hiện (tối đa 25s); nếu không có = nhóm private/không vào được
+      try {
+        await page.waitForSelector('div[role="article"], div[role="feed"]', { timeout: 25000 });
+      } catch {
+        console.error(`⚠ FB: nhóm ${raw0} không hiện bài (private / cần duyệt / sai URL)`);
+        continue;
+      }
+      let last = 0;
+      for (let i = 0; i < 12; i++) {
+        await page.mouse.wheel(0, 4000);
+        await sleep(2200);
+        const n = await page.$$eval('div[role="article"]', (x) => x.length).catch(() => 0);
+        if (n === last && i > 3) break; // hết bài mới -> dừng sớm
+        last = n;
+      }
+      const texts = await page.$$eval('div[role="article"]', (nodes) =>
+        nodes.map((n) => ({
+          text: n.innerText || "",
+          url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
+        })));
+      const kept = texts.filter((t) => t.text.length > 40);
+      console.error(`FB: nhóm ${raw0} -> ${kept.length} bài (thấy ${texts.length} article)`);
+      kept.forEach((t) => posts.push(t));
+      await sleep(2500);
+    } catch (e) {
+      console.error(`⚠ FB: lỗi nhóm ${raw0}:`, e.message);
+    }
+  }
+  await browser.close();
+  console.error(`FB: tổng thu được ${posts.length} bài thô`);
   return posts;
 }
 
