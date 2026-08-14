@@ -15,13 +15,18 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-      # Facebook qua Playwright (free): cần secret FB_COOKIES_JSON (export cookies từ acc clone)
+      # Facebook qua Playwright (free): cần secret FB_COOKIES_JSON (export cookies từ acc clone).
+      # Guard bằng shell (KHÔNG dùng secrets trong 'if:' - GitHub Actions cấm, gây startup_failure).
       - name: Chuẩn bị Playwright cho Facebook
-        if: ${{ secrets.FB_COOKIES_JSON != '' }}
         run: |
-          echo "$FB_COOKIES_JSON" > crawler/fb-cookies.json
-          npm i playwright --no-save
-          npx playwright install chromium --with-deps
+          if [ -n "$FB_COOKIES_JSON" ]; then
+            echo "$FB_COOKIES_JSON" > crawler/fb-cookies.json
+            npm i playwright --no-save
+            npx playwright install chromium --with-deps
+            echo "FB Playwright sẵn sàng."
+          else
+            echo "Không có FB_COOKIES_JSON -> bỏ qua Playwright (FB sẽ dùng Apify nếu có token)."
+          fi
         env:
           FB_COOKIES_JSON: ${{ secrets.FB_COOKIES_JSON }}
       - name: Crawl + seed Supabase
