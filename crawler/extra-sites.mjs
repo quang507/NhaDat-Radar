@@ -110,8 +110,15 @@ async function bannhadat123() {
     if (!h) continue;
     for (const b of blocks(h, /href="(\/(?:ban|cho-thue)[^"]{10,160}-eid-(\d{5,})\/)"/g)) {
       const url = "https://bannhadat123.vn" + b.href;
-      const title = strip((b.block.match(/class="media-heading"[^>]*>([\s\S]{0,220}?)<\/(?:h\d|a|div)/) || [])[1] || "")
-        || strip((b.block.match(/title="([^"]{15,200})"/) || [])[1] || "");
+      // Tiêu đề nằm trong <a> LỒNG BÊN TRONG .media-heading (run 14/8: 60 tin bị rớt
+      // vì regex cũ không xuyên qua thẻ lồng) -> thử 3 lớp, chốt bằng slug.
+      const title = strip((b.block.match(/class="media-heading"[^>]*>[\s\S]{0,160}?<a[^>]*>([\s\S]{0,240}?)<\/a>/) || [])[1] || "")
+        || strip((b.block.match(/class="media-heading"[^>]*>([\s\S]{0,240}?)<\/(?:h\d|div)/) || [])[1] || "")
+        || strip((b.block.match(/title="([^"]{15,200})"/) || [])[1] || "")
+        || (() => { // slug -> "Ban lien ke centa vsip bac ninh..." (không dấu nhưng còn hơn mất tin)
+          const s = (b.href.split("/").filter(Boolean).pop() || "").replace(/-eid-\d+\/?$/, "").replace(/-/g, " ").trim();
+          return s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
+        })();
       out.push(row({ key: "bnd123", name: "bannhadat123.vn" }, b.id, url, title, b.block, b.href));
     }
     await sleep(1200);
