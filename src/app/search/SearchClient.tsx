@@ -43,12 +43,21 @@ export default function SearchClient({
     areaMin: params.areaMin || "", bedrooms: params.bedrooms || "",
   });
   const sort = params.sort || "";
+  // Công tắc "địa chỉ mới sau sáp nhập" (kiểu batdongsan): BẬT = duyệt Tỉnh -> Phường mới
+  // (hệ 2 cấp, bỏ quận); TẮT = duyệt theo quận cũ như thói quen thị trường.
+  const [newAddr, setNewAddr] = useState(params.newAddr === "1");
 
   const provinces = useMemo(() => Object.keys(geo).sort(), [geo]);
   const districts = useMemo(() => (f.province && geo[f.province] ? Object.keys(geo[f.province]).sort() : []), [geo, f.province]);
   const wards = useMemo(
     () => (f.province && f.district && geo[f.province]?.[f.district] ? geo[f.province][f.district] : []),
     [geo, f.province, f.district],
+  );
+  const allWards = useMemo(
+    () => (f.province && geo[f.province]
+      ? [...new Set(Object.values(geo[f.province]).flat())].sort()
+      : []),
+    [geo, f.province],
   );
 
   // "Điểm tin cao": đẩy tin có ảnh lên trước; các sort khác (kể cả mặc định
@@ -77,6 +86,7 @@ export default function SearchClient({
   function push(next: Record<string, string>) {
     const usp = new URLSearchParams();
     for (const [k, v] of Object.entries(next)) if (v) usp.set(k, v);
+    if (newAddr) usp.set("newAddr", "1");
     router.push("/search" + (usp.size ? "?" + usp.toString() : ""));
   }
   const submit = () => push({ ...f, sort });
@@ -147,20 +157,32 @@ export default function SearchClient({
                 {provinces.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Quận/Huyện</span>
-              <select className={sel} value={f.district} onChange={set("district")} disabled={!districts.length}>
-                <option value="">Chọn quận/huyện</option>
-                {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </label>
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phường/Xã</span>
-              <select className={sel} value={f.ward} onChange={set("ward")} disabled={!wards.length}>
-                <option value="">Chọn phường/xã</option>
-                {wards.map((w) => <option key={w} value={w}>{w}</option>)}
-              </select>
-            </label>
+            {!newAddr ? (
+              <>
+                <label className="block">
+                  <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Quận/Huyện <span className="text-[var(--ink-faint)] font-normal">(cũ)</span></span>
+                  <select className={sel} value={f.district} onChange={set("district")} disabled={!districts.length}>
+                    <option value="">Chọn quận/huyện</option>
+                    {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phường/Xã</span>
+                  <select className={sel} value={f.ward} onChange={set("ward")} disabled={!wards.length}>
+                    <option value="">Chọn phường/xã</option>
+                    {wards.map((w) => <option key={w} value={w}>{w}</option>)}
+                  </select>
+                </label>
+              </>
+            ) : (
+              <label className="block xl:col-span-2">
+                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phường/Xã <span className="text-brand font-normal">(mới sau sáp nhập)</span></span>
+                <select className={sel} value={f.ward} onChange={(e) => setF((s) => ({ ...s, district: "", ward: e.target.value }))} disabled={!allWards.length}>
+                  <option value="">Chọn phường/xã mới</option>
+                  {allWards.map((w) => <option key={w} value={w}>{w}</option>)}
+                </select>
+              </label>
+            )}
             <label className="block">
               <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Loại bất động sản</span>
               <select className={sel} value={f.kind} onChange={set("kind")}>
@@ -200,9 +222,19 @@ export default function SearchClient({
               </select>
             </label>
           </div>
-          <div className="flex gap-2 mt-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
             <button className="btn btn-primary px-8" type="submit">Tìm kiếm</button>
             <button className="btn" type="button" onClick={clear}>Xóa bộ lọc</button>
+            <button
+              type="button"
+              onClick={() => { setNewAddr((v) => !v); setF((s) => ({ ...s, district: "", ward: "" })); }}
+              className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)] ml-auto"
+            >
+              <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
+              </span>
+              Tìm theo địa chỉ mới sau sáp nhập
+            </button>
           </div>
         </form>
       )}
