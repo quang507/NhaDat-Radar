@@ -75,17 +75,18 @@ export default async function Home({
         <section className="hero-art relative -mx-5 md:mx-0 md:rounded-3xl overflow-hidden mb-6 md:mt-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={hero} alt="NhaDat Radar" className="w-full h-[240px] md:h-[360px] object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-transparent" />
-          <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-12 max-w-2xl">
-            <h1 className="prata text-white text-[1.8rem] md:text-[3rem] leading-[1.08] mb-3 drop-shadow-lg hero-in">
+          {/* lớp phủ nhẹ, chỉ đậm ở mép trái để chữ dễ đọc */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
+          <div className="absolute inset-0 flex flex-col justify-center px-6 md:px-12 max-w-xl">
+            <h1 className="prata text-white text-[1.35rem] md:text-[2rem] leading-[1.1] mb-2 drop-shadow-lg hero-in">
               Tìm nhà đất bán &amp; cho thuê<br />trên khắp Việt Nam
             </h1>
-            <p className="text-white/90 mb-5 max-w-lg drop-shadow hero-in-2 hidden sm:block">
-              Tổng hợp tin đa nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, cảnh báo giá ảo.
+            <p className="text-white/90 text-sm mb-3 max-w-md drop-shadow hero-in-2 hidden sm:block">
+              Tổng hợp tin đa nguồn, AI chuẩn hoá &amp; cảnh báo giá ảo.
             </p>
-            <div className="flex gap-3 hero-in-2">
-              <Link href="/search" className="btn !bg-white !text-brand !border-white font-bold">Tìm kiếm ngay</Link>
-              <Link href="/dinh-gia" className="btn !bg-transparent !text-white !border-white/70 hover:!bg-white/10">Định giá AI</Link>
+            <div className="flex gap-2.5 hero-in-2">
+              <Link href="/search" className="btn !py-2 !bg-white !text-brand !border-white font-bold">Tìm kiếm ngay</Link>
+              <Link href="/dinh-gia" className="btn !py-2 !bg-transparent !text-white !border-white/70 hover:!bg-white/10">Định giá AI</Link>
             </div>
           </div>
         </section>

@@ -60,7 +60,7 @@ export function parseMogi(html) {
       property_type: propType(url),
       province: canonProvince(parts[parts.length - 1]), district: parts[0] || null, ward: null,
       lat: null, lng: null, amenities: [], images: img ? [img] : [],
-      poster_role: "khong_ro", ai_score: price && area ? 76 : 66,
+      poster_role: "khong_ro", ai_score: Math.max(40, Math.min(95, 55 + (price ? 6 : 0) + (area ? 5 : 0) + (img ? 12 : 0) + (beds ? 4 : 0))),
     });
   }
   const seen = new Set();

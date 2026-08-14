@@ -103,10 +103,21 @@ function mapAd(a, city) {
     x.poster_role = x._company_ad || x._shop || c >= 3 ? "moi_gioi"
       : /chính chủ|chinh chu/i.test(x.title + " " + x.description) ? "chu_nha"
       : c === 1 ? "chu_nha" : "khong_ro";
-    // ai_score đơn giản
-    let s = 60; if (x.price_vnd) s += 8; if (x.area_m2) s += 6; if (x.bedrooms) s += 4;
-    if (x.legal) s += 6; if (x.lat) s += 6; if ((x.description || "").length > 300) s += 6;
-    x.ai_score = Math.max(45, Math.min(97, s));
+    // ai_score: chấm theo tín hiệu thật để giãn điểm (đầy đủ thông tin + nhiều ảnh + chính chủ = cao)
+    let s = 48;
+    if (x.price_vnd) s += 6;
+    if (x.area_m2) s += 5;
+    if (x.bedrooms) s += 3;
+    if (x.bathrooms) s += 2;
+    if (x.legal) s += 6;
+    if (x.lat) s += 4;
+    s += Math.min(12, (x.images?.length || 0) * 3);           // ảnh: tín hiệu mạnh (0 ảnh=0, 4+ ảnh=+12)
+    const dlen = (x.description || "").length;
+    s += dlen > 500 ? 8 : dlen > 200 ? 4 : 0;
+    if (x.poster_role === "chu_nha") s += 5;
+    else if (x.poster_role === "moi_gioi") s -= 3;
+    if (/gấp|giá rẻ|giá sốc|sốc|lh ngay|call ngay|0đ|siêu rẻ/i.test(x.title || "")) s -= 5; // dấu hiệu câu view/spam
+    x.ai_score = Math.max(35, Math.min(98, Math.round(s)));
     x.freshness_min = (parseInt(String(a2(x.id)), 10) % 720) + 3;
     delete x._company_ad; delete x._shop;
   });
