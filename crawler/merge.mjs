@@ -33,7 +33,10 @@ function norm(x) {
     ai_score: x.ai_score ?? (x.price_warning ? 55 : 75),
     price_warning: x.price_warning ?? null,
     freshness_min: x.freshness_min ?? 60,
-    images: x.images || [],
+    // làm sạch ảnh: bỏ object rác + link album facebook (không phải file ảnh)
+    images: (x.images || [])
+      .map((i) => (typeof i === "string" ? i : i && i.uri))
+      .filter((u) => typeof u === "string" && /^https?:\/\//.test(u) && !u.includes("facebook.com/media")),
   };
 }
 
