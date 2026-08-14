@@ -95,6 +95,12 @@ export default async function Home({
               <button className="btn btn-primary px-6" type="submit">Tìm kiếm</button>
             </div>
           </form>
+          <div className="flex gap-6 mt-5 hero-in-2">
+            <Stat n={listings.length} label="tin đang rao" />
+            <Stat n={projects.length} label="dự án" />
+            <Stat n={new Set(listings.map((x) => x.district).filter(Boolean)).size} label="quận/huyện" />
+            <Stat n={new Set(listings.map((x) => x.source_site).filter(Boolean)).size} label="nguồn dữ liệu" />
+          </div>
         </div>
 
         {collage.length >= 3 && (
@@ -307,12 +313,21 @@ export default async function Home({
 
 function Section({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
   return (
-    <section className="mt-9">
-      <div className="flex items-baseline gap-3 mb-3">
-        <h2 className="prata text-xl">{title}</h2>
-        <Link href={href} className="text-sm text-brand font-semibold ml-auto">Xem tất cả →</Link>
+    <section className="mt-10">
+      <div className="flex items-baseline gap-3 mb-4">
+        <h2 className="prata text-xl md:text-2xl">{title}</h2>
+        <Link href={href} className="text-sm text-brand font-semibold ml-auto whitespace-nowrap">Xem tất cả →</Link>
       </div>
       {children}
     </section>
+  );
+}
+
+function Stat({ n, label }: { n: number; label: string }) {
+  return (
+    <div>
+      <div className="text-xl font-extrabold text-brand">{n.toLocaleString("vi-VN")}+</div>
+      <div className="text-xs text-[var(--ink-soft)]">{label}</div>
+    </div>
   );
 }

@@ -25,6 +25,7 @@ export default async function Nav() {
           <Link href="/projects" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Dự án</Link>
           <Link href="/agents" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Người Bán</Link>
           <Link href="/thong-ke" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Thống kê</Link>
+          <Link href="/dinh-gia" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Định Giá AI</Link>
           <Link href="/tinh-lai-vay" className="px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Lãi Vay</Link>
         </nav>
         <div className="ml-auto flex items-center gap-2">

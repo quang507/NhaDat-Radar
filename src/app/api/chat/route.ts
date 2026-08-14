@@ -1,73 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
-const KEYS = [
-  process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
-  process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5,
-].filter(Boolean) as string[];
-
 type ChatMsg = { role: "user" | "bot"; text: string };
-type ParsedQuery = {
-  is_search: boolean;
+type Parsed = {
+  mode: "search" | "analyze" | "chat";
   deal?: "ban" | "cho_thue" | null;
   kind?: string | null;
   province?: string | null;
   district?: string | null;
-  price_max?: number | null;
   price_min?: number | null;
+  price_max?: number | null;
   bedrooms?: number | null;
   keyword?: string | null;
   small_talk_reply?: string | null;
 };
 
-async function gemini(prompt: string, json = true): Promise<string | null> {
-  for (const key of KEYS) {
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: json
-              ? { responseMimeType: "application/json", temperature: 0 }
-              : { temperature: 0.4, maxOutputTokens: 400 },
-          }),
-        },
-      );
-      if (res.status === 429) continue; // hết quota key này -> xoay key sau
-      const j = await res.json();
-      const txt = j?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (txt) return txt;
-    } catch { /* thử key tiếp theo */ }
-  }
-  return null;
-}
-
 const PARSE_PROMPT = `Bạn là trợ lý AI của sàn nhà đất NhaDat Radar (Việt Nam). Phân tích TIN NHẮN CUỐI của người dùng (kèm ngữ cảnh hội thoại) và trả về DUY NHẤT 1 JSON:
 {
- "is_search": boolean,            // true nếu họ đang tìm/hỏi về nhà đất cụ thể (mua, thuê, giá, khu vực)
+ "mode": "search"|"analyze"|"chat",
+   // search: tìm tin cụ thể (mua/thuê nhà theo tiêu chí)
+   // analyze: hỏi về THỊ TRƯỜNG - giá trung bình, khu nào rẻ/đắt, nên đầu tư đâu, so sánh khu vực, xu hướng
+   // chat: chào hỏi, hỏi cách dùng web, khác
  "deal": "ban"|"cho_thue"|null,
  "kind": "nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|null,
- "province": string|null,         // chuẩn hoá: "Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Khánh Hòa"...
+ "province": string|null,   // chuẩn hoá: "Hà Nội", "Hồ Chí Minh", "Đà Nẵng"...
  "district": string|null,
- "price_min": number|null,        // VND: "2 tỷ"=2000000000, "5tr/tháng"=5000000
+ "price_min": number|null,  // VND: "2 tỷ"=2000000000, "5tr/tháng"=5000000
  "price_max": number|null,
  "bedrooms": number|null,
- "keyword": string|null,          // từ khoá khác (tên đường, dự án)
- "small_talk_reply": string|null  // CHỈ khi is_search=false: câu trả lời thân thiện, ngắn, tiếng Việt. Có thể hướng dẫn dùng web: tìm kiếm /search, đăng tin cần đăng nhập (Google hoặc email) tại /auth, đăng tin tại /dashboard/new, tính lãi vay /tinh-lai-vay, lưu tin bằng nút ♥.
+ "keyword": string|null,
+ "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời thân thiện ngắn tiếng Việt. Gợi ý được: tìm kiếm /search, AI định giá /dinh-gia, tính lãi vay /tinh-lai-vay, đăng tin cần đăng nhập /auth rồi vào /dashboard/new, lưu tin bằng nút ♥.
 }
 Không bịa. Giá quy về VND.`;
 
-function fallbackParse(text: string): ParsedQuery {
+function fallbackParse(text: string): Parsed {
   const t = text.toLowerCase();
-  const q: ParsedQuery = { is_search: true };
+  const q: Parsed = { mode: "search" };
+  if (/(giá trung bình|khu nào|quận nào|đầu tư|xu hướng|thị trường|so sánh|rẻ nhất|đắt nhất)/.test(t)) q.mode = "analyze";
   if (/(thuê|cho thue|cho thuê)/.test(t)) q.deal = "cho_thue";
   else if (/(mua|bán|ban)/.test(t)) q.deal = "ban";
   if (/căn hộ|can ho|chung cư/.test(t)) q.kind = "can_ho";
@@ -80,6 +54,40 @@ function fallbackParse(text: string): ParsedQuery {
   const ty = t.match(/dưới\s*(\d+(?:[.,]\d+)?)\s*tỷ/) || t.match(/(\d+(?:[.,]\d+)?)\s*tỷ/);
   if (ty) q.price_max = Math.round(parseFloat(ty[1].replace(",", ".")) * 1e9);
   return q;
+}
+
+// Thống kê thị trường theo quận từ data thật (giá/m² trung vị bán & thuê + tỷ suất cho thuê)
+async function marketStats(province: string | null) {
+  const supabase = createAdminClient();
+  let q = supabase
+    .from("listings")
+    .select("district,province,deal,price_per_m2")
+    .eq("status", "published").not("price_per_m2", "is", null).gt("price_per_m2", 0)
+    .limit(2000);
+  if (province) q = q.ilike("province", `%${province}%`);
+  const { data } = await q;
+  const byDistrict = new Map<string, { ban: number[]; thue: number[]; province: string }>();
+  for (const r of data ?? []) {
+    const d = (r.district || "").trim();
+    if (!d) continue;
+    const e = byDistrict.get(d) || { ban: [], thue: [], province: r.province || "" };
+    (r.deal === "ban" ? e.ban : e.thue).push(Number(r.price_per_m2));
+    byDistrict.set(d, e);
+  }
+  return [...byDistrict.entries()]
+    .map(([district, e]) => {
+      const banMed = median(e.ban), thueMed = median(e.thue);
+      return {
+        district, province: e.province,
+        n: e.ban.length + e.thue.length,
+        ban_ppm2: banMed, thue_ppm2: thueMed,
+        // gross yield %/năm = (thuê/m²/tháng * 12) / (giá bán/m²)
+        yield_pct: banMed && thueMed ? Math.round(((thueMed * 12) / banMed) * 1000) / 10 : null,
+      };
+    })
+    .filter((x) => x.n >= 3)
+    .sort((a, b) => b.n - a.n)
+    .slice(0, 15);
 }
 
 export async function POST(req: NextRequest) {
@@ -95,20 +103,45 @@ export async function POST(req: NextRequest) {
 
   const convo = messages.map((m) => `${m.role === "user" ? "Người dùng" : "Trợ lý"}: ${m.text}`).join("\n");
 
-  let parsed: ParsedQuery | null = null;
+  let parsed: Parsed | null = null;
   const raw = await gemini(`${PARSE_PROMPT}\n\n--- HỘI THOẠI ---\n${convo}`);
-  if (raw) { try { parsed = JSON.parse(raw) as ParsedQuery; } catch { /* fallback bên dưới */ } }
-  if (!parsed) parsed = fallbackParse(last);
+  if (raw) { try { parsed = JSON.parse(raw) as Parsed; } catch { /* fallback */ } }
+  parsed ??= fallbackParse(last);
 
-  if (!parsed.is_search) {
+  // ===== Chat thường =====
+  if (parsed.mode === "chat") {
     return NextResponse.json({
       reply: parsed.small_talk_reply ||
-        "Xin chào! Mình là trợ lý NhaDat Radar 🏠 Bạn có thể hỏi kiểu: “căn hộ 2 phòng ngủ dưới 3 tỷ ở Hà Nội” hoặc “nhà cho thuê Đà Nẵng”.",
+        "Xin chào! Mình là trợ lý NhaDat Radar 🏠 Hỏi mình kiểu: “căn hộ 2PN dưới 3 tỷ ở Hà Nội”, hoặc “quận nào ở Hà Nội đáng đầu tư?”",
       listings: [],
     });
   }
 
-  // Truy vấn tin phù hợp
+  // ===== Phân tích thị trường bằng số liệu thật =====
+  if (parsed.mode === "analyze") {
+    const stats = await marketStats(parsed.province || null);
+    if (!stats.length) {
+      return NextResponse.json({ reply: "Chưa đủ dữ liệu cho khu vực này. Bạn thử hỏi về Hà Nội, Hồ Chí Minh hoặc Đà Nẵng nhé.", listings: [] });
+    }
+    const fm = (v: number | null) => (v ? (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k") : "—");
+    const table = stats
+      .map((s) => `${s.district} (${s.province}): bán ${fm(s.ban_ppm2)}/m² · thuê ${fm(s.thue_ppm2)}/m²/th · yield ${s.yield_pct ?? "—"}%/năm · ${s.n} tin`)
+      .join("\n");
+    const reply = await gemini(
+      `Bạn là chuyên gia phân tích BĐS Việt Nam của NhaDat Radar. Người dùng hỏi: "${last}"
+SỐ LIỆU THẬT từ tin rao đang hiển thị trên sàn (giá/m² trung vị theo quận; yield = tỷ suất cho thuê gộp/năm):
+${table}
+
+Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (không bịa số khác), nêu 2-3 khu vực đáng chú ý phù hợp câu hỏi, kết bằng 1 lưu ý ngắn (dữ liệu từ tin rao, chỉ tham khảo).`,
+      { json: false },
+    );
+    return NextResponse.json({
+      reply: reply || "Số liệu hiện có:\n" + table + "\n(Dữ liệu từ tin rao, chỉ mang tính tham khảo.)",
+      listings: [],
+    });
+  }
+
+  // ===== Tìm tin =====
   const supabase = createAdminClient();
   let q = supabase
     .from("listings")
@@ -125,19 +158,18 @@ export async function POST(req: NextRequest) {
   const { data } = await q.order("ai_score", { ascending: false, nullsFirst: false }).limit(5);
   const found = data ?? [];
 
-  const summary = found
-    .map((x, i) => `${i + 1}. ${x.title} — ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? `, ${x.area_m2}m²` : ""}${x.bedrooms ? `, ${x.bedrooms}PN` : ""} (${[x.district, x.province].filter(Boolean).join(", ")})`)
-    .join("\n");
-
   let reply: string | null = null;
   if (found.length) {
+    const summary = found
+      .map((x, i) => `${i + 1}. ${x.title} — ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? `, ${x.area_m2}m²` : ""} (${[x.district, x.province].filter(Boolean).join(", ")})`)
+      .join("\n");
     reply = await gemini(
-      `Bạn là trợ lý sàn nhà đất NhaDat Radar. Người dùng hỏi: "${last}".\nHệ thống tìm được các tin sau:\n${summary}\n\nViết 1-2 câu tiếng Việt thân thiện giới thiệu kết quả (KHÔNG liệt kê lại từng tin — web đã hiển thị thẻ tin bên dưới). Nếu phù hợp, gợi ý tinh chỉnh thêm (khu vực, giá).`,
-      false,
+      `Bạn là trợ lý sàn nhà đất NhaDat Radar. Người dùng hỏi: "${last}".\nHệ thống tìm được:\n${summary}\n\nViết 1-2 câu tiếng Việt thân thiện giới thiệu kết quả (KHÔNG liệt kê lại — web đã hiển thị thẻ tin). Gợi ý tinh chỉnh nếu phù hợp.`,
+      { json: false },
     );
-    reply ||= `Mình tìm được ${found.length} tin phù hợp, bạn xem bên dưới nhé! Có thể bấm ♥ để lưu tin.`;
+    reply ||= `Mình tìm được ${found.length} tin phù hợp, bạn xem bên dưới nhé! Bấm ♥ để lưu tin.`;
   } else {
-    reply = "Hiện chưa có tin nào khớp yêu cầu 😥 Bạn thử nới giá hoặc đổi khu vực xem sao, hoặc dùng bộ lọc chi tiết ở trang Tìm kiếm nhé.";
+    reply = "Hiện chưa có tin nào khớp yêu cầu 😥 Bạn thử nới giá hoặc đổi khu vực, hoặc dùng bộ lọc ở trang Tìm kiếm nhé.";
   }
 
   return NextResponse.json({
