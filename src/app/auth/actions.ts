@@ -24,9 +24,15 @@ function viErr(msg: string): string {
   if (m.includes("already registered") || m.includes("already been registered")) return "Email này đã được đăng ký. Hãy chuyển sang tab Đăng Nhập.";
   if (m.includes("at least 6 characters") || m.includes("password should be")) return "Mật khẩu phải có ít nhất 6 ký tự.";
   if (m.includes("provider is not enabled") || m.includes("unsupported provider")) return "Đăng nhập Google chưa được bật trên Supabase. Vui lòng dùng email/mật khẩu, hoặc admin bật Google provider trong Supabase Dashboard.";
+  if (m.includes("captcha")) return "Xác minh captcha thất bại — tải lại trang và thử lại.";
   if (m.includes("rate limit") || m.includes("too many")) return "Thao tác quá nhanh, vui lòng thử lại sau ít phút.";
   if (m.includes("invalid email") || m.includes("validate email")) return "Địa chỉ email không hợp lệ.";
   return msg;
+}
+
+function captchaOf(formData: FormData): string | undefined {
+  const t = String(formData.get("cf-turnstile-response") || "");
+  return t || undefined; // chưa bật captcha ở Supabase -> undefined, không ảnh hưởng
 }
 
 export async function signIn(formData: FormData) {
@@ -34,6 +40,7 @@ export async function signIn(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({
     email: String(formData.get("email") || "").trim(),
     password: String(formData.get("password") || ""),
+    options: { captchaToken: captchaOf(formData) },
   });
   if (error) redirect("/auth?error=" + encodeURIComponent(viErr(error.message)));
   revalidatePath("/", "layout");
@@ -57,6 +64,7 @@ export async function signUp(formData: FormData) {
     options: {
       data: { full_name: String(formData.get("full_name") || "") },
       emailRedirectTo: `${await siteUrl()}/auth/callback`,
+      captchaToken: captchaOf(formData),
     },
   });
   if (error) redirect("/auth?mode=register&error=" + encodeURIComponent(viErr(error.message)));
@@ -91,6 +99,7 @@ export async function resetPassword(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${await siteUrl()}/auth/callback?next=/auth/doi-mat-khau`,
+    captchaToken: captchaOf(formData),
   });
   if (error) redirect("/auth?mode=forgot&error=" + encodeURIComponent(viErr(error.message)));
   redirect("/auth?message=" + encodeURIComponent(`Đã gửi link đặt lại mật khẩu tới ${email} — kiểm tra hộp thư (cả mục Spam).`));

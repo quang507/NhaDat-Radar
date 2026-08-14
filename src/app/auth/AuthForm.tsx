@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn, signUp, signInWithGoogle, resetPassword } from "./actions";
+import Turnstile from "@/components/Turnstile";
 
 type Mode = "login" | "register" | "forgot";
 
@@ -55,6 +56,7 @@ export default function AuthForm({
         <form action={signIn} className="flex flex-col gap-3">
           <Field label="Email" name="email" type="email" placeholder="your@email.com" />
           <Field label="Mật Khẩu" name="password" type="password" placeholder="••••••••" />
+          <Turnstile />
           <button className="btn btn-primary w-full mt-1" type="submit">Đăng Nhập</button>
           <button type="button" onClick={() => setMode("forgot")} className="text-xs text-brand font-semibold text-center">
             Quên mật khẩu?
@@ -67,6 +69,7 @@ export default function AuthForm({
           <Field label="Email" name="email" type="email" placeholder="your@email.com" />
           <Field label="Mật Khẩu" name="password" type="password" placeholder="••••••••" />
           <Field label="Xác Nhận Mật Khẩu" name="confirm" type="password" placeholder="••••••••" />
+          <Turnstile />
           <button className="btn btn-primary w-full mt-1" type="submit">Tạo Tài Khoản</button>
         </form>
       )}
@@ -76,6 +79,7 @@ export default function AuthForm({
             Nhập email đã đăng ký — chúng tôi sẽ gửi link đặt lại mật khẩu.
           </p>
           <Field label="Email" name="email" type="email" placeholder="your@email.com" />
+          <Turnstile />
           <button className="btn btn-primary w-full mt-1" type="submit">Gửi Link Đặt Lại</button>
           <button type="button" onClick={() => setMode("login")} className="text-xs text-[var(--ink-soft)] font-semibold text-center">
             ← Quay lại đăng nhập
