@@ -54,7 +54,16 @@ export async function createListing(
     contact_phone: String(formData.get("contact_phone") || "") || null,
     amenities,
     images,
-    ai_score: 90,
+    // Điểm tính từ độ đầy đủ tin thật (trước đây gán cứng 90 cho mọi tin tự đăng)
+    ai_score: (() => {
+      let s = 62;
+      if (images.length >= 3) s += 9; else if (images.length) s += 4;
+      if (formData.get("legal_status")) s += 7;
+      if (String(formData.get("description") || "").length > 200) s += 6;
+      if (area) s += 4;
+      if (Number(formData.get("bedrooms"))) s += 3;
+      return Math.min(92, s);
+    })(),
     poster_role_guess: "agent",
     status: "published",
   });

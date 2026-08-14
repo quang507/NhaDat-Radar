@@ -30,6 +30,27 @@ const sb = createClient(url, key, { auth: { persistSession: false } });
 const now = new Date().toISOString();
 
 const comb = JSON.parse(fs.readFileSync(new URL("./combined.json", import.meta.url)));
+
+// "Radar thấy tin X trước" phải TRUNG THỰC: giữ first_seen_at cũ theo source_post_id,
+// chỉ tin lần đầu xuất hiện mới nhận thời điểm hiện tại (trước đây reset = now mỗi ngày).
+const { data: oldRows } = await sb.from("listings")
+  .select("source_post_id,first_seen_at").eq("source", "crawl").not("source_post_id", "is", null).limit(10000);
+const seenMap = new Map((oldRows ?? []).map((r) => [r.source_post_id, r.first_seen_at]));
+
+// Độ tin cậy: heuristic có phổ theo dữ liệu thật (trước đây gán cứng 78 cho mọi tin).
+function trustScore(x) {
+  let s = 58;
+  const imgs = (x.images || []).length;
+  if (imgs >= 3) s += 9; else if (imgs) s += 4;
+  if (x.legal) s += 8;
+  if (x.phone_hash) s += 5;
+  if ((x.description || "").length > 300) s += 5;
+  if (x.poster_role === "chu_nha") s += 6;
+  if (x.price_vnd && x.area_m2) s += 4;
+  if (x.price_warning) s -= 20;
+  return Math.max(35, Math.min(95, s));
+}
+
 const rows = comb.listings.map((x) => ({
   source: "crawl", source_site: x.source_site, source_url: x.url, source_post_id: x.source_post_id || x.id,
   deal: x.listing_type, kind: x.property_type, title: x.title, description: x.description,
@@ -37,8 +58,9 @@ const rows = comb.listings.map((x) => ({
   direction: x.direction, legal_status: x.legal, furnishing: x.furnishing,
   province: x.province, district: x.district, ward: x.ward, lat: x.lat ?? null, lng: x.lng ?? null,
   amenities: x.amenities || [], images: x.images || [], contact_phone: null,
-  ai_score: x.ai_score, trust_score: x.price_warning ? 55 : 78, poster_role_guess: x.poster_role,
-  price_flag: x.price_warning || null, status: "published", crawled_at: now, first_seen_at: now,
+  ai_score: x.ai_score, trust_score: trustScore(x), poster_role_guess: x.poster_role,
+  price_flag: x.price_warning || null, status: "published", crawled_at: now,
+  first_seen_at: seenMap.get(x.source_post_id || x.id) || now,
 }));
 await sb.from("listings").delete().eq("source", "crawl");
 const { data, error } = await sb.from("listings").insert(rows).select("id");
