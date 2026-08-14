@@ -106,20 +106,30 @@ async function scrapePlaywright() {
   const raw = JSON.parse(fs.readFileSync(new URL("./fb-cookies.json", import.meta.url)));
   const cookies = normalizeCookies(raw);
   console.error(`FB: nạp ${cookies.length} cookie`);
-  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-blink-features=AutomationControlled"] });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage", "--lang=vi-VN"],
+  });
   const ctx = await browser.newContext({
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     viewport: { width: 1366, height: 900 },
     locale: "vi-VN",
+    timezoneId: "Asia/Ho_Chi_Minh",
+    deviceScaleFactor: 1,
+  });
+  // Ẩn dấu hiệu automation (navigator.webdriver, languages, plugins) — giảm bị FB chặn headless
+  await ctx.addInitScript(() => {
+    Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+    Object.defineProperty(navigator, "languages", { get: () => ["vi-VN", "vi", "en-US"] });
+    Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
   });
   await ctx.addCookies(cookies);
   const page = await ctx.newPage();
 
-  // Kiểm tra cookie còn sống: vào trang chủ, nếu bị đá về /login là cookie hỏng
   await page.goto("https://www.facebook.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
-  await sleep(3000);
+  await sleep(4000);
   if (page.url().includes("/login") || (await page.$('input[name="pass"]'))) {
-    console.error("⚠ FB: cookie hết hạn / không đăng nhập được (bị đá về trang login). Export cookie mới bằng Cookie-Editor.");
+    console.error("⚠ FB: cookie hết hạn (bị đá về login). Export cookie mới bằng Cookie-Editor.");
     await browser.close();
     return [];
   }
@@ -127,34 +137,37 @@ async function scrapePlaywright() {
 
   const groupUrls = JSON.parse(process.env.FB_GROUP_URLS || "[]");
   const posts = [];
+  // Nhiều selector cho bài viết (FB đổi DOM liên tục + nhóm mua/bán layout khác)
+  const POST_SEL = 'div[role="article"], div[role="feed"] > div, div[data-pagelet^="GroupFeed"] > div, div[aria-posinset]';
   for (const raw0 of groupUrls) {
-    // ưu tiên xem bài mới nhất
-    const url = raw0.includes("?") ? raw0 : raw0.replace(/\/$/, "") + "/?sorting_setting=CHRONOLOGICAL";
+    const url = raw0.replace(/\/$/, "") + "/";
     try {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-      // chờ bài xuất hiện (tối đa 25s); nếu không có = nhóm private/không vào được
-      try {
-        await page.waitForSelector('div[role="article"], div[role="feed"]', { timeout: 25000 });
-      } catch {
-        console.error(`⚠ FB: nhóm ${raw0} không hiện bài (private / cần duyệt / sai URL)`);
-        continue;
-      }
-      let last = 0;
-      for (let i = 0; i < 12; i++) {
-        await page.mouse.wheel(0, 4000);
-        await sleep(2200);
-        const n = await page.$$eval('div[role="article"]', (x) => x.length).catch(() => 0);
-        if (n === last && i > 3) break; // hết bài mới -> dừng sớm
+      // cuộn nhiều lần để FB lazy-load bài (KHÔNG hard-fail nếu selector chưa có ngay)
+      let last = 0, stable = 0;
+      for (let i = 0; i < 14; i++) {
+        await page.mouse.wheel(0, 3500);
+        await sleep(2500);
+        const n = await page.$$eval(POST_SEL, (x) => x.length).catch(() => 0);
+        if (n === last) { if (++stable >= 3 && n > 0) break; } else stable = 0;
         last = n;
       }
-      const texts = await page.$$eval('div[role="article"]', (nodes) =>
+      const texts = await page.$$eval(POST_SEL, (nodes) =>
         nodes.map((n) => ({
           text: n.innerText || "",
           url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
         })));
       const kept = texts.filter((t) => t.text.length > 40);
-      console.error(`FB: nhóm ${raw0} -> ${kept.length} bài (thấy ${texts.length} article)`);
-      kept.forEach((t) => posts.push(t));
+      if (!kept.length) {
+        // Chẩn đoán: FB trả về gì? (login wall / checkpoint / trang rỗng do chặn headless)
+        const title = await page.title().catch(() => "");
+        const bodyLen = await page.$eval("body", (b) => (b.innerText || "").length).catch(() => 0);
+        const snippet = await page.$eval("body", (b) => (b.innerText || "").replace(/\s+/g, " ").slice(0, 140)).catch(() => "");
+        console.error(`⚠ FB: nhóm ${raw0} -> 0 bài | title="${title}" | body ${bodyLen} ký tự | "${snippet}"`);
+      } else {
+        console.error(`FB: nhóm ${raw0} -> ${kept.length} bài`);
+        kept.forEach((t) => posts.push(t));
+      }
       await sleep(2500);
     } catch (e) {
       console.error(`⚠ FB: lỗi nhóm ${raw0}:`, e.message);
