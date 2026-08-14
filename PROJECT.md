@@ -36,14 +36,21 @@
 nhadat-radar-app/
   src/
     app/
-      page.tsx                     # Trang chủ: hero + bộ lọc + dự án nổi bật + BĐS nổi bật + danh mục
+      page.tsx                     # Trang chủ: hero + dự án/BĐS nổi bật + cách hoạt động + vì sao chọn + testimonial + danh mục + CTA
+      search/                      # Tìm kiếm hoàn chỉnh: lọc tỉnh/quận/phường + giá/DT/PN + sort + map ẩn/hiện (kiểu homigo /search)
       listings/[id]/page.tsx       # Chi tiết tin: gallery ảnh + specs + map thật (ListingMap) + form liên hệ
       projects/[id]/page.tsx       # Chi tiết dự án
       thong-ke/page.tsx            # Bản đồ giá + xếp hạng giá theo quận
+      agents/page.tsx              # Danh sách người bán (profiles role=agent) + vì sao chọn
+      huong-dan/{mua,ban}/         # Hướng dẫn 7 bước người mua-thuê / người bán (GuidePage dùng chung)
+      tinh-lai-vay/page.tsx        # Máy tính lãi vay (annuity) + biểu đồ dư nợ SVG
+      ban/page.tsx                 # Landing "Đăng bán BĐS" -> /dashboard/new
+      yeu-thich/page.tsx           # Tin đã lưu ♥ (localStorage, không cần login)
       auth/                        # Đăng nhập/Đăng ký (email + Google OAuth) + callback
       dashboard/                   # Người bán: tin của tôi + đăng tin
+      api/chat/route.ts            # Chatbot web: Gemini parse câu hỏi -> query Supabase -> trả lời + thẻ tin
       api/zalo/webhook/route.ts    # Bot Zalo OA (ghi tin + hỏi đáp)
-    components/  ListingCard, ListingMap, PriceMap, MapResults, Nav
+    components/  ListingCard, ListingMap, PriceMap, MapResults, Nav, Footer, ChatWidget, FavButton, NavFav, GuidePage
     lib/  supabase/{client,server,middleware,admin}, ai.ts, zalo.ts, format.ts, types.ts
     middleware.ts                  # refresh session Supabase
   supabase/
@@ -111,7 +118,7 @@ Setup DB mới: Supabase → SQL Editor → chạy `supabase/schema.sql` rồi `
 | **Facebook** | Apify (public) hoặc Playwright+cookie (private) | ✅ | geocode | ✅ nếu có APIFY_TOKEN + keys | Tốn phí Apify (~$5/1000 bài). Cần nhiều key Gemini né 429 |
 
 ## 9. Checklist tính năng
-✅ Feed đa nguồn + lọc (quận/giá/loại/phòng ngủ) · chi tiết + gallery + **map thật** · dự án + chi tiết dự án · thống kê giá theo quận (map + bảng) · auth email+Google · đăng tin (RLS) · form liên hệ (leads) · Zalo OA bot (code) · AI cò/cá nhân + cảnh báo giá ảo + lọc rác · crawl tự động hằng ngày · geocode mọi tin · xoay nhiều key Gemini.
+✅ Feed đa nguồn + lọc (quận/giá/loại/phòng ngủ) · **trang /search hoàn chỉnh** (tỉnh/quận/phường + sort + ẩn/hiện lọc & map) · chi tiết + gallery + **map thật** · dự án + chi tiết dự án · thống kê giá theo quận (map + bảng) · auth email+Google · đăng tin (RLS) · form liên hệ (leads) · **chatbot web AI** (nút 💬, /api/chat, xoay key Gemini + fallback keyword) · **yêu thích ♥** (localStorage + badge trên Nav) · **/agents** · **hướng dẫn mua & bán** · **máy tính lãi vay** · **landing /ban** · **footer** · trang chủ kiểu homigo (cách hoạt động, vì sao chọn, testimonial, danh mục, CTA) · Zalo OA bot (code) · AI cò/cá nhân + cảnh báo giá ảo + lọc rác · crawl tự động hằng ngày · geocode mọi tin · xoay nhiều key Gemini.
 
 ⏳ Cần làm nốt: **chạy `migration 001`** (bảo mật) · re-run workflow để FB cào nhiều hơn.
 

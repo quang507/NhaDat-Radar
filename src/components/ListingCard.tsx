@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Listing } from "@/lib/types";
 import { fmtPrice, fresh, PROP, thumb } from "@/lib/format";
+import FavButton from "./FavButton";
 
 export default function ListingCard({ x }: { x: Listing }) {
   const t = thumb(x.kind);
@@ -23,6 +24,7 @@ export default function ListingCard({ x }: { x: Listing }) {
         <span className="absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded bg-black/60 text-white">
           {x.deal === "ban" ? "Để bán" : "Cho thuê"}
         </span>
+        <FavButton id={x.id} className="absolute top-2 right-2" />
       </div>
       <div className="p-3 flex flex-col gap-1.5 flex-1">
         <div className="text-brand font-extrabold text-lg">{fmtPrice(x.price_vnd, x.deal)}</div>
