@@ -1,24 +1,10 @@
-// Geocode MIỄN PHÍ bằng Nominatim (OSM) — không cần key.
 // Geocode theo (quận/huyện + tỉnh) [ít request, cache], gán centroid + jitter cho từng tin.
-// Chính sách Nominatim: <=1 req/giây, phải có User-Agent thật.
+// Ưu tiên Vietmap (VIETMAP_API_KEY), fallback Nominatim.
 import fs from "node:fs";
+import { smartGeocode } from "./geo.mjs";
 
-const UA = "NhaDatRadar/1.0 (proptech demo; contact dev)";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function geocode(q) {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=vn&q=${encodeURIComponent(q)}`;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 8000); // timeout 8s -> không treo vô hạn khi Nominatim chặn
-  try {
-    const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" }, signal: ctrl.signal });
-    if (!res.ok) return null;
-    const j = await res.json();
-    if (!j.length) return null;
-    return { lat: +j[0].lat, lng: +j[0].lon };
-  } catch { return null; }
-  finally { clearTimeout(timer); }
-}
+const geocode = (q) => smartGeocode(q);
 
 // jitter ổn định theo id để marker cùng quận không chồng khít
 function jitter(id, base) {

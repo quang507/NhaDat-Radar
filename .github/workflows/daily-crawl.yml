@@ -46,3 +46,5 @@ jobs:
           # Email báo tin mới (tùy chọn): key từ resend.com (free 100 mail/ngày)
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NEXT_PUBLIC_SITE_URL: https://nha-dat-radar-rkyn.vercel.app
+          # Vietmap geocode (tùy chọn - chính xác VN hơn Nominatim; free trial 60k request)
+          VIETMAP_API_KEY: ${{ secrets.VIETMAP_API_KEY }}

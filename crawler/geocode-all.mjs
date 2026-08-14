@@ -1,26 +1,15 @@
-// Geocode BÙ cho MỌI tin thiếu toạ độ trong combined.json (theo quận+tỉnh, Nominatim free).
+// Geocode BÙ cho MỌI tin thiếu toạ độ trong combined.json (theo quận+tỉnh).
+// Ưu tiên Vietmap (VIETMAP_API_KEY), fallback Nominatim.
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
-const UA = "NhaDatRadar/1.0 (proptech)";
+import { smartGeocode, usingVietmap } from "./geo.mjs";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function cleanDistrict(d) {
   return (d || "").replace(/\(.*?\)/g, "").replace(/^Q\.?\s*/i, "Quận ").replace(/^H\.?\s*/i, "Huyện ")
     .replace(/^TP\.?\s*/i, "Thành phố ").replace(/\s+/g, " ").trim();
 }
-async function geocode(q) {
-  // Timeout 8s/request — Nominatim hay chặn IP CI & giữ kết nối treo -> nếu không có timeout, fetch treo vô hạn.
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 8000);
-  try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=vn&q=${encodeURIComponent(q)}`,
-      { headers: { "User-Agent": UA, "Accept-Language": "vi" }, signal: ctrl.signal });
-    if (!res.ok) return null;
-    const j = await res.json();
-    return j.length ? { lat: +j[0].lat, lng: +j[0].lon } : null;
-  } catch { return null; }
-  finally { clearTimeout(timer); }
-}
+const geocode = (q) => smartGeocode(q); // Vietmap -> Nominatim (đều có timeout 8s)
 function jitter(id, base) { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return base + ((h % 1000) / 1000 - 0.5) * 0.016; }
 
 async function run() {
@@ -28,7 +17,7 @@ async function run() {
   const db = JSON.parse(fs.readFileSync(url));
   const need = db.listings.filter((x) => x.lat == null || x.lng == null);
   const keys = [...new Set(need.map((x) => [cleanDistrict(x.district), x.province].filter(Boolean).join(", ")))].filter((k) => k.length > 3);
-  console.error("Cần geocode", need.length, "tin,", keys.length, "khu vực unique...");
+  console.error("Cần geocode", need.length, "tin,", keys.length, "khu vực unique... (nguồn:", usingVietmap ? "Vietmap" : "Nominatim", ")");
   const cache = {};
   const started = Date.now();
   const BUDGET_MS = 5 * 60 * 1000; // trần 5 phút cho toàn bộ geocode -> không bao giờ treo pipeline
