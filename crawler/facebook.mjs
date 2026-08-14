@@ -87,6 +87,28 @@ async function scrapePlaywright() {
   return posts;
 }
 
+// --- Chế độ Apify API: gọi actor facebook-groups-scraper, lấy bài -> xử lý (dùng trong daily) ---
+async function apifyRun() {
+  const token = process.env.APIFY_TOKEN;
+  const groups = JSON.parse(process.env.FB_GROUP_URLS || "[]");
+  if (!token || !groups.length) { console.error("Thiếu APIFY_TOKEN / FB_GROUP_URLS"); return []; }
+  const input = {
+    startUrls: groups.map((u) => ({ url: u })),
+    resultsLimit: Number(process.env.FB_POSTS || 30),
+  };
+  const res = await fetch(`https://api.apify.com/v2/acts/apify~facebook-groups-scraper/run-sync-get-dataset-items?token=${token}`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  if (!res.ok) { console.error("Apify lỗi", res.status, (await res.text()).slice(0, 200)); return []; }
+  const items = await res.json();
+  return (Array.isArray(items) ? items : []).map((p) => ({
+    id: p.postId || p.id || p.legacyId,
+    text: p.text || p.postText || p.message || p.content || "",
+    author: p.user?.name || p.authorName || p.author?.name || null,
+    url: p.url || p.postUrl || p.facebookUrl || p.permalink || "#",
+    images: (p.media || p.attachments || p.images || []).map?.((m) => m?.url || m?.image || m).filter(Boolean) || [],
+  })).filter((p) => (p.text || "").length > 30);
+}
+
 const DEMO = [
   { author: "Minh Trọ", text: "Cho thuê phòng trọ mới xây Bình Thạnh, đường Điện Biên Phủ, phường 15. DT 25m2 có gác lửng, máy lạnh, wifi, giờ giấc tự do. Giá 3tr8/tháng. Chính chủ cho thuê không qua trung gian nhé. LH 090xxxxxxx" },
   { author: "Hùng BĐS", text: "🔥🔥 BÁN GẤP nhà hẻm xe hơi Gò Vấp 📍 4x15m, 1 trệt 2 lầu, sổ hồng riêng chính chủ. Giá chỉ 5.6 tỷ TL mạnh. Em Hùng hỗ trợ vay 70% ngân hàng, bên em còn nhiều căn khu vực Gò Vấp - Q12. Call/Zalo 0908xxxxxx 📞📞" },
@@ -110,8 +132,9 @@ async function run() {
       time: p.time || p.date || p.timestamp || p.publishTime || null,
       images: (p.media || p.attachments || p.images || []).map?.((m) => m?.url || m?.image || m?.src || m).filter(Boolean) || [],
     })).filter((p) => (p.text || "").length > 30);
-  } else if (arg === "--playwright") posts = await scrapePlaywright();
-  else { console.error("Dùng: --demo | --apify <file.json> | --playwright"); process.exit(1); }
+  } else if (arg === "--apify-run") posts = await apifyRun();
+  else if (arg === "--playwright") posts = await scrapePlaywright();
+  else { console.error("Dùng: --demo | --apify <file.json> | --apify-run | --playwright"); process.exit(1); }
 
   const out = [];
   for (const p of posts) {
