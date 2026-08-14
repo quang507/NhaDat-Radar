@@ -28,6 +28,21 @@ jobs:
             echo "$code  $size  $u"
           done
           ls -la samples/
+      - name: Dump structure for parser writing
+        run: |
+          for f in samples/*.html; do
+            size=$(wc -c < "$f")
+            [ "$size" -lt 20000 ] && continue
+            echo "===================== $f ($size bytes) ====================="
+            echo "--- top classes ---"
+            grep -oE 'class="[^"]{4,70}"' "$f" | sort | uniq -c | sort -rn | head -25
+            echo "--- sample hrefs (listing-like) ---"
+            grep -oE 'href="[^"]{15,140}"' "$f" | grep -iE 'ban|thue|nha|dat|can-ho|-p[0-9]|\.html' | head -15
+            echo "--- price snippets ---"
+            grep -oE '>[^<>]{0,40}(tỷ|triệu|Tỷ|Triệu)[^<>]{0,25}<' "$f" | head -10
+            echo "--- title-ish headings ---"
+            grep -oE '<(h[1-4]|a)[^>]{0,120}title="[^"]{20,120}"' "$f" | head -8
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: site-samples
