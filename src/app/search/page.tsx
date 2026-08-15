@@ -15,11 +15,12 @@ export default async function SearchPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const { deal, kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort } = sp;
+  const { deal, kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own } = sp;
   const supabase = await createClient();
 
   let query = supabase.from("listings").select("*").eq("status", "published");
   if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
+  if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
   if (kind) query = query.eq("kind", kind);
   if (province) query = query.ilike("province", `%${province}%`);
   // prefix-match rồi lọc chính xác phía dưới (tránh "Quận 1" khớp nhầm "Quận 10/11/12")
@@ -37,6 +38,9 @@ export default async function SearchPage({
 
   if (sort === "price_asc") query = query.order("price_vnd", { ascending: true, nullsFirst: false });
   else if (sort === "price_desc") query = query.order("price_vnd", { ascending: false, nullsFirst: false });
+  else if (sort === "ppm2_asc") query = query.order("price_per_m2", { ascending: true, nullsFirst: false });
+  else if (sort === "ppm2_desc") query = query.order("price_per_m2", { ascending: false, nullsFirst: false });
+  else if (sort === "area_asc") query = query.order("area_m2", { ascending: true, nullsFirst: false });
   else if (sort === "area_desc") query = query.order("area_m2", { ascending: false, nullsFirst: false });
   else if (sort === "score") query = query.order("ai_score", { ascending: false, nullsFirst: false });
   else query = query.order("first_seen_at", { ascending: false, nullsFirst: false }); // mặc định: crawl mới nhất trước
