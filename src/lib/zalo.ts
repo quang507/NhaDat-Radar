@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // === Zalo OA helpers ===
 // Docs: https://developers.zalo.me/docs/official-account
@@ -25,6 +26,23 @@ export function verifyZaloSignature(rawBody: string, signatureHeader: string | n
 // Fallback: dùng ZALO_OA_ACCESS_TOKEN tĩnh (chỉ hợp cho test ngắn hạn).
 let tokenCache: { access: string; refresh: string; exp: number } | null = null;
 
+// Refresh token của Zalo DÙNG 1 LẦN rồi xoay -> trên serverless (RAM mất giữa các
+// lần gọi) phải lưu bản mới nhất vào Supabase (bảng app_config, migration 007).
+// Env ZALO_OA_REFRESH_TOKEN chỉ là "hạt giống" lần đầu.
+async function loadStoredRefresh(): Promise<string | null> {
+  try {
+    const { data } = await createAdminClient().from("app_config")
+      .select("value").eq("key", "zalo_refresh_token").maybeSingle();
+    return (data?.value as { token?: string } | null)?.token ?? null;
+  } catch { return null; }
+}
+async function saveStoredRefresh(token: string) {
+  try {
+    await createAdminClient().from("app_config")
+      .upsert({ key: "zalo_refresh_token", value: { token }, updated_at: new Date().toISOString() });
+  } catch { /* bảng chưa tạo (migration 007) -> đành dựa vào cache RAM */ }
+}
+
 export async function getZaloAccessToken(): Promise<string | null> {
   const appId = process.env.ZALO_APP_ID;
   const secret = process.env.ZALO_OA_SECRET;
@@ -37,22 +55,21 @@ export async function getZaloAccessToken(): Promise<string | null> {
   if (tokenCache && tokenCache.exp - Date.now() > 5 * 60_000) return tokenCache.access;
 
   try {
+    const refresh = tokenCache?.refresh || (await loadStoredRefresh()) || seedRefresh;
     const res = await fetch("https://oauth.zaloapp.com/v4/oa/access_token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", secret_key: secret },
-      body: new URLSearchParams({
-        app_id: appId,
-        grant_type: "refresh_token",
-        refresh_token: tokenCache?.refresh || seedRefresh,
-      }),
+      body: new URLSearchParams({ app_id: appId, grant_type: "refresh_token", refresh_token: refresh }),
     });
     const j = (await res.json().catch(() => ({}))) as { access_token?: string; refresh_token?: string; expires_in?: string };
     if (!j.access_token) return process.env.ZALO_OA_ACCESS_TOKEN || null;
+    const newRefresh = j.refresh_token || refresh;
     tokenCache = {
       access: j.access_token,
-      refresh: j.refresh_token || tokenCache?.refresh || seedRefresh, // Zalo xoay refresh_token mỗi lần
+      refresh: newRefresh,
       exp: Date.now() + (Number(j.expires_in) || 3600) * 1000,
     };
+    if (j.refresh_token) await saveStoredRefresh(j.refresh_token); // xoay -> lưu bản mới
     return tokenCache.access;
   } catch {
     return process.env.ZALO_OA_ACCESS_TOKEN || null;
