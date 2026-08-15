@@ -106,7 +106,7 @@ async function pool(items,n,fn){ const out=[]; let i=0; await Promise.all(Array.
 
   // Giới hạn phạm vi 3 TP lớn (đặt CITY_ALL=1 để lấy toàn quốc)
   if(!process.env.CITY_ALL){
-    const CITIES=/hà nội|hồ chí minh|hcm|sài gòn|đà nẵng/i;
+    const CITIES=/hà nội|hồ chí minh|hcm|sài gòn|đà nẵng|bình dương|đồng nai|cần thơ|vũng tàu|bà rịa|long an|tây ninh|tiền giang/i;
     items=items.filter(x=>CITIES.test((x.province||"")+" "+(x.district||"")));
   }
 

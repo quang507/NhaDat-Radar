@@ -6,7 +6,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const dec = (s) => (s || "").replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
   .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&amp;/g, "&").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
-const SEEDS = ["mua-nha-ho-chi-minh", "mua-nha-ha-noi", "thue-nha-ho-chi-minh", "mua-nha-da-nang", "mua-can-ho-chung-cu-ho-chi-minh"];
+const SEEDS = ["mua-nha-ho-chi-minh", "thue-nha-ho-chi-minh", "mua-can-ho-chung-cu-ho-chi-minh", "mua-nha-binh-duong", "mua-nha-dong-nai", "mua-nha-ha-noi", "mua-nha-da-nang"];
 
 function canonProvince(s) {
   const t = (s || "").toLowerCase();
