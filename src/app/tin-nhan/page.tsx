@@ -114,7 +114,7 @@ function Chat() {
 
   if (!loaded) return <p className="text-center py-16 text-[var(--ink-soft)]">Đang tải…</p>;
   if (!uid) return (
-    <div className="card rounded-2xl p-10 text-center max-w-md mx-auto mt-8">
+    <div className="card rounded-lg p-10 text-center max-w-md mx-auto mt-8">
       <div className="text-4xl mb-3">💬</div>
       <p className="text-sm text-[var(--ink-soft)] mb-4">Đăng nhập để nhắn tin với người bán.</p>
       <Link href="/auth" className="btn btn-primary inline-block">Đăng nhập</Link>
@@ -126,7 +126,7 @@ function Chat() {
     <div>
       <h1 className="prata text-2xl mb-4">Tin nhắn</h1>
       <div className="grid md:grid-cols-[280px_1fr] gap-4 items-start">
-        <div className="card rounded-2xl overflow-hidden">
+        <div className="card rounded-lg overflow-hidden">
           {convs.length ? convs.map((c) => (
             <button
               key={c.id}
@@ -141,7 +141,7 @@ function Chat() {
           )}
         </div>
 
-        <div className="card rounded-2xl flex flex-col h-[60vh]">
+        <div className="card rounded-lg flex flex-col h-[60vh]">
           {cur ? (
             <>
               <div className="px-4 py-3 border-b border-[var(--line)]">
@@ -152,7 +152,7 @@ function Chat() {
               </div>
               <div ref={bodyRef} className="flex-1 overflow-y-auto p-4 space-y-2">
                 {msgs.map((m) => (
-                  <div key={m.id} className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+                  <div key={m.id} className={`max-w-[75%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                     m.sender_id === uid ? "ml-auto bg-brand text-white rounded-br-sm" : "bg-[var(--surface-2)] rounded-bl-sm"
                   }`}>{m.body}</div>
                 ))}

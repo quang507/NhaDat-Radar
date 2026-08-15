@@ -21,7 +21,7 @@ export default async function AdminPage({
   const { data: p } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (p?.role !== "admin") {
     return (
-      <div className="card rounded-2xl p-10 text-center max-w-md mx-auto mt-10">
+      <div className="card rounded-lg p-10 text-center max-w-md mx-auto mt-10">
         <div className="text-4xl mb-3">🔒</div>
         <p className="text-sm text-[var(--ink-soft)]">
           Trang này chỉ dành cho admin. Cấp quyền: Supabase → Table Editor → profiles → đổi <code>role</code> của tài khoản bạn thành <code>admin</code>.
@@ -45,7 +45,7 @@ export default async function AdminPage({
     const projMap = new Map((projRows ?? []).map((p2) => [p2.id, p2.name]));
     return (
       <AdminShell tab={tab} q={sp.q}>
-        <div className="card rounded-2xl overflow-hidden">
+        <div className="card rounded-lg overflow-hidden">
           {leads.length ? leads.map((l) => (
             <div key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 border-b border-[var(--line)] last:border-0 text-sm">
               <span className="font-semibold">{l.name}</span>
@@ -69,7 +69,7 @@ export default async function AdminPage({
       .or("role.eq.agent,role.eq.admin,agency_name.not.is.null").limit(100);
     return (
       <AdminShell tab={tab} q={sp.q}>
-        <div className="card rounded-2xl overflow-hidden">
+        <div className="card rounded-lg overflow-hidden">
           {(profs ?? []).length ? (profs ?? []).map((p2: { id: string; full_name: string | null; agency_name: string | null; phone: string | null; is_verified: boolean }) => (
             <div key={p2.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 border-b border-[var(--line)] last:border-0 text-sm">
               {p2.is_verified && <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600">✓ đã xác minh</span>}
@@ -101,7 +101,7 @@ export default async function AdminPage({
 
   return (
     <AdminShell tab={tab} q={sp.q}>
-      <div className="card rounded-2xl overflow-hidden">
+      <div className="card rounded-lg overflow-hidden">
         {rows.length ? rows.map((x) => (
           <div key={x.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 border-b border-[var(--line)] last:border-0 text-sm">
             <span className={`text-[0.65rem] font-bold px-1.5 py-0.5 rounded ${badge[x.status] || ""}`}>{x.status}</span>

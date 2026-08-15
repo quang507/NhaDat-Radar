@@ -99,7 +99,7 @@ export default async function ListingDetail({
           <Gallery images={images} title={x.title} />
         ) : (
           <div
-            className="rounded-2xl overflow-hidden aspect-[16/9] max-h-[460px] grid place-items-center text-white text-5xl"
+            className="rounded-lg overflow-hidden aspect-[16/9] max-h-[460px] grid place-items-center text-white text-5xl"
             style={{ background: t.bg }}
           >
             <span>{t.icon}</span>
@@ -133,7 +133,7 @@ export default async function ListingDetail({
         <div className="flex flex-col gap-4">
           {/* So sánh giá với mặt bằng khu vực (data thật) */}
           {diffPct != null && med && (
-            <div className={`card rounded-2xl p-4 text-sm ${
+            <div className={`card rounded-lg p-4 text-sm ${
               diffPct <= -5 ? "border-emerald-500/40 bg-emerald-500/5"
               : diffPct >= 10 ? "border-red-500/40 bg-red-500/5"
               : "border-[var(--line)]"
@@ -158,7 +158,7 @@ export default async function ListingDetail({
 
           {/* Nhãn chính chủ / môi giới từ AI */}
           {roleGuess === "moi_gioi" && (
-            <div className="card rounded-2xl p-4 border-sky-500/40 bg-sky-500/5 text-sm">
+            <div className="card rounded-lg p-4 border-sky-500/40 bg-sky-500/5 text-sm">
               <div className="font-bold mb-1">Có dấu hiệu môi giới</div>
               <p className="text-[var(--ink-soft)]">
                 Đây là nhận định của AI dựa trên nội dung/tần suất đăng tin, không phải xác minh danh tính.
@@ -167,26 +167,26 @@ export default async function ListingDetail({
             </div>
           )}
           {roleGuess === "chu_nha" && (
-            <div className="card rounded-2xl p-4 border-emerald-500/40 bg-emerald-500/5 text-sm">
+            <div className="card rounded-lg p-4 border-emerald-500/40 bg-emerald-500/5 text-sm">
               <div className="font-bold mb-1">Có dấu hiệu chính chủ</div>
               <p className="text-[var(--ink-soft)]">AI nhận định người đăng nhiều khả năng là chủ nhà. Vẫn nên xác minh sổ/giấy tờ khi giao dịch.</p>
             </div>
           )}
           {x.price_flag ? (
-            <div className="card rounded-2xl p-4 border-red-500/40 text-red-600 text-sm">
+            <div className="card rounded-lg p-4 border-red-500/40 text-red-600 text-sm">
               ⚠️ Cảnh báo giá: tin này {x.price_flag.reason === "cao_hon" ? "cao" : "thấp"} hơn{" "}
               {x.price_flag.deviation_pct}% so với trung vị khu vực ({x.price_flag.distinct_posters} người
               đăng cùng khu). Nên kiểm tra kỹ.
             </div>
           ) : null}
 
-          <div className="card rounded-2xl p-5">
+          <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-3">Mô tả</h3>
             <p className="text-[var(--ink-soft)] whitespace-pre-line text-sm leading-relaxed">
               {x.description || "(Không có mô tả)"}
             </p>
           </div>
-          <div className="card rounded-2xl p-5">
+          <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-3">Chi tiết bất động sản</h3>
             <div className="grid grid-cols-2 gap-4">
               {details.map((d) => (
@@ -198,7 +198,7 @@ export default async function ListingDetail({
             </div>
           </div>
           {x.amenities?.length ? (
-            <div className="card rounded-2xl p-5">
+            <div className="card rounded-lg p-5">
               <h3 className="font-bold mb-3">Tiện ích</h3>
               <div className="flex flex-wrap gap-2 text-sm">
                 {x.amenities.map((a) => (
@@ -209,7 +209,7 @@ export default async function ListingDetail({
               </div>
             </div>
           ) : null}
-          <div className="card rounded-2xl p-5">
+          <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-2">Vị trí</h3>
             <div className="text-sm text-[var(--ink-soft)] mb-3">
               📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
@@ -225,7 +225,7 @@ export default async function ListingDetail({
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="card rounded-2xl p-5">
+          <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-3">Liên hệ người bán</h3>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#16233a] text-xs">
@@ -266,7 +266,7 @@ export default async function ListingDetail({
           </div>
 
           {/* Độ mới của tin (kiểu homigo.life) */}
-          <div className="card rounded-2xl p-5 text-sm">
+          <div className="card rounded-lg p-5 text-sm">
             <h3 className="font-bold mb-2">Độ mới của tin</h3>
             <div className="grid grid-cols-[1fr_auto] gap-y-1.5">
               <span className="text-[var(--ink-soft)]">Radar thấy tin</span>

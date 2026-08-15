@@ -41,7 +41,7 @@ export default function RentVsBuyCalc() {
   const num = (fn: (v: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => fn(Number(e.target.value) || 0);
 
   return (
-    <div className="card rounded-2xl p-5">
+    <div className="card rounded-lg p-5">
       <h2 className="font-bold mb-4">⚖️ Máy so sánh Thuê vs Mua</h2>
       <div className="grid grid-cols-2 gap-3">
         <label className="block col-span-2">

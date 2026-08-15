@@ -31,7 +31,7 @@ export default function GuidePage({
 
       <div className="space-y-6 mt-4">
         {steps.map((s, i) => (
-          <section key={s.title} className="card rounded-2xl p-6 shadow-sm">
+          <section key={s.title} className="card rounded-lg p-6 shadow-sm">
             <div className="text-[0.7rem] font-bold uppercase tracking-wide text-brand mb-1">Bước {i + 1}</div>
             <h2 className="prata text-xl mb-1">{s.title}</h2>
             <p className="text-[var(--ink-soft)] text-sm mb-3">{s.desc}</p>
@@ -63,7 +63,7 @@ export default function GuidePage({
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {legalPoints.map(([t, d]) => (
-            <div key={t} className="card rounded-2xl p-5">
+            <div key={t} className="card rounded-lg p-5">
               <h3 className="font-bold mb-1">🛡️ {t}</h3>
               <p className="text-sm text-[var(--ink-soft)]">{d}</p>
             </div>
@@ -71,7 +71,7 @@ export default function GuidePage({
         </div>
       </section>
 
-      <section className="mt-12 rounded-3xl bg-gradient-to-br from-brand to-brand-2 text-white text-center p-10">
+      <section className="mt-12 rounded-xl bg-gradient-to-br from-brand to-brand-2 text-white text-center p-10">
         <h2 className="prata text-2xl mb-2">{endTitle}</h2>
         <p className="opacity-90 mb-5 text-sm">Để đội ngũ và công cụ của chúng tôi hướng dẫn bạn qua từng bước của quy trình.</p>
         <Link href={ctaHref} className="btn !bg-white !text-brand !border-white inline-block font-bold">{cta}</Link>

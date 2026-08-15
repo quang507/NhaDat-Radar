@@ -112,7 +112,7 @@ export default async function Home({
             </>
           )}
           {hero && <h2 className="prata text-xl md:text-2xl mb-3">Bắt đầu tìm kiếm</h2>}
-          <form action="/search" className="card rounded-2xl p-3 shadow-sm hero-in-2">
+          <form action="/search" className="card rounded-lg p-3 shadow-sm hero-in-2">
             <input name="q" defaultValue={q} placeholder="Từ khoá: quận, dự án, đường..." className="inp mb-2" />
             <div className="flex flex-wrap gap-2">
               <select name="deal" defaultValue={deal || ""} className={`${sel} flex-1 min-w-[120px]`}>
@@ -152,7 +152,7 @@ export default async function Home({
               <Link
                 key={x.id}
                 href={`/listings/${x.id}`}
-                className={`relative rounded-2xl overflow-hidden shadow-md ${i === 0 ? "row-span-2" : ""}`}
+                className={`relative rounded-lg overflow-hidden shadow-md ${i === 0 ? "row-span-2" : ""}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={x.images[0]} alt={x.title} className="w-full h-full object-cover" />
@@ -194,7 +194,7 @@ export default async function Home({
             <Section title="Dự án nổi bật" href="/projects">
               <div className="grid gap-4 md:grid-cols-3">
                 {projects.slice(0, 3).map((p) => (
-                  <Link key={p.id} href={`/projects/${p.id}`} className="card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition group">
+                  <Link key={p.id} href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition group">
                     <div className="h-32 bg-[#16233a] grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -235,83 +235,6 @@ export default async function Home({
             );
           })}
 
-          {/* ===== Cách thức hoạt động ===== */}
-          <section className="mt-16">
-            <h2 className="prata text-2xl text-center mb-2">Cách Thức Hoạt Động</h2>
-            <p className="text-[var(--ink-soft)] text-center text-sm max-w-2xl mx-auto mb-7">
-              Quy trình được tối ưu hóa giúp việc tìm kiếm bất động sản mơ ước trở nên đơn giản và hiệu quả
-            </p>
-            <div className="grid gap-4 md:grid-cols-3">
-              {([
-                ["Khám Phá Bất Động Sản", "Duyệt hàng trăm tin đa nguồn với công cụ tìm kiếm, bộ lọc và bản đồ giá."],
-                ["Xem & So Sánh", "Lưu tin yêu thích, so sánh giá/m² theo khu vực và liên hệ trực tiếp người bán."],
-                ["Sở Hữu Ngay", "Chốt giao dịch tự tin với hướng dẫn pháp lý và cảnh báo giá ảo."],
-              ] as const).map(([t, d], i) => (
-                <div key={t} className="card rounded-xl p-6">
-                  <div className="prata text-4xl text-brand/25 leading-none mb-3">{String(i + 1).padStart(2, "0")}</div>
-                  <h3 className="font-bold mb-1">{t}</h3>
-                  <p className="text-sm text-[var(--ink-soft)]">{d}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* ===== Vì sao chọn ===== */}
-          <section className="mt-16">
-            <h2 className="prata text-2xl text-center mb-2">Tại Sao Chọn NhaDat Radar</h2>
-            <p className="text-[var(--ink-soft)] text-center text-sm max-w-2xl mx-auto mb-7">
-              Nền tảng bất động sản toàn diện với các tính năng đổi mới giúp hành trình tìm nhà của bạn liền mạch
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {([
-                ["🎯", "Tìm Kiếm Tiên Tiến", "Bộ lọc mạnh theo tỉnh/quận/phường, loại, giá, diện tích — kèm bản đồ tương tác."],
-                ["🤖", "AI Chấm Điểm Tin Cậy", "Mỗi tin được AI chuẩn hoá, chấm điểm và phân loại chính chủ / môi giới."],
-                ["⚠️", "Cảnh Báo Giá Ảo", "So sánh giá với cụm tin tương đồng trong khu vực để phát hiện giá lệch bất thường."],
-                ["🗺️", "Thông Tin Khu Vực", "Bản đồ giá và xếp hạng giá theo quận cập nhật từ dữ liệu thật hằng ngày."],
-                ["🔒", "Nguồn Minh Bạch", "Mọi tin đều ghi rõ nguồn gốc (Chợ Tốt, Batdongsan, Facebook…) kèm link bài gốc."],
-                ["📈", "Phân Tích Thị Trường", "Truy cập dữ liệu giá và xu hướng để đưa ra quyết định sáng suốt."],
-              ] as const).map(([, t, d]) => (
-                <div key={t} className="card rounded-xl p-5 border-l-2 !border-l-brand/60">
-                  <h3 className="font-bold mb-1">{t}</h3>
-                  <p className="text-sm text-[var(--ink-soft)]">{d}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* ===== CTA ===== */}
-          <section className="mt-16 rounded-3xl bg-gradient-to-br from-brand to-brand-2 text-white text-center p-10">
-            <h2 className="prata text-2xl mb-2">Sẵn Sàng Tìm Ngôi Nhà Mơ Ước?</h2>
-            <p className="opacity-90 mb-5 text-sm max-w-xl mx-auto">
-              Bắt đầu tìm kiếm bất động sản ngay hôm nay với NhaDat Radar và khám phá nơi hoàn hảo để gọi là nhà.
-            </p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <Link href="/search" className="btn !bg-white !text-brand !border-white font-bold">Tìm Kiếm Bất Động Sản</Link>
-              <Link href="/agents" className="btn !bg-transparent !text-white !border-white/60 hover:!bg-white/10">Liên Hệ Người Bán</Link>
-            </div>
-          </section>
-
-          {/* ===== NhaDat Radar giúp gì (value props thật, không dựng review giả) ===== */}
-          <section className="mt-16">
-            <h2 className="prata text-2xl text-center mb-2">NhaDat Radar Giúp Bạn Thế Nào</h2>
-            <p className="text-[var(--ink-soft)] text-center text-sm max-w-2xl mx-auto mb-7">
-              Ba nhóm người dùng, ba cách nền tảng tạo giá trị — bằng tính năng có thật trên trang.
-            </p>
-            <div className="grid gap-4 md:grid-cols-3">
-              {([
-                ["🔎", "Người mua nhà", "Lọc theo giá/khu vực/loại hình, xem bản đồ, và nhãn cảnh báo giá lệch giúp bạn tránh tin thổi giá.", "/search", "Tìm kiếm ngay"],
-                ["📈", "Nhà đầu tư", "Trang thống kê giá theo quận và biểu đồ lịch sử gộp dữ liệu nhiều nguồn để nhìn thị trường nhanh.", "/thong-ke", "Xem thống kê"],
-                ["🏷️", "Người bán", "Đăng tin miễn phí, tin tự đăng có nhãn riêng nổi bật, nhận liên hệ khách ngay tại Kênh người bán.", "/dashboard/new", "Đăng tin"],
-              ] as const).map(([icon, who, desc, href, cta]) => (
-                <div key={who} className="card rounded-xl p-6">
-                  <div className="kicker mb-2">{who}</div>
-                  <p className="text-sm text-[var(--ink-soft)] mb-3">{desc}</p>
-                  <Link href={href} className="text-sm text-brand font-semibold">{cta} →</Link>
-                </div>
-              ))}
-            </div>
-          </section>
-
           {/* ===== Micro: bộ công cụ ===== */}
           <section className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {([
@@ -340,10 +263,7 @@ export default async function Home({
 
           {/* ===== Duyệt theo danh mục ===== */}
           <section className="mt-16">
-            <h2 className="prata text-2xl text-center mb-2">Duyệt Theo Danh Mục</h2>
-            <p className="text-[var(--ink-soft)] text-center text-sm max-w-2xl mx-auto mb-7">
-              Khám phá đa dạng các loại bất động sản để tìm sự phù hợp hoàn hảo cho nhu cầu của bạn
-            </p>
+            <h2 className="prata text-xl mb-4 border-l-[3px] border-brand pl-3">Duyệt theo danh mục</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {([
                 ["nha", "Nhà Riêng", "Tìm ngôi nhà hoàn hảo cho gia đình"],
@@ -379,7 +299,7 @@ function Section({ title, href, children }: { title: string; href: string; child
   return (
     <section className="mt-10">
       <div className="flex items-baseline gap-3 mb-4">
-        <h2 className="prata text-xl md:text-2xl">{title}</h2>
+        <h2 className="prata text-xl md:text-2xl border-l-[3px] border-brand pl-3">{title}</h2>
         <Link href={href} className="text-sm text-brand font-semibold ml-auto whitespace-nowrap">Xem tất cả →</Link>
       </div>
       {children}

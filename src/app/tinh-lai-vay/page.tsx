@@ -64,7 +64,7 @@ export default function MortgagePage() {
 
       <div className="grid gap-5 lg:grid-cols-[380px_1fr] items-start">
         {/* Nhập liệu */}
-        <div className="card rounded-2xl p-5 shadow-sm">
+        <div className="card rounded-lg p-5 shadow-sm">
           <h2 className="font-bold mb-4">Thông tin khoản vay</h2>
           <label className="block mb-3">
             <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Giá trị bất động sản (VND)</span>
@@ -88,25 +88,25 @@ export default function MortgagePage() {
         {/* Kết quả */}
         <div className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="card rounded-2xl p-5 border-brand/40 bg-brand/5">
+            <div className="card rounded-lg p-5 border-brand/40 bg-brand/5">
               <div className="text-xs font-semibold text-[var(--ink-soft)] mb-1">Thanh toán hàng tháng</div>
               <div className="text-2xl font-extrabold text-brand">{money(r.monthly)}</div>
             </div>
-            <div className="card rounded-2xl p-5">
+            <div className="card rounded-lg p-5">
               <div className="text-xs font-semibold text-[var(--ink-soft)] mb-1">Số tiền vay</div>
               <div className="text-2xl font-extrabold">{money(r.loan)}</div>
             </div>
-            <div className="card rounded-2xl p-5">
+            <div className="card rounded-lg p-5">
               <div className="text-xs font-semibold text-[var(--ink-soft)] mb-1">Tổng lãi phải trả</div>
               <div className="text-2xl font-extrabold text-amber-600">{money(r.interest)}</div>
             </div>
-            <div className="card rounded-2xl p-5">
+            <div className="card rounded-lg p-5">
               <div className="text-xs font-semibold text-[var(--ink-soft)] mb-1">Tổng gốc + lãi</div>
               <div className="text-2xl font-extrabold">{money(r.total)}</div>
             </div>
           </div>
 
-          <div className="card rounded-2xl p-5">
+          <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-1">Dư nợ còn lại theo năm</h3>
             <p className="text-xs text-[var(--ink-soft)] mb-3">
               Khoản vay {money(r.loan)} giảm dần về 0 sau {years} năm.
@@ -127,7 +127,7 @@ export default function MortgagePage() {
         <h2 className="prata text-xl mb-4">Mẹo vay mua nhà</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {TIPS.map(([t, d]) => (
-            <div key={t} className="card rounded-2xl p-5">
+            <div key={t} className="card rounded-lg p-5">
               <h3 className="font-bold mb-1">💡 {t}</h3>
               <p className="text-sm text-[var(--ink-soft)]">{d}</p>
             </div>

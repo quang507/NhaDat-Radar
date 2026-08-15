@@ -51,7 +51,7 @@ export default async function RentVsBuyPage() {
       <div className="grid gap-5 lg:grid-cols-2 items-start">
         <RentVsBuyCalc />
 
-        <div className="card rounded-2xl p-5">
+        <div className="card rounded-lg p-5">
           <h2 className="font-bold mb-1">📈 Tỷ suất cho thuê theo quận</h2>
           <p className="text-xs text-[var(--ink-soft)] mb-3">
             Yield gộp/năm = (giá thuê/m²/tháng × 12) ÷ giá bán/m². Trên 4%/năm thường được coi là tốt tại VN.
