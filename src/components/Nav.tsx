@@ -21,7 +21,7 @@ export default async function Nav() {
           <img src="/logo.svg" alt="NhaDat Radar" className="w-8 h-8 rounded-lg object-contain" />
           NhaDat<span className="text-brand">Radar</span>
         </Link>
-        <nav className="hidden md:flex gap-0.5 ml-1 text-sm font-semibold text-[var(--ink-soft)]">
+        <nav className="hidden md:flex gap-0.5 ml-5 pl-5 border-l border-[var(--line)] text-sm font-semibold text-[var(--ink-soft)]">
           <Link href="/search?deal=ban" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Mua Bán</Link>
           <Link href="/search?deal=cho_thue" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Cho Thuê</Link>
           <Link href="/projects" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Dự án</Link>
