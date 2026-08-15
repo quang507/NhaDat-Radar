@@ -10,8 +10,8 @@ const API = "https://gateway.chotot.com/v1/public/ad-listing";
 // cg=1000: toàn bộ BĐS (lọc bán/thuê bằng field `type`: s=bán, u=cho thuê)
 // Có thể thêm: &st=s|u (bán/thuê), &price=min-max, &sp=0, &limit, &o=offset(phân trang)
 const REGIONS = [
-  { code: 12000, city: "Hà Nội" },
-  { code: 13000, city: "Hồ Chí Minh" },
+  { code: 13000, city: "Hồ Chí Minh", pages: 4 },   // ưu tiên miền Nam: HCM gấp đôi
+  { code: 12000, city: "Hà Nội", pages: 2 },
   { code: 3000, city: "Đà Nẵng", onlyDaNang: true },
 ];
 const PAGES = 2;        // số trang mỗi vùng
@@ -81,7 +81,7 @@ function mapAd(a, city) {
 (async () => {
   let all = [];
   for (const r of REGIONS) {
-    for (let p = 0; p < PAGES; p++) {
+    for (let p = 0; p < (r.pages ?? PAGES); p++) {
       const ads = await fetchPage(r.code, p * LIMIT);
       let mapped = ads.map((a) => mapAd(a, r.city));
       if (r.onlyDaNang) mapped = mapped.filter((x) => /đà nẵng/i.test((x.province || "") + (x.district || "")));

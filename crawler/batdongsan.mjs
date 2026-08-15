@@ -6,14 +6,17 @@ import { pathToFileURL } from "node:url";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
 // === BỘ LỌC (xem xét): đường dẫn SRP theo bán/thuê + loại + thành phố, phân trang /p{n} ===
-const CITY = { "ha-noi": "Hà Nội", "tp-hcm": "Hồ Chí Minh", "da-nang": "Đà Nẵng" };
+const CITY = { "ha-noi": "Hà Nội", "tp-hcm": "Hồ Chí Minh", "da-nang": "Đà Nẵng", "binh-duong": "Bình Dương", "dong-nai": "Đồng Nai", "can-tho": "Cần Thơ", "ba-ria-vung-tau": "Bà Rịa - Vũng Tàu" };
 // ví dụ: /nha-dat-ban-ha-noi  /nha-dat-cho-thue-tp-hcm  /ban-can-ho-chung-cu-tp-hcm  /cho-thue-nha-rieng-ha-noi
 function srpUrl(pathBase, page) {
   return `https://batdongsan.com.vn/${pathBase}${page > 1 ? "/p" + page : ""}`;
 }
 const SEEDS = [
-  "nha-dat-ban-ha-noi", "nha-dat-ban-tp-hcm", "nha-dat-ban-da-nang",
-  "nha-dat-cho-thue-ha-noi", "nha-dat-cho-thue-tp-hcm",
+  // ưu tiên miền Nam: HCM + Bình Dương + Đồng Nai + Cần Thơ + Vũng Tàu
+  "nha-dat-ban-tp-hcm", "nha-dat-cho-thue-tp-hcm",
+  "nha-dat-ban-binh-duong", "nha-dat-ban-dong-nai",
+  "nha-dat-ban-can-tho", "nha-dat-ban-ba-ria-vung-tau",
+  "nha-dat-ban-ha-noi", "nha-dat-cho-thue-ha-noi", "nha-dat-ban-da-nang",
 ];
 const PAGES = 1;
 

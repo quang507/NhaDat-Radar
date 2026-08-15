@@ -73,5 +73,6 @@ export default async function SearchPage({
   }
   for (const p of Object.keys(geo)) for (const d of Object.keys(geo[p])) geo[p][d].sort();
 
-  return <SearchClient listings={listings} geo={geo} params={sp} />;
+  // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL
+  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={sp} />;
 }

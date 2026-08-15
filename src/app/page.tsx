@@ -58,6 +58,11 @@ export default async function Home({
   const { data: projData } = await supabase.from("projects").select("*").eq("status", "published").limit(6);
   const projects = (projData ?? []) as Project[];
 
+  // Ưu tiên hiển thị BĐS miền Nam (giữ thứ tự mới-nhất trong từng nhóm)
+  const SOUTH = /hồ chí minh|bình dương|đồng nai|cần thơ|vũng tàu|bà rịa|long an|tây ninh|tiền giang|an giang|kiên giang|cà mau|bến tre|vĩnh long|sóc trăng|đồng tháp|hậu giang|bạc liêu|trà vinh/i;
+  const isSouth = (x: Listing) => SOUTH.test(x.province || "");
+  listings.sort((a, b) => Number(isSouth(b)) - Number(isSouth(a)));
+
   const withImg = listings.filter((x) => x.images && x.images.length > 0);
   // Cụm ảnh hero: 3 tin điểm chất lượng cao nhất có ảnh (không lấy tùy tiện)
   const collage = [...withImg].sort((a, b) => (b.ai_score ?? 0) - (a.ai_score ?? 0)).slice(0, 3);

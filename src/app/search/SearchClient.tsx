@@ -92,12 +92,13 @@ export default function SearchClient({
   function push(next: Record<string, string>) {
     const usp = new URLSearchParams();
     for (const [k, v] of Object.entries(next)) if (v) usp.set(k, v);
-    if (newAddr) usp.set("newAddr", "1");
+    if (newAddr && !("newAddr" in next)) usp.set("newAddr", "1");
     if (own && !("own" in next)) usp.set("own", "1");
+    if (sort && !("sort" in next)) usp.set("sort", sort); // chip/toggle không làm mất sort đang chọn
     router.push("/search" + (usp.size ? "?" + usp.toString() : ""));
   }
   const submit = () => push({ ...f, sort });
-  const clear = () => { setF({ q: "", deal: "", kind: "", province: "", district: "", ward: "", priceMin: "", priceMax: "", areaMin: "", bedrooms: "" }); router.push("/search"); };
+  const clear = () => { setNewAddr(false); setF({ q: "", deal: "", kind: "", province: "", district: "", ward: "", priceMin: "", priceMax: "", areaMin: "", bedrooms: "" }); router.push("/search"); };
 
   const sel = "inp appearance-none pr-8 cursor-pointer";
   const set = (k: string) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
@@ -126,7 +127,7 @@ export default function SearchClient({
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div>
           <h1 className="prata text-xl md:text-2xl">{pageTitle}</h1>
-          <p className="text-xs text-[var(--ink-soft)] mt-0.5">Hiện có {listings.length.toLocaleString("vi-VN")} bất động sản.</p>
+          <p className="text-xs text-[var(--ink-soft)] mt-0.5">Hiện có {listings.length >= 200 ? "200+" : listings.length.toLocaleString("vi-VN")} bất động sản.</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <SaveSearchButton filters={f} />
@@ -197,7 +198,7 @@ export default function SearchClient({
         </button>
         <button
           className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
-          onClick={() => { setNewAddr((v) => !v); setF((s) => ({ ...s, district: "", ward: "" })); }}
+          onClick={() => push({ ...f, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
         >
           <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
@@ -297,7 +298,7 @@ export default function SearchClient({
       )}
 
       {/* ===== Kết quả + bản đồ ===== */}
-      <div className={`grid gap-4 items-start ${showMap ? "lg:grid-cols-[1fr_420px]" : ""}`}>
+      <div className={`grid gap-4 items-start ${showMap && mapItems.length > 0 ? "lg:grid-cols-[1fr_420px]" : ""}`}>
         <div>
           {display.length ? (
             <>
