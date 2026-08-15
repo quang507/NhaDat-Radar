@@ -90,7 +90,7 @@ export default async function ThongKe({
       </div>
 
       <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
-        <div className="card rounded-2xl p-3">
+        <div className="card rounded-lg p-3">
           <div className="text-sm text-[var(--ink-soft)] mb-2 px-1">
             <b className="text-[var(--ink)]">{listings.length}</b> tin, giá {lo} - {hi} tại {city},{" "}
             {deal === "cho_thue" ? "cho thuê" : "rao bán"}
@@ -104,7 +104,7 @@ export default async function ThongKe({
           )}
         </div>
 
-        <div className="card rounded-2xl p-5">
+        <div className="card rounded-lg p-5">
           <h3 className="font-bold mb-3">Xếp hạng giá theo quận</h3>
           <PriceHistoryChart city={city} deal={deal} />
           {rows.length ? (

@@ -38,5 +38,5 @@ export default function MapResults({ items }: { items: MapItem[] }) {
     return () => { cancelled = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, [items]);
 
-  return <div ref={ref} className="w-full h-full rounded-2xl border border-[var(--line)] z-0" />;
+  return <div ref={ref} className="w-full h-full rounded-lg border border-[var(--line)] z-0" />;
 }

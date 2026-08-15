@@ -11,9 +11,9 @@
   --ink-faint: #8b93a1;
   --line: #e5e9f0;
   --line-strong: #d3d9e3;
-  --brand: #2563eb;        /* xanh sạch như homigo.vn */
-  --brand-ink: #1d4ed8;
-  --accent: #0ea5a0;
+  --brand: #d6402c;        /* đỏ gạch — chất sàn BĐS Việt, bớt "xanh AI" */
+  --brand-ink: #b53321;
+  --accent: #1f6f5c;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -26,9 +26,9 @@
     --line: #232c3a;
     --line-strong: #33405230;
     --line-strong: #334052;
-    --brand: #5b9bf5;
-    --brand-ink: #7db0f7;
-    --accent: #3fc7c0;
+    --brand: #f2705c;
+    --brand-ink: #f58a79;
+    --accent: #3aa98a;
   }
 }
 html { color-scheme: light dark; }
@@ -53,12 +53,12 @@ body {
 }
 .inp {
   width: 100%; padding: 10px 12px; border: 1px solid var(--line-strong);
-  border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 0.9rem;
+  border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 0.9rem;
   transition: border-color .12s, box-shadow .12s;
 }
 .inp:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); }
 .btn {
-  padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 0.88rem;
+  padding: 9px 15px; border-radius: 8px; font-weight: 600; font-size: 0.88rem;
   border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
   transition: background .12s, border-color .12s, transform .06s, box-shadow .12s;
   white-space: nowrap;

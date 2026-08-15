@@ -10,7 +10,7 @@ export default async function UpdatePasswordPage({
   const sp = await searchParams;
   return (
     <div className="max-w-md mx-auto mt-8">
-      <form action={updatePassword} className="card rounded-2xl p-7 shadow-sm flex flex-col gap-3">
+      <form action={updatePassword} className="card rounded-lg p-7 shadow-sm flex flex-col gap-3">
         <h1 className="prata text-2xl text-center mb-2">Đặt Lại Mật Khẩu</h1>
         <p className="text-sm text-[var(--ink-soft)] text-center mb-2">
           Nhập mật khẩu mới cho tài khoản của bạn.

@@ -6,7 +6,7 @@ export default {
     extend: {
       colors: {
         // xanh sạch như homigo.vn
-        brand: { DEFAULT: "#2563eb", ink: "#1d4ed8", 2: "#0ea5a0" },
+        brand: { DEFAULT: "#d6402c", ink: "#b53321", 2: "#8f2a1c" },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],

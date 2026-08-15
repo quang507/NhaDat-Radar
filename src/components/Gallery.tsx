@@ -39,7 +39,7 @@ export default function Gallery({ images, title }: { images: string[]; title: st
 
   return (
     <>
-      <div className="relative rounded-2xl overflow-hidden aspect-[16/9] max-h-[480px] bg-[var(--surface-2)]">
+      <div className="relative rounded-lg overflow-hidden aspect-[16/9] max-h-[480px] bg-[var(--surface-2)]">
         <Img
           src={images[0]}
           alt={title}

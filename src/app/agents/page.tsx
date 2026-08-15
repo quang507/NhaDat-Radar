@@ -64,7 +64,7 @@ export default async function AgentsPage() {
               const name = a.full_name || "Người bán";
               const initials = name.split(" ").map((w) => w[0]).slice(-2).join("").toUpperCase();
               return (
-                <div key={a.id} className="card rounded-2xl p-5 shadow-sm hover:shadow-lg transition flex flex-col items-center text-center">
+                <div key={a.id} className="card rounded-lg p-5 shadow-sm hover:shadow-lg transition flex flex-col items-center text-center">
                   <div className="w-20 h-20 rounded-full overflow-hidden bg-[#16233a] text-white grid place-items-center text-xl font-bold mb-3">
                     {a.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -99,7 +99,7 @@ export default async function AgentsPage() {
             })}
           </div>
         ) : (
-          <div className="card rounded-2xl p-10 text-center">
+          <div className="card rounded-lg p-10 text-center">
             <div className="text-4xl mb-3">🧑‍💼</div>
             <h3 className="font-bold text-lg mb-1">Chưa có người bán nào đăng ký</h3>
             <p className="text-[var(--ink-soft)] text-sm mb-4">

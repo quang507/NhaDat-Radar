@@ -49,7 +49,7 @@ export default async function Dashboard() {
       </div>
 
       {appointments.length > 0 && (
-        <div className="card rounded-2xl p-5 mb-6">
+        <div className="card rounded-lg p-5 mb-6">
           <h2 className="font-bold mb-3">Lịch hẹn xem nhà ({appointments.length})</h2>
           <div className="space-y-2 text-sm">
             {appointments.map((a) => (
@@ -86,7 +86,7 @@ export default async function Dashboard() {
       )}
 
       {leads.length > 0 && (
-        <div className="card rounded-2xl p-5 mb-6">
+        <div className="card rounded-lg p-5 mb-6">
           <h2 className="font-bold mb-3">Liên hệ từ khách ({leads.length})</h2>
           <div className="space-y-2 text-sm">
             {leads.map((l) => (

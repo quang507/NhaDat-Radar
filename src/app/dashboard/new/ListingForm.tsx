@@ -13,7 +13,7 @@ export default function ListingForm() {
   const [state, formAction, pending] = useActionState(createListing, initial);
 
   return (
-    <form action={formAction} className="card rounded-2xl p-6 flex flex-col gap-4 max-w-2xl">
+    <form action={formAction} className="card rounded-lg p-6 flex flex-col gap-4 max-w-2xl">
       <Field label="Tiêu đề *" name="title" placeholder="Bán nhà 3 tầng mặt tiền Quận 7..." />
       <div className="grid grid-cols-2 gap-4">
         <Select label="Giao dịch" name="deal" options={[["ban", "Bán"], ["cho_thue", "Cho thuê"]]} />

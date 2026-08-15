@@ -142,7 +142,7 @@ export default function SearchClient({
       {/* ===== Bộ lọc ===== */}
       {showFilter && (
         <form
-          className="card rounded-2xl p-4 mb-5 shadow-sm"
+          className="card rounded-lg p-4 mb-5 shadow-sm"
           onSubmit={(e) => { e.preventDefault(); submit(); }}
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -266,7 +266,7 @@ export default function SearchClient({
               )}
             </>
           ) : (
-            <div className="card rounded-2xl p-10 text-center">
+            <div className="card rounded-lg p-10 text-center">
               <div className="text-4xl mb-3">🔍</div>
               <h3 className="font-bold text-lg mb-1">Không tìm thấy bất động sản</h3>
               <p className="text-[var(--ink-soft)] text-sm mb-4">

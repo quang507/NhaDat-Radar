@@ -32,7 +32,7 @@ export default async function ProjectsPage() {
             <Link
               key={p.id}
               href={`/projects/${p.id}`}
-              className="reveal group card rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col"
+              className="reveal group card rounded-lg overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col"
               style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}
             >
               <div className="aspect-[16/10] bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white text-3xl overflow-hidden relative">

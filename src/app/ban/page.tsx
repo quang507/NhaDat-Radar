@@ -17,7 +17,7 @@ const STEPS = [
 export default function SellLandingPage() {
   return (
     <div>
-      <section className="text-center py-10 rounded-3xl bg-gradient-to-br from-brand to-brand-2 text-white px-6">
+      <section className="text-center py-10 rounded-xl bg-gradient-to-br from-brand to-brand-2 text-white px-6">
         <h1 className="prata text-3xl mb-3">Đăng bán bất động sản của bạn</h1>
         <p className="opacity-90 max-w-2xl mx-auto mb-6">
           Đăng bán với NhaDat Radar để tiếp cận người mua thật. Nền tảng của chúng tôi giúp việc
@@ -32,7 +32,7 @@ export default function SellLandingPage() {
         <h2 className="prata text-2xl text-center mb-7">Vì sao nên bán với chúng tôi</h2>
         <div className="grid gap-4 md:grid-cols-3">
           {WHY.map(([icon, t, d]) => (
-            <div key={t} className="card rounded-2xl p-6 text-center">
+            <div key={t} className="card rounded-lg p-6 text-center">
               <div className="text-3xl mb-2">{icon}</div>
               <h3 className="font-bold mb-1">{t}</h3>
               <p className="text-sm text-[var(--ink-soft)]">{d}</p>
@@ -45,7 +45,7 @@ export default function SellLandingPage() {
         <h2 className="prata text-2xl text-center mb-7">Quy trình bán</h2>
         <div className="grid gap-4 md:grid-cols-3">
           {STEPS.map(([t, d], i) => (
-            <div key={t} className="card rounded-2xl p-6">
+            <div key={t} className="card rounded-lg p-6">
               <div className="w-9 h-9 rounded-full bg-brand text-white grid place-items-center font-bold mb-3">{i + 1}</div>
               <h3 className="font-bold mb-1">{t}</h3>
               <p className="text-sm text-[var(--ink-soft)]">{d}</p>
@@ -54,7 +54,7 @@ export default function SellLandingPage() {
         </div>
       </section>
 
-      <section className="mt-12 card rounded-3xl p-10 text-center">
+      <section className="mt-12 card rounded-xl p-10 text-center">
         <h2 className="prata text-2xl mb-2">Bạn đã sẵn sàng bán bất động sản?</h2>
         <p className="text-[var(--ink-soft)] text-sm mb-5">
           Đăng nhập (Google hoặc email) rồi tạo tin — tin của bạn hiển thị ngay với nhãn “Tự đăng”.

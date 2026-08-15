@@ -18,7 +18,7 @@ export default function AuthForm({
   const [mode, setMode] = useState<Mode>(initialMode);
 
   return (
-    <div className="card rounded-2xl p-7 shadow-sm">
+    <div className="card rounded-lg p-7 shadow-sm">
       <h1 className="prata text-2xl text-center mb-5">Chào Mừng Đến Với NhaDat Radar</h1>
 
       {mode !== "forgot" && (

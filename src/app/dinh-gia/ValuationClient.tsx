@@ -81,7 +81,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
 
       <div className="grid gap-5 lg:grid-cols-[400px_1fr] items-start">
         {/* Form */}
-        <form onSubmit={submit} className="card rounded-2xl p-5 shadow-sm">
+        <form onSubmit={submit} className="card rounded-lg p-5 shadow-sm">
           <h2 className="font-bold mb-4">Thông tin tài sản</h2>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
@@ -144,21 +144,21 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
         {/* Kết quả */}
         <div className="space-y-4">
           {!r && !busy && (
-            <div className="card rounded-2xl p-10 text-center text-[var(--ink-soft)]">
+            <div className="card rounded-lg p-10 text-center text-[var(--ink-soft)]">
               <div className="text-4xl mb-3">🏷️</div>
               <p className="text-sm">Điền thông tin bên trái và bấm <b>Định giá ngay</b>.<br />
                 Kết quả dựa trên các tin rao thật cùng khu vực + phân tích AI.</p>
             </div>
           )}
           {busy && (
-            <div className="card rounded-2xl p-10 text-center text-[var(--ink-soft)] animate-pulse">
+            <div className="card rounded-lg p-10 text-center text-[var(--ink-soft)] animate-pulse">
               <div className="text-4xl mb-3">🤖</div>
               <p className="text-sm">Đang so sánh với các tin cùng khu vực…</p>
             </div>
           )}
           {r && (
             <>
-              <div className="card rounded-2xl p-6 border-brand/40 bg-brand/5">
+              <div className="card rounded-lg p-6 border-brand/40 bg-brand/5">
                 <div className="text-xs font-semibold text-[var(--ink-soft)] mb-1">Giá trị ước tính</div>
                 <div className="text-4xl font-extrabold text-brand mb-3">{money(r.estimate_vnd, r.deal === "cho_thue")}</div>
                 {/* Thanh khoảng giá */}
@@ -178,7 +178,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
 
               <div className="grid gap-3 sm:grid-cols-3">
                 {([["Sau 1 năm", r.forecast_pct.y1], ["Sau 3 năm", r.forecast_pct.y3], ["Sau 5 năm", r.forecast_pct.y5]] as const).map(([t, p]) => (
-                  <div key={t} className="card rounded-2xl p-4 text-center">
+                  <div key={t} className="card rounded-lg p-4 text-center">
                     <div className="text-xs text-[var(--ink-soft)] mb-1">{t}</div>
                     <div className="font-extrabold text-emerald-600">+{p}%</div>
                     <div className="text-sm font-semibold">{money(Math.round(r.estimate_vnd * (1 + p / 100)), r.deal === "cho_thue")}</div>
@@ -186,7 +186,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                 ))}
               </div>
 
-              <div className="card rounded-2xl p-5">
+              <div className="card rounded-lg p-5">
                 <h3 className="font-bold mb-2 text-sm">📊 Dữ liệu so sánh</h3>
                 <div className="grid grid-cols-2 gap-y-1.5 text-sm">
                   <span className="text-[var(--ink-soft)]">Khu vực so sánh</span><span className="font-semibold text-right">{r.comps.scope}</span>

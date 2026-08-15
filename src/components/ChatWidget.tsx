@@ -59,7 +59,7 @@ export default function ChatWidget() {
 
       {open && (
         <div className="fixed bottom-24 right-5 z-50 w-[min(380px,calc(100vw-2.5rem))] h-[520px] max-h-[70vh]
-                        card rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                        card rounded-lg shadow-2xl flex flex-col overflow-hidden">
           <div className="px-4 py-3 bg-gradient-to-r from-brand to-brand-2 text-white">
             <div className="font-bold">Trợ lý NhaDat Radar</div>
             <div className="text-xs opacity-90">AI tìm nhà đất theo yêu cầu của bạn</div>
@@ -68,7 +68,7 @@ export default function ChatWidget() {
           <div ref={bodyRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
             {msgs.map((m, i) => (
               <div key={i}>
-                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+                <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                   m.role === "user"
                     ? "ml-auto bg-brand text-white rounded-br-sm"
                     : "bg-[var(--surface-2)] rounded-bl-sm"

@@ -50,7 +50,7 @@ export default async function ProjectDetail({
           return imgs.length ? (
             <Gallery images={imgs} title={p.name} />
           ) : (
-            <div className="rounded-2xl overflow-hidden aspect-[21/9] max-h-[420px] grid place-items-center text-white text-5xl bg-gradient-to-br from-brand to-brand-2">🏙️</div>
+            <div className="rounded-lg overflow-hidden aspect-[21/9] max-h-[420px] grid place-items-center text-white text-5xl bg-gradient-to-br from-brand to-brand-2">🏙️</div>
           );
         })()}
       </div>
@@ -63,7 +63,7 @@ export default async function ProjectDetail({
             📍 {[p.address, p.district, p.province].filter(Boolean).join(", ") || "-"}
           </div>
 
-          <div className="card rounded-2xl p-5 mt-5">
+          <div className="card rounded-lg p-5 mt-5">
             <h3 className="font-bold mb-2">Giới thiệu dự án</h3>
             <p className="text-[var(--ink-soft)] text-sm whitespace-pre-line">
               {p.description || "(Chưa có mô tả)"}
@@ -71,7 +71,7 @@ export default async function ProjectDetail({
           </div>
 
           {p.amenities?.length ? (
-            <div className="card rounded-2xl p-5 mt-4">
+            <div className="card rounded-lg p-5 mt-4">
               <h3 className="font-bold mb-3">Tiện ích nội khu</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                 {p.amenities.map((a) => (
@@ -93,14 +93,14 @@ export default async function ProjectDetail({
               ))}
             </div>
           ) : (
-            <div className="card rounded-2xl p-8 text-center text-[var(--ink-soft)]">
+            <div className="card rounded-lg p-8 text-center text-[var(--ink-soft)]">
               Chưa có bất động sản nào trong dự án này.
             </div>
           )}
         </div>
 
         <div>
-          <div className="card rounded-2xl p-5 sticky top-20">
+          <div className="card rounded-lg p-5 sticky top-20">
             <div className="text-xs text-[var(--ink-soft)] uppercase">Mức giá từ</div>
             <div className="prata text-2xl text-brand mb-4">
               {fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}

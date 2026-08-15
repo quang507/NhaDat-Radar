@@ -64,7 +64,7 @@ export default function PriceMap({ points, height = 460 }: { points: MapPoint[];
     <div
       ref={ref}
       style={{ height }}
-      className="w-full overflow-hidden rounded-2xl border border-[var(--line)] z-0"
+      className="w-full overflow-hidden rounded-lg border border-[var(--line)] z-0"
     />
   );
 }

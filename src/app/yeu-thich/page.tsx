@@ -55,7 +55,7 @@ export default function FavouritesPage() {
           </div>
         )
       ) : (
-        <div className="card rounded-2xl p-10 text-center">
+        <div className="card rounded-lg p-10 text-center">
           <div className="text-4xl mb-3">♡</div>
           <h3 className="font-bold text-lg mb-1">Chưa có tin nào được lưu</h3>
           <p className="text-[var(--ink-soft)] text-sm mb-4">Khám phá bất động sản và bấm ♥ để lưu tin bạn thích.</p>

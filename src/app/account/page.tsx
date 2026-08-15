@@ -32,7 +32,7 @@ export default async function AccountPage({
       {sp.error && <p className="text-sm text-red-600 mb-3">{sp.error}</p>}
       {sp.message && <p className="text-sm text-emerald-600 mb-3">{sp.message}</p>}
 
-      <form action={updateProfile} className="card rounded-2xl p-6 flex flex-col gap-4">
+      <form action={updateProfile} className="card rounded-lg p-6 flex flex-col gap-4">
         <div>
           <span className="lbl">Ảnh đại diện</span>
           <ImageUpload name="avatar" max={1} initial={p?.avatar_url ? [p.avatar_url] : []} />
