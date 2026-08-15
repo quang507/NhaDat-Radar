@@ -181,7 +181,8 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
           if (res.status === 429) continue;
           const j = await res.json();
           if (j?.embedding?.values) { vec = j.embedding.values; break outer; }
-          break; // lỗi không phải quota -> đổi model
+          if (res.status === 404) break; // model không tồn tại -> đổi model
+          continue; // lỗi key -> thử key kế
         }
       }
       if (vec) {

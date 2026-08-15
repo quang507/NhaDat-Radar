@@ -36,7 +36,8 @@ async function embed(text) {
           loggedErr = true;
           console.error(`embed: ${model} -> HTTP ${res.status}:`, JSON.stringify(j?.error || j).slice(0, 300));
         }
-        break; // lỗi không phải quota -> model này hỏng với mọi key, thử model kế
+        if (res.status === 404) break; // model không tồn tại -> thử model kế
+        continue; // lỗi key (400 API_KEY_INVALID/403...) -> thử KEY kế (run 22:26: key 1 hỏng làm rớt cả 4 key)
       } catch { /* timeout/mạng -> xoay key */ }
       finally { clearTimeout(timer); }
     }
