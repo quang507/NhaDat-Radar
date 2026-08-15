@@ -16,8 +16,13 @@ const PRICE_OPTS: [string, string][] = [
   ["3000000000", "3 tỷ"], ["5000000000", "5 tỷ"], ["10000000000", "10 tỷ"], ["20000000000", "20 tỷ"],
 ];
 const SORTS: [string, string][] = [
-  ["", "Mới nhất"], ["score", "Điểm tin cao"], ["price_asc", "Giá thấp đến cao"],
-  ["price_desc", "Giá cao đến thấp"], ["area_desc", "Diện tích lớn nhất"],
+  ["", "Mới nhất"], ["score", "Điểm tin cao xếp trước"],
+  ["price_asc", "Giá thấp đến cao"], ["price_desc", "Giá cao đến thấp"],
+  ["ppm2_asc", "Giá/m² thấp đến cao"], ["ppm2_desc", "Giá/m² cao đến thấp"],
+  ["area_asc", "Diện tích nhỏ đến lớn"], ["area_desc", "Diện tích lớn đến nhỏ"],
+];
+const AREA_OPTS: [string, string][] = [
+  ["", "Diện tích"], ["30", "≥ 30 m²"], ["50", "≥ 50 m²"], ["80", "≥ 80 m²"], ["100", "≥ 100 m²"], ["150", "≥ 150 m²"],
 ];
 
 function shortPrice(v: number | null): string {
@@ -34,8 +39,8 @@ export default function SearchClient({
   params: Record<string, string | undefined>;
 }) {
   const router = useRouter();
-  const [showFilter, setShowFilter] = useState(true);
-  const [showMap, setShowMap] = useState(true);
+  const [showFilter, setShowFilter] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [f, setF] = useState({
     q: params.q || "", deal: params.deal || "", kind: params.kind || "",
     province: params.province || "", district: params.district || "", ward: params.ward || "",
@@ -46,6 +51,7 @@ export default function SearchClient({
   // Công tắc "địa chỉ mới sau sáp nhập" (kiểu batdongsan): BẬT = duyệt Tỉnh -> Phường mới
   // (hệ 2 cấp, bỏ quận); TẮT = duyệt theo quận cũ như thói quen thị trường.
   const [newAddr, setNewAddr] = useState(params.newAddr === "1");
+  const own = params.own === "1"; // chỉ tin chính chủ tự đăng
 
   const provinces = useMemo(() => Object.keys(geo).sort(), [geo]);
   const districts = useMemo(() => (f.province && geo[f.province] ? Object.keys(geo[f.province]).sort() : []), [geo, f.province]);
@@ -87,6 +93,7 @@ export default function SearchClient({
     const usp = new URLSearchParams();
     for (const [k, v] of Object.entries(next)) if (v) usp.set(k, v);
     if (newAddr) usp.set("newAddr", "1");
+    if (own && !("own" in next)) usp.set("own", "1");
     router.push("/search" + (usp.size ? "?" + usp.toString() : ""));
   }
   const submit = () => push({ ...f, sort });
@@ -123,12 +130,6 @@ export default function SearchClient({
         </div>
         <div className="ml-auto flex items-center gap-2">
           <SaveSearchButton filters={f} />
-          <button className="btn text-sm" onClick={() => setShowFilter((v) => !v)}>
-            {showFilter ? "Ẩn Bộ Lọc" : "Hiện Bộ Lọc"}
-          </button>
-          <button className="btn text-sm hidden lg:inline-block" onClick={() => setShowMap((v) => !v)}>
-            {showMap ? "Ẩn Bản Đồ" : "Hiện Bản Đồ"}
-          </button>
           <select
             className={`${sel} !w-auto text-sm`}
             value={sort}
@@ -137,6 +138,72 @@ export default function SearchClient({
             {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </div>
+      </div>
+
+      {/* ===== Thanh tìm 1 dòng + Xem bản đồ (kiểu batdongsan) ===== */}
+      <div className="flex gap-2 mb-3">
+        <form
+          className="flex flex-1 card rounded-lg overflow-hidden"
+          onSubmit={(e) => { e.preventDefault(); submit(); }}
+        >
+          <input
+            className="flex-1 px-4 py-2.5 bg-transparent outline-none text-sm min-w-0"
+            value={f.q}
+            onChange={set("q")}
+            placeholder="Nhập đường, phường, dự án, từ khoá… VD: Bán nhà Bình Thạnh dưới 5 tỷ"
+          />
+          <button className="bg-brand text-white font-semibold text-sm px-6 hover:bg-brand-ink transition" type="submit">
+            Tìm kiếm
+          </button>
+        </form>
+        <button
+          className={`btn text-sm font-semibold whitespace-nowrap ${showMap ? "!bg-[var(--accent)] !border-[var(--accent)] !text-white" : "!text-[var(--accent)] !border-[var(--accent)]"}`}
+          onClick={() => setShowMap((v) => !v)}
+        >
+          {showMap ? "Đóng bản đồ" : "Xem bản đồ"}
+        </button>
+      </div>
+
+      {/* ===== Hàng chip lọc nhanh ===== */}
+      <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
+        <button
+          className={`btn text-sm ${showFilter ? "!border-brand !text-brand" : ""}`}
+          onClick={() => setShowFilter((v) => !v)}
+        >
+          Lọc{(() => { const n = [f.province, f.district, f.ward, f.kind, f.priceMin, f.priceMax, f.areaMin, f.bedrooms].filter(Boolean).length; return n ? ` (${n})` : ""; })()}
+        </button>
+        <select className={`${sel} !w-auto`} value={f.kind}
+          onChange={(e) => { setF((s) => ({ ...s, kind: e.target.value })); push({ ...f, kind: e.target.value }); }}>
+          <option value="">Loại nhà đất</option>
+          {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <select className={`${sel} !w-auto`} value={f.priceMax}
+          onChange={(e) => { setF((s) => ({ ...s, priceMax: e.target.value })); push({ ...f, priceMax: e.target.value }); }}>
+          <option value="">Khoảng giá</option>
+          {PRICE_OPTS.slice(1).map(([v, l]) => <option key={v} value={v}>Dưới {l}</option>)}
+        </select>
+        <select className={`${sel} !w-auto`} value={f.areaMin}
+          onChange={(e) => { setF((s) => ({ ...s, areaMin: e.target.value })); push({ ...f, areaMin: e.target.value }); }}>
+          {AREA_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        <button
+          className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
+          onClick={() => push({ ...f, own: own ? "" : "1" } as Record<string, string>)}
+        >
+          <span className={`w-9 h-5 rounded-full transition relative ${own ? "bg-emerald-500" : "bg-[var(--line-strong)]"}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
+          </span>
+          Tin chính chủ tự đăng
+        </button>
+        <button
+          className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
+          onClick={() => { setNewAddr((v) => !v); setF((s) => ({ ...s, district: "", ward: "" })); }}
+        >
+          <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
+          </span>
+          Địa chỉ mới sau sáp nhập
+        </button>
       </div>
 
       {/* ===== Bộ lọc ===== */}
@@ -225,16 +292,6 @@ export default function SearchClient({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
             <button className="btn btn-primary px-8" type="submit">Tìm kiếm</button>
             <button className="btn" type="button" onClick={clear}>Xóa bộ lọc</button>
-            <button
-              type="button"
-              onClick={() => { setNewAddr((v) => !v); setF((s) => ({ ...s, district: "", ward: "" })); }}
-              className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)] ml-auto"
-            >
-              <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
-              </span>
-              Tìm theo địa chỉ mới sau sáp nhập
-            </button>
           </div>
         </form>
       )}
