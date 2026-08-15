@@ -59,7 +59,8 @@ export default async function Home({
   const projects = (projData ?? []) as Project[];
 
   const withImg = listings.filter((x) => x.images && x.images.length > 0);
-  const collage = withImg.slice(0, 3);
+  // Cụm ảnh hero: 3 tin điểm chất lượng cao nhất có ảnh (không lấy tùy tiện)
+  const collage = [...withImg].sort((a, b) => (b.ai_score ?? 0) - (a.ai_score ?? 0)).slice(0, 3);
   const featured = withImg.slice(0, 8);
   const hasFilter = Boolean(deal || kind || province || bedrooms || priceMax || q);
   const mapItems: MapItem[] = listings
@@ -114,28 +115,29 @@ export default async function Home({
           {hero && <h2 className="prata text-xl md:text-2xl mb-3">Bắt đầu tìm kiếm</h2>}
           <form action="/search" className="card rounded-lg p-3 shadow-sm hero-in-2">
             <input name="q" defaultValue={q} placeholder="Từ khoá: quận, dự án, đường..." className="inp mb-2" />
-            <div className="flex flex-wrap gap-2">
-              <select name="deal" defaultValue={deal || ""} className={`${sel} flex-1 min-w-[120px]`}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <select name="deal" defaultValue={deal || ""} className={sel}>
                 <option value="">Mua bán &amp; thuê</option>
                 <option value="ban">Mua bán</option>
                 <option value="cho_thue">Cho thuê</option>
               </select>
-              <select name="kind" defaultValue={kind || ""} className={`${sel} flex-1 min-w-[110px]`}>
+              <select name="kind" defaultValue={kind || ""} className={sel}>
                 <option value="">Loại BĐS</option>
                 {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
-              <select name="province" defaultValue={province || ""} className={`${sel} flex-1 min-w-[110px]`}>
+              <select name="province" defaultValue={province || ""} className={sel}>
                 <option value="">Toàn quốc</option>
                 {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
-              <select name="priceMax" defaultValue={priceMax || ""} className={`${sel} flex-1 min-w-[110px]`}>
-                {PRICE_BUCKETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <select name="priceMax" defaultValue={priceMax || ""} className={sel}>
+                <option value="">Mức giá</option>
+                {PRICE_BUCKETS.slice(1).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
-              <select name="bedrooms" defaultValue={bedrooms || ""} className={`${sel} w-[92px]`}>
-                <option value="">PN</option>
-                {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+</option>)}
+              <select name="bedrooms" defaultValue={bedrooms || ""} className={sel}>
+                <option value="">Số phòng ngủ</option>
+                {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+ phòng ngủ</option>)}
               </select>
-              <button className="btn btn-primary px-6" type="submit">Tìm kiếm</button>
+              <button className="btn btn-primary" type="submit">Tìm kiếm</button>
             </div>
           </form>
           <div className="flex gap-6 mt-5 hero-in-2">
@@ -156,9 +158,14 @@ export default async function Home({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={x.images[0]} alt={x.title} className="w-full h-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent" />
-                <span className="absolute bottom-2 left-2 text-white text-sm font-bold drop-shadow">
-                  {shortPrice(x.price_vnd)}
+                <span className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 to-transparent" />
+                {i === 0 && (
+                  <span className="absolute top-2 left-2 text-[0.65rem] font-bold px-2 py-0.5 rounded bg-brand text-white">Tin nổi bật</span>
+                )}
+                <span className="absolute inset-x-0 bottom-0 p-2.5 text-white drop-shadow">
+                  <span className="block text-sm font-bold">{shortPrice(x.price_vnd)}{x.area_m2 ? ` · ${x.area_m2} m²` : ""}</span>
+                  <span className="block text-[0.7rem] leading-snug line-clamp-1 opacity-95">{x.title}</span>
+                  <span className="block text-[0.65rem] opacity-75">{[x.district, x.province].filter(Boolean).join(", ")}</span>
                 </span>
               </Link>
             ))}
