@@ -71,6 +71,14 @@ const { data, error } = await sb.from("listings").insert(rows).select("id");
 if (error) { console.error("Seed lỗi:", error.message); process.exit(1); }
 console.log(`✅ ${now.slice(0, 10)}: làm mới ${data.length} tin (${rows.filter((r) => r.images.length).length} có ảnh).`);
 
+// 2b) Dọn tin bóc từ group Zalo quá 1 NĂM (giữ lâu hơn tin crawl vì group không re-seed;
+// tin DM tự đăng (zalo_bot) và tin user coi như tin người dùng — KHÔNG tự xóa)
+const zaloCutoff = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
+const { count: zaloDeleted, error: zaloErr } = await sb.from("listings")
+  .delete({ count: "exact" }).eq("source_site", "zalo_group").lt("created_at", zaloCutoff);
+if (zaloErr) console.error("Dọn tin zalo_group lỗi:", zaloErr.message);
+else if (zaloDeleted) console.log(`🧹 Xóa ${zaloDeleted} tin zalo_group quá 1 năm.`);
+
 // 3) Hậu xử lý: snapshot lịch sử giá + gửi email báo tin mới (đều tự bỏ qua nếu thiếu env)
 step("node price-history.mjs");
 step("node alerts.mjs");

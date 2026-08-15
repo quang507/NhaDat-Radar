@@ -33,10 +33,10 @@ ZALO_POST_COUNT=3
   node --env-file=.env.local crawler/zalo-bot.mjs post
   ```
 
-## ⚙ Chỉnh adapter (nếu 0 nhận/gửi được)
-`zalo-agent-cli` có thể đặt tên lệnh/field JSON khác. Mở `crawler/zalo-bot.mjs`, sửa 3 chỗ đánh dấu **ĐIỀU CHỈNH**:
-- `sendReply()` — cú pháp lệnh gửi (`message send --thread ... --text ...`).
-- `startListener()` — lệnh nghe (`listen --json`).
-- Trong vòng lặp — tên field: `threadId/uidFrom`, `text/content`, `isGroup/threadType`.
+## ⚙ Adapter (đã khớp CLI thật)
+Adapter trong `crawler/zalo-bot.mjs` đã viết theo cú pháp thật của `zalo-agent-cli`:
+- Gửi: `zalo-agent msg send -t 0|1 <threadId> <message>` (0=chat 1-1, 1=group).
+- Nghe: `zalo-agent --json listen -e message -f all --no-self` (`--json` là option toàn cục, đặt TRƯỚC `listen`).
+- Field JSON của event đọc linh hoạt (`data.content/uidFrom/threadId`, ThreadType số 0/1) — nếu bản CLI mới đổi tên field, chỉ sửa khối map field trong `startListener()`.
 
-Chạy thử, dán log cho tôi nếu tên lệnh/field khác — tôi chỉnh khớp CLI thực tế.
+Nếu 0 nhận/gửi được: chạy thử, dán log — chỉnh đúng khối đó, đừng viết lại file.

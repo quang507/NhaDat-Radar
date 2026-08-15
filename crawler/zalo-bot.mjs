@@ -10,9 +10,32 @@
 //  ⚠ Dùng tài khoản Zalo CLONE — API không chính thức có thể bị Zalo khoá.
 // ============================================================================
 import { spawn, execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
-const CLI = process.env.ZALO_CLI || "zalo-agent";          // tên lệnh zalo-agent-cli
+// Windows: spawn/execFileSync KHÔNG chạy được shim .cmd của npm (ENOENT/EINVAL)
+// -> tìm file bin thật của zalo-agent-cli trong npm global rồi gọi `node <bin>`.
+function resolveZalo() {
+  const override = process.env.ZALO_CLI;
+  if (override && override.endsWith(".js")) return { exe: process.execPath, pre: [override] };
+  if (process.platform !== "win32") return { exe: override || "zalo-agent", pre: [] };
+  const roots = [
+    path.join(process.env.APPDATA || "", "npm", "node_modules", "zalo-agent-cli"),
+    path.join(path.dirname(process.execPath), "node_modules", "zalo-agent-cli"),
+  ];
+  for (const r of roots) {
+    try {
+      let bin = JSON.parse(readFileSync(path.join(r, "package.json"), "utf8")).bin;
+      if (bin && typeof bin === "object") bin = bin["zalo-agent"] ?? Object.values(bin)[0];
+      if (bin) return { exe: process.execPath, pre: [path.join(r, bin)] };
+    } catch { /* thử root kế */ }
+  }
+  console.error("Không tìm thấy zalo-agent-cli (npm i -g zalo-agent-cli), hoặc đặt ZALO_CLI=đường dẫn src/index.js");
+  process.exit(1);
+}
+const ZALO = resolveZalo();
+const CLI = ZALO.exe; // + ZALO.pre trước args
 const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 const KEYS = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
   process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5].filter(Boolean);
@@ -21,6 +44,9 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SER
 if (!url || !key) { console.error("Thiếu SUPABASE env (.env.local)"); process.exit(1); }
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
+// Link gửi cho khách phải là domain public — .env.local dev hay đặt localhost nên phải lọc
+const rawSite = process.env.NEXT_PUBLIC_SITE_URL || "";
+const SITE = rawSite && !/localhost|127\.0\.0\.1/.test(rawSite) ? rawSite.replace(/\/$/, "") : "https://nha-dat-radar-rkyn.vercel.app";
 const PROP = { nha: "Nhà", dat: "Đất nền", can_ho: "Căn hộ", mat_bang: "Mặt bằng", phong_tro: "Phòng trọ", khac: "Nhà đất khác" };
 function fmtPrice(v, deal) {
   if (!v) return "Thoả thuận";
@@ -94,7 +120,7 @@ async function handle(text) {
 
   if (ai.intent === "hoi_tin" && ai.query) {
     const q = ai.query;
-    let query = sb.from("listings").select("title,price_vnd,area_m2,district,ward,deal,kind").eq("status", "published");
+    let query = sb.from("listings").select("id,title,price_vnd,area_m2,district,ward,deal,kind,contact_phone").eq("status", "published");
     if (q.listing_type) query = query.eq("deal", q.listing_type);
     if (q.property_type) query = query.eq("kind", q.property_type);
     if (q.district) query = query.ilike("district", `%${q.district}%`);
@@ -104,7 +130,7 @@ async function handle(text) {
     if (q.area_min) query = query.gte("area_m2", q.area_min);
     const { data } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(4);
     if (data?.length) {
-      const lines = data.map((x, i) => `${i + 1}. ${x.title?.slice(0, 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}`);
+      const lines = data.map((x, i) => `${i + 1}. ${x.title?.slice(0, 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}${x.contact_phone ? "\n   📞 " + x.contact_phone : ""}\n   🔗 ${SITE}/listings/${x.id}`);
       return `🔎 Tìm thấy ${data.length} tin phù hợp:\n\n${lines.join("\n\n")}\n\nNhắn tiếp để lọc thêm nhé!`;
     }
     return "Hiện chưa có tin khớp yêu cầu. Anh/chị để lại nhu cầu (khu vực + giá + loại), có tin phù hợp em báo ngay ạ! 🔔";
@@ -119,11 +145,10 @@ async function handle(text) {
 //  Xem lệnh thật: `zalo-agent --help`, `zalo-agent message --help`
 // ============================================================================
 
-// Gửi tin nhắn trả lời
-function sendReply(toId, text) {
+// Gửi tin nhắn trả lời (cú pháp thật: zalo-agent msg send -t 0|1 <threadId> <message>)
+function sendReply(toId, text, { group = false } = {}) {
   try {
-    // ĐIỀU CHỈNH: cú pháp gửi tin của zalo-agent-cli (ví dụ phổ biến bên dưới)
-    execFileSync(CLI, ["message", "send", "--thread", String(toId), "--text", text, "--json"], { stdio: "ignore" });
+    execFileSync(CLI, [...ZALO.pre, "msg", "send", "-t", group ? "1" : "0", String(toId), text], { stdio: "ignore" });
   } catch (e) {
     console.error("Gửi Zalo lỗi:", e.message);
   }
@@ -132,22 +157,25 @@ function sendReply(toId, text) {
 // Lắng nghe tin nhắn đến (stream JSON qua stdout)
 function startListener() {
   console.log("Zalo bot: bắt đầu lắng nghe... (Ctrl+C để dừng)");
-  // ĐIỀU CHỈNH: lệnh lắng nghe của zalo-agent-cli (--json để ra từng dòng JSON)
-  const child = spawn(CLI, ["listen", "--json"], { stdio: ["ignore", "pipe", "inherit"] });
+  // --json là option TOÀN CỤC của zalo-agent-cli -> đặt TRƯỚC listen; --no-self để CLI tự lọc tin mình gửi
+  // --auto-accept: tự đồng ý kết bạn để người lạ nhắn được cho bot
+  const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message", "-f", "all", "--no-self", "--auto-accept"], { stdio: ["ignore", "pipe", "inherit"] });
   let buf = "";
   child.stdout.on("data", async (chunk) => {
     buf += chunk.toString();
     let nl;
     while ((nl = buf.indexOf("\n")) >= 0) {
       const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
-      if (!line) continue;
+      if (!line || !line.startsWith("{")) continue; // bỏ dòng banner/cảnh báo không phải JSON
       let ev; try { ev = JSON.parse(line); } catch { continue; }
-      // ĐIỀU CHỈNH: đường dẫn tới nội dung tin nhắn trong JSON của zalo-agent-cli
-      const fromId = ev.threadId ?? ev.uidFrom ?? ev.sender?.id ?? ev.from;
-      const text = (ev.text ?? ev.message?.text ?? ev.content ?? "").toString().trim();
-      const isSelf = ev.isSelf ?? ev.self ?? false;
-      // group hay chat 1-1? (điều chỉnh theo field thật của zalo-agent-cli)
-      const isGroup = ev.isGroup ?? ev.threadType === "group" ?? ev.type === "group" ?? false;
+      const d = ev.data ?? ev; // CLI có thể bọc event zca-js trong {type/event, data:{...}}
+      const fromId = ev.threadId ?? d.threadId ?? d.uidFrom ?? d.idTo ?? d.sender?.id ?? d.from;
+      const raw = d.content ?? d.text ?? d.message?.text ?? "";
+      const text = (typeof raw === "string" ? raw : raw?.text ?? raw?.title ?? "").toString().trim();
+      const isSelf = ev.isSelf ?? d.isSelf ?? d.self ?? false;
+      // zca-js: ThreadType 0=User, 1=Group (số) — kèm các biến thể chuỗi để chắc ăn
+      const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
+      const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
       if (!fromId || !text || isSelf) continue;
 
       if (isGroup) {
@@ -172,11 +200,10 @@ async function postToGroups() {
     .select("id,title,price_vnd,area_m2,district,province,deal")
     .eq("status", "published").order("first_seen_at", { ascending: false }).limit(40);
   const pick = (data || []).sort(() => Math.random() - 0.5).slice(0, Number(process.env.ZALO_POST_COUNT || 3));
-  const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nha-dat-radar-rkyn.vercel.app";
   for (const g of groups) {
     for (const x of pick) {
       const msg = `🏠 ${x.title}\n💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""}\n📍 ${[x.district, x.province].filter(Boolean).join(", ")}\n🔗 ${SITE}/listings/${x.id}`;
-      sendReply(g, msg);
+      sendReply(g, msg, { group: true });
       console.log("→ group", g, ":", x.title?.slice(0, 40));
       await new Promise((r) => setTimeout(r, 5000)); // giãn 5s tránh bị Zalo gắn cờ spam
     }
