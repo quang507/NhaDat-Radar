@@ -57,10 +57,13 @@ export default async function SearchPage({
   else if (sort === "score") query = query.order("ai_score", { ascending: false, nullsFirst: false });
   else query = query.order("first_seen_at", { ascending: false, nullsFirst: false }); // mặc định: crawl mới nhất trước
 
-  const [{ data }, { data: geoRows }, { count: newToday }] = await Promise.all([
+  // tổng THẬT theo bộ lọc (UX audit: "200+" là cap của limit, người dùng không biết có 250 hay 5.000 tin)
+  const totalQuery = applyFilters(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"));
+  const [{ data }, { data: geoRows }, { count: newToday }, { count: totalCount }] = await Promise.all([
     query.limit(200),
     supabase.from("listings").select("province,district,ward").eq("status", "published").limit(2000),
     newTodayQuery,
+    totalQuery,
   ]);
   let listings = (data ?? []) as Listing[];
   if (district) listings = listings.filter((x) => canonDistrict(x.district || "").toLowerCase() === district.toLowerCase());
@@ -87,5 +90,5 @@ export default async function SearchPage({
   for (const p of Object.keys(geo)) for (const d of Object.keys(geo[p])) geo[p][d].sort();
 
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL
-  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={sp} newToday={newToday ?? 0} />;
+  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={sp} newToday={newToday ?? 0} total={district ? listings.length : (totalCount ?? listings.length)} />;
 }

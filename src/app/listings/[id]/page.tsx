@@ -11,6 +11,7 @@ import ContactForm from "./ContactForm";
 import ReportButton from "./ReportButton";
 import PriceTrend from "@/components/PriceTrend";
 import { areaPath } from "@/lib/slug";
+import ScoreInfo from "@/components/ScoreInfo";
 import ListingMap from "@/components/ListingMap";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
@@ -160,7 +161,7 @@ export default async function ListingDetail({
         <span><b>{x.area_m2 ?? "-"}</b> m²</span>
         <span>{PROP[x.kind]}</span>
         <span>{x.deal === "ban" ? "Bán" : "Cho thuê"}</span>
-        {x.ai_score ? <span className="text-[var(--ink-soft)]" title="Điểm đầy đủ thông tin: giá, diện tích, ảnh, pháp lý, mô tả… (không phải xác minh)">Điểm tin <b>{x.ai_score}/100</b></span> : null}
+        <ScoreInfo score={x.ai_score} trust={x.trust_score} />
         {(x.source_count ?? 1) > 1 ? (
           <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700" title={`Cùng tin này xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
             ✓ Xuất hiện trên {x.source_count} nguồn

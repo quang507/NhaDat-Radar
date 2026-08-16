@@ -33,12 +33,13 @@ function shortPrice(v: number | null): string {
 }
 
 export default function SearchClient({
-  listings, geo, params, newToday = 0,
+  listings, geo, params, newToday = 0, total,
 }: {
   listings: Listing[];
   geo: GeoTree;
   params: Record<string, string | undefined>;
   newToday?: number; // số tin Radar thấy lần đầu từ 0h hôm nay (cùng bộ lọc)
+  total?: number;    // tổng thật theo bộ lọc (danh sách chỉ tải 200)
 }) {
   const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
@@ -131,7 +132,7 @@ export default function SearchClient({
           <h1 className="prata text-xl md:text-2xl">{pageTitle}</h1>
           <p className="text-xs text-[var(--ink-soft)] mt-0.5">
             {newToday > 0 ? <><b className="text-emerald-600">{newToday.toLocaleString("vi-VN")} tin mới hôm nay</b> · </> : null}
-            Hiện có {listings.length >= 200 ? "200+" : listings.length.toLocaleString("vi-VN")} bất động sản.
+            Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{(total ?? 0) > listings.length ? ` (đang hiển thị ${listings.length} tin mới nhất — thu hẹp bộ lọc để xem đúng phần bạn cần)` : ""}.
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">

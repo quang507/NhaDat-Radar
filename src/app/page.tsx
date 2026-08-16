@@ -86,48 +86,31 @@ export default async function Home({
   const hero = heroImage();
   return (
     <div>
-      {/* ===== HERO banner thương hiệu — full width, không bo góc ===== */}
+      {/* ===== BANNER QUẢNG CÁO ĐỐI TÁC (public/hero.jpg) — full width, KHÔNG đè chữ của Radar lên
+          (UX audit 16/8: H1 "Tìm nhà đất…" từng nằm đè lên "VILLA NY'AH" -> hai thông điệp chồng nhau).
+          Gắn nhãn "Quảng cáo" (minh bạch), bấm được nếu có NEXT_PUBLIC_HERO_LINK. Mobile cắt vừa 200px. ===== */}
       {!hasFilter && hero && (
         <section className="hero-art relative w-screen left-1/2 -translate-x-1/2 overflow-hidden mb-6 -mt-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {/* md+: h-auto = hiện TRỌN ảnh theo tỷ lệ gốc, không cắt; mobile giữ khung 260px cho chữ dễ đọc */}
-          <img src={hero} alt="NhaDat Radar" className="w-full h-[260px] object-cover md:h-auto md:object-contain" />
-          {/* lớp phủ nhẹ, chỉ đậm ở mép trái để chữ dễ đọc */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
-          <div className="absolute inset-0">
-            <div className="max-w-6xl mx-auto px-5 h-full flex flex-col justify-center pt-6 md:pt-16">
-              <div className="max-w-2xl">
-                <h1 className="prata text-white text-[1.6rem] md:text-[2.6rem] leading-[1.12] mb-2.5 drop-shadow-lg hero-in">
-                  Tìm nhà đất bán &amp; cho thuê<br />trên khắp Việt Nam
-                </h1>
-                <p className="text-white/90 text-sm md:text-base mb-4 max-w-lg drop-shadow hero-in-2 hidden sm:block">
-                  Tổng hợp tin đa nguồn, AI chuẩn hoá &amp; cảnh báo giá ảo.
-                </p>
-                <div className="flex gap-2.5 hero-in-2">
-                  <Link href="/search" className="btn !py-2 !rounded-none !bg-white !text-brand !border-white font-bold">Tìm kiếm ngay</Link>
-                  <Link href="/dinh-gia" className="btn !py-2 !rounded-none !bg-transparent !text-white !border-white/70 hover:!bg-white/10">Định giá AI</Link>
-                </div>
-              </div>
-            </div>
-          </div>
+          {(() => {
+            const link = process.env.NEXT_PUBLIC_HERO_LINK;
+            /* eslint-disable-next-line @next/next/no-img-element */
+            const img = <img src={hero} alt={process.env.NEXT_PUBLIC_HERO_ALT || "Quảng cáo đối tác"} className="w-full h-[200px] object-cover md:h-auto md:max-h-[420px] md:object-cover" />;
+            return link ? <a href={link} target="_blank" rel="noopener sponsored" aria-label="Xem quảng cáo đối tác">{img}</a> : img;
+          })()}
+          <span className="absolute top-2 right-3 text-[0.65rem] font-semibold px-1.5 py-0.5 rounded bg-black/45 text-white/90 tracking-wide">Quảng cáo</span>
         </section>
       )}
 
-      {/* ===== HERO (chia đôi: nội dung trái + ảnh thật phải) — ẩn phần headline nếu đã có banner ===== */}
+      {/* ===== HERO Radar: H1 + ô tìm kiếm luôn ở đây (không phụ thuộc banner) ===== */}
       <section className="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-10 items-center pt-3 pb-6">
         <div className="hero-in">
-          {!hero && (
-            <>
-              <h1 className="prata text-[2rem] md:text-[2.7rem] leading-[1.1] mb-3 text-balance">
-                Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
-              </h1>
-              <p className="text-[var(--ink-soft)] mb-5 max-w-xl">
-                Tổng hợp tin từ nhiều nguồn, AI chuẩn hoá &amp; chấm điểm độ tin cậy, tự phân loại chính chủ / môi giới
-                và cảnh báo giá ảo.
-              </p>
-            </>
-          )}
-          {hero && <h2 className="prata text-xl md:text-2xl mb-3">Bắt đầu tìm kiếm</h2>}
+          <h1 className={`prata leading-[1.1] mb-3 text-balance ${hero ? "text-[1.6rem] md:text-[2.1rem]" : "text-[2rem] md:text-[2.7rem]"}`}>
+            Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
+          </h1>
+          <p className="text-[var(--ink-soft)] mb-5 max-w-xl">
+            Tổng hợp tin từ nhiều nguồn, ghi rõ nguồn &amp; thời điểm Radar thấy tin, so giá với mặt bằng khu vực,
+            nêu dấu hiệu chính chủ / môi giới từ dữ liệu.
+          </p>
           <form action="/search" className="card rounded-lg p-3 shadow-sm hero-in-2">
             <input name="q" defaultValue={q} placeholder="Từ khoá: quận, dự án, đường..." className="inp mb-2" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
