@@ -31,6 +31,23 @@ export async function deleteListing(formData: FormData) {
   revalidatePath("/admin");
 }
 
+// Xử lý báo cáo tin xấu: resolved (đã xử lý) / ignored (bỏ qua); kèm tuỳ chọn ẩn tin luôn.
+export async function resolveReport(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const status = String(formData.get("status") || "");
+  const hideListing = String(formData.get("hide_listing") || "");
+  if (!id || !["resolved", "ignored"].includes(status)) return;
+  const admin = createAdminClient();
+  await admin.from("listing_reports").update({ status }).eq("id", id);
+  if (hideListing) {
+    await admin.from("listings").update({ status: "hidden" }).eq("id", hideListing);
+    // các báo cáo khác của cùng tin coi như đã xử lý
+    await admin.from("listing_reports").update({ status: "resolved" }).eq("listing_id", hideListing).eq("status", "new");
+  }
+  revalidatePath("/admin");
+}
+
 export async function setVerified(formData: FormData) {
   await requireAdmin();
   const id = String(formData.get("id") || "");

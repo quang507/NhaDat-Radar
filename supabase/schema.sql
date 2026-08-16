@@ -229,6 +229,21 @@ create policy "leads_read_owner" on leads for select using (
   or exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')
 );
 
+-- ---------- LISTING REPORTS (báo tin xấu — migration 010) ----------
+create table if not exists listing_reports (
+  id          uuid primary key default gen_random_uuid(),
+  listing_id  uuid not null references listings(id) on delete cascade,
+  reason      text not null check (reason in ('da_ban','sai_gia','sai_dia_chi','gia_chinh_chu','lua_dao','trung_lap','khac')),
+  detail      text,
+  reporter_id uuid references profiles(id) on delete set null,
+  status      text not null default 'new' check (status in ('new','resolved','ignored')),
+  created_at  timestamptz not null default now()
+);
+alter table listing_reports enable row level security;
+create policy "reports_insert_anyone" on listing_reports for insert with check (true);
+create policy "reports_read_admin" on listing_reports for select using (
+  exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'));
+
 -- ---------- SAVED SEARCHES (email alert: khách lưu yêu cầu -> gửi mail khi có tin khớp) ----------
 create table if not exists saved_searches (
   id            uuid primary key default gen_random_uuid(),

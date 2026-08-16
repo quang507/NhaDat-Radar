@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { REPORT_REASONS } from "@/lib/reports";
 
 export type LeadState = { ok: boolean; error?: string };
 
@@ -24,6 +25,23 @@ export async function createLead(
   if (error) {
     console.error("createLead error:", error.message); // không rò chi tiết Postgres ra client
     return { ok: false, error: "Không gửi được liên hệ, vui lòng thử lại." };
+  }
+  return { ok: true };
+}
+
+// Báo tin xấu -> bảng listing_reports (anon insert được phép qua RLS, migration 010). Admin xử lý ở /admin?tab=reports.
+export async function reportListing(_prev: LeadState, formData: FormData): Promise<LeadState> {
+  const listing_id = String(formData.get("listing_id") || "");
+  const reason = String(formData.get("reason") || "");
+  const detail = String(formData.get("detail") || "").trim().slice(0, 500);
+  if (!listing_id || !REPORT_REASONS[reason]) return { ok: false, error: "Chọn lý do báo cáo." };
+  if (reason === "khac" && detail.length < 10) return { ok: false, error: "Mô tả thêm giúp Radar xử lý đúng (≥10 ký tự)." };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from("listing_reports").insert({ listing_id, reason, detail: detail || null, reporter_id: user?.id ?? null });
+  if (error) {
+    console.error("reportListing error:", error.message);
+    return { ok: false, error: "Không gửi được, vui lòng thử lại." };
   }
   return { ok: true };
 }

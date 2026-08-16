@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fmtPrice } from "@/lib/format";
 import type { Listing } from "@/lib/types";
-import { setListingStatus, deleteListing, setVerified } from "./actions";
+import { setListingStatus, deleteListing, setVerified, resolveReport } from "./actions";
+import { REPORT_REASONS } from "@/lib/reports";
 
 export const metadata = { title: "Quản trị - NhaDat Radar" };
 
@@ -30,7 +31,52 @@ export default async function AdminPage({
     );
   }
 
-  const tab = ["crawl", "leads", "agents"].includes(sp.tab || "") ? sp.tab! : "user";
+  const tab = ["crawl", "leads", "agents", "reports"].includes(sp.tab || "") ? sp.tab! : "user";
+
+  // ===== Tab: Báo cáo tin xấu =====
+  if (tab === "reports") {
+    type ReportRow = { id: string; listing_id: string; reason: string; detail: string | null; status: string; created_at: string;
+      listings: { title: string; status: string; source_site: string | null; source: string } | null };
+    const { data } = await supabase.from("listing_reports")
+      .select("id,listing_id,reason,detail,status,created_at,listings(title,status,source_site,source)")
+      .order("created_at", { ascending: false }).limit(200);
+    const reports = (data ?? []) as unknown as ReportRow[];
+    // đếm số báo cáo đang mở của từng tin -> tin bị báo nhiều nổi lên đầu
+    const openCount = new Map<string, number>();
+    for (const r of reports) if (r.status === "new") openCount.set(r.listing_id, (openCount.get(r.listing_id) || 0) + 1);
+    const sorted = [...reports].sort((a, b) => (a.status === "new" ? 0 : 1) - (b.status === "new" ? 0 : 1) || (openCount.get(b.listing_id) || 0) - (openCount.get(a.listing_id) || 0));
+    return (
+      <AdminShell tab={tab} q={sp.q}>
+        <div className="card rounded-lg overflow-hidden">
+          {sorted.length ? sorted.map((r) => (
+            <div key={r.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 border-b border-[var(--line)] last:border-0 text-sm ${r.status !== "new" ? "opacity-60" : ""}`}>
+              <span className={`text-[0.65rem] font-bold px-1.5 py-0.5 rounded ${r.status === "new" ? "text-red-600 bg-red-500/10" : "text-[var(--ink-soft)] bg-[var(--surface-2)]"}`}>
+                {r.status === "new" ? "mới" : r.status === "resolved" ? "đã xử lý" : "bỏ qua"}
+              </span>
+              <span className="font-semibold">{REPORT_REASONS[r.reason] || r.reason}</span>
+              {(openCount.get(r.listing_id) || 0) > 1 && <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">{openCount.get(r.listing_id)} báo cáo</span>}
+              <Link href={`/listings/${r.listing_id}`} className="truncate max-w-[340px] hover:text-brand">{r.listings?.title || r.listing_id}</Link>
+              <span className="text-xs text-[var(--ink-soft)]">{r.listings?.source === "crawl" ? r.listings?.source_site : "tự đăng"} · tin đang {r.listings?.status}</span>
+              {r.detail && <span className="text-xs text-[var(--ink-soft)] basis-full">“{r.detail}”</span>}
+              <span className="text-xs text-[var(--ink-faint)]">{new Date(r.created_at).toLocaleString("vi-VN")}</span>
+              {r.status === "new" && (
+                <span className="ml-auto flex gap-1.5">
+                  {r.listings?.status === "published" && (
+                    <form action={resolveReport}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="resolved" /><input type="hidden" name="hide_listing" value={r.listing_id} />
+                      <button className="btn !px-2.5 !py-1 text-xs !text-red-600">Ẩn tin</button></form>
+                  )}
+                  <form action={resolveReport}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="resolved" />
+                    <button className="btn !px-2.5 !py-1 text-xs">✓ Đã xử lý</button></form>
+                  <form action={resolveReport}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="ignored" />
+                    <button className="btn !px-2.5 !py-1 text-xs">Bỏ qua</button></form>
+                </span>
+              )}
+            </div>
+          )) : <p className="p-8 text-center text-sm text-[var(--ink-soft)]">Chưa có báo cáo nào.</p>}
+        </div>
+      </AdminShell>
+    );
+  }
 
   // ===== Tab: Liên hệ (leads) =====
   if (tab === "leads") {
@@ -135,6 +181,7 @@ function AdminShell({ tab, q, children }: { tab: string; q?: string; children: R
     { key: "crawl", label: "Tin crawl" },
     { key: "leads", label: "Liên hệ" },
     { key: "agents", label: "Người bán" },
+    { key: "reports", label: "Báo cáo tin xấu" },
   ];
   const showSearch = tab === "user" || tab === "crawl";
   return (

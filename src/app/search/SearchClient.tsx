@@ -7,6 +7,7 @@ import ListingRow from "@/components/ListingRow";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import { PROP } from "@/lib/format";
+import { areaPath } from "@/lib/slug";
 import type { Listing } from "@/lib/types";
 
 export type GeoTree = Record<string, Record<string, string[]>>;
@@ -354,15 +355,19 @@ export default function SearchClient({
           <section className="mt-10 card rounded-xl p-5">
             <h2 className="font-bold text-sm mb-3">Tìm kiếm nhiều tại {prov}</h2>
             <div className="flex flex-wrap gap-2">
+              {/* Link thật (bot crawl được) tới trang SEO khu vực /nha-dat-ban/[tinh]/[quan] */}
               {ds.map((d) => (
-                <button
+                <Link
                   key={d}
-                  onClick={() => { setF((s) => ({ ...s, province: prov, district: d, ward: "" })); push({ ...f, province: prov, district: d, ward: "" }); }}
+                  href={areaPath(f.deal === "cho_thue" ? "cho_thue" : "ban", prov, d)}
                   className="text-xs px-2.5 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition"
                 >
                   {dealWord} nhà đất {d}
-                </button>
+                </Link>
               ))}
+              <Link href={areaPath(f.deal === "cho_thue" ? "cho_thue" : "ban", prov)} className="text-xs px-2.5 py-1.5 rounded-lg border border-brand text-brand font-semibold">
+                Toàn {prov} →
+              </Link>
             </div>
           </section>
         );

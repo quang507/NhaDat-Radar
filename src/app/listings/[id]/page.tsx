@@ -8,6 +8,7 @@ import { cleanImages } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
 import { posterReasonText, type Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
+import ReportButton from "./ReportButton";
 import ListingMap from "@/components/ListingMap";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
@@ -287,6 +288,10 @@ export default async function ListingDetail({
                 Xem bài gốc trên {x.source_site || "nguồn"} →
               </a>
             ) : null}
+            <div className="mt-3 pt-3 border-t border-[var(--line)] flex justify-between items-start gap-2">
+              <span className="text-[0.68rem] text-[var(--ink-faint)]">Mã tin: <code>{x.id.slice(0, 8)}</code></span>
+              <ReportButton listingId={x.id} />
+            </div>
           </div>
 
           {/* Độ mới của tin — 3 mốc: đăng trên nguồn / Radar thấy lần đầu / thấy gần nhất */}
