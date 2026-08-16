@@ -115,7 +115,7 @@ async function handle(text) {
     const L = ai.listing;
     const { error } = await saveListing(L, text, { fromGroup: false });
     if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
-    return `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}\n\nTin sẽ hiển thị sau khi duyệt. Cảm ơn anh/chị! 🏠`;
+    return `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT — nhắn thêm SĐT để khách liên hệ được)"}\n\nRadar duyệt tin trong ngày rồi đăng lên ${SITE}. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
   }
 
   if (ai.intent === "hoi_tin" && ai.query) {
@@ -128,12 +128,22 @@ async function handle(text) {
     if (q.price_max) query = query.lte("price_vnd", q.price_max);
     if (q.price_min) query = query.gte("price_vnd", q.price_min);
     if (q.area_min) query = query.gte("area_m2", q.area_min);
-    const { data } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(4);
+    const { data, count } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(4);
+    // link "xem tất cả" trên web với cùng bộ lọc (UX audit: bot chỉ đưa 4 tin, không có đường đi tiếp)
+    const sp = new URLSearchParams();
+    if (q.listing_type) sp.set("deal", q.listing_type);
+    if (q.property_type) sp.set("kind", q.property_type);
+    if (q.province) sp.set("province", q.province);
+    if (q.district) sp.set("district", q.district);
+    if (q.price_max) sp.set("priceMax", String(q.price_max));
+    if (q.price_min) sp.set("priceMin", String(q.price_min));
+    if (q.area_min) sp.set("areaMin", String(q.area_min));
+    const moreUrl = `${SITE}/search?${sp.toString()}`;
     if (data?.length) {
       const lines = data.map((x, i) => `${i + 1}. ${x.title?.slice(0, 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}${x.contact_phone ? "\n   📞 " + x.contact_phone : ""}\n   🔗 ${SITE}/listings/${x.id}`);
-      return `🔎 Tìm thấy ${data.length} tin phù hợp:\n\n${lines.join("\n\n")}\n\nNhắn tiếp để lọc thêm nhé!`;
+      return `🔎 ${data.length} tin phù hợp nhất:\n\n${lines.join("\n\n")}\n\n👉 Xem tất cả + bản đồ: ${moreUrl}\nNhắn thêm điều kiện (giá, số phòng, đường…) để em lọc kỹ hơn.`;
     }
-    return "Hiện chưa có tin khớp yêu cầu. Anh/chị để lại nhu cầu (khu vực + giá + loại), có tin phù hợp em báo ngay ạ! 🔔";
+    return `Chưa có tin nào khớp đúng yêu cầu. Anh/chị thử nới điều kiện (khu vực rộng hơn / giá cao hơn), hoặc xem danh sách gần nhất: ${moreUrl}\nĐể lại nhu cầu (khu vực + giá + loại), có tin mới khớp em báo ngay ạ 🔔`;
   }
 
   return ai.reply_hint ||
@@ -176,7 +186,18 @@ function startListener() {
       // zca-js: ThreadType 0=User, 1=Group (số) — kèm các biến thể chuỗi để chắc ăn
       const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
       const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
-      if (!fromId || !text || isSelf) continue;
+      if (!fromId || isSelf) continue;
+      // UX audit 16/8: khách gửi ẢNH nhà / file / sticker mà không kèm chữ -> bot im lặng -> tưởng bot chết.
+      // DM: trả lời hướng dẫn 1 lần cho tin không có chữ (ảnh/file), bỏ qua sticker/thiệp; group: bỏ qua.
+      const msgType = String(d.msgType ?? ev.msgType ?? "");
+      if (!text) {
+        if (!isGroup && /photo|image|file|video|chat\.(photo|file|video)/i.test(msgType)) {
+          const hint = "Em nhận được ảnh rồi ạ 📷. Để đăng tin, anh/chị nhắn kèm 1 dòng: loại BĐS + diện tích + giá + khu vực + SĐT (VD: \"Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx\"). Em ghép với ảnh và đăng ngay.";
+          sendReply(fromId, hint);
+          console.log(`← [${fromId}] (${msgType}, không chữ) → hướng dẫn`);
+        }
+        continue;
+      }
 
       if (isGroup) {
         console.log(`← (group ${fromId}) ${text.slice(0, 60)}`);

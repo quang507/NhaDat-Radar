@@ -4,8 +4,25 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseVnd } from "@/lib/vnd";
 
 export type ListingState = { ok: boolean; error?: string };
+
+// Tên tỉnh người dùng gõ tay -> tên chuẩn trong DB (khớp merge.mjs canonProvince), để tin tự đăng lọt vào bộ lọc/trang khu vực.
+function canonProvince(p: string): string | null {
+  const t = p.toLowerCase().trim();
+  if (!t) return null;
+  if (/hà nội|ha noi|\bhn\b/.test(t)) return "Hà Nội";
+  if (/hồ chí minh|ho chi minh|hcm|sài gòn|sai gon|tphcm|tp\.hcm/.test(t)) return "Hồ Chí Minh";
+  if (/đà nẵng|da nang|\bđn\b|\bdn\b/.test(t)) return "Đà Nẵng";
+  return p.trim().replace(/^(tp\.?|tỉnh|thành phố)\s+/i, "");
+}
+function canonDistrict(d: string): string | null {
+  const t = d.trim();
+  if (!t) return null;
+  const m = t.match(/^(q\.?|quận)\s*(\d{1,2})$/i); if (m) return `Quận ${m[2]}`;
+  return t.replace(/^q\.\s*/i, "Quận ").replace(/^h\.\s*/i, "Huyện ").replace(/^p\.\s*/i, "Phường ");
+}
 
 export async function createListing(
   _prev: ListingState,
@@ -18,8 +35,14 @@ export async function createListing(
   if (!user) redirect("/auth");
 
   const title = String(formData.get("title") || "").trim();
-  const price = Number(formData.get("price") || 0);
-  if (!title || !price) return { ok: false, error: "Cần tiêu đề và giá." };
+  const price = parseVnd(String(formData.get("price") || ""));
+  if (!title) return { ok: false, error: "Nhập tiêu đề tin." };
+  if (!price) return { ok: false, error: "Giá chưa đọc được — nhập kiểu \"8,5 tỷ\" hoặc \"12 triệu\"." };
+  if (price < 1e5) return { ok: false, error: "Giá quá nhỏ — bạn có quên đơn vị (tỷ/triệu) không?" };
+  const contactPhone = String(formData.get("contact_phone") || "").replace(/[^\d+]/g, "");
+  if (contactPhone && !/^(\+?84|0)\d{9,10}$/.test(contactPhone)) return { ok: false, error: "SĐT không hợp lệ (10 số, bắt đầu bằng 0)." };
+  // NĐ13: SĐT chỉ hiển thị công khai khi người đăng đồng ý rõ ràng
+  if (contactPhone && formData.get("phone_consent") !== "on") return { ok: false, error: "Tích ô đồng ý hiển thị SĐT (hoặc bỏ trống SĐT để chỉ nhận liên hệ qua form)." };
 
   const area = Number(formData.get("area") || 0) || null;
   const amenities = formData.getAll("amenities").map(String);
@@ -47,11 +70,11 @@ export async function createListing(
     direction: String(formData.get("direction") || "") || null,
     legal_status: String(formData.get("legal_status") || "") || null,
     furnishing: String(formData.get("furnishing") || "") || null,
-    province: String(formData.get("province") || "") || null,
-    district: String(formData.get("district") || "") || null,
+    province: canonProvince(String(formData.get("province") || "")),
+    district: canonDistrict(String(formData.get("district") || "")),
     address: String(formData.get("address") || "") || null,
     contact_name: String(formData.get("contact_name") || "") || null,
-    contact_phone: String(formData.get("contact_phone") || "") || null,
+    contact_phone: contactPhone || null,
     amenities,
     images,
     // Điểm tính từ độ đầy đủ tin thật (trước đây gán cứng 90 cho mọi tin tự đăng)
@@ -68,7 +91,10 @@ export async function createListing(
     status: "published",
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("createListing:", error.message); // không lộ lỗi Postgres ra người dùng
+    return { ok: false, error: "Chưa đăng được tin, vui lòng thử lại. Nếu lặp lại, báo cho Radar kèm giờ gặp lỗi." };
+  }
   revalidatePath("/dashboard");
   revalidatePath("/");
   redirect("/dashboard");
