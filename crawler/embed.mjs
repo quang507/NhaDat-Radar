@@ -1,4 +1,4 @@
-// Tạo embedding (Gemini text-embedding-004, free) cho tin chưa có -> cột listings.embedding (pgvector).
+// Tạo embedding (Gemini gemini-embedding-001 @768, free) cho tin chưa có -> cột listings.embedding (pgvector).
 // Chạy sau seed trong daily.mjs (cần migration 003). Thiếu GEMINI key -> bỏ qua êm.
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,10 +10,9 @@ if (!KEYS.length) { console.log("embed: chưa có GEMINI_API_KEY -> bỏ qua.");
 
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
-// Model theo thứ tự ưu tiên. Run 14/8 báo 0/300 sau ~1.5s (không phải 429) ->
-// nghi text-embedding-004 bị khai tử; thêm gemini-embedding-001 (ép 768 chiều
-// cho khớp cột vector(768) của migration 003).
-const MODELS = ["text-embedding-004", "gemini-embedding-001"];
+// text-embedding-004 đã bị Google gỡ (404 từ 14/8/2026) -> chỉ dùng gemini-embedding-001 ép 768 chiều
+// (khớp cột vector(768) của migration 003). PHẢI trùng danh sách trong src/app/api/chat/route.ts.
+const MODELS = ["gemini-embedding-001"];
 let loggedErr = false; // in lỗi thật 1 lần để chẩn đoán qua log CI
 
 async function embed(text) {

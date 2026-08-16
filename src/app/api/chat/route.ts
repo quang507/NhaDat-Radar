@@ -170,7 +170,7 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
         process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5].filter(Boolean) as string[];
       // Cùng danh sách model với crawler/embed.mjs (vector câu hỏi phải cùng model với vector đã lưu)
       let vec: number[] | null = null;
-      outer: for (const model of ["text-embedding-004", "gemini-embedding-001"]) {
+      outer: for (const model of ["gemini-embedding-001"]) { // text-embedding-004 đã bị gỡ (404) — giữ đồng bộ với crawler/embed.mjs
         for (const k of KEYS) {
           const body: Record<string, unknown> = { content: { parts: [{ text: last.slice(0, 1000) }] } };
           if (model === "gemini-embedding-001") body.outputDimensionality = 768;
