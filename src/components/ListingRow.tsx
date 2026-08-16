@@ -60,7 +60,8 @@ export default function ListingRow({ x }: { x: Listing }) {
         <h3 className="font-semibold leading-snug line-clamp-2 group-hover:text-brand transition-colors uppercase text-[0.92rem]">
           {x.title}
         </h3>
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        {/* Gerhardt-Powals: cùng lưới số (tabular) để quét & so sánh giữa các dòng */}
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 tabular-nums">
           <span className="text-brand font-extrabold text-lg">{fmtPrice(x.price_vnd, x.deal)}</span>
           {ppm2 && <span className="text-sm text-[var(--ink-soft)] font-semibold">{ppm2}</span>}
           {x.area_m2 ? <span className="text-sm text-[var(--ink-soft)] font-semibold">{x.area_m2} m²</span> : null}

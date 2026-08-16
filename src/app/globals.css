@@ -8,7 +8,7 @@
   --surface-2: #eef1f6;
   --ink: #141a22;
   --ink-soft: #4c566a;
-  --ink-faint: #8b93a1;
+  --ink-faint: #6b7484;   /* WCAG AA 4.5:1 trên trắng (cũ #8b93a1 = 3.1:1, chữ nhỏ ngoài trời không đọc được) */
   --line: #e5e9f0;
   --line-strong: #d3d9e3;
   --brand: #1e7b52;        /* xanh lá đậm — khớp logo "nd" (đổi từ đỏ gạch theo yêu cầu 16/8) */
@@ -22,7 +22,7 @@
     --surface-2: #0d1219;
     --ink: #e9edf4;
     --ink-soft: #aab4c4;
-    --ink-faint: #7a8496;
+    --ink-faint: #8f99aa;   /* ~5.2:1 trên nền tối */
     --line: #232c3a;
     --line-strong: #33405230;
     --line-strong: #334052;
@@ -95,6 +95,11 @@ html { scroll-behavior: smooth; }
 
 /* Nút bấm: nhấc nhẹ + đổ bóng khi hover, lún khi nhấn */
 .btn { will-change: transform; }
+/* WCAG 2.5.8 / Material: điểm chạm ≥44px trên màn cảm ứng (người mua nhà xem web khi đang đi đường); CTA chính 48px */
+@media (max-width: 1023px) {
+  .btn, .inp, select.inp { min-height: 44px; }
+  .btn-primary { min-height: 48px; }
+}
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 .btn-primary:hover { box-shadow: 0 4px 14px color-mix(in srgb, var(--brand) 45%, transparent); }

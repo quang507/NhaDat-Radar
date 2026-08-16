@@ -15,7 +15,7 @@ export default async function SearchPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const { deal, kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own } = sp;
+  const { deal, kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own, legal, direction } = sp;
   const supabase = await createClient();
 
   // Bộ lọc dùng chung cho danh sách + đếm "tin mới hôm nay" (cùng điều kiện)
@@ -32,6 +32,9 @@ export default async function SearchPage({
     if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
     if (areaMin && !Number.isNaN(Number(areaMin))) query = query.gte("area_m2", Number(areaMin));
     if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
+    // bộ lọc nâng cao (NN/g #7): pháp lý & hướng — khớp chuỗi mềm vì nguồn ghi tự do ("Sổ hồng riêng", "Đông Nam", "dong-nam")
+    if (legal) query = query.ilike("legal_status", `%${legal.replace(/[%,()]/g, " ")}%`);
+    if (direction) query = query.ilike("direction", `%${direction.replace(/[%,()]/g, " ").split(" ")[0]}%`);
     if (q) {
       // Học flow batdongsan: từ khoá khớp cả tiêu đề + địa chỉ/đường + phường + quận
       const safe = q.replace(/[,()%]/g, " ").trim();

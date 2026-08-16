@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -12,6 +13,9 @@ import ReportButton from "./ReportButton";
 import PriceTrend from "@/components/PriceTrend";
 import { areaPath } from "@/lib/slug";
 import ScoreInfo from "@/components/ScoreInfo";
+import LegalHint from "@/components/LegalHint";
+import MortgageMini from "@/components/MortgageMini";
+import RecentlyViewed, { RecentlyViewedTracker } from "@/components/RecentlyViewed";
 import ListingMap from "@/components/ListingMap";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
@@ -97,9 +101,9 @@ export default async function ListingDetail({
   const fmtDT = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—";
 
-  const details: [string, string][] = [
+  const details: [string, ReactNode][] = [
     ["Hướng", x.direction || "-"],
-    ["Pháp lý", x.legal_status || "-"],
+    ["Pháp lý", <LegalHint key="legal" value={x.legal_status} />], // chú giải + mức rủi ro (ISO 9241-110)
     ["Số tầng", x.floors ? `${x.floors} tầng` : "-"],
     ["Nội thất", x.furnishing || "-"],
     ["Chỗ đậu xe", x.amenities?.includes("parking") ? "Có" : "-"],
@@ -238,6 +242,8 @@ export default async function ListingDetail({
               {x.description || "(Không có mô tả)"}
             </p>
           </div>
+          {/* Công cụ ra quyết định tại chỗ (ISO 9241-110): trả góp cho tin bán */}
+          {x.deal === "ban" && x.price_vnd && x.price_vnd >= 3e8 ? <MortgageMini price={x.price_vnd} /> : null}
           <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-3">Chi tiết bất động sản</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -267,7 +273,17 @@ export default async function ListingDetail({
               📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
             </div>
             {x.lat != null && x.lng != null ? (
-              <ListingMap lat={x.lat} lng={x.lng} title={x.title} />
+              <>
+                <ListingMap lat={x.lat} lng={x.lng} title={x.title} />
+                {/* Tiện ích quanh đây (ISO 9241-110): mở Google Maps tìm quanh toạ độ — không cần API trả phí */}
+                <div className="flex flex-wrap gap-2 mt-3 text-xs">
+                  <span className="text-[var(--ink-soft)] self-center">Quanh đây:</span>
+                  {[["Trường học", "trường học"], ["Bệnh viện", "bệnh viện"], ["Chợ / siêu thị", "chợ siêu thị"], ["Bến xe buýt", "trạm xe buýt"]].map(([label, q]) => (
+                    <a key={q} href={`https://www.google.com/maps/search/${encodeURIComponent(q)}/@${x.lat},${x.lng},15z`} target="_blank" rel="noopener" className="btn !py-1.5 !px-2.5 text-xs">{label}</a>
+                  ))}
+                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}`} target="_blank" rel="noopener" className="btn !py-1.5 !px-2.5 text-xs">Chỉ đường</a>
+                </div>
+              </>
             ) : (
               <div className="h-56 rounded-xl grid place-items-center text-[var(--ink-soft)] bg-[var(--bg)] border border-[var(--line)] text-sm">
                 📍 Tin này chưa có toạ độ chính xác
@@ -375,9 +391,9 @@ export default async function ListingDetail({
           <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
         </div>
         {isCrawl && x.source_url && x.source_url !== "#" ? (
-          <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap !py-2">Xem bài gốc →</a>
+          <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Xem bài gốc →</a>
         ) : (
-          <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap !py-2">Liên hệ</a>
+          <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Liên hệ</a>
         )}
       </div>
       {/* Tin khác của cùng người đăng (kiểu hồ sơ môi giới batdongsan "đang có N tin") */}
@@ -402,6 +418,9 @@ export default async function ListingDetail({
           </div>
         </section>
       )}
+      {/* NN/g #6: nhớ tin đã xem (localStorage) + hiện dải "Đã xem gần đây" */}
+      <RecentlyViewedTracker item={{ id: x.id, title: x.title, price: fmtPrice(x.price_vnd, x.deal), where: [x.district, x.province].filter(Boolean).join(", "), img: images[0] || null }} />
+      <RecentlyViewed excludeId={x.id} />
       {/* chừa chỗ cho thanh CTA dính đáy trên mobile */}
       <div className="lg:hidden h-16" aria-hidden />
     </div>

@@ -9,6 +9,8 @@ import SaveSearchButton from "@/components/SaveSearchButton";
 import { PROP } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
 import type { Listing } from "@/lib/types";
+import PlaceSuggest, { buildPlaces, type Place } from "@/components/PlaceSuggest";
+import RecentlyViewed, { RecentSearches, rememberSearch } from "@/components/RecentlyViewed";
 
 export type GeoTree = Record<string, Record<string, string[]>>;
 
@@ -43,13 +45,20 @@ export default function SearchClient({
 }) {
   const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(params.legal || params.direction || params.areaMin || params.bedrooms)); // NN/g #7: nâng cao mở sẵn nếu đang dùng
   const [showMap, setShowMap] = useState(false);
   const [f, setF] = useState({
     q: params.q || "", deal: params.deal || "", kind: params.kind || "",
     province: params.province || "", district: params.district || "", ward: params.ward || "",
     priceMin: params.priceMin || "", priceMax: params.priceMax || "",
     areaMin: params.areaMin || "", bedrooms: params.bedrooms || "",
+    legal: params.legal || "", direction: params.direction || "",   // bộ lọc nâng cao (môi giới / nhà đầu tư)
   });
+  const places = useMemo(() => buildPlaces(geo), [geo]);
+  const pickPlace = (p: Place) => {
+    const next = { ...f, q: "", province: p.province, district: p.district || "", ward: p.ward || "" };
+    setF(next); push(next);
+  };
   const sort = params.sort || "";
   // Công tắc "địa chỉ mới sau sáp nhập" (kiểu batdongsan): BẬT = duyệt Tỉnh -> Phường mới
   // (hệ 2 cấp, bỏ quận); TẮT = duyệt theo quận cũ như thói quen thị trường.
@@ -98,10 +107,14 @@ export default function SearchClient({
     if (newAddr && !("newAddr" in next)) usp.set("newAddr", "1");
     if (own && !("own" in next)) usp.set("own", "1");
     if (sort && !("sort" in next)) usp.set("sort", sort); // chip/toggle không làm mất sort đang chọn
-    router.push("/search" + (usp.size ? "?" + usp.toString() : ""));
+    const href = "/search" + (usp.size ? "?" + usp.toString() : "");
+    // NN/g #6: nhớ tìm kiếm gần đây (nhãn ngắn dễ nhận ra)
+    const label = [next.deal === "cho_thue" ? "Thuê" : next.deal === "ban" ? "Mua" : "", next.kind ? (PROP as Record<string, string>)[next.kind] : "", next.ward || next.district || next.province || next.q || "toàn quốc", next.priceMax ? "≤" + shortPrice(Number(next.priceMax)) : ""].filter(Boolean).join(" · ");
+    if (usp.size) rememberSearch(label, href);
+    router.push(href);
   }
   const submit = () => push({ ...f, sort });
-  const clear = () => { setNewAddr(false); setF({ q: "", deal: "", kind: "", province: "", district: "", ward: "", priceMin: "", priceMax: "", areaMin: "", bedrooms: "" }); router.push("/search"); };
+  const clear = () => { setNewAddr(false); setF({ q: "", deal: "", kind: "", province: "", district: "", ward: "", priceMin: "", priceMax: "", areaMin: "", bedrooms: "", legal: "", direction: "" }); router.push("/search"); };
 
   const sel = "inp appearance-none pr-8 cursor-pointer";
   const set = (k: string) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
@@ -148,18 +161,21 @@ export default function SearchClient({
       </div>
 
       {/* ===== Thanh tìm 1 dòng + Xem bản đồ (kiểu batdongsan) ===== */}
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2 mb-2">
         <form
-          className="flex flex-1 card rounded-lg overflow-hidden"
+          className="flex flex-1 card rounded-lg overflow-visible relative"
           onSubmit={(e) => { e.preventDefault(); submit(); }}
         >
           <input
-            className="flex-1 px-4 py-2.5 bg-transparent outline-none text-sm min-w-0"
+            className="flex-1 px-4 py-2.5 bg-transparent outline-none text-sm min-w-0 rounded-l-lg"
             value={f.q}
             onChange={set("q")}
-            placeholder="Nhập đường, phường, dự án, từ khoá… VD: Bán nhà Bình Thạnh dưới 5 tỷ"
+            placeholder="Gõ quận/phường (VD: Q7, Bình Thạnh), đường, dự án…"
+            autoComplete="off"
           />
-          <button className="bg-brand text-white font-semibold text-sm px-4 sm:px-6 hover:bg-brand-ink transition whitespace-nowrap" type="submit" aria-label="Tìm kiếm">
+          {/* NN/g #5: gợi ý địa danh thật, nhận cả viết tắt Q7 -> Quận 7 */}
+          <PlaceSuggest value={f.q} places={places} onPick={pickPlace} />
+          <button className="bg-brand text-white font-semibold text-sm px-4 sm:px-6 hover:bg-brand-ink transition whitespace-nowrap rounded-r-lg" type="submit" aria-label="Tìm kiếm">
             <span className="sm:hidden">🔍</span><span className="hidden sm:inline">Tìm kiếm</span>
           </button>
         </form>
@@ -172,13 +188,15 @@ export default function SearchClient({
         </button>
       </div>
 
-      {/* ===== Hàng chip lọc nhanh ===== */}
+      <RecentSearches />
+
+      {/* ===== Hàng chip lọc nhanh (cấp CƠ BẢN — người tìm nhà vãng lai) ===== */}
       <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
         <button
           className={`btn text-sm ${showFilter ? "!border-brand !text-brand" : ""}`}
           onClick={() => setShowFilter((v) => !v)}
         >
-          Lọc{(() => { const n = [f.province, f.district, f.ward, f.kind, f.priceMin, f.priceMax, f.areaMin, f.bedrooms].filter(Boolean).length; return n ? ` (${n})` : ""; })()}
+          Lọc{(() => { const n = [f.province, f.district, f.ward, f.kind, f.priceMin, f.priceMax, f.areaMin, f.bedrooms, f.legal, f.direction].filter(Boolean).length; return n ? ` (${n})` : ""; })()}
         </button>
         <select className={`${sel} !w-auto`} value={f.kind}
           onChange={(e) => { setF((s) => ({ ...s, kind: e.target.value })); push({ ...f, kind: e.target.value }); }}>
@@ -285,18 +303,42 @@ export default function SearchClient({
                 {PRICE_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </label>
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Diện tích tối thiểu (m²)</span>
-              <input className="inp" type="number" min={0} value={f.areaMin} onChange={set("areaMin")} placeholder="VD: 50" />
-            </label>
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phòng ngủ</span>
-              <select className={sel} value={f.bedrooms} onChange={set("bedrooms")}>
-                <option value="">Tất cả</option>
-                {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ phòng</option>)}
-              </select>
-            </label>
           </div>
+          {/* NN/g #7: cấp NÂNG CAO — môi giới / nhà đầu tư (diện tích, PN, hướng, pháp lý) ẩn mặc định để người vãng lai không rối */}
+          <button type="button" onClick={() => setShowAdvanced((v) => !v)} className="mt-3 text-sm font-semibold text-brand flex items-center gap-1">
+            {showAdvanced ? "▾" : "▸"} Bộ lọc nâng cao <span className="text-xs font-normal text-[var(--ink-soft)]">(diện tích, phòng ngủ, hướng, pháp lý)</span>
+          </button>
+          {showAdvanced && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mt-3 pt-3 border-t border-[var(--line)]">
+              <label className="block">
+                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Diện tích tối thiểu (m²)</span>
+                <input className="inp" type="number" min={0} value={f.areaMin} onChange={set("areaMin")} placeholder="VD: 50" />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phòng ngủ</span>
+                <select className={sel} value={f.bedrooms} onChange={set("bedrooms")}>
+                  <option value="">Tất cả</option>
+                  {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ phòng</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Hướng</span>
+                <select className={sel} value={f.direction} onChange={set("direction")}>
+                  <option value="">Tất cả</option>
+                  {["Đông", "Tây", "Nam", "Bắc", "Đông Nam", "Đông Bắc", "Tây Nam", "Tây Bắc"].map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Pháp lý</span>
+                <select className={sel} value={f.legal} onChange={set("legal")}>
+                  <option value="">Tất cả</option>
+                  <option value="sổ">Đã có sổ (hồng/đỏ)</option>
+                  <option value="hợp đồng">Hợp đồng mua bán</option>
+                  <option value="thổ cư">Thổ cư</option>
+                </select>
+              </label>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
             <button className="btn btn-primary px-8" type="submit">Tìm kiếm</button>
             <button className="btn" type="button" onClick={clear}>Xóa bộ lọc</button>
@@ -347,6 +389,9 @@ export default function SearchClient({
           </div>
         )}
       </div>
+
+      {/* NN/g #6: tin đã xem gần đây (localStorage) */}
+      <RecentlyViewed />
 
       {/* ===== Tìm kiếm phổ biến (kiểu footer SEO batdongsan) ===== */}
       {(() => {
