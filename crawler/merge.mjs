@@ -1,7 +1,17 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
-const load = (f) => { try { return JSON.parse(fs.readFileSync(new URL("./" + f, import.meta.url))).listings || []; } catch { return []; } };
+// File nguồn quá cũ (crawler bị chặn/không chạy nên không ghi đè) -> BỎ QUA, không "thấy lại" tin cũ
+// (last_seen_at phải trung thực: chỉ tin cào được hôm nay mới tính là còn sống). File không có crawled_at -> vẫn nhận.
+const STALE_DAYS = Number(process.env.SOURCE_STALE_DAYS || 2);
+const load = (f) => {
+  try {
+    const j = JSON.parse(fs.readFileSync(new URL("./" + f, import.meta.url)));
+    const at = j.summary && j.summary.crawled_at;
+    if (at && (Date.now() - new Date(at).getTime()) / 864e5 > STALE_DAYS) { console.error(f, "-> BỎ QUA (cào lần cuối", at, "- quá", STALE_DAYS, "ngày)"); return []; }
+    return j.listings || [];
+  } catch { return []; }
+};
 
 function canonProvince(p) {
   const t = (p || "").toLowerCase();
@@ -56,10 +66,13 @@ function norm(x) {
     lat: x.lat ?? null, lng: x.lng ?? null,
     amenities: x.amenities || [],
     poster_role: x.poster_role || "khong_ro", poster_listing_count: x.poster_listing_count || 1,
+    poster_id: x.poster_id ?? null,
+    poster_reasons: Array.isArray(x.poster_reasons) ? x.poster_reasons : [],
     phone_masked: x.phone_masked ?? null, phone_hash: x.phone_hash ?? null,
+    posted_at: x.posted_at ?? null,          // thời điểm đăng trên nguồn (nếu nguồn có)
     ai_score: x.ai_score ?? heuristicScore(x),
-    price_warning: x.price_warning ?? null,
-    freshness_min: x.freshness_min ?? 60,
+    price_warning: x.price_warning ?? null,  // tính lại bên dưới trên toàn bộ dữ liệu (không còn phụ thuộc 1 nguồn)
+    source_count: 1,                         // số nguồn cùng đăng tin này (dedupe liên nguồn cộng dồn)
     // làm sạch ảnh: bỏ object rác + link album facebook (không phải file ảnh)
     images: (x.images || [])
       .map((i) => (typeof i === "string" ? i : i && i.uri))
@@ -76,19 +89,108 @@ const beforeJunk = all.length;
 all = all.filter((x) => !isJunk(x.title, x.description));
 console.error("junk filter:", beforeJunk, "->", all.length, `(bỏ ${beforeJunk - all.length} tin rác)`);
 
-// khử trùng trong-nguồn theo id + cross-source theo dedupe_key (phone/giá/diện tích/quận)
-// + fallback (site|title|giá) cho tin thiếu phone_hash (nhadat từng lọt trùng vì thiếu key này)
-const seenId = new Set(), seenKey = new Set(), seenTitle = new Set();
-all = all.filter((x) => {
-  if (seenId.has(x.id)) return false; seenId.add(x.id);
-  if (x.phone_hash && x.price_vnd && x.area_m2) {
-    const k = [x.phone_hash, Math.round(x.price_vnd / 1e6), Math.round(x.area_m2), x.district].join("|");
-    if (seenKey.has(k)) return false; seenKey.add(k);
-  }
+// ---- Dedupe ----
+// 1) trong-nguồn theo id
+// 2) liên nguồn theo phone (khi có) hoặc theo "vân tay" tiêu đề+giá+DT+quận (không cần phone —
+//    trước đây key chỉ dựa vào phone_hash mà chỉ nhadat.vn sinh ra -> 0% tin có key -> dedupe liên nguồn chết)
+// 3) fallback (site|title|giá) trong cùng nguồn
+// Tin trùng liên nguồn: GIỮ bản đầy đủ hơn (nhiều ảnh/mô tả dài) và cộng source_count -> UI "xuất hiện trên N nguồn"
+const stripAccent = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+// Từ marketing chung — không mang thông tin nhận dạng (tránh gộp nhầm các tin cùng "template" tiêu đề)
+const STOP = new Set(("nha dep gia tot chinh chu can ban gap nhanh hot cho thue dat tai o ngay lh lien he dau tu sinh loi " +
+  "sieu re soc uu dai co hoi vang hiem thuong luong tl tang cap ma so mat tien mt view thoang mat sat ke gan " +
+  "moi xay tang lau full noi that ngay san sang so hong so do rieng phap ly ro rang xem la thich the").split(" "));
+function titleFingerprint(x) {
+  if (!x.price_vnd || !(x.area_m2 || x.district)) return null;   // thiếu giá hoặc thiếu cả DT lẫn quận -> không đủ đặc trưng
+  const t = stripAccent((x.title || "").toLowerCase())
+    .replace(/(\+?84|0)\d[\d .]{7,12}\d/g, " ")           // bỏ số điện thoại
+    .replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim(); // bỏ emoji/ký tự đặc biệt
+  const words = [...new Set(t.split(" ").filter((w) => w.length > 1 && !STOP.has(w)))].slice(0, 8);
+  if (words.length < 4) return null;                            // còn quá ít từ nội dung -> bỏ qua
+  const pb = Math.round(x.price_vnd / Math.max(1e5, x.price_vnd * 0.05)); // bucket ±5%
+  const ab = x.area_m2 ? Math.round(x.area_m2) : "-";
+  return [words.join(" "), pb, ab, stripAccent((x.district || "").toLowerCase())].join("|");
+}
+const richness = (x) => (x.images || []).length * 10 + Math.min(500, (x.description || "").length) / 50 + (x.lat ? 3 : 0);
+
+const seenId = new Set(), byKey = new Map(), seenTitle = new Set();
+const kept = [];
+for (const x of all) {
+  if (seenId.has(x.id)) continue; seenId.add(x.id);
   const tk = [x.source_site, (x.title || "").toLowerCase().trim(), x.price_vnd ?? 0].join("|");
-  if (x.title && seenTitle.has(tk)) return false; seenTitle.add(tk);
-  return true;
-});
+  if (x.title && seenTitle.has(tk)) continue; seenTitle.add(tk);
+
+  const keys = [];
+  if (x.phone_hash && x.price_vnd && x.area_m2)
+    keys.push("p|" + [x.phone_hash, Math.round(x.price_vnd / 1e6), Math.round(x.area_m2), x.district].join("|"));
+  const fp = titleFingerprint(x); if (fp) keys.push("t|" + fp);
+
+  const dup = keys.map((k) => byKey.get(k)).find(Boolean);
+  if (dup) {
+    if (process.env.DEBUG_DEDUPE) console.error(`  gộp [${x.source_site}] "${(x.title || "").slice(0, 55)}" ${x.price_vnd}/${x.area_m2}\n   -> [${dup.source_site}] "${(dup.title || "").slice(0, 55)}" ${dup.price_vnd}/${dup.area_m2}`);
+    if (dup.source_site !== x.source_site) {
+      dup.source_count += 1;
+      dup.source_sites = [...new Set([...(dup.source_sites || [dup.source_site]), x.source_site])];
+    }
+    // giữ bản giàu dữ liệu hơn nhưng bảo toàn danh tính (id/source_post_id/first-seen) của bản đầu
+    if (richness(x) > richness(dup)) {
+      const keepIdent = { id: dup.id, source: dup.source, source_site: dup.source_site, url: dup.url, source_post_id: dup.source_post_id,
+        source_count: dup.source_count, source_sites: dup.source_sites, posted_at: dup.posted_at ?? x.posted_at };
+      Object.assign(dup, x, keepIdent);
+    }
+    continue;
+  }
+  for (const k of keys) byKey.set(k, x);
+  kept.push(x);
+}
+console.error("dedupe:", all.length, "->", kept.length, `(gộp ${all.length - kept.length}, ${kept.filter((x) => x.source_count > 1).length} tin xuất hiện ≥2 nguồn)`);
+all = kept;
+
+// ---- Cảnh báo giá lệch (price_flag) trên TOÀN BỘ dữ liệu ----
+// Trước đây chỉ crawl.js (nhadat.vn) sinh price_warning -> nguồn đó 0 tin -> 0% tin có cờ.
+// Cụm = tỉnh|quận|loại|bán-thuê; so theo giá/m² (thuê không có DT thì so theo giá). Cần >=5 tin & >=2 người đăng khác nhau.
+const median = (arr) => { const s = [...arr].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const clusters = new Map();
+for (const x of all) {
+  if (!x.price_vnd || !x.district) continue;
+  const v = x.price_per_m2 || (x.listing_type === "cho_thue" ? x.price_vnd : null);
+  if (!v) continue;
+  const ck = [x.province, x.district, x.property_type, x.listing_type, x.price_per_m2 ? "m2" : "abs"].join("|");
+  if (!clusters.has(ck)) clusters.set(ck, []);
+  clusters.get(ck).push({ x, v, poster: x.phone_hash || x.poster_id || x.id });
+}
+let flagged = 0;
+for (const rows of clusters.values()) {
+  const posters = new Set(rows.map((r) => r.poster));
+  if (rows.length < 5 || posters.size < 2) continue;
+  const med = median(rows.map((r) => r.v));
+  if (!med) continue;
+  for (const { x, v } of rows) {
+    const dev = (v - med) / med;
+    if (Math.abs(dev) >= 0.28) {
+      x.price_warning = { reason: dev > 0 ? "cao_hon" : "thap_hon", deviation_pct: Math.round(dev * 100),
+        cluster_size: rows.length, distinct_posters: posters.size, median_vnd: Math.round(med), basis: x.price_per_m2 ? "m2" : "gia" };
+      flagged++;
+    }
+  }
+}
+// điểm heuristic phải phản ánh cờ giá vừa tính (nguồn tự chấm giữ nguyên, chỉ trừ thêm khi có cờ)
+for (const x of all) if (x.price_warning && x.ai_score) x.ai_score = Math.max(35, x.ai_score - 12);
+console.error("price_flag:", flagged, "tin lệch ≥28% so với trung vị cụm (", clusters.size, "cụm )");
+
+// ---- Lý do dấu hiệu môi giới/chính chủ (cho nguồn chưa tự sinh) ----
+for (const x of all) {
+  if (x.poster_reasons.length) continue;
+  const r = [];
+  if (x.poster_listing_count >= 3) r.push(`tai_khoan_dang_${x.poster_listing_count}_tin`);
+  if (/chính chủ|chinh chu/i.test((x.title || "") + " " + (x.description || "").slice(0, 300))) r.push("tu_xung_chinh_chu");
+  if (/môi giới|moi gioi|sàn giao dịch|chuyên viên|chuyen vien|nhận ký gửi/i.test((x.title || "") + " " + (x.description || "").slice(0, 400))) r.push("tu_xung_moi_gioi");
+  x.poster_reasons = r;
+  if (x.poster_role === "khong_ro") {
+    if (r.includes("tu_xung_moi_gioi") || x.poster_listing_count >= 3) x.poster_role = "moi_gioi";
+    else if (r.includes("tu_xung_chinh_chu")) x.poster_role = "chu_nha";
+  }
+}
 
 const summary = {
   crawled_at: new Date().toISOString().slice(0, 10), total: all.length,
@@ -96,6 +198,8 @@ const summary = {
   by_city: all.reduce((a, x) => ((a[x.province] = (a[x.province] || 0) + 1), a), {}),
   with_geo: all.filter((x) => x.lat).length, with_ward: all.filter((x) => x.ward).length,
   ban: all.filter((x) => x.listing_type === "ban").length, cho_thue: all.filter((x) => x.listing_type === "cho_thue").length,
+  multi_source: all.filter((x) => x.source_count > 1).length, price_flagged: all.filter((x) => x.price_warning).length,
+  with_posted_at: all.filter((x) => x.posted_at).length, with_phone_masked: all.filter((x) => x.phone_masked).length,
 };
 fs.writeFileSync(new URL("./combined.json", import.meta.url), JSON.stringify({ summary, listings: all }, null, 0));
 console.error("MERGED", JSON.stringify(summary));

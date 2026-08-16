@@ -2,7 +2,8 @@
 
 > **Vì sao?** GitHub Actions dùng IP trung tâm dữ liệu → Facebook chặn, trả 0 bài.
 > Máy bạn ở Việt Nam dùng IP nhà mạng (dân cư) → Facebook coi là người thật → lấy bài bình thường.
-> Các nguồn khác (Chợ Tốt, Mogi, nhadat) chạy ở đâu cũng được.
+> Các nguồn khác (Chợ Tốt, Mogi, batdongsantoanquoc…) chạy ở đâu cũng được. Batdongsan.com.vn cần Playwright
+> (`npm install` đã kèm, browser: `npx playwright install chromium`) — máy nhà qua Cloudflare ổn, CI thì hên xui.
 
 ## Cài 1 lần
 

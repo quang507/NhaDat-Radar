@@ -5,8 +5,15 @@
 > VPS Việt Nam cũng chạy được nhưng vẫn là IP datacenter (rủi ro cao hơn) — chỉ nên mua nếu không muốn bật PC.
 
 ## Ai chạy ở đâu (tối ưu, 100% free)
-- **GitHub Actions** (đã có): Chợ Tốt + Mogi + nhadat + Batdongsan — không cần IP dân cư.
-- **PC nhà bạn** (hướng dẫn này): Facebook + Zalo — cần IP dân cư VN.
+- **GitHub Actions** (đã có): Chợ Tốt + Mogi + batdongsantoanquoc/bannhadat123/sosanhnha — không cần IP dân cư.
+  Batdongsan.com.vn chạy qua Playwright: CI thử trước, bị Cloudflare chặn thì máy nhà cào bù (file cũ quá 2 ngày tự bị bỏ qua).
+- **PC nhà bạn** (hướng dẫn này): Facebook + Zalo (+ Batdongsan khi CI bị chặn) — cần IP dân cư VN.
+- **nhadat.vn đã chết** (tên miền về VNNIC từ 8/2026) — không còn trong pipeline.
+
+## Vòng đời tin (từ 16/8/2026)
+- Seed **không xoá-chèn** nữa: tin cũ được cập nhật (`last_seen_at`, `crawl_count`), giữ `first_seen_at` + embedding.
+- Tin không thấy lại ≥36h (FB/Batdongsan: 7 ngày) → `status = gone`: ẩn khỏi tìm kiếm, trang chi tiết vẫn mở kèm nhãn "có thể đã giao dịch". Gone quá 30 ngày → xoá.
+- Test nhanh không cào: `node --env-file=.env.local crawler/daily.mjs --seed-only`
 
 ## Cài 1 lần (Windows / Mac / Linux)
 ```

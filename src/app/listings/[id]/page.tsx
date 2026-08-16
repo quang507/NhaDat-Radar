@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fmtPrice, fresh, PROP, AMEN, thumb } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
-import type { Listing } from "@/lib/types";
+import { posterReasonText, type Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
 import ListingMap from "@/components/ListingMap";
 import ListingCard from "@/components/ListingCard";
@@ -76,6 +76,11 @@ export default async function ListingDetail({
 
   const roleGuess = x.poster_role_guess;
   const seen = agoMin(x.first_seen_at);
+  const lastSeen = agoMin(x.last_seen_at ?? null);
+  const isGone = x.status === "gone";
+  const reasons = (x.poster_reasons || []).map(posterReasonText);
+  const fmtDT = (iso: string | null | undefined) =>
+    iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—";
 
   const details: [string, string][] = [
     ["Hướng", x.direction || "-"],
@@ -107,6 +112,12 @@ export default async function ListingDetail({
         )}
       </div>
 
+      {isGone && (
+        <div className="rounded-lg p-3 mb-3 border border-amber-500/40 bg-amber-500/10 text-sm">
+          <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {x.source_site || "nguồn"} từ{" "}
+          {lastSeen != null ? fresh(lastSeen) : "một thời gian"}. Tin đã ẩn khỏi kết quả tìm kiếm; giữ lại để tham khảo giá.
+        </div>
+      )}
       <div className="flex flex-wrap justify-between gap-4 items-start">
         <div>
           <h1 className="prata text-2xl md:text-3xl">{x.title}</h1>
@@ -126,7 +137,12 @@ export default async function ListingDetail({
         <span><b>{x.area_m2 ?? "-"}</b> m²</span>
         <span>{PROP[x.kind]}</span>
         <span>{x.deal === "ban" ? "Bán" : "Cho thuê"}</span>
-        {x.ai_score ? <span className="text-[var(--ink-soft)]" title="Điểm chất lượng tin">Điểm tin <b>{x.ai_score}/100</b></span> : null}
+        {x.ai_score ? <span className="text-[var(--ink-soft)]" title="Điểm đầy đủ thông tin: giá, diện tích, ảnh, pháp lý, mô tả… (không phải xác minh)">Điểm tin <b>{x.ai_score}/100</b></span> : null}
+        {(x.source_count ?? 1) > 1 ? (
+          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700" title={`Cùng tin này xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
+            ✓ Xuất hiện trên {x.source_count} nguồn
+          </span>
+        ) : null}
       </div>
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 mt-5">
@@ -151,32 +167,37 @@ export default async function ListingDetail({
               <p className="text-[var(--ink-soft)]">
                 Giá/m² tin này: <b>{fmtPpm2(myPpm2!)}/m²</b> — trung vị {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} tại {x.district}: <b>{fmtPpm2(med)}/m²</b>
                 {p25 && p75 ? <> · khoảng phổ biến {fmtPpm2(p25)} – {fmtPpm2(p75)}/m²</> : null}.
-                <span className="text-[var(--ink-faint)]"> Chỉ mang tính tham khảo.</span>
+                <span className="text-[var(--ink-faint)]"> Dựa trên {ppm2s.length} tin đang hiển thị cùng loại tại {x.district}. Chỉ mang tính tham khảo, không phải định giá.</span>
               </p>
             </div>
           )}
 
-          {/* Nhãn chính chủ / môi giới từ AI */}
+          {/* Dấu hiệu chính chủ / môi giới — từ DỮ LIỆU (tần suất tài khoản, nguồn ghi nhận, nội dung), nêu rõ lý do */}
           {roleGuess === "moi_gioi" && (
             <div className="card rounded-lg p-4 border-sky-500/40 bg-sky-500/5 text-sm">
               <div className="font-bold mb-1">Có dấu hiệu môi giới</div>
-              <p className="text-[var(--ink-soft)]">
-                Đây là nhận định của AI dựa trên nội dung/tần suất đăng tin, không phải xác minh danh tính.
-                Hãy kiểm tra kỹ trước khi đặt cọc.
+              {reasons.length ? (
+                <ul className="list-disc pl-5 text-[var(--ink-soft)] mb-1">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+              ) : null}
+              <p className="text-[var(--ink-faint)] text-xs">
+                Nhận định từ dữ liệu Radar (tần suất đăng, nguồn ghi nhận, nội dung tin) — không phải xác minh danh tính. Hãy kiểm tra kỹ trước khi đặt cọc.
               </p>
             </div>
           )}
           {roleGuess === "chu_nha" && (
             <div className="card rounded-lg p-4 border-emerald-500/40 bg-emerald-500/5 text-sm">
               <div className="font-bold mb-1">Có dấu hiệu chính chủ</div>
-              <p className="text-[var(--ink-soft)]">AI nhận định người đăng nhiều khả năng là chủ nhà. Vẫn nên xác minh sổ/giấy tờ khi giao dịch.</p>
+              {reasons.length ? (
+                <ul className="list-disc pl-5 text-[var(--ink-soft)] mb-1">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+              ) : null}
+              <p className="text-[var(--ink-faint)] text-xs">Nhận định từ dữ liệu Radar, không phải xác minh. Vẫn nên xác minh sổ/giấy tờ khi giao dịch.</p>
             </div>
           )}
           {x.price_flag ? (
             <div className="card rounded-lg p-4 border-red-500/40 text-red-600 text-sm">
               ⚠️ Cảnh báo giá: tin này {x.price_flag.reason === "cao_hon" ? "cao" : "thấp"} hơn{" "}
-              {x.price_flag.deviation_pct}% so với trung vị khu vực ({x.price_flag.distinct_posters} người
-              đăng cùng khu). Nên kiểm tra kỹ.
+              {Math.abs(x.price_flag.deviation_pct)}% so với trung vị {x.price_flag.cluster_size} tin cùng loại trong quận
+              ({x.price_flag.distinct_posters} người đăng khác nhau, so theo {x.price_flag.basis === "gia" ? "giá" : "giá/m²"}). Nên kiểm tra kỹ.
             </div>
           ) : null}
 
@@ -234,11 +255,14 @@ export default async function ListingDetail({
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : "Người đăng tin")}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {x.contact_phone ? "SĐT được che, bấm để xem" : "SĐT ẩn theo NĐ13 — xem bài gốc"}
+                  {x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối — số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 — xem bài gốc"}
                 </div>
               </div>
             </div>
             {x.contact_phone && <div className="mb-3"><PhoneReveal phone={x.contact_phone} /></div>}
+            {!x.contact_phone && x.phone_masked && (
+              <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
+            )}
             {x.agent_id && (
               <Link
                 href={`/tin-nhan?listing=${x.id}&agent=${x.agent_id}`}
@@ -265,21 +289,29 @@ export default async function ListingDetail({
             ) : null}
           </div>
 
-          {/* Độ mới của tin (kiểu homigo.life) */}
+          {/* Độ mới của tin — 3 mốc: đăng trên nguồn / Radar thấy lần đầu / thấy gần nhất */}
           <div className="card rounded-lg p-5 text-sm">
             <h3 className="font-bold mb-2">Độ mới của tin</h3>
             <div className="grid grid-cols-[1fr_auto] gap-y-1.5">
+              {x.posted_at ? (<>
+                <span className="text-[var(--ink-soft)]">Đăng trên {x.source_site || "nguồn"}</span>
+                <span className="font-semibold">{fmtDT(x.posted_at)}</span>
+              </>) : null}
               <span className="text-[var(--ink-soft)]">Radar thấy tin</span>
-              <span className="font-semibold">{seen != null ? fresh(seen) : "—"}</span>
-              <span className="text-[var(--ink-soft)]">Thu thập lúc</span>
-              <span className="font-semibold">
-                {(x.crawled_at || x.first_seen_at)
-                  ? new Date(x.crawled_at || x.first_seen_at!).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })
-                  : "—"}
+              <span className="font-semibold" title={fmtDT(x.first_seen_at)}>{seen != null ? fresh(seen) : "—"}</span>
+              <span className="text-[var(--ink-soft)]">Thấy gần nhất</span>
+              <span className={`font-semibold ${isGone ? "text-amber-600" : ""}`} title={fmtDT(x.last_seen_at ?? x.crawled_at)}>
+                {lastSeen != null ? fresh(lastSeen) : (x.crawled_at ? fmtDT(x.crawled_at) : "—")}
+                {x.crawl_count && x.crawl_count > 1 ? <span className="text-[var(--ink-faint)] font-normal"> · {x.crawl_count} lần</span> : null}
               </span>
               <span className="text-[var(--ink-soft)]">Nguồn</span>
-              <span className="font-semibold">{x.source === "agent" ? "Tự đăng" : x.source_site || "crawl"}</span>
-              {x.trust_score ? (<><span className="text-[var(--ink-soft)]">Độ tin cậy AI</span><span className="font-semibold">{x.trust_score}/100</span></>) : null}
+              <span className="font-semibold">
+                {x.source === "agent" ? "Tự đăng" : (x.source_sites && x.source_sites.length > 1 ? x.source_sites.join(" + ") : x.source_site || "crawl")}
+              </span>
+              {x.trust_score ? (<>
+                <span className="text-[var(--ink-soft)]" title="Chấm theo mức đầy đủ dữ liệu: ảnh, pháp lý, mô tả, giá & diện tích, dấu hiệu chính chủ — không phải xác minh">Độ đầy đủ tin</span>
+                <span className="font-semibold">{x.trust_score}/100</span>
+              </>) : null}
             </div>
           </div>
         </div>

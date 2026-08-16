@@ -15,8 +15,11 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
+      # Chromium cho batdongsan.mjs (Cloudflare chặn fetch thẳng). Nếu CI vẫn bị chặn thì
+      # batdongsan.mjs giữ file cũ và merge tự bỏ qua file quá 2 ngày — máy nhà cào bù.
+      - run: npx playwright install --with-deps chromium
       # Facebook KHÔNG chạy trên CI: IP GitHub Actions bị FB chặn (kiểm chứng 14/8 —
-      # 13 nhóm đều trả trang login, 0 bài, tốn ~9 phút + 117MB Playwright mỗi run).
+      # 13 nhóm đều trả trang login, 0 bài, tốn ~9 phút mỗi run).
       # Muốn cào FB: chạy crawl-local.bat trên máy nhà (IP dân cư) — daily.mjs tự nhận.
       - name: Crawl + seed Supabase
         run: node crawler/daily.mjs

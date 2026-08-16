@@ -13,7 +13,7 @@ do $$ begin
   create type listing_source   as enum ('crawl','agent','zalo_oa','zalo_miniapp','user');
   create type listing_deal      as enum ('ban','cho_thue');
   create type property_kind     as enum ('phong_tro','can_ho','nha','dat','mat_bang','khac');
-  create type listing_status    as enum ('draft','pending','published','rejected','hidden');
+  create type listing_status    as enum ('draft','pending','published','rejected','hidden','gone'); -- gone: tin crawl không còn thấy trên nguồn (008)
   create type user_role         as enum ('user','agent','admin');
 exception when duplicate_object then null; end $$;
 
@@ -92,6 +92,14 @@ create table if not exists listings (
   price_flag         jsonb,                  -- {reason, deviation_pct, cluster_size, distinct_posters}
   dedupe_key         text,
   first_seen_at      timestamptz,            -- "NhaDat Radar thấy X phút trước"
+  -- vòng đời tin (migration 008): học mô hình Homigo firstSeenAt/lastSeenAt/crawlCount/sourceCount
+  last_seen_at         timestamptz,          -- lần cào gần nhất còn thấy; không thấy ≥36h -> status 'gone'
+  crawl_count          int not null default 1,
+  source_count         int not null default 1, -- xuất hiện trên N nguồn (dedupe liên nguồn)
+  source_sites         text[],
+  phone_masked         text,                 -- SĐT che 4 số cuối (không phải dữ liệu định danh)
+  poster_listing_count int,
+  poster_reasons       text[] not null default '{}', -- lý do dấu hiệu môi giới/chính chủ
 
   status         listing_status not null default 'pending',
   posted_at      timestamptz,

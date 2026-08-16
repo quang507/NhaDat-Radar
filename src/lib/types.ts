@@ -36,6 +36,15 @@ export type Listing = {
   first_seen_at: string | null;
   crawled_at: string | null;
   created_at: string;
+  // vòng đời tin (migration 008)
+  posted_at?: string | null;          // đăng trên nguồn lúc
+  last_seen_at?: string | null;       // Radar thấy gần nhất
+  crawl_count?: number | null;
+  source_count?: number | null;       // xuất hiện trên N nguồn
+  source_sites?: string[] | null;
+  phone_masked?: string | null;       // SĐT đã che 4 số
+  poster_listing_count?: number | null;
+  poster_reasons?: string[] | null;   // lý do dấu hiệu môi giới/chính chủ
 };
 
 export type PriceFlag = {
@@ -43,7 +52,19 @@ export type PriceFlag = {
   deviation_pct: number;
   cluster_size: number;
   distinct_posters: number;
+  median_vnd?: number;
+  basis?: "m2" | "gia";
 };
+
+/** Diễn giải mã lý do poster_reasons thành câu cho người dùng */
+export function posterReasonText(code: string): string {
+  const m = code.match(/^tai_khoan_dang_(\d+)_tin$/);
+  if (m) return `Tài khoản người đăng có ${m[1]} tin trong đợt thu thập`;
+  if (code === "nguon_ghi_nhan_moi_gioi") return "Nguồn đăng ghi nhận tài khoản môi giới/cửa hàng";
+  if (code === "tu_xung_chinh_chu") return "Nội dung tự xưng chính chủ";
+  if (code === "tu_xung_moi_gioi") return "Nội dung tự xưng môi giới / nhận ký gửi";
+  return code;
+}
 
 export type Project = {
   id: string;

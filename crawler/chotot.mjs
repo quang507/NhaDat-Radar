@@ -54,6 +54,8 @@ function mapAd(a, city) {
     source: "crawl", source_site: "chotot",
     source_url: `https://www.nhatot.com/${a.list_id}.htm`,
     source_post_id: String(a.list_id),
+    // thời điểm đăng trên nguồn (list_time = epoch ms) -> "Đăng trên Chợ Tốt lúc ..."
+    posted_at: a.list_time ? new Date(Number(a.list_time)).toISOString() : null,
     title: a.subject || "",
     description: desc,
     price_vnd: price,
@@ -100,6 +102,12 @@ function mapAd(a, city) {
   all.forEach((x) => {
     const c = x.poster_id ? freq[x.poster_id] : 1;
     x.poster_listing_count = c;
+    // Lý do (hiện cho người dùng, không gọi là "AI"): tài khoản đăng N tin / nguồn ghi nhận môi giới / tự xưng chính chủ
+    const reasons = [];
+    if (x._company_ad || x._shop) reasons.push("nguon_ghi_nhan_moi_gioi");
+    if (c >= 3) reasons.push(`tai_khoan_dang_${c}_tin`);
+    if (/chính chủ|chinh chu/i.test(x.title + " " + x.description)) reasons.push("tu_xung_chinh_chu");
+    x.poster_reasons = reasons;
     x.poster_role = x._company_ad || x._shop || c >= 3 ? "moi_gioi"
       : /chính chủ|chinh chu/i.test(x.title + " " + x.description) ? "chu_nha"
       : c === 1 ? "chu_nha" : "khong_ro";

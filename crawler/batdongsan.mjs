@@ -18,7 +18,7 @@ const SEEDS = [
   "nha-dat-ban-can-tho", "nha-dat-ban-ba-ria-vung-tau",
   "nha-dat-ban-ha-noi", "nha-dat-cho-thue-ha-noi", "nha-dat-ban-da-nang",
 ];
-const PAGES = 1;
+const PAGES = Number(process.env.BDS_PAGES || 2);
 
 const clean = (s) => (s || "").replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
   .replace(/&amp;/g, "&").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -87,12 +87,18 @@ export function parseBatdongsan(html, cityName) {
 // --- Fetch: Playwright (chống Cloudflare) hoặc plain fetch (quy mô nhỏ) ---
 async function fetchSRP(url) {
   try {
-    const { chromium } = await import("playwright"); // cần: npm i playwright && npx playwright install chromium
-    const browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage({ userAgent: UA });
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
-    await page.waitForSelector(".js__card, .re__card-title", { timeout: 15000 }).catch(() => {});
-    const html = await page.content();
+    const { chromium } = await import("playwright"); // devDependency; browser: npx playwright install chromium
+    const browser = await chromium.launch({ headless: true, args: ["--disable-blink-features=AutomationControlled"] });
+    const ctx = await browser.newContext({ userAgent: UA, locale: "vi-VN", viewport: { width: 1366, height: 800 } });
+    const page = await ctx.newPage();
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    // Cloudflare cần vài giây để qua challenge; chờ tới khi có card (tối đa ~20s)
+    let html = "";
+    for (let i = 0; i < 5; i++) {
+      await page.waitForTimeout(4000);
+      html = await page.content();
+      if (/data-product-id="\d+"/.test(html)) break;
+    }
     await browser.close();
     return html;
   } catch (e) {
@@ -125,7 +131,12 @@ async function main() {
   }
   const seen = new Set();
   all = all.filter((x) => (seen.has(x.id) ? false : seen.add(x.id)));
-  fs.writeFileSync(new URL("./batdongsan.json", import.meta.url), JSON.stringify({ summary: { source: "batdongsan.com.vn", total: all.length }, listings: all }, null, 0));
+  if (!all.length) {
+    // Cloudflare chặn (thường gặp ở IP datacenter/CI) -> GIỮ file cũ, merge.mjs sẽ tự bỏ qua nếu file quá 2 ngày
+    console.error("DONE 0 — không lấy được tin (Cloudflare?). Giữ nguyên batdongsan.json cũ.");
+    return;
+  }
+  fs.writeFileSync(new URL("./batdongsan.json", import.meta.url), JSON.stringify({ summary: { source: "batdongsan.com.vn", crawled_at: new Date().toISOString().slice(0, 10), total: all.length }, listings: all }, null, 0));
   console.error("DONE", all.length);
 }
 // Chỉ chạy khi gọi trực tiếp (không chạy khi bị import) - fix audit #12

@@ -18,23 +18,35 @@ export default async function SearchPage({
   const { deal, kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own } = sp;
   const supabase = await createClient();
 
-  let query = supabase.from("listings").select("*").eq("status", "published");
-  if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
-  if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
-  if (kind) query = query.eq("kind", kind);
-  if (province) query = query.ilike("province", `%${province}%`);
-  // prefix-match rồi lọc chính xác phía dưới (tránh "Quận 1" khớp nhầm "Quận 10/11/12")
-  if (district) query = query.ilike("district", `${district}%`);
-  if (ward) query = query.ilike("ward", `%${ward}%`);
-  if (priceMin && !Number.isNaN(Number(priceMin))) query = query.gte("price_vnd", Number(priceMin));
-  if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
-  if (areaMin && !Number.isNaN(Number(areaMin))) query = query.gte("area_m2", Number(areaMin));
-  if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
-  if (q) {
-    // Học flow batdongsan: từ khoá khớp cả tiêu đề + địa chỉ/đường + phường + quận
-    const safe = q.replace(/[,()%]/g, " ").trim();
-    if (safe) query = query.or(`title.ilike.%${safe}%,address.ilike.%${safe}%,ward.ilike.%${safe}%,district.ilike.%${safe}%`);
-  }
+  // Bộ lọc dùng chung cho danh sách + đếm "tin mới hôm nay" (cùng điều kiện)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applyFilters = <T extends { eq: any; ilike: any; gte: any; lte: any; or: any }>(query: T): T => {
+    if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
+    if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
+    if (kind) query = query.eq("kind", kind);
+    if (province) query = query.ilike("province", `%${province}%`);
+    // prefix-match rồi lọc chính xác phía dưới (tránh "Quận 1" khớp nhầm "Quận 10/11/12")
+    if (district) query = query.ilike("district", `${district}%`);
+    if (ward) query = query.ilike("ward", `%${ward}%`);
+    if (priceMin && !Number.isNaN(Number(priceMin))) query = query.gte("price_vnd", Number(priceMin));
+    if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
+    if (areaMin && !Number.isNaN(Number(areaMin))) query = query.gte("area_m2", Number(areaMin));
+    if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
+    if (q) {
+      // Học flow batdongsan: từ khoá khớp cả tiêu đề + địa chỉ/đường + phường + quận
+      const safe = q.replace(/[,()%]/g, " ").trim();
+      if (safe) query = query.or(`title.ilike.%${safe}%,address.ilike.%${safe}%,ward.ilike.%${safe}%,district.ilike.%${safe}%`);
+    }
+    return query;
+  };
+
+  let query = applyFilters(supabase.from("listings").select("*").eq("status", "published"));
+
+  // "N tin mới hôm nay" (kiểu Homigo): tin Radar thấy lần đầu từ 0h hôm nay theo giờ VN, cùng bộ lọc
+  const startOfDayVN = (() => { const d = new Date(Date.now() + 7 * 3600 * 1000); d.setUTCHours(0, 0, 0, 0); return new Date(d.getTime() - 7 * 3600 * 1000).toISOString(); })();
+  const newTodayQuery = applyFilters(
+    supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"),
+  ).gte("first_seen_at", startOfDayVN);
 
   if (sort === "price_asc") query = query.order("price_vnd", { ascending: true, nullsFirst: false });
   else if (sort === "price_desc") query = query.order("price_vnd", { ascending: false, nullsFirst: false });
@@ -45,9 +57,10 @@ export default async function SearchPage({
   else if (sort === "score") query = query.order("ai_score", { ascending: false, nullsFirst: false });
   else query = query.order("first_seen_at", { ascending: false, nullsFirst: false }); // mặc định: crawl mới nhất trước
 
-  const [{ data }, { data: geoRows }] = await Promise.all([
+  const [{ data }, { data: geoRows }, { count: newToday }] = await Promise.all([
     query.limit(200),
     supabase.from("listings").select("province,district,ward").eq("status", "published").limit(2000),
+    newTodayQuery,
   ]);
   let listings = (data ?? []) as Listing[];
   if (district) listings = listings.filter((x) => canonDistrict(x.district || "").toLowerCase() === district.toLowerCase());
@@ -74,5 +87,5 @@ export default async function SearchPage({
   for (const p of Object.keys(geo)) for (const d of Object.keys(geo[p])) geo[p][d].sort();
 
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL
-  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={sp} />;
+  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={sp} newToday={newToday ?? 0} />;
 }

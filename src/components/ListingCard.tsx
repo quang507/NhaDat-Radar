@@ -7,8 +7,13 @@ import SafeImg from "./SafeImg";
 export default function ListingCard({ x }: { x: Listing }) {
   const t = thumb(x.kind);
   const isAgent = x.source === "agent";
-  const ppm2 = x.price_per_m2 && x.deal === "ban" && x.price_per_m2 >= 1e6
-    ? (x.price_per_m2 / 1e6).toFixed(0) + "tr/m²" : null;
+  // giá/m² cho cả bán lẫn thuê (batdongsan hiện trên mọi card)
+  const ppm2 = x.price_per_m2 && x.price_per_m2 > 0
+    ? (x.price_per_m2 >= 1e6 ? (x.price_per_m2 / 1e6).toFixed(x.price_per_m2 >= 1e7 ? 0 : 1) + "tr/m²" : Math.round(x.price_per_m2 / 1e3) + "k/m²")
+    : null;
+  const ageMin = x.first_seen_at ? Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000) : null;
+  const isNew = ageMin != null && ageMin < 24 * 60;      // Radar thấy trong 24h
+  const multi = (x.source_count ?? 1) > 1;
 
   return (
     <Link
@@ -27,9 +32,19 @@ export default function ListingCard({ x }: { x: Listing }) {
             <span className="text-[0.65rem] font-bold uppercase tracking-widest opacity-80">{PROP[x.kind]}</span>
           </span>
         )}
-        <span className="absolute top-2 left-2 text-[0.7rem] font-bold px-2 py-0.5 rounded-md bg-black/55 text-white backdrop-blur-sm">
-          {x.deal === "ban" ? "Để bán" : "Cho thuê"}
+        <span className="absolute top-2 left-2 flex items-center gap-1">
+          <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded-md bg-black/55 text-white backdrop-blur-sm">
+            {x.deal === "ban" ? "Để bán" : "Cho thuê"}
+          </span>
+          {isNew && (
+            <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500 text-white" title="Radar thấy tin trong 24 giờ qua">Mới</span>
+          )}
         </span>
+        {x.images && x.images.length > 1 && (
+          <span className="absolute bottom-2 right-2 text-[0.65rem] font-bold px-1.5 py-0.5 rounded-md bg-black/55 text-white">
+            {x.images.length} ảnh
+          </span>
+        )}
         {x.price_flag && (
           <span className="absolute bottom-2 left-2 text-[0.65rem] font-bold px-2 py-0.5 rounded-md bg-red-500/90 text-white">
             ⚠ giá lệch
@@ -60,15 +75,20 @@ export default function ListingCard({ x }: { x: Listing }) {
           <span className={`px-1.5 py-0.5 rounded ${isAgent ? "text-emerald-600 bg-emerald-500/10" : "text-[var(--ink-soft)] bg-[var(--surface-2)]"}`}>
             {isAgent ? "Tự đăng" : x.source_site || "crawl"}
           </span>
+          {multi && (
+            <span className="px-1.5 py-0.5 rounded text-emerald-700 bg-emerald-500/10" title={`Cùng tin xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
+              {x.source_count} nguồn
+            </span>
+          )}
           {x.ai_score ? (
-            <span className="px-1.5 py-0.5 rounded text-[var(--ink-soft)] bg-[var(--surface-2)]" title="Điểm chất lượng tin (0-100)">{x.ai_score}/100</span>
+            <span className="px-1.5 py-0.5 rounded text-[var(--ink-soft)] bg-[var(--surface-2)]" title="Điểm đầy đủ thông tin tin đăng (0-100)">{x.ai_score}/100</span>
           ) : null}
-          {x.first_seen_at && (
+          {ageMin != null && (
             <span
               className="ml-auto font-medium text-emerald-600"
-              title={`Radar thu thập: ${new Date(x.first_seen_at).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`}
+              title={`Radar thấy tin: ${new Date(x.first_seen_at!).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`}
             >
-              {fresh(Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000))}
+              {fresh(ageMin)}
             </span>
           )}
         </div>

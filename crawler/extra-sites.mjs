@@ -152,7 +152,7 @@ async function main() {
   // chỉ giữ tin có tiêu đề tử tế
   const ok = all.filter((x) => (x.title || "").length >= 15);
   fs.writeFileSync(new URL("./extra.json", import.meta.url),
-    JSON.stringify({ summary: { source: "extra-sites", total: ok.length }, listings: ok }, null, 0));
+    JSON.stringify({ summary: { source: "extra-sites", crawled_at: new Date().toISOString().slice(0, 10), total: ok.length }, listings: ok }, null, 0));
   console.error("DONE extra-sites:", ok.length);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

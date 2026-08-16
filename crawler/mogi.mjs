@@ -6,7 +6,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const dec = (s) => (s || "").replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
   .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&amp;/g, "&").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
-const SEEDS = ["mua-nha-ho-chi-minh", "thue-nha-ho-chi-minh", "mua-can-ho-chung-cu-ho-chi-minh", "mua-nha-binh-duong", "mua-nha-dong-nai", "mua-nha-ha-noi", "mua-nha-da-nang"];
+// URL đúng của mogi là {tinh}/{mua|thue}-{loai} (+ ?cp=N phân trang). Dạng cũ "mua-nha-binh-duong"
+// bị 301 về /mua-nha-dat chung -> 7 seed ra cùng 15 tin -> chỉ còn 30 tin (kiểm chứng 16/8).
+const SEEDS = [
+  // miền Nam trước
+  ["ho-chi-minh/mua-nha", 3], ["ho-chi-minh/thue-nha", 2], ["ho-chi-minh/mua-can-ho-chung-cu", 2],
+  ["ho-chi-minh/thue-can-ho-chung-cu", 2], ["ho-chi-minh/mua-dat", 1],
+  ["binh-duong/mua-nha", 1], ["dong-nai/mua-nha", 1], ["can-tho/mua-nha", 1],
+  ["ha-noi/mua-nha", 2], ["ha-noi/thue-nha", 1], ["da-nang/mua-nha", 1],
+];
+const seedUrls = SEEDS.flatMap(([s, pages]) => Array.from({ length: pages }, (_, i) => (i ? `${s}?cp=${i + 1}` : s)));
 
 function canonProvince(s) {
   const t = (s || "").toLowerCase();
@@ -70,17 +79,17 @@ function hash(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCod
 
 async function run() {
   let all = [];
-  for (const s of SEEDS) {
+  for (const s of seedUrls) {
     try {
-      const res = await fetch(`https://mogi.vn/${s}`, { headers: { "User-Agent": UA, "Accept-Language": "vi" } });
-      if (res.ok) { const r = parseMogi(await res.text()); all = all.concat(r); console.error(s, "->", r.length); }
-      else console.error(s, "HTTP", res.status);
+      const res = await fetch(`https://mogi.vn/${s}`, { headers: { "User-Agent": UA, "Accept-Language": "vi" }, redirect: "manual" });
+      if (res.status === 200) { const r = parseMogi(await res.text()); all = all.concat(r); console.error(s, "->", r.length); }
+      else console.error(s, "HTTP", res.status, res.headers.get("location") || "");
     } catch (e) { console.error(s, "lỗi:", e.message); }
     await sleep(1500);
   }
   const seen = new Set();
   all = all.filter((x) => (seen.has(x.id) ? false : seen.add(x.id)));
-  fs.writeFileSync(new URL("./mogi.json", import.meta.url), JSON.stringify({ summary: { total: all.length, with_img: all.filter((x) => x.images.length).length }, listings: all }, null, 0));
+  fs.writeFileSync(new URL("./mogi.json", import.meta.url), JSON.stringify({ summary: { crawled_at: new Date().toISOString().slice(0, 10), total: all.length, with_img: all.filter((x) => x.images.length).length }, listings: all }, null, 0));
   console.error("TỔNG mogi:", all.length, "(ảnh:", all.filter((x) => x.images.length).length, ")");
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) run();
