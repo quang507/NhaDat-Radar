@@ -34,7 +34,13 @@ export default async function PriceTrend({ province, district, kind, deal, compa
   }
   const W = 320, H = compact ? 60 : 90, PAD = 4;
   const vs = series.map((s) => s.v);
-  const min = Math.min(...vs), max = Math.max(...vs), span = Math.max(1, max - min);
+  // UX audit 16/8: min-max scaling biến -4,6% thành "vách đá" -> co trục Y quanh trung bình với biên tối thiểu ±15%
+  // để độ dốc phản ánh biến động thật; và chỉ nói % khi có >=7 ngày (dưới đó là nhiễu do mẫu tin thay đổi).
+  const mid = (Math.min(...vs) + Math.max(...vs)) / 2;
+  const half = Math.max((Math.max(...vs) - Math.min(...vs)) / 2, mid * 0.15);
+  const min = mid - half, span = half * 2;
+  const MIN_DAYS_FOR_PCT = 7;
+  const enoughDays = series.length >= MIN_DAYS_FOR_PCT;
   const path = series.map((s, i) => {
     const px = PAD + (i / (series.length - 1)) * (W - PAD * 2);
     const py = PAD + (1 - (s.v - min) / span) * (H - PAD * 2);
@@ -48,12 +54,16 @@ export default async function PriceTrend({ province, district, kind, deal, compa
   return (
     <div className="rounded-xl border border-[var(--line)] p-3">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-        <span className={`font-extrabold ${changePct >= 0 ? "text-emerald-600" : "text-red-600"}`}>{changePct >= 0 ? "↑" : "↓"} {Math.abs(changePct)}%</span>
+        {enoughDays ? (
+          <span className={`font-extrabold ${changePct >= 0 ? "text-emerald-600" : "text-red-600"}`}>{changePct >= 0 ? "↑" : "↓"} {Math.abs(changePct)}%</span>
+        ) : (
+          <span className="font-bold text-[var(--ink-soft)]">Đang tích luỹ ({series.length}/{MIN_DAYS_FOR_PCT} ngày)</span>
+        )}
         <span className="text-xs text-[var(--ink-soft)]">
-          giá/m² trung vị {deal === "ban" ? "bán" : "thuê"} tại {scope}: {fmtPpm2(first)} → <b>{fmtPpm2(last)}</b> ({from}–{to}, {series.length} ngày, ~{series[series.length - 1].n} tin/ngày)
+          giá/m² trung vị {deal === "ban" ? "bán" : "thuê"} <b>tại {scope}</b>{scope !== (d || province) ? " (chưa đủ dữ liệu riêng cho " + (d || province) + ")" : ""}: {fmtPpm2(first)} → <b>{fmtPpm2(last)}</b> ({from}–{to}, ~{series[series.length - 1].n} tin/ngày)
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto mt-1" role="img" aria-label="Biểu đồ giá/m² trung vị theo ngày">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-h-28 mt-1" preserveAspectRatio="none" role="img" aria-label="Biểu đồ giá/m² trung vị theo ngày">
         <path d={`${path} L${W - PAD},${H - PAD} L${PAD},${H - PAD} Z`} fill="var(--brand)" opacity={0.1} />
         <path d={path} fill="none" stroke="var(--brand)" strokeWidth={2} strokeLinejoin="round" />
         <circle cx={W - PAD} cy={PAD + (1 - (last - min) / span) * (H - PAD * 2)} r={3} fill="var(--brand)" />

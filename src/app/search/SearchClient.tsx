@@ -158,12 +158,13 @@ export default function SearchClient({
             onChange={set("q")}
             placeholder="Nhập đường, phường, dự án, từ khoá… VD: Bán nhà Bình Thạnh dưới 5 tỷ"
           />
-          <button className="bg-brand text-white font-semibold text-sm px-6 hover:bg-brand-ink transition" type="submit">
-            Tìm kiếm
+          <button className="bg-brand text-white font-semibold text-sm px-4 sm:px-6 hover:bg-brand-ink transition whitespace-nowrap" type="submit" aria-label="Tìm kiếm">
+            <span className="sm:hidden">🔍</span><span className="hidden sm:inline">Tìm kiếm</span>
           </button>
         </form>
+        {/* Bản đồ chỉ render ở lg+ (MapResults hidden lg:block) -> ẩn nút ở màn nhỏ, tránh nút bấm không có tác dụng (UX audit) */}
         <button
-          className={`btn text-sm font-semibold whitespace-nowrap ${showMap ? "!bg-[var(--accent)] !border-[var(--accent)] !text-white" : "!text-[var(--accent)] !border-[var(--accent)]"}`}
+          className={`hidden lg:inline-flex btn text-sm font-semibold whitespace-nowrap ${showMap ? "!bg-[var(--accent)] !border-[var(--accent)] !text-white" : "!text-[var(--accent)] !border-[var(--accent)]"}`}
           onClick={() => setShowMap((v) => !v)}
         >
           {showMap ? "Đóng bản đồ" : "Xem bản đồ"}

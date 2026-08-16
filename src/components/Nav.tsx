@@ -15,11 +15,12 @@ export default async function Nav() {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]">
       <div className="relative max-w-6xl mx-auto px-5 py-3 flex items-center gap-3">
-        <MobileMenu />
-        <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap">
+        <MobileMenu loggedIn={!!user} />
+        <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap min-w-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="NhaDat Radar" className="w-8 h-8 rounded-lg object-contain" />
-          NhaDat<span className="text-brand">Radar</span>
+          <img src="/logo.svg" alt="NhaDat Radar" className="w-8 h-8 rounded-lg object-contain shrink-0" />
+          {/* mobile <400px: chữ hiệu bị cắt "NhaDat Rac…" (UX audit 16/8) -> ẩn chữ, giữ logo */}
+          <span className="hidden min-[420px]:inline">NhaDat&nbsp;<span className="text-brand">Radar</span></span>
         </Link>
         <nav className="hidden md:flex gap-0.5 ml-5 pl-5 border-l border-[var(--line)] text-sm font-semibold text-[var(--ink-soft)]">
           <Link href="/nha-dat-ban" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Nhà đất bán</Link>
@@ -42,17 +43,19 @@ export default async function Nav() {
               >
                 {initial}
               </Link>
-              <Link href="/dashboard/new" className="btn btn-primary">
+              <Link href="/dashboard/new" className="btn btn-primary whitespace-nowrap">
                 + Đăng tin
               </Link>
-              <form action={signOut}>
+              {/* mobile: Đăng xuất nằm trong menu ☰ / trang tài khoản, tránh tràn thanh nav */}
+              <form action={signOut} className="hidden md:block">
                 <button className="btn" type="submit">Đăng xuất</button>
               </form>
             </>
           ) : (
             <>
-              <Link href="/auth" className="btn">Đăng nhập</Link>
-              <Link href="/auth?mode=register" className="btn btn-primary">Đăng ký</Link>
+              <Link href="/auth" className="btn whitespace-nowrap">Đăng nhập</Link>
+              {/* mobile: 1 nút là đủ (form /auth có tab Đăng ký) — 2 nút làm tràn nav ở 390px */}
+              <Link href="/auth?mode=register" className="btn btn-primary whitespace-nowrap hidden sm:inline-flex">Đăng ký</Link>
             </>
           )}
         </div>

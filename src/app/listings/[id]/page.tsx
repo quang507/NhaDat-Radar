@@ -10,6 +10,7 @@ import { posterReasonText, type Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
 import ReportButton from "./ReportButton";
 import PriceTrend from "@/components/PriceTrend";
+import { areaPath } from "@/lib/slug";
 import ListingMap from "@/components/ListingMap";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
@@ -75,7 +76,11 @@ export default async function ListingDetail({
   const posterOthers = ((posterRows ?? []) as Listing[]);
 
   const ppm2s = (compRows ?? []).map((r) => Number(r.price_per_m2)).filter((v) => v > 0);
-  const med = median(ppm2s), p25 = percentile(ppm2s, 25), p75 = percentile(ppm2s, 75);
+  // UX audit 16/8: từng hiện "Cao hơn mặt bằng ~35%" dựa trên 1 tin -> vô nghĩa & gây hiểu lầm.
+  // Chỉ so sánh khi có >=5 tin cùng loại trong quận; ít hơn thì nói thẳng "chưa đủ dữ liệu".
+  const MIN_COMPS = 5;
+  const enoughComps = ppm2s.length >= MIN_COMPS;
+  const med = enoughComps ? median(ppm2s) : null, p25 = enoughComps ? percentile(ppm2s, 25) : null, p75 = enoughComps ? percentile(ppm2s, 75) : null;
   const myPpm2 = x.price_per_m2 ? Number(x.price_per_m2) : null;
   const diffPct = med && myPpm2 ? Math.round(((myPpm2 - med) / med) * 100) : null;
   const fmtPpm2 = (v: number) => (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k");
@@ -86,6 +91,7 @@ export default async function ListingDetail({
   const seen = agoMin(x.first_seen_at);
   const lastSeen = agoMin(x.last_seen_at ?? null);
   const isGone = x.status === "gone";
+  const isCrawl = x.source === "crawl";
   const reasons = (x.poster_reasons || []).map(posterReasonText);
   const fmtDT = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—";
@@ -106,13 +112,40 @@ export default async function ListingDetail({
         <span className="ml-auto"><FavButton id={x.id} /></span>
       </div>
 
-      {/* Gallery + lightbox */}
-      <div className="my-4">
+      {/* Breadcrumb + tiêu đề + giá TRÊN gallery: khách từ Google phải thấy "tin gì, giá bao nhiêu" ngay màn hình đầu
+          (UX audit 16/8: trước đây màn hình đầu chỉ có ảnh, giá/tiêu đề nằm dưới fold) */}
+      <nav className="text-xs text-[var(--ink-soft)] mt-2 flex flex-wrap gap-1">
+        <Link href="/" className="hover:text-brand">Trang chủ</Link><span>/</span>
+        <Link href={x.deal === "ban" ? "/nha-dat-ban" : "/nha-dat-cho-thue"} className="hover:text-brand">{x.deal === "ban" ? "Mua bán" : "Cho thuê"}</Link>
+        {x.province ? <><span>/</span><Link href={areaPath(x.deal, x.province)} className="hover:text-brand">{x.province}</Link></> : null}
+        {x.province && x.district ? <><span>/</span><Link href={areaPath(x.deal, x.province, x.district)} className="hover:text-brand">{x.district}</Link></> : null}
+      </nav>
+      {isGone && (
+        <div className="rounded-lg p-3 my-3 border border-amber-500/40 bg-amber-500/10 text-sm">
+          <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {x.source_site || "nguồn"} từ{" "}
+          {lastSeen != null ? fresh(lastSeen) : "một thời gian"}. Tin đã ẩn khỏi kết quả tìm kiếm; giữ lại để tham khảo giá.
+        </div>
+      )}
+      <div className="flex flex-wrap justify-between gap-4 items-start mt-2">
+        <div className="min-w-0">
+          <h1 className="prata text-xl md:text-3xl leading-tight">{x.title}</h1>
+          <div className="text-[var(--ink-soft)] text-sm mt-1">
+            📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="prata text-2xl text-brand">{fmtPrice(x.price_vnd, x.deal)}</div>
+          {myPpm2 ? <div className="text-xs text-[var(--ink-faint)] font-semibold">{fmtPpm2(myPpm2)}/m²</div> : null}
+        </div>
+      </div>
+
+      {/* Gallery + lightbox — cap chiều cao để không đẩy hết nội dung xuống dưới fold */}
+      <div className="my-4 [&_img]:max-h-[420px]">
         {images.length ? (
           <Gallery images={images} title={x.title} />
         ) : (
           <div
-            className="rounded-lg overflow-hidden aspect-[16/9] max-h-[460px] grid place-items-center text-white text-5xl"
+            className="rounded-lg overflow-hidden aspect-[16/9] max-h-[420px] grid place-items-center text-white text-5xl"
             style={{ background: t.bg }}
           >
             <span>{t.icon}</span>
@@ -120,28 +153,10 @@ export default async function ListingDetail({
         )}
       </div>
 
-      {isGone && (
-        <div className="rounded-lg p-3 mb-3 border border-amber-500/40 bg-amber-500/10 text-sm">
-          <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {x.source_site || "nguồn"} từ{" "}
-          {lastSeen != null ? fresh(lastSeen) : "một thời gian"}. Tin đã ẩn khỏi kết quả tìm kiếm; giữ lại để tham khảo giá.
-        </div>
-      )}
-      <div className="flex flex-wrap justify-between gap-4 items-start">
-        <div>
-          <h1 className="prata text-2xl md:text-3xl">{x.title}</h1>
-          <div className="text-[var(--ink-soft)] text-sm mt-1">
-            📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="prata text-2xl text-brand">{fmtPrice(x.price_vnd, x.deal)}</div>
-          {myPpm2 ? <div className="text-xs text-[var(--ink-faint)] font-semibold">{fmtPpm2(myPpm2)}/m²</div> : null}
-        </div>
-      </div>
-
       <div className="flex flex-wrap gap-x-6 gap-y-2 py-4 my-3 border-y border-[var(--line)] text-sm">
-        <span><b>{x.bedrooms ?? 0}</b> phòng ngủ</span>
-        <span><b>{x.bathrooms ?? 0}</b> phòng tắm</span>
+        {/* chỉ hiện khi có số — "0 phòng ngủ" cho đất nền là vô nghĩa (UX audit) */}
+        {x.bedrooms ? <span><b>{x.bedrooms}</b> phòng ngủ</span> : null}
+        {x.bathrooms ? <span><b>{x.bathrooms}</b> phòng tắm</span> : null}
         <span><b>{x.area_m2 ?? "-"}</b> m²</span>
         <span>{PROP[x.kind]}</span>
         <span>{x.deal === "ban" ? "Bán" : "Cho thuê"}</span>
@@ -179,6 +194,11 @@ export default async function ListingDetail({
               </p>
             </div>
           )}
+          {!enoughComps && myPpm2 && x.district ? (
+            <div className="card rounded-lg p-4 text-sm text-[var(--ink-soft)]">
+              <b className="text-[var(--ink)]">So sánh giá:</b> chưa đủ dữ liệu — mới có {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} khác tại {x.district} (cần ≥{MIN_COMPS}). Radar không đưa ra kết luận khi mẫu quá nhỏ.
+            </div>
+          ) : null}
           {/* Xu hướng giá khu vực từ price_history (snapshot mỗi sáng) — trước đây bảng có mà chi tiết tin không dùng */}
           {x.province ? <PriceTrend province={x.province} district={x.district} kind={x.kind} deal={x.deal} /> : null}
 
@@ -256,14 +276,14 @@ export default async function ListingDetail({
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="card rounded-lg p-5">
-            <h3 className="font-bold mb-3">Liên hệ người bán</h3>
+          <div className="card rounded-lg p-5" id="lien-he">
+            <h3 className="font-bold mb-3">{isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#16233a] text-xs">
                 {x.source === "agent" ? "BÁN" : "TIN"}
               </div>
               <div>
-                <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : "Người đăng tin")}</div>
+                <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
                   {x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối — số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 — xem bài gốc"}
                 </div>
@@ -273,6 +293,13 @@ export default async function ListingDetail({
             {!x.contact_phone && x.phone_masked && (
               <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
             )}
+            {/* Tin cào: hành động CHÍNH là sang bài gốc để liên hệ người đăng (UX audit: nút "Gửi tin nhắn" to nhất
+                khiến khách tưởng nhắn tới người bán, trong khi lead vào Radar). Form Radar là hành động phụ, ghi rõ. */}
+            {isCrawl && x.source_url && x.source_url !== "#" ? (
+              <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary w-full text-center block mb-3">
+                Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} →
+              </a>
+            ) : null}
             {x.agent_id && (
               <Link
                 href={`/tin-nhan?listing=${x.id}&agent=${x.agent_id}`}
@@ -281,13 +308,21 @@ export default async function ListingDetail({
                 Nhắn tin với người bán
               </Link>
             )}
-            <ContactForm listingId={x.id} listingTitle={x.title} />
+            {isCrawl ? (
+              <details className="mt-1">
+                <summary className="text-sm font-semibold cursor-pointer text-brand">Nhờ Radar hỗ trợ tìm/định giá tin tương tự</summary>
+                <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT — Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp trong khu vực.</p>
+                <ContactForm listingId={x.id} listingTitle={x.title} viaRadar />
+              </details>
+            ) : (
+              <ContactForm listingId={x.id} listingTitle={x.title} />
+            )}
             {x.agent_id && (
               <div className="mt-4 pt-4 border-t border-[var(--line)]">
                 <AppointmentForm listingId={x.id} agentId={x.agent_id} />
               </div>
             )}
-            {x.source_url && x.source_url !== "#" ? (
+            {!isCrawl && x.source_url && x.source_url !== "#" ? (
               <a
                 href={x.source_url}
                 target="_blank"
@@ -331,6 +366,19 @@ export default async function ListingDetail({
         </div>
       </div>
 
+      {/* Mobile: thanh CTA dính đáy — khối liên hệ nằm cuối trang, khách phải cuộn 4-5 màn (UX audit).
+          Bù padding-bottom cho body qua div dưới. */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 py-2.5 flex items-center gap-3">
+        <div className="min-w-0">
+          <div className="text-brand font-extrabold leading-tight">{fmtPrice(x.price_vnd, x.deal)}</div>
+          <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
+        </div>
+        {isCrawl && x.source_url && x.source_url !== "#" ? (
+          <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap !py-2">Xem bài gốc →</a>
+        ) : (
+          <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap !py-2">Liên hệ</a>
+        )}
+      </div>
       {/* Tin khác của cùng người đăng (kiểu hồ sơ môi giới batdongsan "đang có N tin") */}
       {posterOthers.length > 0 && (
         <section className="mt-12">
@@ -353,6 +401,8 @@ export default async function ListingDetail({
           </div>
         </section>
       )}
+      {/* chừa chỗ cho thanh CTA dính đáy trên mobile */}
+      <div className="lg:hidden h-16" aria-hidden />
     </div>
   );
 }

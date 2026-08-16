@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { signOut } from "@/app/auth/actions";
 
 const LINKS: [string, string][] = [
   ["/search?deal=ban", "🏷 Mua Bán"],
@@ -16,7 +17,7 @@ const LINKS: [string, string][] = [
 ];
 
 // Menu ☰ cho mobile (nav ngang bị ẩn dưới md)
-export default function MobileMenu() {
+export default function MobileMenu({ loggedIn = false }: { loggedIn?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="md:hidden">
@@ -37,6 +38,15 @@ export default function MobileMenu() {
                 {label}
               </Link>
             ))}
+            {/* Tài khoản: nav mobile đã ẩn nút Đăng ký/Đăng xuất để không tràn -> đưa vào đây */}
+            {loggedIn ? (
+              <>
+                <Link href="/account" onClick={() => setOpen(false)} className="py-2.5 border-b border-[var(--line)] text-sm font-semibold hover:text-brand">👤 Tài khoản</Link>
+                <form action={signOut}><button type="submit" className="py-2.5 text-sm font-semibold text-[var(--ink-soft)] hover:text-brand">Đăng xuất</button></form>
+              </>
+            ) : (
+              <Link href="/auth?mode=register" onClick={() => setOpen(false)} className="py-2.5 text-sm font-semibold text-brand">Đăng ký tài khoản</Link>
+            )}
           </nav>
         </>
       )}

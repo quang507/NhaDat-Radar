@@ -4,6 +4,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
+import Clarity from "@/components/Clarity";
 
 // Body: Inter · Display: Lora (self-host qua next/font, không gọi link ngoài)
 const inter = Inter({ subsets: ["latin", "vietnamese"], variable: "--font-inter", display: "swap" });
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="max-w-6xl mx-auto px-5 py-6">{children}</main>
         <Footer />
         <ChatWidget />
+        <Clarity />
       </body>
     </html>
   );

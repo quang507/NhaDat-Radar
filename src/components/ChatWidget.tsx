@@ -51,14 +51,14 @@ export default function ChatWidget() {
       <button
         aria-label="Mở trợ lý AI"
         onClick={() => setOpen((v) => !v)}
-        className={`fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full shadow-lg text-2xl grid place-items-center
+        className={`fixed bottom-20 lg:bottom-5 right-4 lg:right-5 z-50 w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg text-2xl grid place-items-center
                    bg-gradient-to-br from-brand to-brand-2 text-white hover:scale-110 active:scale-95 transition ${open ? "" : "float-cta"}`}
       >
         {open ? "✕" : "💬"}
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-5 z-50 w-[min(380px,calc(100vw-2.5rem))] h-[520px] max-h-[70vh]
+        <div className="fixed bottom-36 lg:bottom-24 right-4 lg:right-5 z-50 w-[min(380px,calc(100vw-2rem))] h-[520px] max-h-[65vh]
                         card rounded-lg shadow-2xl flex flex-col overflow-hidden">
           <div className="px-4 py-3 bg-gradient-to-r from-brand to-brand-2 text-white">
             <div className="font-bold">Trợ lý NhaDat Radar</div>

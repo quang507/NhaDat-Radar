@@ -58,6 +58,16 @@ export default async function Home({
   const { data: projData } = await supabase.from("projects").select("*").eq("status", "published").limit(6);
   const projects = (projData ?? []) as Project[];
 
+  // Số liệu "tin đang rao / quận / nguồn" phải THẬT trên toàn DB (UX audit 16/8: trước đây đếm trên 150 tin
+  // đầu danh sách -> hiện "150+ tin · 1 nguồn" trong khi DB có 1.800 tin / 6 nguồn).
+  const [{ count: totalPublished }, { data: geoRows }] = await Promise.all([
+    supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"),
+    supabase.from("listings").select("district,source_site,source").eq("status", "published").limit(5000),
+  ]);
+  const canonD = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  const districtCount = new Set((geoRows ?? []).map((r) => canonD(r.district || "")).filter(Boolean)).size;
+  const sourceCount = new Set((geoRows ?? []).map((r) => (r.source === "crawl" ? r.source_site : r.source)).filter(Boolean)).size;
+
   // Ưu tiên hiển thị BĐS miền Nam (giữ thứ tự mới-nhất trong từng nhóm)
   const SOUTH = /hồ chí minh|bình dương|đồng nai|cần thơ|vũng tàu|bà rịa|long an|tây ninh|tiền giang|an giang|kiên giang|cà mau|bến tre|vĩnh long|sóc trăng|đồng tháp|hậu giang|bạc liêu|trà vinh/i;
   const isSouth = (x: Listing) => SOUTH.test(x.province || "");
@@ -146,10 +156,10 @@ export default async function Home({
             </div>
           </form>
           <div className="flex gap-6 mt-5 hero-in-2">
-            <Stat n={listings.length} label="tin đang rao" />
+            <Stat n={totalPublished ?? listings.length} label="tin đang rao" />
             <Stat n={projects.length} label="dự án" />
-            <Stat n={new Set(listings.map((x) => x.district).filter(Boolean)).size} label="quận/huyện" />
-            <Stat n={new Set(listings.map((x) => x.source_site).filter(Boolean)).size} label="nguồn dữ liệu" />
+            <Stat n={districtCount} label="quận/huyện" />
+            <Stat n={sourceCount} label="nguồn dữ liệu" />
           </div>
         </div>
 
@@ -323,7 +333,7 @@ function Stat({ n, label }: { n: number; label: string }) {
   // "+" chỉ hợp lý với số lớn xấp xỉ; số nhỏ/đếm chính xác hiện đúng giá trị.
   return (
     <div>
-      <div className="text-xl font-extrabold text-brand">{n.toLocaleString("vi-VN")}{n >= 100 ? "+" : ""}</div>
+      <div className="text-xl font-extrabold text-brand">{n.toLocaleString("vi-VN")}</div>
       <div className="text-xs text-[var(--ink-soft)]">{label}</div>
     </div>
   );

@@ -24,9 +24,11 @@ export default function ListingRow({ x }: { x: Listing }) {
   return (
     <Link href={`/listings/${x.id}`} className="card rounded-xl overflow-hidden flex flex-col sm:flex-row hover:border-[var(--line-strong)] hover:shadow-md transition-all group">
       {/* Media: 1 ảnh lớn + tối đa 3 ảnh nhỏ */}
+      {/* UX audit 16/8: dải ảnh cao ~400px/dòng (desktop) và chiếm cả màn hình (mobile) -> 1,5 tin/màn.
+          Cap chiều cao: mobile 176px, desktop 208px — ~3 tin/màn như batdongsan. */}
       <div className="sm:w-[300px] shrink-0 relative">
         {imgs.length ? (
-          <div className={`grid gap-0.5 h-44 sm:h-full ${imgs.length > 1 ? "grid-rows-[2fr_1fr]" : ""}`}>
+          <div className={`grid gap-0.5 h-44 sm:h-52 ${imgs.length > 1 ? "grid-rows-[2fr_1fr]" : ""}`}>
             <SafeImg src={imgs[0]} alt={x.title} className="w-full h-full object-cover" />
             {imgs.length > 1 && (
               <div className={`grid gap-0.5 ${imgs.length >= 4 ? "grid-cols-3" : imgs.length === 3 ? "grid-cols-2" : "grid-cols-1"}`}>
@@ -37,7 +39,7 @@ export default function ListingRow({ x }: { x: Listing }) {
             )}
           </div>
         ) : (
-          <div className="h-44 sm:h-full grid place-items-center text-white text-3xl" style={{ background: t.bg }}>{t.icon}</div>
+          <div className="h-44 sm:h-52 grid place-items-center text-white text-3xl" style={{ background: t.bg }}>{t.icon}</div>
         )}
         <span className="absolute top-2 left-2 flex items-center gap-1">
           <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded bg-black/55 text-white">
