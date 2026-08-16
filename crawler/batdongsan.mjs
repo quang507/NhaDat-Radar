@@ -89,11 +89,20 @@ export function parseBatdongsan(html, cityName) {
 }
 
 // --- Fetch: Playwright (chống Cloudflare) hoặc plain fetch (quy mô nhỏ) ---
+// Audit 16/8: bản cũ launch chromium MỚI cho từng URL (18 lần) và không close khi goto ném -> rò tiến trình + chậm.
+// Giờ 1 browser dùng chung cho cả run (getBrowser), mỗi URL 1 context; đóng ở finally của main().
+let _browser = null;
+async function getBrowser() {
+  if (_browser) return _browser;
+  const { chromium } = await import("playwright"); // devDependency; browser: npx playwright install chromium
+  _browser = await chromium.launch({ headless: true, args: ["--disable-blink-features=AutomationControlled"] });
+  return _browser;
+}
 async function fetchSRP(url) {
+  let ctx = null;
   try {
-    const { chromium } = await import("playwright"); // devDependency; browser: npx playwright install chromium
-    const browser = await chromium.launch({ headless: true, args: ["--disable-blink-features=AutomationControlled"] });
-    const ctx = await browser.newContext({ userAgent: UA, locale: "vi-VN", viewport: { width: 1366, height: 800 } });
+    const browser = await getBrowser();
+    ctx = await browser.newContext({ userAgent: UA, locale: "vi-VN", viewport: { width: 1366, height: 800 } });
     const page = await ctx.newPage();
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
     // Cloudflare cần vài giây để qua challenge; chờ tới khi có card (tối đa ~20s)
@@ -103,12 +112,14 @@ async function fetchSRP(url) {
       html = await page.content();
       if (/data-product-id="\d+"/.test(html)) break;
     }
-    await browser.close();
     return html;
   } catch (e) {
+    console.error("  playwright lỗi:", e.message.slice(0, 120), "-> thử fetch thẳng");
     // fallback: plain fetch (đôi khi Cloudflare cho qua ở IP dân cư)
-    const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" } });
-    return res.ok ? await res.text() : "";
+    try { const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" } }); return res.ok ? await res.text() : ""; }
+    catch { return ""; }
+  } finally {
+    if (ctx) await ctx.close().catch(() => {});
   }
 }
 
@@ -143,5 +154,8 @@ async function main() {
   fs.writeFileSync(new URL("./batdongsan.json", import.meta.url), JSON.stringify({ summary: { source: "batdongsan.com.vn", crawled_at: new Date().toISOString().slice(0, 10), total: all.length }, listings: all }, null, 0));
   console.error("DONE", all.length);
 }
-// Chỉ chạy khi gọi trực tiếp (không chạy khi bị import) - fix audit #12
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+// Chỉ chạy khi gọi trực tiếp (không chạy khi bị import) - fix audit #12; luôn đóng browser dùng chung khi xong/lỗi
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => { console.error("batdongsan lỗi:", e.message); process.exitCode = 1; })
+    .finally(async () => { if (_browser) await _browser.close().catch(() => {}); });
+}

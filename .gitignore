@@ -11,3 +11,11 @@ crawler/apify-fb.json
 **/cookies.txt
 *.secret
 crawler/.last-run
+
+crawler/combined.json
+crawler/listings2.json
+crawler/listings3.json
+crawler/ai-extract-out.json
+crawler/chotot.json
+crawler/extra.json
+tsconfig.tsbuildinfo

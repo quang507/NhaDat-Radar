@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { stripAccents } from "@/lib/slug";
 
 // NN/g #5 (phòng lỗi): gợi ý địa danh khi gõ vào ô tìm — khớp không dấu, viết tắt "Q7"/"q.7"/"quan 7" -> "Quận 7 · Hồ Chí Minh",
 // "bt" không đoán (quá mơ hồ). Nguồn gợi ý = cây Tỉnh -> Quận -> Phường thật từ DB (đã truyền cho SearchClient).
 export type Place = { level: "province" | "district" | "ward"; province: string; district?: string; ward?: string; label: string; sub: string };
 
-const strip = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
-const norm = (s: string) => strip(s).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+const norm = (s: string) => stripAccents(s).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 // "q7" / "q.7" / "quan7" -> "quan 7"; "p3" -> "phuong 3"; "tp thu duc" -> "tp thu duc"
 const expand = (q: string) => norm(q).replace(/^q\.?\s*(\d{1,2})$/, "quan $1").replace(/^quan(\d{1,2})$/, "quan $1").replace(/^p\.?\s*(\d{1,2})$/, "phuong $1").replace(/^h\.?\s+/, "huyen ");
 
@@ -40,7 +40,7 @@ export default function PlaceSuggest({ value, places, onPick, className }: {
     }).filter((x) => x.s > 0).sort((a, b) => b.s - a.s || a.p.label.length - b.p.label.length);
     return scored.slice(0, 7).map((x) => x.p);
   }, [q, places]);
-  useEffect(() => { setOpen(hits.length > 0); setHi(0); }, [hits.length, value]);
+  useEffect(() => { setOpen(hits.length > 0); setHi(0); }, [hits, value]);
   useEffect(() => {
     const h = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);

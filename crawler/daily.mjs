@@ -13,6 +13,9 @@ function step(cmd) {
 // 1) Crawl các nguồn headless (Chợ Tốt API + nhadat HTTP + Mogi HTML)
 //    `node daily.mjs --seed-only`: bỏ qua cào, chỉ merge + seed từ file đang có (test nhanh trên máy)
 const SEED_ONLY = process.argv.includes("--seed-only");
+// Ghi mốc NGAY LÚC BẮT ĐẦU (và lại khi xong): bật máy đúng giờ cron -> daily-crawl (cron) & crawl-on-boot không chạy song song
+// rồi đụng unique index khi cùng insert (audit 16/8)
+try { fs.writeFileSync(new URL("./.last-run", import.meta.url), String(Date.now())); } catch { /* không quan trọng */ }
 if (!SEED_ONLY) {
   step("node chotot.mjs");
   step("node mogi.mjs");
@@ -20,7 +23,7 @@ if (!SEED_ONLY) {
   step("node batdongsan.mjs");                           // Cloudflare -> cần Playwright (devDep + npx playwright install chromium);
                                                          // bị chặn thì giữ file cũ, merge tự bỏ qua file quá 2 ngày
   // nhadat.vn: domain đã về VNNIC (tên miền hết hạn, cert *.vnnic.vn — kiểm chứng 16/8/2026) -> nguồn CHẾT, bỏ khỏi pipeline.
-  // Giữ crawl.js/geocode.mjs trong repo phòng khi họ hồi sinh: chạy tay `node crawl.js && node geocode.mjs`.
+  // (crawl.js/geocode.mjs đã xoá 16/8 — cần thì lấy lại từ git history commit e171411)
   // FB: IP GitHub Actions bị Facebook chặn (kiểm chứng 14/8: 13 nhóm đều trả trang login,
   // 0 bài, tốn ~9 phút/run) -> CI BỎ QUA FB hẳn. Chạy máy nhà (IP dân cư) vẫn cào bình thường.
   if (process.env.GITHUB_ACTIONS) {
@@ -116,15 +119,21 @@ for (let i = 0; i < inserts.length; i += CHUNK) {
 const HOME_ONLY = ["facebook.com", "facebook", "batdongsan.com.vn"];
 // Hàng cũ chưa có last_seen_at (seed đời cũ / chèn tay) -> coi lần thấy = lúc cào/thấy lần đầu, để không "sống mãi" vì NULL lọt lưới
 {
-  const { data: nulls } = await sb.from("listings").select("id,crawled_at,first_seen_at,created_at").eq("source", "crawl").is("last_seen_at", null).limit(5000);
-  for (let i = 0; i < (nulls || []).length; i += 20)
+  const nulls = [];
+  for (let from = 0; ; from += 1000) { // PostgREST cắt 1000/lần
+    const { data } = await sb.from("listings").select("id,crawled_at,first_seen_at,created_at").eq("source", "crawl").is("last_seen_at", null).order("id").range(from, from + 999);
+    nulls.push(...(data || [])); if (!data || data.length < 1000) break;
+  }
+  for (let i = 0; i < nulls.length; i += 20)
     await Promise.all(nulls.slice(i, i + 20).map((r) => sb.from("listings").update({ last_seen_at: r.crawled_at || r.first_seen_at || r.created_at }).eq("id", r.id)));
-  if (nulls?.length) console.log(`(backfill last_seen_at cho ${nulls.length} tin cũ thiếu mốc)`);
+  if (nulls.length) console.log(`(backfill last_seen_at cho ${nulls.length} tin cũ thiếu mốc)`);
 }
 const goneCutoff = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
 const goneCutoffHome = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+// NOT IN bỏ sót source_site NULL (NULL NOT IN … = NULL) -> thêm nhánh is.null (audit 16/8)
 const { count: goneN1 } = await sb.from("listings").update({ status: "gone" }, { count: "exact" })
-  .eq("source", "crawl").eq("status", "published").not("source_site", "in", `(${HOME_ONLY.map((s) => `"${s}"`).join(",")})`).lt("last_seen_at", goneCutoff);
+  .eq("source", "crawl").eq("status", "published")
+  .or(`source_site.is.null,source_site.not.in.(${HOME_ONLY.map((s) => `"${s}"`).join(",")})`).lt("last_seen_at", goneCutoff);
 const { count: goneN2 } = await sb.from("listings").update({ status: "gone" }, { count: "exact" })
   .eq("source", "crawl").eq("status", "published").in("source_site", HOME_ONLY).lt("last_seen_at", goneCutoffHome);
 const goneN = (goneN1 || 0) + (goneN2 || 0);

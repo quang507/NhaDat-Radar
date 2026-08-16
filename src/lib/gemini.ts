@@ -36,12 +36,6 @@ export async function gemini(
   return null;
 }
 
-export async function geminiJSON<T>(prompt: string): Promise<T | null> {
-  const raw = await gemini(prompt, { json: true });
-  if (!raw) return null;
-  try { return JSON.parse(raw) as T; } catch { return null; }
-}
-
 export function median(nums: number[]): number | null {
   if (!nums.length) return null;
   const s = [...nums].sort((a, b) => a - b);

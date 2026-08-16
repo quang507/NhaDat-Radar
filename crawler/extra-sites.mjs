@@ -21,7 +21,9 @@ const strip = (s) => (s || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").r
 function priceFromText(t) {
   const m = t.match(/([\d.,]+)\s*(tỷ|ty\b|triệu|trieu)/i);
   if (!m) return null;
-  const n = parseFloat(m[1].replace(/\./g, "").replace(",", "."));
+  // "4.2 tỷ" = thập phân, "8.500.000.000" = ngăn nghìn — audit 16/8: xoá mọi dấu chấm từng biến 4.2 tỷ thành 42 tỷ
+  const raw = m[1];
+  const n = parseFloat(/^\d{1,3}(\.\d{3})+$/.test(raw) ? raw.replace(/\./g, "") : raw.replace(",", "."));
   if (!n || n > 100000) return null;
   return Math.round(n * (/tỷ|ty/i.test(m[2]) ? 1e9 : 1e6));
 }
@@ -154,6 +156,7 @@ async function main() {
   }
   // chỉ giữ tin có tiêu đề tử tế
   const ok = all.filter((x) => (x.title || "").length >= 15);
+  if (!ok.length) { console.error("extra-sites: 0 tin -> giữ extra.json cũ"); return; } // audit 16/8
   fs.writeFileSync(new URL("./extra.json", import.meta.url),
     JSON.stringify({ summary: { source: "extra-sites", crawled_at: new Date().toISOString().slice(0, 10), total: ok.length }, listings: ok }, null, 0));
   console.error("DONE extra-sites:", ok.length);

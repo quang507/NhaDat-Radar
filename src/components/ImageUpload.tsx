@@ -32,7 +32,7 @@ export default function ImageUpload({
       const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error } = await supabase.storage.from("uploads").upload(path, f, { contentType: f.type });
-      if (error) { setErr("Tải ảnh lỗi: " + error.message + " (đã chạy migration 003 chưa?)"); continue; }
+      if (error) { console.error("upload:", error.message); setErr(`Không tải được ảnh "${f.name}" — thử ảnh khác hoặc tải lại trang.`); continue; }
       added.push(supabase.storage.from("uploads").getPublicUrl(path).data.publicUrl);
     }
     setUrls((u) => [...u, ...added]);
@@ -53,6 +53,7 @@ export default function ImageUpload({
             )}
             <button
               type="button"
+              aria-label="Xoá ảnh này"
               onClick={() => setUrls((x) => x.filter((v) => v !== u))}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs grid place-items-center"
             >✕</button>

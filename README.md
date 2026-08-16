@@ -22,7 +22,6 @@ src/
     projects/[id]/              # Trang dự án (giống homigo.vn)
 supabase/schema.sql             # bảng + RLS + dữ liệu dự án mẫu
 supabase/seed.mjs               # nạp 120 tin crawl thật
-crawler/crawl.js                # crawler nhadat.vn (Lớp A)
 ```
 
 ## Chạy (5 bước)

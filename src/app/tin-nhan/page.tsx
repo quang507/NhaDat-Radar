@@ -160,7 +160,7 @@ function Chat() {
               </div>
               <form className="p-2 border-t border-[var(--line)] flex gap-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
                 <input className="inp !py-2 text-sm" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Nhập tin nhắn…" />
-                <button className="btn btn-primary !px-4" type="submit">➤</button>
+                <button className="btn btn-primary !px-4" type="submit" aria-label="Gửi tin nhắn">➤</button>
               </form>
             </>
           ) : (

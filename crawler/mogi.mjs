@@ -35,10 +35,12 @@ function propType(url) {
 function parsePrice(s) {
   if (!s) return null; const t = s.toLowerCase();
   if (/thỏa thuận|liên hệ/.test(t)) return null;
+  // "4.2 tỷ" (thập phân) vs "8.500.000" (ngăn nghìn) — audit 16/8, cùng lỗi với extra-sites
+  const toNum = (s) => parseFloat(/^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s.replace(",", "."));
   let vnd = 0;
-  const ty = t.match(/([\d.,]+)\s*tỷ/); if (ty) vnd += parseFloat(ty[1].replace(/\./g, "").replace(",", ".")) * 1e9;
-  const tr = t.match(/([\d.,]+)\s*triệu/); if (tr) vnd += parseFloat(tr[1].replace(/\./g, "").replace(",", ".")) * 1e6;
-  if (!vnd) { const n = t.match(/([\d.,]+)/); if (n) vnd = parseFloat(n[1].replace(/\./g, "").replace(",", ".")); }
+  const ty = t.match(/([\d.,]+)\s*tỷ/); if (ty) vnd += toNum(ty[1]) * 1e9;
+  const tr = t.match(/([\d.,]+)\s*triệu/); if (tr) vnd += toNum(tr[1]) * 1e6;
+  if (!vnd) { const n = t.match(/([\d.,]+)/); if (n) vnd = toNum(n[1]); }
   return Math.round(vnd) || null;
 }
 function num(s) { const m = (s || "").match(/[\d.,]+/); return m ? parseFloat(m[0].replace(/\./g, "").replace(",", ".")) : null; }
@@ -54,7 +56,7 @@ export function parseMogi(html) {
     const before = html.slice(Math.max(0, idx - 1600), idx);
     const addr = dec((after.match(/prop-addr">([\s\S]*?)<\/div>/) || [])[1] || "");
     const attrs = [...after.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => dec(m[1]));
-    const area = attrs.map(num).find((v, i2) => /m/i.test(attrs[i2])) ?? (attrs[0] ? num(attrs[0]) : null);
+    const area = attrs.map(num).find((v, i2) => /m²|m2\b/i.test(attrs[i2])) ?? (attrs[0] ? num(attrs[0]) : null); // audit: /m/ từng bắt "Mới"/"Mặt tiền"
     const beds = (() => { const a = attrs.find((x) => /PN/i.test(x)); return a ? num(a) : null; })();
     const baths = (() => { const a = attrs.find((x) => /WC/i.test(x)); return a ? num(a) : null; })();
     const price = parsePrice(dec((after.match(/class="price">([\s\S]*?)<\/div>/) || [])[1] || ""));
@@ -90,6 +92,7 @@ async function run() {
   }
   const seen = new Set();
   all = all.filter((x) => (seen.has(x.id) ? false : seen.add(x.id)));
+  if (!all.length) { console.error("mogi: 0 tin -> giữ mogi.json cũ"); return; } // audit 16/8
   fs.writeFileSync(new URL("./mogi.json", import.meta.url), JSON.stringify({ summary: { crawled_at: new Date().toISOString().slice(0, 10), total: all.length, with_img: all.filter((x) => x.images.length).length }, listings: all }, null, 0));
   console.error("TỔNG mogi:", all.length, "(ảnh:", all.filter((x) => x.images.length).length, ")");
 }

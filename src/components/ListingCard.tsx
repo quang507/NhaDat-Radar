@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Listing } from "@/lib/types";
-import { fmtPrice, fresh, PROP, thumb } from "@/lib/format";
+import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
 
@@ -8,9 +8,7 @@ export default function ListingCard({ x }: { x: Listing }) {
   const t = thumb(x.kind);
   const isAgent = x.source === "agent";
   // giá/m² cho cả bán lẫn thuê (batdongsan hiện trên mọi card)
-  const ppm2 = x.price_per_m2 && x.price_per_m2 > 0
-    ? (x.price_per_m2 >= 1e6 ? (x.price_per_m2 / 1e6).toFixed(x.price_per_m2 >= 1e7 ? 0 : 1) + "tr/m²" : Math.round(x.price_per_m2 / 1e3) + "k/m²")
-    : null;
+  const ppm2 = x.price_per_m2 && x.price_per_m2 > 0 ? fmtPpm2(x.price_per_m2) : null;
   const ageMin = x.first_seen_at ? Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000) : null;
   const isNew = ageMin != null && ageMin < 24 * 60;      // Radar thấy trong 24h
   const multi = (x.source_count ?? 1) > 1;

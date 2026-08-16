@@ -6,22 +6,18 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ListingCard from "@/components/ListingCard";
 import MapResults, { type MapItem } from "@/components/MapResults";
-import { fmtPrice, PROP } from "@/lib/format";
+import { fmtPrice, PROP, shortPrice } from "@/lib/format";
+import { getAreas } from "@/lib/geo";
 import type { Listing, Project } from "@/lib/types";
 
 // Ảnh hero thương hiệu: đặt file tại public/hero.jpg (hoặc .png/.webp) là tự dùng.
-function heroImage(): string | null {
+// Tính 1 lần lúc module load (audit 16/8: bản cũ existsSync 3 lần mỗi request).
+const HERO: string | null = (() => {
   for (const f of ["hero.jpg", "hero.png", "hero.webp"]) {
     if (fs.existsSync(path.join(process.cwd(), "public", f))) return "/" + f;
   }
   return null;
-}
-
-function shortPrice(v: number | null): string {
-  if (!v) return "TL";
-  if (v >= 1e9) { const t = v / 1e9; return (t % 1 ? t.toFixed(1) : String(t)) + "tỷ"; }
-  return Math.round(v / 1e6) + "tr";
-}
+})();
 
 const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
   { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/?kind=nha&deal=ban" },
@@ -32,7 +28,7 @@ const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
 ];
 const PROVINCES = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng"];
 const PRICE_BUCKETS: [string, string][] = [
-  ["", "Mức giá"], ["500000000", "Dưới 500 triệu"], ["1000000000", "Dưới 1 tỷ"],
+  ["500000000", "Dưới 500 triệu"], ["1000000000", "Dưới 1 tỷ"],
   ["3000000000", "Dưới 3 tỷ"], ["5000000000", "Dưới 5 tỷ"], ["10000000000", "Dưới 10 tỷ"],
 ];
 
@@ -60,13 +56,9 @@ export default async function Home({
 
   // Số liệu "tin đang rao / quận / nguồn" phải THẬT trên toàn DB (UX audit 16/8: trước đây đếm trên 150 tin
   // đầu danh sách -> hiện "150+ tin · 1 nguồn" trong khi DB có 1.800 tin / 6 nguồn).
-  const [{ count: totalPublished }, { data: geoRows }] = await Promise.all([
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"),
-    supabase.from("listings").select("district,source_site,source").eq("status", "published").limit(5000),
-  ]);
-  const canonD = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, "").trim();
-  const districtCount = new Set((geoRows ?? []).map((r) => canonD(r.district || "")).filter(Boolean)).size;
-  const sourceCount = new Set((geoRows ?? []).map((r) => (r.source === "crawl" ? r.source_site : r.source)).filter(Boolean)).size;
+  // Dùng cây khu vực cache 10' (lib/geo) thay vì select 5.000 dòng mỗi lần vào trang chủ.
+  const areas = await getAreas();
+  const totalPublished = areas.total, districtCount = areas.districtCount, sourceCount = areas.sources;
 
   // Ưu tiên hiển thị BĐS miền Nam (giữ thứ tự mới-nhất trong từng nhóm)
   const SOUTH = /hồ chí minh|bình dương|đồng nai|cần thơ|vũng tàu|bà rịa|long an|tây ninh|tiền giang|an giang|kiên giang|cà mau|bến tre|vĩnh long|sóc trăng|đồng tháp|hậu giang|bạc liêu|trà vinh/i;
@@ -83,7 +75,7 @@ export default async function Home({
     .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, label: shortPrice(x.price_vnd), title: x.title }));
 
   const sel = "inp appearance-none pr-8 cursor-pointer";
-  const hero = heroImage();
+  const hero = HERO;
   return (
     <div>
       {/* ===== BANNER QUẢNG CÁO ĐỐI TÁC (public/hero.jpg) — full width, KHÔNG đè chữ của Radar lên
@@ -129,7 +121,7 @@ export default async function Home({
               </select>
               <select name="priceMax" defaultValue={priceMax || ""} className={sel}>
                 <option value="">Mức giá</option>
-                {PRICE_BUCKETS.slice(1).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {PRICE_BUCKETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
               <select name="bedrooms" defaultValue={bedrooms || ""} className={sel}>
                 <option value="">Số phòng ngủ</option>

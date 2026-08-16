@@ -6,9 +6,15 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SER
 if (!url || !key) { console.error("price-history: thiếu SUPABASE env"); process.exit(0); }
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
-const { data } = await sb.from("listings")
-  .select("province,district,kind,deal,price_per_m2")
-  .eq("status", "published").not("price_per_m2", "is", null).gt("price_per_m2", 0).limit(5000);
+// PostgREST cắt 1000 dòng/lần dù limit(5000) -> phân trang (audit 16/8: trung vị từng tính trên tập cắt cụt)
+const data = [];
+for (let from = 0; ; from += 1000) {
+  const { data: page } = await sb.from("listings")
+    .select("province,district,kind,deal,price_per_m2")
+    .eq("status", "published").not("price_per_m2", "is", null).gt("price_per_m2", 0).order("id").range(from, from + 999);
+  data.push(...(page ?? []));
+  if (!page || page.length < 1000 || data.length >= 20000) break;
+}
 
 const groups = new Map();
 for (const r of data ?? []) {

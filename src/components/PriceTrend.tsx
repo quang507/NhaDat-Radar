@@ -1,10 +1,9 @@
 // Biểu đồ xu hướng giá/m² trung vị theo ngày từ bảng price_history (crawler/price-history.mjs snapshot mỗi sáng).
 // Ưu tiên đúng quận + loại hình; thiếu thì lùi về quận (mọi loại) -> toàn tỉnh. Dữ liệu thật, <2 điểm thì nói thẳng "đang tích luỹ".
 import { createClient } from "@/lib/supabase/server";
+import { canonDistrict, fmtPpm2 } from "@/lib/format";
 
 type Row = { day: string; median_ppm2: number; n: number };
-const canonDistrict = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, "").trim();
-const fmtPpm2 = (v: number) => (v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") + " tr/m²" : Math.round(v / 1e3) + "k/m²");
 
 export default async function PriceTrend({ province, district, kind, deal, compact = false }: {
   province: string; district?: string | null; kind?: string | null; deal: string; compact?: boolean;
@@ -12,8 +11,9 @@ export default async function PriceTrend({ province, district, kind, deal, compa
   const supabase = await createClient();
   const d = district ? canonDistrict(district) : "";
   // các mức thử theo thứ tự cụ thể -> rộng
+  // (audit 16/8: kind === "all" từng tạo 2 lần thử giống hệt nhau)
   const tries: { district: string; kind: string; label: string }[] = [];
-  if (d && kind) tries.push({ district: d, kind, label: `${kind === "all" ? "" : ""}${d}` });
+  if (d && kind && kind !== "all") tries.push({ district: d, kind, label: d });
   if (d) tries.push({ district: d, kind: "all", label: d });
   tries.push({ district: "", kind: "all", label: province });
 

@@ -6,7 +6,7 @@ import Link from "next/link";
 import ListingRow from "@/components/ListingRow";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
-import { PROP } from "@/lib/format";
+import { PROP, shortPrice } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
 import type { Listing } from "@/lib/types";
 import PlaceSuggest, { buildPlaces, type Place } from "@/components/PlaceSuggest";
@@ -28,11 +28,6 @@ const AREA_OPTS: [string, string][] = [
   ["", "Diện tích"], ["30", "≥ 30 m²"], ["50", "≥ 50 m²"], ["80", "≥ 80 m²"], ["100", "≥ 100 m²"], ["150", "≥ 150 m²"],
 ];
 
-function shortPrice(v: number | null): string {
-  if (!v) return "TL";
-  if (v >= 1e9) { const t = v / 1e9; return (t % 1 ? t.toFixed(1) : String(t)) + "tỷ"; }
-  return Math.round(v / 1e6) + "tr";
-}
 
 export default function SearchClient({
   listings, geo, params, newToday = 0, total,
@@ -182,6 +177,7 @@ export default function SearchClient({
         {/* Bản đồ chỉ render ở lg+ (MapResults hidden lg:block) -> ẩn nút ở màn nhỏ, tránh nút bấm không có tác dụng (UX audit) */}
         <button
           className={`hidden lg:inline-flex btn text-sm font-semibold whitespace-nowrap ${showMap ? "!bg-[var(--accent)] !border-[var(--accent)] !text-white" : "!text-[var(--accent)] !border-[var(--accent)]"}`}
+          aria-pressed={showMap}
           onClick={() => setShowMap((v) => !v)}
         >
           {showMap ? "Đóng bản đồ" : "Xem bản đồ"}
@@ -194,6 +190,7 @@ export default function SearchClient({
       <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
         <button
           className={`btn text-sm ${showFilter ? "!border-brand !text-brand" : ""}`}
+          aria-expanded={showFilter}
           onClick={() => setShowFilter((v) => !v)}
         >
           Lọc{(() => { const n = [f.province, f.district, f.ward, f.kind, f.priceMin, f.priceMax, f.areaMin, f.bedrooms, f.legal, f.direction].filter(Boolean).length; return n ? ` (${n})` : ""; })()}
@@ -213,6 +210,7 @@ export default function SearchClient({
           {AREA_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
         <button
+          role="switch" aria-checked={!!own}
           className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
           onClick={() => push({ ...f, own: own ? "" : "1" } as Record<string, string>)}
         >
@@ -222,6 +220,7 @@ export default function SearchClient({
           Tin chính chủ tự đăng
         </button>
         <button
+          role="switch" aria-checked={!!newAddr}
           className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
           onClick={() => push({ ...f, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
         >
@@ -356,7 +355,7 @@ export default function SearchClient({
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-1.5 mt-5">
-                  <button className="btn !px-3 text-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>‹</button>
+                  <button className="btn !px-3 text-sm" disabled={page <= 1} aria-label="Trang trước" onClick={() => setPage((p) => p - 1)}>‹</button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 2)
                     .map((n, i, arr) => (
@@ -364,11 +363,12 @@ export default function SearchClient({
                         {i > 0 && arr[i - 1] !== n - 1 && <span className="text-[var(--ink-faint)]">…</span>}
                         <button
                           className={`btn !px-3.5 text-sm ${n === page ? "!bg-brand !text-white !border-brand" : ""}`}
+                          aria-label={`Trang ${n}`} aria-current={n === page ? "page" : undefined}
                           onClick={() => setPage(n)}
                         >{n}</button>
                       </span>
                     ))}
-                  <button className="btn !px-3 text-sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>›</button>
+                  <button className="btn !px-3 text-sm" disabled={page >= totalPages} aria-label="Trang sau" onClick={() => setPage((p) => p + 1)}>›</button>
                 </div>
               )}
             </>

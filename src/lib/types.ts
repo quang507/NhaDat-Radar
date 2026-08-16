@@ -86,10 +86,3 @@ export type Project = {
   is_partner?: boolean | null;
 };
 
-export type Profile = {
-  id: string;
-  role: "user" | "agent" | "admin";
-  full_name: string | null;
-  phone: string | null;
-  agency_name: string | null;
-};

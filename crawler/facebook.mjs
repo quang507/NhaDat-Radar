@@ -60,7 +60,8 @@ async function toListing(post) {
   const ai = await gemini(post.text);
   if (!ai.is_property) return null;
   return {
-    id: "fb-" + (post.id || Math.abs(hash(post.text)).toString(36)),
+    // id ổn định theo LINK bài (innerText có số like/"3 giờ" đổi mỗi ngày -> hash text sinh tin mới giả mỗi lần cào — audit 16/8)
+    id: "fb-" + (post.id || (post.url && post.url !== "#" ? Math.abs(hash(post.url.replace(/[?#].*$/, ""))).toString(36) : Math.abs(hash((post.text || "").replace(/\d+\s*(giờ|phút|ngày|lượt|bình luận|thích|chia sẻ)/gi, "").slice(0, 300))).toString(36))),
     source: "crawl", source_site: "facebook", source_url: post.url || "#", source_post_id: post.id || null,
     title: ai.title_clean || (post.text || "").slice(0, 80),
     description: (post.text || "").slice(0, 1100),
@@ -68,9 +69,10 @@ async function toListing(post) {
     price_per_m2: ai.price_vnd && ai.area_m2 ? Math.round(ai.price_vnd / ai.area_m2) : null,
     bedrooms: ai.bedrooms ?? null, bathrooms: null, floors: null,
     direction: null, legal: ai.legal ?? null, furnishing: null,
-    listing_type: ai.listing_type || "cho_thue", property_type: ai.property_type || "khac",
+    listing_type: ai.listing_type || (/cho thuê|thuê|cần thuê/i.test(post.text || "") ? "cho_thue" : "ban"), // audit: mặc định cứng "cho_thue" từng gắn sai tin bán
+    property_type: ai.property_type || "khac",
     province: ai.city ?? null, district: ai.district ?? null, ward: ai.ward ?? null,
-    lat: null, lng: null, // FB post không có toạ độ -> geocode.mjs bù sau theo district/ward
+    lat: null, lng: null, // FB post không có toạ độ -> geocode-all.mjs bù sau theo district/ward
     amenities: ai.amenities || [],
     poster_role: ai.poster_type === "ca_nhan" ? "chu_nha" : ai.poster_type === "moi_gioi" ? "moi_gioi" : "khong_ro",
     poster_name: post.author || null, poster_reason: ai.poster_reason,
@@ -254,7 +256,12 @@ async function run() {
     } catch (e) { console.error("  lỗi:", e.message); }
     await sleep(1100);
   }
-  fs.writeFileSync(new URL("./facebook.json", import.meta.url), JSON.stringify({ summary: { source: "facebook", total: out.length }, listings: out }, null, 0));
+  if (!out.length && arg !== "--demo") {
+    // cookie chết / FB chặn -> KHÔNG ghi đè file cũ bằng 0 tin (audit 16/8); merge tự bỏ qua file quá 2 ngày
+    console.error("\nFB: 0 tin -> giữ facebook.json cũ.");
+    return;
+  }
+  fs.writeFileSync(new URL("./facebook.json", import.meta.url), JSON.stringify({ summary: { source: "facebook", crawled_at: new Date().toISOString().slice(0, 10), total: out.length }, listings: out }, null, 0));
   console.error(`\nGiữ ${out.length}/${posts.length} bài là tin BĐS -> facebook.json (đã lọc rác + phân loại)`);
 }
 run();

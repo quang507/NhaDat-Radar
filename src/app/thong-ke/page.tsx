@@ -4,14 +4,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PriceMap, { type MapPoint } from "@/components/PriceMap";
 import type { Listing } from "@/lib/types";
+import { median } from "@/lib/gemini";
 
 const CITIES = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng"];
 
-function median(a: number[]): number {
-  if (!a.length) return 0;
-  const s = [...a].sort((x, y) => x - y);
-  return s[Math.floor(s.length / 2)];
-}
 function short(v: number): string {
   if (!v) return "-";
   if (v >= 1e9) {
@@ -34,7 +30,7 @@ export default async function ThongKe({
   const supabase = await createClient();
   const { data } = await supabase
     .from("listings")
-    .select("*")
+    .select("id,title,price_vnd,area_m2,price_per_m2,district,lat,lng,kind,deal")
     .eq("status", "published")
     .eq("deal", deal)
     .eq("province", city)
@@ -53,7 +49,7 @@ export default async function ThongKe({
     g.n++;
   }
   const rows = Object.entries(m)
-    .map(([district, g]) => ({ district, med: median(g.prices), n: g.n, lat: g.lat / g.n, lng: g.lng / g.n }))
+    .map(([district, g]) => ({ district, med: median(g.prices) ?? 0, n: g.n, lat: g.lat / g.n, lng: g.lng / g.n }))
     .sort((a, b) => b.med - a.med);
 
   const points: MapPoint[] = rows.map((r) => ({

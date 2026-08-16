@@ -30,7 +30,10 @@ export async function updateProfile(formData: FormData) {
   if (avatar_url) patch.avatar_url = avatar_url;
 
   const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
-  if (error) redirect("/account?error=" + encodeURIComponent(error.message));
+  if (error) {
+    console.error("updateProfile error:", error.message); // không rò chi tiết Postgres ra URL/client
+    redirect("/account?error=" + encodeURIComponent("Không lưu được hồ sơ, vui lòng thử lại."));
+  }
   revalidatePath("/account");
   revalidatePath("/agents");
   redirect("/account?message=" + encodeURIComponent("Đã lưu hồ sơ!"));

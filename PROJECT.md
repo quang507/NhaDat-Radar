@@ -60,14 +60,10 @@ nhadat-radar-app/
   crawler/
     chotot.mjs        # Chợ Tốt - API JSON công khai (có sẵn lat/lng + ảnh + phường). NGON NHẤT.
     mogi.mjs          # Mogi.vn - HTML SSR (fetch qua Cloudflare OK), có ảnh
-    crawl.js          # nhadat.vn (raovat, vBulletin) - HTTP, KHÔNG có ảnh
     batdongsan.mjs    # Batdongsan - Cloudflare (Node fetch bị chặn -> curl HTML rồi --test), có ảnh
-    bds-projects.mjs  # Dự án thật từ batdongsan.com.vn/du-an
     facebook.mjs      # FB: --apify-run (Apify API) | --apify <file> | --playwright | --demo
-    geocode.mjs       # geocode nhadat theo quận (Nominatim free)
     geocode-all.mjs   # geocode BÙ mọi tin thiếu toạ độ -> tin nào cũng có map
     merge.mjs         # Gộp tất cả *.json -> combined.json (chuẩn hoá tỉnh + dedupe cross-source)
-    ai-extract.mjs    # (tool) đo/trích field bằng Gemini
     daily.mjs         # ORCHESTRATOR: chạy chuỗi crawl -> merge -> geocode-all -> seed Supabase
     fb-cookies.json   # (gitignored) cookies clone FB cho --playwright
   .github/workflows/daily-crawl.yml   # Cron 5h sáng VN mỗi ngày chạy daily.mjs

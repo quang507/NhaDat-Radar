@@ -1,8 +1,6 @@
-"use client";
-
 import Link from "next/link";
 import type { Listing } from "@/lib/types";
-import { fmtPrice, fresh, PROP, thumb } from "@/lib/format";
+import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
 
@@ -12,9 +10,7 @@ export default function ListingRow({ x }: { x: Listing }) {
   const t = thumb(x.kind);
   const imgs = (x.images || []).slice(0, 4);
   // giá/m² cho cả bán lẫn thuê (batdongsan hiện trên mọi card)
-  const ppm2 = x.price_per_m2 && x.price_per_m2 > 0
-    ? (x.price_per_m2 >= 1e6 ? (x.price_per_m2 / 1e6).toFixed(1).replace(/\.0$/, "") + " tr/m²" : Math.round(x.price_per_m2 / 1e3) + "k/m²")
-    : null;
+  const ppm2 = x.price_per_m2 && x.price_per_m2 > 0 ? fmtPpm2(x.price_per_m2) : null;
   const loc = [x.district, x.province].filter(Boolean).join(", ");
   const ageMin = x.first_seen_at ? Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000) : null;
   const ago = ageMin != null ? fresh(ageMin) : null;
@@ -84,7 +80,7 @@ export default function ListingRow({ x }: { x: Listing }) {
           <span className="text-[var(--ink-faint)]">{PROP[x.kind]}</span>
           {x.ai_score ? <span className="text-[var(--ink-faint)]" title="Điểm đầy đủ thông tin tin đăng (0-100)">{x.ai_score}/100</span> : null}
           {ago && <span className="text-emerald-600 font-medium" title={x.first_seen_at ? `Radar thấy tin: ${new Date(x.first_seen_at).toLocaleString("vi-VN")}` : undefined}>{ago}</span>}
-          <span className="ml-auto" onClick={(e) => e.preventDefault()}><FavButton id={x.id} /></span>
+          <span className="ml-auto"><FavButton id={x.id} /></span>
         </div>
       </div>
     </Link>

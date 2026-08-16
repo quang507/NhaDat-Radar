@@ -15,7 +15,7 @@ export default async function Dashboard() {
   if (!user) redirect("/auth?message=" + encodeURIComponent("Đăng nhập để vào trang người bán"));
 
   const [{ data }, { data: appts }, { data: leadRows }] = await Promise.all([
-    supabase.from("listings").select("*").eq("agent_id", user.id).order("created_at", { ascending: false }),
+    supabase.from("listings").select("*").eq("agent_id", user.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("appointments").select("*")
       .or(`agent_id.eq.${user.id},buyer_id.eq.${user.id}`)
       .order("slot", { ascending: true }).limit(30),

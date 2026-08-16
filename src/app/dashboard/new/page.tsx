@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ListingForm from "./ListingForm";
+import { getAreas } from "@/lib/geo";
 
 export default async function NewListingPage() {
   const supabase = await createClient();
@@ -10,15 +11,9 @@ export default async function NewListingPage() {
   if (!user) redirect("/auth?message=" + encodeURIComponent("Đăng nhập để đăng tin"));
 
   // Gợi ý tỉnh/quận từ dữ liệu thật để tên nhập khớp DB (lọt bộ lọc + trang khu vực)
-  const { data: rows } = await supabase.from("listings").select("province,district").eq("status", "published").limit(5000);
-  const geo: Record<string, string[]> = {};
-  for (const r of rows ?? []) {
-    const p = (r.province || "").trim(); if (!p) continue;
-    geo[p] ??= [];
-    const d = (r.district || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
-    if (d && !geo[p].includes(d)) geo[p].push(d);
-  }
-  for (const p of Object.keys(geo)) geo[p].sort();
+  // Cây khu vực cache 10' (lib/geo) — audit 16/8: bản cũ select 5.000 dòng mỗi lần mở form
+  const areas = await getAreas();
+  const geo: Record<string, string[]> = Object.fromEntries(Object.entries(areas.geo).map(([p, ds]) => [p, Object.keys(ds).sort()]));
 
   return (
     <div>

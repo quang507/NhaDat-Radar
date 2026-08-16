@@ -94,9 +94,10 @@ function norm(x) {
   };
 }
 
-const sources = [["listings3.json", 0], ["chotot.json", 0], ["batdongsan.json", 0], ["mogi.json", 0], ["facebook.json", 0], ["extra.json", 0]];
+// (listings3.json = nhadat.vn đã bỏ 16/8 — domain chết)
+const sources = ["chotot.json", "batdongsan.json", "mogi.json", "facebook.json", "extra.json"];
 let all = [];
-for (const [f] of sources) { const rows = load(f).map(norm); all = all.concat(rows); console.error(f, "->", rows.length); }
+for (const f of sources) { const rows = load(f).map(norm); all = all.concat(rows); console.error(f, "->", rows.length); }
 
 // Lọc tin rác (dịch vụ, tuyển dụng, vay vốn, hàng tiêu dùng...) trước khi dedupe
 const beforeJunk = all.length;
@@ -140,7 +141,7 @@ function titleFingerprint(x) {
     .replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim(); // bỏ emoji/ký tự đặc biệt
   const words = [...new Set(t.split(" ").filter((w) => w.length > 1 && !STOP.has(w)))].slice(0, 8);
   if (words.length < 4) return null;                            // còn quá ít từ nội dung -> bỏ qua
-  const pb = Math.round(x.price_vnd / Math.max(1e5, x.price_vnd * 0.05)); // bucket ±5%
+  const pb = Math.round(Math.log(x.price_vnd) / Math.log(1.05)); // bucket log ±5% (audit 16/8: công thức cũ luôn = 20 -> bỏ qua giá)
   const ab = x.area_m2 ? Math.round(x.area_m2) : "-";
   return [words.join(" "), pb, ab, stripAccent((x.district || "").toLowerCase())].join("|");
 }
@@ -171,6 +172,7 @@ for (const x of all) {
         source_count: dup.source_count, source_sites: dup.source_sites, posted_at: dup.posted_at ?? x.posted_at };
       Object.assign(dup, x, keepIdent);
     }
+    for (const k of keys) if (!byKey.has(k)) byKey.set(k, dup); // key của x cũng trỏ về dup (audit: tin thứ 3 trùng x lọt lưới)
     continue;
   }
   for (const k of keys) byKey.set(k, x);

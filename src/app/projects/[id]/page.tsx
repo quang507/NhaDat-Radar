@@ -25,7 +25,9 @@ export default async function ProjectDetail({
     .from("listings")
     .select("*")
     .eq("project_id", id)
-    .eq("status", "published");
+    .eq("status", "published")
+    .order("first_seen_at", { ascending: false })
+    .limit(24);
   let listings = (ls ?? []) as Listing[];
 
   // Chưa có tin gắn trực tiếp dự án -> hiện tin cùng khu vực (quận/tỉnh) làm gợi ý

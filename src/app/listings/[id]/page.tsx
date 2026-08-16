@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { fmtPrice, fresh, PROP, AMEN, thumb } from "@/lib/format";
+import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
 import { posterReasonText, type Listing } from "@/lib/types";
@@ -65,13 +65,17 @@ export default async function ListingDetail({
     x.district
       ? supabase.from("listings").select("price_per_m2")
           .eq("status", "published").eq("deal", x.deal).eq("kind", x.kind)
-          .ilike("district", `%${x.district}%`)
+          .eq("district", x.district)
           .not("price_per_m2", "is", null).gt("price_per_m2", 0).neq("id", x.id).limit(300)
       : Promise.resolve({ data: [] as { price_per_m2: number }[] }),
-    supabase.from("listings").select("*")
-      .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
-      .ilike(x.district ? "district" : "province", `%${x.district || x.province || ""}%`)
-      .order("ai_score", { ascending: false, nullsFirst: false }).limit(12),
+    // audit 16/8: thiếu cả quận lẫn tỉnh thì ilike "%%" trả tin toàn quốc -> chỉ hỏi khi có khu vực; ảnh không rỗng lọc ở DB
+    (x.district || x.province)
+      ? supabase.from("listings").select("*")
+          .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
+          .eq(x.district ? "district" : "province", x.district || x.province!)
+          .not("images", "eq", "{}")
+          .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
+      : Promise.resolve({ data: [] as Listing[] }),
     x.poster_key
       ? supabase.from("listings").select("*", { count: "exact" })
           .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
@@ -88,7 +92,6 @@ export default async function ListingDetail({
   const med = enoughComps ? median(ppm2s) : null, p25 = enoughComps ? percentile(ppm2s, 25) : null, p75 = enoughComps ? percentile(ppm2s, 75) : null;
   const myPpm2 = x.price_per_m2 ? Number(x.price_per_m2) : null;
   const diffPct = med && myPpm2 ? Math.round(((myPpm2 - med) / med) * 100) : null;
-  const fmtPpm2 = (v: number) => (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k");
 
   const related = ((relRows ?? []) as Listing[]).filter((r) => r.images?.length).slice(0, 6);
 
@@ -140,7 +143,7 @@ export default async function ListingDetail({
         </div>
         <div className="text-right shrink-0">
           <div className="prata text-2xl text-brand">{fmtPrice(x.price_vnd, x.deal)}</div>
-          {myPpm2 ? <div className="text-xs text-[var(--ink-faint)] font-semibold">{fmtPpm2(myPpm2)}/m²</div> : null}
+          {myPpm2 ? <div className="text-xs text-[var(--ink-faint)] font-semibold">{fmtPpm2(myPpm2)}</div> : null}
         </div>
       </div>
 
@@ -193,7 +196,7 @@ export default async function ListingDetail({
                 </span>
               </div>
               <p className="text-[var(--ink-soft)]">
-                Giá/m² tin này: <b>{fmtPpm2(myPpm2!)}/m²</b> — trung vị {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} tại {x.district}: <b>{fmtPpm2(med)}/m²</b>
+                Giá/m² tin này: <b>{fmtPpm2(myPpm2!)}</b> — trung vị {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} tại {x.district}: <b>{fmtPpm2(med)}</b>
                 {p25 && p75 ? <> · khoảng phổ biến {fmtPpm2(p25)} – {fmtPpm2(p75)}/m²</> : null}.
                 <span className="text-[var(--ink-faint)]"> Dựa trên {ppm2s.length} tin đang hiển thị cùng loại tại {x.district}. Chỉ mang tính tham khảo, không phải định giá.</span>
               </p>

@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { areaPath } from "@/lib/slug";
+import { getAreas } from "@/lib/geo";
 
-export const dynamic = "force-dynamic";
+// audit 16/8: bỏ force-dynamic (bot gọi sitemap liên tục -> mỗi lần 3 query); cache 1 giờ là đủ cho crawl 1 lần/ngày
+export const revalidate = 3600;
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nha-dat-radar-rkyn.vercel.app";
 
@@ -14,22 +16,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const sb = createAdminClient();
-    const [{ data: ls }, { data: ps }, { data: areas }] = await Promise.all([
+    const [{ data: ls }, { data: ps }, { counts }] = await Promise.all([
       sb.from("listings").select("id,created_at").eq("status", "published").order("first_seen_at", { ascending: false }).limit(1000),
       sb.from("projects").select("id").eq("status", "published").limit(200),
-      sb.from("listings").select("province,district,deal").eq("status", "published").limit(5000),
+      getAreas(), // cây khu vực dùng chung (cache 10') thay vì select 5.000 dòng riêng
     ]);
     // Trang SEO khu vực: /nha-dat-ban/[tinh](/[quan]) — chỉ sinh cho khu vực đang có tin (≥3 tin cho cấp quận)
-    const areaUrls = new Map<string, number>();
-    for (const r of areas ?? []) {
-      const p = (r.province || "").trim(); if (!p) continue;
-      const deal = r.deal as "ban" | "cho_thue";
-      areaUrls.set(areaPath(deal, p), (areaUrls.get(areaPath(deal, p)) || 0) + 1);
-      const d = (r.district || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
-      if (d) areaUrls.set(areaPath(deal, p, d), (areaUrls.get(areaPath(deal, p, d)) || 0) + 1);
+    const areaEntries: MetadataRoute.Sitemap = [];
+    for (const [p, c] of Object.entries(counts)) {
+      for (const deal of ["ban", "cho_thue"] as const) {
+        if (c[deal] > 0) areaEntries.push({ url: SITE + areaPath(deal, p), changeFrequency: "daily", priority: 0.8 });
+        for (const [d, dc] of Object.entries(c.districts)) {
+          if (dc[deal] >= 3) areaEntries.push({ url: SITE + areaPath(deal, p, d), changeFrequency: "daily", priority: 0.7 });
+        }
+      }
     }
-    const areaEntries = [...areaUrls.entries()].filter(([u, n]) => n >= 3 || u.split("/").length <= 3)
-      .map(([u]) => ({ url: SITE + u, changeFrequency: "daily" as const, priority: u.split("/").length <= 3 ? 0.8 : 0.7 }));
     return [
       ...stat,
       ...areaEntries,

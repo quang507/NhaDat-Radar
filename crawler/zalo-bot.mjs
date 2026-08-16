@@ -42,6 +42,7 @@ const KEYS = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.e
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) { console.error("Thiếu SUPABASE env (.env.local)"); process.exit(1); }
+if (!KEYS.length) { console.error("Thiếu GEMINI_API_KEY* (.env.local) — bot không phân loại được tin"); process.exit(1); } // audit 16/8: trước im lặng chào hỏi mãi
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
 // Link gửi cho khách phải là domain public — .env.local dev hay đặt localhost nên phải lọc
@@ -128,7 +129,7 @@ async function handle(text) {
     if (q.price_max) query = query.lte("price_vnd", q.price_max);
     if (q.price_min) query = query.gte("price_vnd", q.price_min);
     if (q.area_min) query = query.gte("area_m2", q.area_min);
-    const { data, count } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(4);
+    const { data } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(4);
     // link "xem tất cả" trên web với cùng bộ lọc (UX audit: bot chỉ đưa 4 tin, không có đường đi tiếp)
     const sp = new URLSearchParams();
     if (q.listing_type) sp.set("deal", q.listing_type);
@@ -170,44 +171,51 @@ function startListener() {
   // --json là option TOÀN CỤC của zalo-agent-cli -> đặt TRƯỚC listen; --no-self để CLI tự lọc tin mình gửi
   // --auto-accept: tự đồng ý kết bạn để người lạ nhắn được cho bot
   const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message", "-f", "all", "--no-self", "--auto-accept"], { stdio: ["ignore", "pipe", "inherit"] });
-  let buf = "";
-  child.stdout.on("data", async (chunk) => {
+  child.on("error", (e) => console.error("spawn zalo-agent lỗi:", e.message)); // CLI thiếu/ENOENT -> không văng uncaught (audit 16/8)
+
+  // Xử lý 1 event (async). Chạy TUẦN TỰ qua hàng đợi promise — handler 'data' cũ là async + await trong vòng lặp
+  // trên biến buf dùng chung -> chunk kế vào giữa chừng làm hỏng/lặp dòng JSON (audit 16/8).
+  async function handleEvent(ev) {
+    const d = ev.data ?? ev; // CLI có thể bọc event zca-js trong {type/event, data:{...}}
+    const fromId = ev.threadId ?? d.threadId ?? d.uidFrom ?? d.idTo ?? d.sender?.id ?? d.from;
+    const raw = d.content ?? d.text ?? d.message?.text ?? "";
+    const text = (typeof raw === "string" ? raw : raw?.text ?? raw?.title ?? "").toString().trim();
+    const isSelf = ev.isSelf ?? d.isSelf ?? d.self ?? false;
+    // zca-js: ThreadType 0=User, 1=Group (số) — kèm các biến thể chuỗi để chắc ăn
+    const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
+    const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
+    if (!fromId || isSelf) return;
+    // UX audit 16/8: khách gửi ẢNH nhà / file / sticker mà không kèm chữ -> bot im lặng -> tưởng bot chết.
+    // DM: trả lời hướng dẫn 1 lần cho tin không có chữ (ảnh/file), bỏ qua sticker/thiệp; group: bỏ qua.
+    const msgType = String(d.msgType ?? ev.msgType ?? "");
+    if (!text) {
+      if (!isGroup && /photo|image|file|video|chat\.(photo|file|video)/i.test(msgType)) {
+        const hint = "Em nhận được ảnh rồi ạ 📷. Để đăng tin, anh/chị nhắn kèm 1 dòng: loại BĐS + diện tích + giá + khu vực + SĐT (VD: \"Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx\"). Em ghép với ảnh và đăng ngay.";
+        sendReply(fromId, hint);
+        console.log(`← [${fromId}] (${msgType}, không chữ) → hướng dẫn`);
+      }
+      return;
+    }
+    if (isGroup) {
+      console.log(`← (group ${fromId}) ${text.slice(0, 60)}`);
+      await harvestGroup(text); // chỉ bóc data, không trả lời trong group
+    } else {
+      console.log(`← [${fromId}] ${text.slice(0, 60)}`);
+      const reply = await handle(text);
+      sendReply(fromId, reply);
+      console.log(`→ [${fromId}] ${reply.slice(0, 60)}`);
+    }
+  }
+
+  let buf = "", queue = Promise.resolve();
+  child.stdout.on("data", (chunk) => {           // đồng bộ: chỉ cắt dòng + đẩy vào hàng đợi
     buf += chunk.toString();
     let nl;
     while ((nl = buf.indexOf("\n")) >= 0) {
       const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
       if (!line || !line.startsWith("{")) continue; // bỏ dòng banner/cảnh báo không phải JSON
       let ev; try { ev = JSON.parse(line); } catch { continue; }
-      const d = ev.data ?? ev; // CLI có thể bọc event zca-js trong {type/event, data:{...}}
-      const fromId = ev.threadId ?? d.threadId ?? d.uidFrom ?? d.idTo ?? d.sender?.id ?? d.from;
-      const raw = d.content ?? d.text ?? d.message?.text ?? "";
-      const text = (typeof raw === "string" ? raw : raw?.text ?? raw?.title ?? "").toString().trim();
-      const isSelf = ev.isSelf ?? d.isSelf ?? d.self ?? false;
-      // zca-js: ThreadType 0=User, 1=Group (số) — kèm các biến thể chuỗi để chắc ăn
-      const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
-      const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
-      if (!fromId || isSelf) continue;
-      // UX audit 16/8: khách gửi ẢNH nhà / file / sticker mà không kèm chữ -> bot im lặng -> tưởng bot chết.
-      // DM: trả lời hướng dẫn 1 lần cho tin không có chữ (ảnh/file), bỏ qua sticker/thiệp; group: bỏ qua.
-      const msgType = String(d.msgType ?? ev.msgType ?? "");
-      if (!text) {
-        if (!isGroup && /photo|image|file|video|chat\.(photo|file|video)/i.test(msgType)) {
-          const hint = "Em nhận được ảnh rồi ạ 📷. Để đăng tin, anh/chị nhắn kèm 1 dòng: loại BĐS + diện tích + giá + khu vực + SĐT (VD: \"Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx\"). Em ghép với ảnh và đăng ngay.";
-          sendReply(fromId, hint);
-          console.log(`← [${fromId}] (${msgType}, không chữ) → hướng dẫn`);
-        }
-        continue;
-      }
-
-      if (isGroup) {
-        console.log(`← (group ${fromId}) ${text.slice(0, 60)}`);
-        await harvestGroup(text); // chỉ bóc data, không trả lời trong group
-      } else {
-        console.log(`← [${fromId}] ${text.slice(0, 60)}`);
-        const reply = await handle(text);
-        sendReply(fromId, reply);
-        console.log(`→ [${fromId}] ${reply.slice(0, 60)}`);
-      }
+      queue = queue.then(() => handleEvent(ev)).catch((e) => console.error("xử lý event lỗi:", e.message));
     }
   });
   child.on("exit", (code) => { console.error("zalo-agent listen thoát, code", code, "- thử chạy lại sau 5s"); setTimeout(startListener, 5000); });

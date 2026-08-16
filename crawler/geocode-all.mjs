@@ -5,9 +5,10 @@ import { pathToFileURL } from "node:url";
 import { smartGeocode, usingVietmap } from "./geo.mjs";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// district trong combined.json đã chuẩn ("Quận 7", "Huyện Củ Chi", "TP. Thủ Đức" — merge.mjs canonDistrictName).
+// Audit 16/8: bản cũ `^Q\.?\s*` bắt luôn chữ "Q" của "Quận 7" -> "Quận uận 7" -> mọi geocode hỏng, rơi về tâm tỉnh.
 function cleanDistrict(d) {
-  return (d || "").replace(/\(.*?\)/g, "").replace(/^Q\.?\s*/i, "Quận ").replace(/^H\.?\s*/i, "Huyện ")
-    .replace(/^TP\.?\s*/i, "Thành phố ").replace(/\s+/g, " ").trim();
+  return (d || "").replace(/\(.*?\)/g, "").replace(/^TP\.\s*/i, "Thành phố ").replace(/\s+/g, " ").trim();
 }
 const geocode = (q) => smartGeocode(q); // Vietmap -> Nominatim (đều có timeout 8s)
 function jitter(id, base) { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return base + ((h % 1000) / 1000 - 0.5) * 0.016; }

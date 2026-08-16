@@ -5,41 +5,28 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { fmtPrice, PROP } from "@/lib/format";
+import { fmtPrice, fmtPpm2, PROP, startOfDayVN } from "@/lib/format";
 import { median, percentile } from "@/lib/gemini";
 import { slugify, areaPath, DEAL_WORD } from "@/lib/slug";
+import { getAreas } from "@/lib/geo";
 import type { Listing } from "@/lib/types";
 import ListingRow from "@/components/ListingRow";
 import PriceTrend from "@/components/PriceTrend";
 
 type Deal = "ban" | "cho_thue";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nha-dat-radar-rkyn.vercel.app";
-const canonDistrict = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, "").trim();
 
-/** Bảng tên khu vực đang có tin (để resolve slug -> tên thật, và để dựng link/sitemap). */
-export async function loadAreas() {
-  const supabase = await createClient();
-  const { data } = await supabase.from("listings").select("province,district,deal").eq("status", "published").limit(5000);
-  const map = new Map<string, { province: string; districts: Map<string, { ban: number; cho_thue: number }>; ban: number; cho_thue: number }>();
-  for (const r of data ?? []) {
-    const p = (r.province || "").trim(); if (!p) continue;
-    const e = map.get(p) ?? { province: p, districts: new Map(), ban: 0, cho_thue: 0 };
-    e[r.deal as Deal] += 1;
-    const d = canonDistrict(r.district || "");
-    if (d) { const de = e.districts.get(d) ?? { ban: 0, cho_thue: 0 }; de[r.deal as Deal] += 1; e.districts.set(d, de); }
-    map.set(p, e);
-  }
-  return map;
-}
-
-export async function resolveArea(provinceSlug: string, districtSlug?: string) {
-  const areas = await loadAreas();
-  const prov = [...areas.values()].find((a) => slugify(a.province) === provinceSlug);
-  if (!prov) return null;
-  if (!districtSlug) return { province: prov.province, district: null as string | null, area: prov };
-  const dist = [...prov.districts.keys()].find((d) => slugify(d) === districtSlug);
+/** slug -> tên thật, dựa trên cây khu vực CACHE (lib/geo) — audit 16/8: bản cũ select 5.000 dòng x2 mỗi request (metadata + page) */
+export type AreaInfo = { province: string; ban: number; cho_thue: number; districts: Record<string, { ban: number; cho_thue: number }> };
+export async function resolveArea(provinceSlug: string, districtSlug?: string): Promise<{ province: string; district: string | null; area: AreaInfo } | null> {
+  const { counts } = await getAreas();
+  const provName = Object.keys(counts).find((p) => slugify(p) === provinceSlug);
+  if (!provName) return null;
+  const area: AreaInfo = { province: provName, ...counts[provName] };
+  if (!districtSlug) return { province: provName, district: null, area };
+  const dist = Object.keys(area.districts).find((d) => slugify(d) === districtSlug);
   if (!dist) return null;
-  return { province: prov.province, district: dist, area: prov };
+  return { province: provName, district: dist, area };
 }
 
 export function areaTitle(deal: Deal, province: string, district: string | null, n: number) {
@@ -47,8 +34,9 @@ export function areaTitle(deal: Deal, province: string, district: string | null,
   return `${DEAL_WORD[deal]} nhà đất ${where} — ${n.toLocaleString("vi-VN")} tin mới nhất T${new Date().getMonth() + 1}/${new Date().getFullYear()} | NhaDat Radar`;
 }
 
-const fmtPpm2 = (v: number) => (v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") + " tr/m²" : Math.round(v / 1e3) + "k/m²");
 const fmtP = (v: number, deal: Deal) => fmtPrice(v, deal);
+// cột thật sự dùng (ListingRow + số liệu) thay vì select("*")
+const COLS = "id,source,source_site,source_url,deal,kind,title,description,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,province,district,ward,images,ai_score,poster_role_guess,price_flag,first_seen_at,source_count,source_sites,status";
 
 export default async function AreaLanding({ deal, provinceSlug, districtSlug }: { deal: Deal; provinceSlug: string; districtSlug?: string }) {
   const r = await resolveArea(provinceSlug, districtSlug);
@@ -56,17 +44,16 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
   const { province, district, area } = r;
   const supabase = await createClient();
 
-  // Tin trong khu vực (đến 300 tin mới nhất để tính số liệu; hiển thị 20)
-  let q = supabase.from("listings").select("*").eq("status", "published").eq("deal", deal).ilike("province", `%${province}%`);
-  if (district) q = q.ilike("district", `${district}%`);
-  const startOfDayVN = (() => { const d = new Date(Date.now() + 7 * 3600 * 1000); d.setUTCHours(0, 0, 0, 0); return new Date(d.getTime() - 7 * 3600 * 1000).toISOString(); })();
+  // Tin trong khu vực (đến 300 tin mới nhất để tính số liệu; hiển thị 20). district trong DB đã chuẩn -> eq chính xác
+  let q = supabase.from("listings").select(COLS).eq("status", "published").eq("deal", deal).eq("province", province);
+  if (district) q = q.eq("district", district);
   const [{ data }, { count: newToday }] = await Promise.all([
     q.order("first_seen_at", { ascending: false }).limit(300),
-    (() => { let c = supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).ilike("province", `%${province}%`).gte("first_seen_at", startOfDayVN); if (district) c = c.ilike("district", `${district}%`); return c; })(),
+    (() => { let c = supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN()); if (district) c = c.eq("district", district); return c; })(),
   ]);
-  let rows = (data ?? []) as Listing[];
-  if (district) rows = rows.filter((x) => canonDistrict(x.district || "").toLowerCase() === district.toLowerCase());
-  const total = district ? rows.length : (area[deal] || rows.length);
+  const rows = (data ?? []) as Listing[];
+  // tổng THẬT từ cây đếm (cache) — audit: bản cũ dùng rows.length bị cap 300 cho cấp quận
+  const total = district ? (area.districts[district]?.[deal] ?? rows.length) : (area[deal] || rows.length);
 
   // ---- Số liệu thị trường (thật) ----
   const prices = rows.map((x) => x.price_vnd).filter((v): v is number => !!v && v > 0);
@@ -77,7 +64,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
   const kindStats = [...byKind.entries()].map(([k, arr]) => ({ kind: k, n: arr.length, med: median(arr)! })).filter((s) => s.n >= 3).sort((a, b) => b.n - a.n).slice(0, 4);
   // quận rẻ nhất (cấp tỉnh): median giá theo quận, cần ≥3 tin
   const byDist = new Map<string, number[]>();
-  if (!district) for (const x of rows) { const d = canonDistrict(x.district || ""); if (d && x.price_vnd) { const a = byDist.get(d) ?? []; a.push(x.price_vnd); byDist.set(d, a); } }
+  if (!district) for (const x of rows) { const d = x.district || ""; if (d && x.price_vnd) { const a = byDist.get(d) ?? []; a.push(x.price_vnd); byDist.set(d, a); } }
   const distStats = [...byDist.entries()].map(([d, arr]) => ({ d, n: arr.length, med: median(arr)! })).filter((s) => s.n >= 3).sort((a, b) => a.med - b.med);
   const cheapest = distStats.slice(0, 3), priciest = distStats.slice(-3).reverse();
   const brokers = rows.filter((x) => x.poster_role_guess === "moi_gioi").length, owners = rows.filter((x) => x.poster_role_guess === "chu_nha").length;
@@ -91,7 +78,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
   const show = rows.slice(0, 20);
   const searchHref = `/search?deal=${deal}&province=${encodeURIComponent(province)}${district ? `&district=${encodeURIComponent(district)}` : ""}`;
   const otherDeal: Deal = deal === "ban" ? "cho_thue" : "ban";
-  const districts = [...area.districts.entries()].filter(([, c]) => c[deal] > 0).sort((a, b) => b[1][deal] - a[1][deal]);
+  const districts = Object.entries(area.districts).filter(([, c]) => c[deal] > 0).sort((a, b) => b[1][deal] - a[1][deal]);
 
   // ---- FAQ sinh từ dữ liệu (chỉ hỏi câu có số liệu để trả lời) ----
   const faq: { q: string; a: string }[] = [];

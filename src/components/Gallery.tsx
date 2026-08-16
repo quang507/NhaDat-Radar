@@ -78,17 +78,19 @@ export default function Gallery({ images, title }: { images: string[]; title: st
         <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onClick={() => setOpen(false)}>
           <div className="flex items-center justify-between px-4 py-3 text-white text-sm" onClick={(e) => e.stopPropagation()}>
             <span className="font-semibold">{idx + 1} / {n}</span>
-            <button className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-lg" onClick={() => setOpen(false)}>✕</button>
+            <button aria-label="Đóng thư viện ảnh" className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-lg" onClick={() => setOpen(false)}>✕</button>
           </div>
           <div className="flex-1 relative flex items-center justify-center px-2 pb-4" onClick={(e) => e.stopPropagation()}>
             <Img src={images[idx]} alt={title} className="max-h-full max-w-full object-contain select-none" />
             {n > 1 && (
               <>
                 <button
+                  aria-label="Ảnh trước"
                   onClick={() => go(-1)}
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white text-xl"
                 >←</button>
                 <button
+                  aria-label="Ảnh sau"
                   onClick={() => go(1)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white text-xl"
                 >→</button>

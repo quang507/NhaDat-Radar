@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import ListingCard from "@/components/ListingCard";
 import { getFavs, pullDbFavs } from "@/components/FavButton";
-import { fmtPrice, PROP } from "@/lib/format";
+import { fmtPrice, fmtPpm2, PROP } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 
 // Trang tin đã lưu ♥ — id lưu ở localStorage, không cần đăng nhập.
@@ -70,7 +70,6 @@ export default function FavouritesPage() {
 function CompareTable({ items }: { items: Listing[] }) {
   const list = items.slice(0, 4); // giới hạn 4 cột cho dễ đọc
   const ppm2 = (x: Listing) => (x.price_per_m2 ? Number(x.price_per_m2) : null);
-  const fmtPpm2 = (v: number | null) => (v == null ? "-" : v >= 1e6 ? (v / 1e6).toFixed(1) + "tr/m²" : Math.round(v / 1e3) + "k/m²");
 
   // giá trị "tốt nhất" để highlight
   const prices = list.map((x) => x.price_vnd ?? Infinity);
@@ -84,7 +83,7 @@ function CompareTable({ items }: { items: Listing[] }) {
 
   const rows: { label: string; cell: (x: Listing) => React.ReactNode; best?: (x: Listing) => boolean }[] = [
     { label: "Giá", cell: (x) => fmtPrice(x.price_vnd, x.deal), best: (x) => (x.price_vnd ?? Infinity) === minPrice && minPrice !== Infinity },
-    { label: "Giá/m²", cell: (x) => fmtPpm2(ppm2(x)), best: (x) => (ppm2(x) ?? Infinity) === minPpm2 && minPpm2 !== Infinity },
+    { label: "Giá/m²", cell: (x) => { const v = ppm2(x); return v == null ? "-" : fmtPpm2(v); }, best: (x) => (ppm2(x) ?? Infinity) === minPpm2 && minPpm2 !== Infinity },
     { label: "Diện tích", cell: (x) => (x.area_m2 ? `${x.area_m2} m²` : "-"), best: (x) => (Number(x.area_m2) || 0) === maxArea && maxArea > 0 },
     { label: "Phòng ngủ", cell: (x) => x.bedrooms ?? "-" },
     { label: "Phòng tắm", cell: (x) => x.bathrooms ?? "-" },

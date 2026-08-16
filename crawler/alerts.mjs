@@ -30,9 +30,11 @@ for (const s of searches ?? []) {
   const { data: hits } = await q;
   if (!hits?.length) continue;
 
+  // escape HTML: tiêu đề/địa danh là dữ liệu CÀO từ ngoài, không được nội suy thẳng vào email (audit 16/8)
+  const esc = (s) => String(s ?? "").replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
   const rows = hits.map((h) =>
-    `<li style="margin-bottom:8px"><a href="${SITE}/listings/${h.id}" style="color:#2563eb;font-weight:600">${h.title}</a><br>
-     <span style="color:#555;font-size:13px">${fmtPrice(h.price_vnd)}${h.deal === "cho_thue" ? "/tháng" : ""}${h.area_m2 ? ` · ${h.area_m2}m²` : ""} · ${[h.district, h.province].filter(Boolean).join(", ")}</span></li>`
+    `<li style="margin-bottom:8px"><a href="${SITE}/listings/${h.id}" style="color:#2563eb;font-weight:600">${esc(h.title)}</a><br>
+     <span style="color:#555;font-size:13px">${fmtPrice(h.price_vnd)}${h.deal === "cho_thue" ? "/tháng" : ""}${h.area_m2 ? ` · ${h.area_m2}m²` : ""} · ${esc([h.district, h.province].filter(Boolean).join(", "))}</span></li>`
   ).join("");
   const criteria = [s.kind, s.deal === "ban" ? "bán" : s.deal === "cho_thue" ? "cho thuê" : null, s.district, s.province].filter(Boolean).join(" · ") || "tất cả";
 

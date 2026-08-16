@@ -114,7 +114,7 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="VD: căn hộ 2PN dưới 3 tỷ Hà Nội…"
             />
-            <button className="btn btn-primary !px-4" type="submit" disabled={busy}>➤</button>
+            <button className="btn btn-primary !px-4" type="submit" disabled={busy} aria-label="Gửi câu hỏi">➤</button>
           </form>
         </div>
       )}

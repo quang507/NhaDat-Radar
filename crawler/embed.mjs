@@ -52,13 +52,20 @@ const { data, error } = await sb.from("listings")
   .eq("status", "published").is("embedding", null).limit(300);
 if (error) { console.error("embed:", error.message, "(đã chạy migration 003 chưa?)"); process.exit(0); }
 
-let done = 0;
-for (const l of data ?? []) {
+// Chạy theo lô 5 song song (audit 16/8: tuần tự + N+1 update -> không bao giờ hết 300 tin trong 6'); 1 tin lỗi không chặn cả batch
+let done = 0, failed = 0;
+const rows = data ?? [];
+for (let i = 0; i < rows.length; i += 5) {
   if (Date.now() > EMBED_DEADLINE) { console.log("embed: hết ngân sách thời gian, dừng (mai chạy tiếp)."); break; }
-  const text = [l.title, l.description, l.kind, l.deal, l.district, l.province].filter(Boolean).join(" · ");
-  const v = await embed(text);
-  if (!v) break; // hết quota mọi key -> dừng, mai chạy tiếp
-  await sb.from("listings").update({ embedding: v }).eq("id", l.id);
-  done++;
+  const res = await Promise.all(rows.slice(i, i + 5).map(async (l) => {
+    const text = [l.title, l.description, l.kind, l.deal, l.district, l.province].filter(Boolean).join(" · ");
+    const v = await embed(text);
+    if (!v) return false;
+    await sb.from("listings").update({ embedding: v }).eq("id", l.id);
+    return true;
+  }));
+  done += res.filter(Boolean).length; failed += res.filter((r) => !r).length;
+  if (res.every((r) => !r)) { console.log("embed: cả lô thất bại (hết quota mọi key?) -> dừng, mai chạy tiếp."); break; }
 }
+if (failed) console.log(`embed: ${failed} tin lỗi (bỏ qua, mai thử lại).`);
 console.log(`embed: đã tạo embedding cho ${done}/${data?.length ?? 0} tin.`);

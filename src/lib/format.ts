@@ -3,10 +3,30 @@ export function fmtPrice(v: number | null, deal?: string): string {
   const suffix = deal === "cho_thue" ? "/th" : "";
   if (v >= 1e9) {
     const t = v / 1e9;
-    return (t % 1 ? t.toFixed(2).replace(/0$/, "") : String(t)) + " tỷ" + suffix;
+    return (t % 1 ? t.toFixed(2).replace(/\.?0+$/, "") : String(t)) + " tỷ" + suffix;
   }
   if (v >= 1e6) return (Math.round(v / 1e5) / 10).toString().replace(/\.0$/, "") + " triệu" + suffix;
   return Math.round(v / 1e3) + "k";
+}
+
+/** Nhãn giá ngắn cho pin bản đồ / chip: 3.75 tỷ -> "3.8tỷ", 6.5tr -> "7tr" (audit 16/8: từng lặp ở page.tsx & SearchClient) */
+export function shortPrice(v: number | null): string {
+  if (!v) return "TL";
+  if (v >= 1e9) { const t = v / 1e9; return (t % 1 ? t.toFixed(1) : String(t)) + "tỷ"; }
+  return Math.round(v / 1e6) + "tr";
+}
+
+/** 45.700.000 -> "45.7 tr/m²" · 120.000 -> "120k/m²" (từng lặp ở chi tiết tin & AreaLanding) */
+export const fmtPpm2 = (v: number) => (v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") + " tr/m²" : Math.round(v / 1e3) + "k/m²");
+
+/** "Quận 9 (P. Long Bình mới)" -> "Quận 9" (từng lặp ở 5 file) */
+export const canonDistrict = (s: string | null | undefined) => (s || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+
+/** 0h hôm nay theo giờ Việt Nam (ISO) — "N tin mới hôm nay" */
+export function startOfDayVN(): string {
+  const d = new Date(Date.now() + 7 * 3600 * 1000);
+  d.setUTCHours(0, 0, 0, 0);
+  return new Date(d.getTime() - 7 * 3600 * 1000).toISOString();
 }
 
 export function fresh(min: number | null): string {

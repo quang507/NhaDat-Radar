@@ -24,7 +24,7 @@ export default function AppointmentForm({ listingId, agentId }: { listingId: str
       listing_id: listingId, buyer_id: user.id, agent_id: agentId,
       slot: new Date(slot).toISOString(), note: note.slice(0, 500) || null,
     });
-    if (error) { setErr(error.message); setState("idle"); }
+    if (error) { console.error("appointment:", error.message); setErr("Chưa đặt được lịch — thử lại hoặc liên hệ trực tiếp người đăng."); setState("idle"); }
     else setState("done");
   }
 

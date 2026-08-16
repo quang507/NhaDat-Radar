@@ -39,7 +39,7 @@ const AMEN = [
 async function fetchPage(region, offset) {
   const url = `${API}?cg=1000&region_v2=${region}&limit=${LIMIT}&o=${offset}&st=s,u`;
   const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
-  if (!res.ok) return [];
+  if (!res.ok) { console.error("chotot HTTP", res.status); return []; } // audit: không nuốt lỗi im lặng
   const j = await res.json();
   return j.ads || [];
 }
@@ -131,7 +131,6 @@ function mapAd(a, city) {
     else if (x.poster_role === "moi_gioi") s -= 3;
     if (/gấp|giá rẻ|giá sốc|sốc|lh ngay|call ngay|0đ|siêu rẻ/i.test(x.title || "")) s -= 5; // dấu hiệu câu view/spam
     x.ai_score = Math.max(35, Math.min(98, Math.round(s)));
-    x.freshness_min = (parseInt(String(a2(x.id)), 10) % 720) + 3;
     delete x._company_ad; delete x._shop;
   });
 
@@ -143,8 +142,8 @@ function mapAd(a, city) {
     brokers: all.filter((x) => x.poster_role === "moi_gioi").length,
     by_city: all.reduce((a, x) => ((a[x.province] = (a[x.province] || 0) + 1), a), {}),
   };
+  if (!all.length) { console.error("chotot: 0 tin (API chặn/đổi?) -> giữ chotot.json cũ"); return; } // audit 16/8: không ghi đè bằng 0
   fs.writeFileSync(new URL("./chotot.json", import.meta.url), JSON.stringify({ summary, listings: all }, null, 0));
   console.error("DONE", JSON.stringify(summary));
 })();
 
-function a2(id) { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }

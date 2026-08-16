@@ -36,7 +36,7 @@ export default function SaveSearchButton({ filters }: { filters: Filters }) {
       area_min: Number(filters.areaMin) || null,
     });
     setState(error ? "idle" : "done");
-    if (error) alert("Lưu thất bại: " + error.message);
+    if (error) { console.error("saveSearch:", error.message); alert("Chưa lưu được bộ lọc — thử lại sau ít phút."); }
   }
 
   return (
