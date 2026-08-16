@@ -21,8 +21,13 @@ jobs:
       # Facebook KHÔNG chạy trên CI: IP GitHub Actions bị FB chặn (kiểm chứng 14/8 —
       # 13 nhóm đều trả trang login, 0 bài, tốn ~9 phút mỗi run).
       # Muốn cào FB: chạy crawl-local.bat trên máy nhà (IP dân cư) — daily.mjs tự nhận.
+      # Sự cố 16/8: bấm "Re-run" run cũ -> GitHub chạy lại COMMIT CŨ (seed kiểu xoá-chèn) -> DB mất ~1.600 tin.
+      # Chặn: chỉ chạy ở lần thử đầu; muốn chạy tay thì dùng "Run workflow" (luôn lấy main mới nhất).
       - name: Crawl + seed Supabase
+        if: github.run_attempt == 1
         run: node crawler/daily.mjs
+      - if: github.run_attempt != 1
+        run: echo "::warning::Bỏ qua — đây là Re-run của run cũ (chạy commit cũ). Dùng 'Run workflow' để chạy code mới nhất."
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
