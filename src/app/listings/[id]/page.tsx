@@ -20,6 +20,7 @@ import ListingMap from "@/components/ListingMap";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
 import PhoneReveal from "@/components/PhoneReveal";
+import SourceBadge from "@/components/SourceBadge";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
 
@@ -140,6 +141,8 @@ export default async function ListingDetail({
           <div className="text-[var(--ink-soft)] text-sm mt-1">
             📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
           </div>
+          {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
+          <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
         </div>
         <div className="text-right shrink-0">
           <div className="prata text-2xl text-brand">{fmtPrice(x.price_vnd, x.deal)}</div>
@@ -241,7 +244,7 @@ export default async function ListingDetail({
 
           <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-3">Mô tả</h3>
-            <p className="text-[var(--ink-soft)] whitespace-pre-line text-sm leading-relaxed">
+            <p className="text-[var(--ink)] whitespace-pre-line text-base leading-[1.65] max-w-prose">
               {x.description || "(Không có mô tả)"}
             </p>
           </div>

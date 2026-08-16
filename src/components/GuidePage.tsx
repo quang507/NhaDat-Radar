@@ -34,7 +34,7 @@ export default function GuidePage({
           <section key={s.title} className="card rounded-lg p-6 shadow-sm">
             <div className="text-[0.7rem] font-bold uppercase tracking-wide text-brand mb-1">Bước {i + 1}</div>
             <h2 className="prata text-xl mb-1">{s.title}</h2>
-            <p className="text-[var(--ink-soft)] text-sm mb-3">{s.desc}</p>
+            <p className="text-[var(--ink-soft)] text-base leading-relaxed mb-3">{s.desc}</p>
             <div className="flex flex-wrap gap-2 mb-4">
               {s.items.map((it) => (
                 <span key={it} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-brand/10 text-brand border border-brand/30">
@@ -42,7 +42,7 @@ export default function GuidePage({
                 </span>
               ))}
             </div>
-            <div className="grid gap-3 md:grid-cols-2 text-sm">
+            <div className="grid gap-3 md:grid-cols-2 text-[0.95rem] leading-relaxed">
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
                 <div className="font-bold text-amber-600 mb-1">⚖️ Lưu ý pháp lý</div>
                 <p className="text-[var(--ink-soft)]">{s.legal}</p>
@@ -65,7 +65,7 @@ export default function GuidePage({
           {legalPoints.map(([t, d]) => (
             <div key={t} className="card rounded-lg p-5">
               <h3 className="font-bold mb-1">🛡️ {t}</h3>
-              <p className="text-sm text-[var(--ink-soft)]">{d}</p>
+              <p className="text-[0.95rem] leading-relaxed text-[var(--ink-soft)]">{d}</p>
             </div>
           ))}
         </div>
