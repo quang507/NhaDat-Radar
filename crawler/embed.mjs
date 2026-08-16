@@ -53,19 +53,28 @@ const { data, error } = await sb.from("listings")
 if (error) { console.error("embed:", error.message, "(đã chạy migration 003 chưa?)"); process.exit(0); }
 
 // Chạy theo lô 5 song song (audit 16/8: tuần tự + N+1 update -> không bao giờ hết 300 tin trong 6'); 1 tin lỗi không chặn cả batch
-let done = 0, failed = 0;
+let done = 0, failed = 0, waited = false;
 const rows = data ?? [];
 for (let i = 0; i < rows.length; i += 5) {
   if (Date.now() > EMBED_DEADLINE) { console.log("embed: hết ngân sách thời gian, dừng (mai chạy tiếp)."); break; }
-  const res = await Promise.all(rows.slice(i, i + 5).map(async (l) => {
+  // Cả lô rớt vì 429 = thường là giới hạn/phút (kiểm chứng 16/8: 205/300 rồi rớt, 3' sau gọi lại 200 OK) -> nghỉ 61s thử lại 1 lần
+  // trước khi kết luận hết quota ngày.
+  const attempt = async () => Promise.all(rows.slice(i, i + 5).map(async (l) => {
     const text = [l.title, l.description, l.kind, l.deal, l.district, l.province].filter(Boolean).join(" · ");
     const v = await embed(text);
     if (!v) return false;
     await sb.from("listings").update({ embedding: v }).eq("id", l.id);
     return true;
   }));
+  let res = await attempt();
+  if (res.every((r) => !r) && !waited && Date.now() + 61000 < EMBED_DEADLINE) {
+    waited = true; console.log("embed: cả lô 429 -> nghỉ 61s (giới hạn/phút) rồi thử lại...");
+    await new Promise((r) => setTimeout(r, 61000));
+    res = await attempt();
+  }
   done += res.filter(Boolean).length; failed += res.filter((r) => !r).length;
-  if (res.every((r) => !r)) { console.log("embed: cả lô thất bại (hết quota mọi key?) -> dừng, mai chạy tiếp."); break; }
+  if (res.every((r) => !r)) { console.log("embed: cả lô thất bại sau khi chờ (hết quota ngày mọi key?) -> dừng, mai chạy tiếp."); break; }
+  if (res.some(Boolean)) waited = false; // có lô thành công thì cho phép nghỉ lại lần sau
 }
 if (failed) console.log(`embed: ${failed} tin lỗi (bỏ qua, mai thử lại).`);
 console.log(`embed: đã tạo embedding cho ${done}/${data?.length ?? 0} tin.`);
