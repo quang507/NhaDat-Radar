@@ -84,7 +84,8 @@ export default async function Home({
       {!hasFilter && hero && (
         <section className="hero-art relative w-screen left-1/2 -translate-x-1/2 overflow-hidden mb-6 -mt-6">
           {(() => {
-            const link = process.env.NEXT_PUBLIC_HERO_LINK;
+            // banner Villa Ny'ah -> trang Nhã Đạt (anh Quang chốt 16/8); env ghi đè được khi đổi đối tác
+            const link = process.env.NEXT_PUBLIC_HERO_LINK || "https://nhadat.company/";
             /* eslint-disable-next-line @next/next/no-img-element */
             const img = <img src={hero} alt={process.env.NEXT_PUBLIC_HERO_ALT || "Quảng cáo đối tác"} className="w-full h-[200px] object-cover md:h-auto md:max-h-[420px] md:object-cover" />;
             return link ? <a href={link} target="_blank" rel="noopener sponsored" aria-label="Xem quảng cáo đối tác">{img}</a> : img;
