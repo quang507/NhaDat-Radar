@@ -11,10 +11,15 @@ import SafeImg from "./SafeImg";
 export default function ListingRow({ x }: { x: Listing }) {
   const t = thumb(x.kind);
   const imgs = (x.images || []).slice(0, 4);
-  const ppm2 = x.price_per_m2 && x.deal === "ban" && x.price_per_m2 >= 1e6
-    ? (x.price_per_m2 / 1e6).toFixed(1).replace(/\.0$/, "") + " tr/m²" : null;
+  // giá/m² cho cả bán lẫn thuê (batdongsan hiện trên mọi card)
+  const ppm2 = x.price_per_m2 && x.price_per_m2 > 0
+    ? (x.price_per_m2 >= 1e6 ? (x.price_per_m2 / 1e6).toFixed(1).replace(/\.0$/, "") + " tr/m²" : Math.round(x.price_per_m2 / 1e3) + "k/m²")
+    : null;
   const loc = [x.district, x.province].filter(Boolean).join(", ");
-  const ago = x.first_seen_at ? fresh(Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000)) : null;
+  const ageMin = x.first_seen_at ? Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000) : null;
+  const ago = ageMin != null ? fresh(ageMin) : null;
+  const isNew = ageMin != null && ageMin < 24 * 60;
+  const multi = (x.source_count ?? 1) > 1;
 
   return (
     <Link href={`/listings/${x.id}`} className="card rounded-xl overflow-hidden flex flex-col sm:flex-row hover:border-[var(--line-strong)] hover:shadow-md transition-all group">
@@ -34,8 +39,12 @@ export default function ListingRow({ x }: { x: Listing }) {
         ) : (
           <div className="h-44 sm:h-full grid place-items-center text-white text-3xl" style={{ background: t.bg }}>{t.icon}</div>
         )}
-        <span className="absolute top-2 left-2 text-[0.7rem] font-bold px-2 py-0.5 rounded bg-black/55 text-white">
-          {x.deal === "ban" ? "Để bán" : "Cho thuê"}
+        <span className="absolute top-2 left-2 flex items-center gap-1">
+          <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded bg-black/55 text-white">
+            {x.deal === "ban" ? "Để bán" : "Cho thuê"}
+          </span>
+          {isNew && <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-emerald-500 text-white" title="Radar thấy tin trong 24 giờ qua">Mới</span>}
+          {x.price_flag && <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-red-500/90 text-white">⚠ giá lệch</span>}
         </span>
         {imgs.length > 0 && (
           <span className="absolute bottom-2 right-2 text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-black/55 text-white">
@@ -64,8 +73,14 @@ export default function ListingRow({ x }: { x: Listing }) {
           <span className={`font-bold px-1.5 py-0.5 rounded ${x.source === "agent" ? "text-emerald-600 bg-emerald-500/10" : "text-[var(--ink-soft)] bg-[var(--surface-2)]"}`}>
             {x.source === "agent" ? "Tự đăng" : x.source_site || "crawl"}
           </span>
+          {multi && (
+            <span className="font-bold px-1.5 py-0.5 rounded text-emerald-700 bg-emerald-500/10" title={`Cùng tin xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
+              {x.source_count} nguồn
+            </span>
+          )}
           <span className="text-[var(--ink-faint)]">{PROP[x.kind]}</span>
-          {ago && <span className="text-emerald-600 font-medium" title={x.first_seen_at ? `Thu thập: ${new Date(x.first_seen_at).toLocaleString("vi-VN")}` : undefined}>{ago}</span>}
+          {x.ai_score ? <span className="text-[var(--ink-faint)]" title="Điểm đầy đủ thông tin tin đăng (0-100)">{x.ai_score}/100</span> : null}
+          {ago && <span className="text-emerald-600 font-medium" title={x.first_seen_at ? `Radar thấy tin: ${new Date(x.first_seen_at).toLocaleString("vi-VN")}` : undefined}>{ago}</span>}
           <span className="ml-auto" onClick={(e) => e.preventDefault()}><FavButton id={x.id} /></span>
         </div>
       </div>
