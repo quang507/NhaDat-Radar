@@ -141,6 +141,9 @@ const { count: zaloDeleted, error: zaloErr } = await sb.from("listings")
 if (zaloErr) console.error("Dọn tin zalo_group lỗi:", zaloErr.message);
 else if (zaloDeleted) console.log(`🧹 Xóa ${zaloDeleted} tin zalo_group quá 1 năm.`);
 
+// Mốc "đã cào xong" cho run-if-stale.mjs (bật máy trễ giờ cron -> tự cào bù)
+try { fs.writeFileSync(new URL("./.last-run", import.meta.url), String(Date.now())); } catch { /* không quan trọng */ }
+
 // 3) Hậu xử lý: snapshot lịch sử giá + gửi email báo tin mới (đều tự bỏ qua nếu thiếu env)
 if (!SEED_ONLY) {
   step("node price-history.mjs");

@@ -21,6 +21,13 @@ module.exports = {
       cron_restart: "0 5 * * *",
     },
     {
+      // Bật máy trễ giờ cron (5h) -> nếu lần cào gần nhất >20h thì cào ngay (FB/Zalo máy nhà không mất ngày)
+      name: "crawl-on-boot",
+      script: "crawler/run-if-stale.mjs",
+      node_args: "--env-file=.env.local",
+      autorestart: false,
+    },
+    {
       // Đăng tin lên group Zalo: 8h sáng & 17h chiều (cần ZALO_POST_GROUPS)
       name: "zalo-post",
       script: "crawler/zalo-bot.mjs",

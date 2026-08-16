@@ -10,3 +10,4 @@ crawler/facebook.json
 crawler/apify-fb.json
 **/cookies.txt
 *.secret
+crawler/.last-run
