@@ -37,11 +37,25 @@ function heuristicScore(x) {
 }
 
 // "Quận 9 (P. Long Bình mới)" -> district "Quận 9", phần ngoặc bù vào ward nếu trống
+// Chuẩn hoá tiền tố quận/huyện về 1 dạng (audit 16/8: batdongsan "Q. Bình Thạnh / H. Hóc Môn / TP. Thủ Đức",
+// chotot/mogi "Quận Bình Thạnh / Huyện Hóc Môn / Thành phố Thủ Đức / Quận Thủ Đức" -> cùng quận bị chẻ 2-3 bucket
+// -> bộ lọc, trang khu vực, cụm so sánh giá đều sai). Chuẩn: "Quận X" · "Huyện X" · "TP. X" · "Thị xã X".
+function canonDistrictName(d) {
+  let s = d.replace(/\s+/g, " ").trim();
+  s = s.replace(/^(q\.\s*|q\s+)/i, "Quận ").replace(/^quận\s+/i, "Quận ")     // "Q. Bình Thạnh", "Q.1", "Q 7"
+       .replace(/^(h\.\s*|h\s+)/i, "Huyện ").replace(/^huyện\s+/i, "Huyện ")   // "H. Hóc Môn", "H.Nhà Bè"
+       .replace(/^(tp\.?|thành phố|thanh pho)\s+/i, "TP. ")
+       .replace(/^(tx\.?|thị xã|thi xa)\s+/i, "Thị xã ");
+  if (/^Quận Thủ Đức$/i.test(s)) s = "TP. Thủ Đức";           // Thủ Đức đã lên TP (2021)
+  s = s.replace(/^Quận\s+0?(\d{1,2})$/, "Quận $1");             // "Quận 07" -> "Quận 7"
+  return s;
+}
 function canonDistrict(raw) {
   const s = (raw || "").trim();
   if (!s) return { district: null, wardHint: null };
   const m = s.match(/\(\s*(?:P\.|Phường)?\s*([^)]*?)\s*(?:mới)?\s*\)\s*$/i);
-  const district = s.replace(/\s*\([^)]*\)\s*$/, "").trim() || null;
+  const base = s.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  const district = base ? canonDistrictName(base) : null;
   const wardHint = m && m[1] ? "Phường " + m[1].replace(/^(P\.|Phường)\s*/i, "") : null;
   return { district, wardHint };
 }
@@ -88,6 +102,25 @@ for (const [f] of sources) { const rows = load(f).map(norm); all = all.concat(ro
 const beforeJunk = all.length;
 all = all.filter((x) => !isJunk(x.title, x.description));
 console.error("junk filter:", beforeJunk, "->", all.length, `(bỏ ${beforeJunk - all.length} tin rác)`);
+
+// Cổng chất lượng (audit 16/8: batdongsantoanquoc 141/144 tin không giá, không DT, không quận -> lọt search dạng
+// "Thoả thuận · —", không lọc/so sánh được gì): tin phải có (giá HOẶC diện tích) VÀ (quận HOẶC tỉnh). Log theo nguồn.
+const beforeGate = all.length, dropped = {};
+all = all.filter((x) => {
+  const ok = (x.price_vnd || x.area_m2) && (x.district || x.province);
+  if (!ok) dropped[x.source_site] = (dropped[x.source_site] || 0) + 1;
+  return ok;
+});
+if (beforeGate !== all.length) console.error("cổng chất lượng:", beforeGate, "->", all.length, "(bỏ vì thiếu giá+DT hoặc thiếu khu vực:", JSON.stringify(dropped) + ")");
+
+// Tiêu đề quá ngắn ("Chính chủ bán", "phòng sạch đẹp") -> card vô nghĩa: nối thêm loại + khu vực để người xem hiểu
+const KIND_VI = { nha: "Nhà", dat: "Đất", can_ho: "Căn hộ", mat_bang: "Mặt bằng", phong_tro: "Phòng trọ", khac: "BĐS" };
+for (const x of all) {
+  if ((x.title || "").trim().length < 15) {
+    const extra = [KIND_VI[x.property_type] || "BĐS", x.area_m2 ? `${x.area_m2}m²` : null, x.district || x.province].filter(Boolean).join(" ");
+    x.title = `${(x.title || "").trim()} — ${extra}`.replace(/^— /, "");
+  }
+}
 
 // ---- Dedupe ----
 // 1) trong-nguồn theo id

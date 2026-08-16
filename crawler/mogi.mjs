@@ -26,7 +26,7 @@ function canonProvince(s) {
 }
 function propType(url) {
   if (/can-ho|chung-cu/.test(url)) return "can_ho";
-  if (/dat-nen|mua-ban-dat|thue-dat|\/dat\//.test(url)) return "dat";
+  if (/dat-nen|mua-ban-dat|mua-dat|thue-dat|dat-tho-cu|ban-dat|\/dat\//.test(url)) return "dat"; // audit 16/8: /mua-dat-tho-cu/ từng rơi vào "khac"
   if (/van-phong|mat-bang|kho-xuong/.test(url)) return "mat_bang";
   if (/phong-tro/.test(url)) return "phong_tro";
   if (/nha|biet-thu|villa/.test(url)) return "nha";
@@ -58,7 +58,8 @@ export function parseMogi(html) {
     const beds = (() => { const a = attrs.find((x) => /PN/i.test(x)); return a ? num(a) : null; })();
     const baths = (() => { const a = attrs.find((x) => /WC/i.test(x)); return a ? num(a) : null; })();
     const price = parsePrice(dec((after.match(/class="price">([\s\S]*?)<\/div>/) || [])[1] || ""));
-    const img = (before.match(/(https:\/\/cloud\.mogi\.vn\/images\/thumb-small\/[^\s"]+\.jpg)/g) || []).slice(-1)[0];
+    // list chỉ có thumb-small (~15KB, vỡ hạt ở gallery); bản gốc nằm cùng đường dẫn bỏ "thumb-small/" (kiểm chứng 16/8: 200, ~44KB)
+    const img = ((before.match(/(https:\/\/cloud\.mogi\.vn\/images\/thumb-small\/[^\s"]+\.jpg)/g) || []).slice(-1)[0] || "").replace("/images/thumb-small/", "/images/") || undefined;
     const id = (url.match(/-id(\d+)/) || [])[1];
     const parts = addr.split(",").map((s) => s.trim());
     out.push({

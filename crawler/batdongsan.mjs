@@ -41,13 +41,17 @@ function parsePrice(s) {
   if (/triệu\/th|triệu/.test(t)) return Math.round(n * 1e6);
   return Math.round(n);
 }
-function dealType(url) { return /\/cho-thue|-cho-thue-/.test(url) ? "cho_thue" : "ban"; }
+// Bán/thuê + loại lấy từ ĐOẠN ĐẦU đường dẫn (/ban-can-ho-chung-cu-.../, /cho-thue-nha-rieng-.../),
+// KHÔNG quét cả URL: slug tiêu đề hay chứa "…nhan-nha-cho-thue-ngay…" -> từng gán tin bán 2,2 tỷ thành "cho thuê" (audit 16/8).
+function firstSeg(url) { return (url.replace(/^https?:\/\/[^/]+/, "").split("/").filter(Boolean)[0] || "").toLowerCase(); }
+function dealType(url) { return /^(cho-thue|thue)-/.test(firstSeg(url)) ? "cho_thue" : "ban"; }
 function propType(url) {
-  if (/can-ho|chung-cu/.test(url)) return "can_ho";
-  if (/nha-rieng|nha-mat-pho|nha-biet-thu|nha-pho|biet-thu/.test(url)) return "nha";
-  if (/-dat|dat-nen|dat-/.test(url)) return "dat";
-  if (/van-phong|mat-bang|kho-|nha-xuong/.test(url)) return "mat_bang";
-  if (/phong-tro/.test(url)) return "phong_tro";
+  const s = firstSeg(url);
+  if (/can-ho|chung-cu|condotel|officetel/.test(s)) return "can_ho";
+  if (/nha-rieng|nha-mat-pho|nha-biet-thu|nha-pho|biet-thu|lien-ke|nha-ngo|nha-hem/.test(s)) return "nha";
+  if (/(^|-)dat(-|$)|dat-nen|trang-trai/.test(s)) return "dat";
+  if (/van-phong|mat-bang|kho-|nha-xuong|shophouse|cua-hang/.test(s)) return "mat_bang";
+  if (/phong-tro|nha-tro/.test(s)) return "phong_tro";
   return "khac";
 }
 

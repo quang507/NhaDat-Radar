@@ -10,6 +10,14 @@
 - **PC nhà bạn** (hướng dẫn này): Facebook + Zalo (+ Batdongsan khi CI bị chặn) — cần IP dân cư VN.
 - **nhadat.vn đã chết** (tên miền về VNNIC từ 8/2026) — không còn trong pipeline.
 
+## Cách đơn giản nhất (không cần nhớ lệnh)
+- **Bấm đúp `BAT-RADAR.bat`** ở thư mục gốc repo: giao việc cho pm2 + ghi sổ + hiện trạng thái. Chỉ cần làm khi cài máy mới
+  hoặc khi `pm2 status` không thấy `zalo-bot` online. Bình thường bật máy là pm2 tự dậy (đã cài `pm2-windows-startup`).
+- Máy Sleep = bot ngưng → Settings → Power → *When plugged in, sleep: Never*.
+- Cửa sổ cmd đen trống xuất hiện sau khi chạy pm2 = daemon pm2, **đừng đóng**.
+- Luôn dùng PowerShell **thường** (không Run as administrator) — admin sinh daemon riêng, hai bên không thấy nhau.
+- pm2 = "quản gia": `pm2 status` xem việc · `pm2 logs zalo-bot` xem log · `pm2 restart zalo-bot` bật lại · `pm2 kill` đuổi quản gia (làm lại từ đầu).
+
 ## Vòng đời tin (từ 16/8/2026)
 - Seed **không xoá-chèn** nữa: tin cũ được cập nhật (`last_seen_at`, `crawl_count`), giữ `first_seen_at` + embedding.
 - Tin không thấy lại ≥36h (FB/Batdongsan: 7 ngày) → `status = gone`: ẩn khỏi tìm kiếm, trang chi tiết vẫn mở kèm nhãn "có thể đã giao dịch". Gone quá 30 ngày → xoá.

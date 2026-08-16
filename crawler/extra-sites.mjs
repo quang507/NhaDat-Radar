@@ -95,6 +95,9 @@ async function batdongsantoanquoc() {
       r.price_vnd = priceFromText(price) ?? r.price_vnd;
       if (prov) r.province = prov.replace(/^tại\s*/i, "") || r.province;
       r.listing_type = dealOf(path);
+      // loại theo mục đang cào, không đoán từ tiêu đề ("Cần Bán NHAnh Lô Đất" từng bị bắt chữ "nha" -> kind nhà) — audit 16/8
+      if (path === "/ban-dat") r.property_type = "dat";
+      else if (path === "/ban-nha") r.property_type = "nha";
       out.push(r);
     }
     await sleep(1200);
