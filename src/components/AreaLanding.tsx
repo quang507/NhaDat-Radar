@@ -10,6 +10,7 @@ import { median, percentile } from "@/lib/gemini";
 import { slugify, areaPath, DEAL_WORD } from "@/lib/slug";
 import type { Listing } from "@/lib/types";
 import ListingRow from "@/components/ListingRow";
+import PriceTrend from "@/components/PriceTrend";
 
 type Deal = "ban" | "cho_thue";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nha-dat-radar-rkyn.vercel.app";
@@ -162,6 +163,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
             </p>
           ) : null}
           <p className="text-[0.7rem] text-[var(--ink-faint)] mt-2">Tính từ {prices.length} tin đang hiển thị (đến 300 tin mới nhất). Tham khảo, không phải định giá chính thức.</p>
+          <div className="mt-3"><PriceTrend province={province} district={district} kind="all" deal={deal} compact /></div>
         </section>
       ) : null}
 

@@ -92,6 +92,7 @@ for (const x of comb.listings) {
     phone_masked: x.phone_masked ?? null,                  // đã che 4 số -> hiển thị được (giống Homigo)
     ai_score: x.ai_score, trust_score: trustScore(x), poster_role_guess: x.poster_role,
     poster_listing_count: x.poster_listing_count ?? null, poster_reasons: x.poster_reasons || [],
+    poster_key: x.phone_hash || x.poster_id || null,       // id tài khoản trên nguồn / hash SĐT -> "N tin khác của người đăng"
     price_flag: x.price_warning || null,
     source_count: x.source_count || 1, source_sites: x.source_sites || [x.source_site],
     posted_at: x.posted_at ?? null,                        // đăng trên nguồn lúc (nếu nguồn có)

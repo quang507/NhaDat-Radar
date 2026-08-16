@@ -100,6 +100,7 @@ create table if not exists listings (
   phone_masked         text,                 -- SĐT che 4 số cuối (không phải dữ liệu định danh)
   poster_listing_count int,
   poster_reasons       text[] not null default '{}', -- lý do dấu hiệu môi giới/chính chủ
+  poster_key           text,                 -- id tài khoản trên nguồn / hash SĐT (011) -> "N tin khác của người đăng"
 
   status         listing_status not null default 'pending',
   posted_at      timestamptz,

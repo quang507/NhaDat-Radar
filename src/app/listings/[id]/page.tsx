@@ -9,6 +9,7 @@ import { median, percentile } from "@/lib/gemini";
 import { posterReasonText, type Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
 import ReportButton from "./ReportButton";
+import PriceTrend from "@/components/PriceTrend";
 import ListingMap from "@/components/ListingMap";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
@@ -53,8 +54,8 @@ export default async function ListingDetail({
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
-  // So sánh giá + tin liên quan: cùng loại + cùng quận (song song)
-  const [{ data: compRows }, { data: relRows }] = await Promise.all([
+  // So sánh giá + tin liên quan (cùng loại + cùng quận) + tin khác của cùng người đăng (song song)
+  const [{ data: compRows }, { data: relRows }, { data: posterRows, count: posterCount }] = await Promise.all([
     x.district
       ? supabase.from("listings").select("price_per_m2")
           .eq("status", "published").eq("deal", x.deal).eq("kind", x.kind)
@@ -65,7 +66,13 @@ export default async function ListingDetail({
       .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
       .ilike(x.district ? "district" : "province", `%${x.district || x.province || ""}%`)
       .order("ai_score", { ascending: false, nullsFirst: false }).limit(12),
+    x.poster_key
+      ? supabase.from("listings").select("*", { count: "exact" })
+          .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
+          .order("first_seen_at", { ascending: false }).limit(6)
+      : Promise.resolve({ data: [] as Listing[], count: 0 }),
   ]);
+  const posterOthers = ((posterRows ?? []) as Listing[]);
 
   const ppm2s = (compRows ?? []).map((r) => Number(r.price_per_m2)).filter((v) => v > 0);
   const med = median(ppm2s), p25 = percentile(ppm2s, 25), p75 = percentile(ppm2s, 75);
@@ -172,6 +179,8 @@ export default async function ListingDetail({
               </p>
             </div>
           )}
+          {/* Xu hướng giá khu vực từ price_history (snapshot mỗi sáng) — trước đây bảng có mà chi tiết tin không dùng */}
+          {x.province ? <PriceTrend province={x.province} district={x.district} kind={x.kind} deal={x.deal} /> : null}
 
           {/* Dấu hiệu chính chủ / môi giới — từ DỮ LIỆU (tần suất tài khoản, nguồn ghi nhận, nội dung), nêu rõ lý do */}
           {roleGuess === "moi_gioi" && (
@@ -321,6 +330,17 @@ export default async function ListingDetail({
           </div>
         </div>
       </div>
+
+      {/* Tin khác của cùng người đăng (kiểu hồ sơ môi giới batdongsan "đang có N tin") */}
+      {posterOthers.length > 0 && (
+        <section className="mt-12">
+          <h2 className="prata text-xl mb-1">Người đăng này còn {posterCount ?? posterOthers.length} tin khác</h2>
+          <p className="text-xs text-[var(--ink-soft)] mb-4">Gom theo tài khoản đăng trên {x.source_site || "nguồn"} — {(posterCount ?? 0) >= 3 ? "nhiều tin cùng lúc thường là môi giới/sàn." : "ít tin, có thể là chính chủ."}</p>
+          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
+            {posterOthers.map((r) => <ListingCard key={r.id} x={r} />)}
+          </div>
+        </section>
+      )}
 
       {/* Tin liên quan */}
       {related.length > 0 && (

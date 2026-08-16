@@ -5,7 +5,9 @@ import { useEffect, useRef } from "react";
 // Cloudflare Turnstile (captcha vô hình/managed). Site key là CÔNG KHAI — secret
 // chỉ nằm trong Supabase Dashboard, không bao giờ ở code.
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAAEQClujXbzlwPwmn";
-const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/api.js?render=explicit";
+// LƯU Ý: đường dẫn đúng có "/v0/" — bản cũ thiếu -> 404 -> widget không tải -> không có token
+// -> Supabase (đã bật captcha) từ chối MỌI đăng nhập (sự cố 16/8/2026).
+const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
 declare global {
   interface Window {
@@ -49,9 +51,16 @@ export default function Turnstile() {
         setTimeout(tryRender, 300);
       }
     };
+    // Script bị chặn/lỗi (adblock, mạng) quá 8s -> báo rõ thay vì im lặng để người dùng bấm gửi rồi nhận "captcha thất bại"
+    const warn = setTimeout(() => {
+      if (!stopped && !window.turnstile && ref.current && ref.current.childElementCount === 0) {
+        ref.current.innerHTML = '<p class="text-xs text-amber-600">Không tải được captcha (mạng/adblock chặn challenges.cloudflare.com). Tắt adblock cho trang này rồi tải lại.</p>';
+      }
+    }, 8000);
     tryRender();
     return () => {
       stopped = true;
+      clearTimeout(warn);
       if (id && window.turnstile) window.turnstile.remove(id);
     };
   }, []);

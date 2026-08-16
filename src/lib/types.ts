@@ -45,6 +45,7 @@ export type Listing = {
   phone_masked?: string | null;       // SĐT đã che 4 số
   poster_listing_count?: number | null;
   poster_reasons?: string[] | null;   // lý do dấu hiệu môi giới/chính chủ
+  poster_key?: string | null;         // id tài khoản trên nguồn / hash SĐT (migration 011)
 };
 
 export type PriceFlag = {
