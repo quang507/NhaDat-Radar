@@ -20,7 +20,7 @@ const LINKS: [string, string][] = [
 export default function MobileMenu({ loggedIn = false }: { loggedIn?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button aria-label="Mở menu" className="btn !px-3" onClick={() => setOpen((v) => !v)}>
         {open ? "✕" : "☰"}
       </button>

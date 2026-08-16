@@ -16,13 +16,15 @@ export default async function Nav() {
     <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]">
       <div className="relative max-w-6xl mx-auto px-5 py-3 flex items-center gap-3">
         <MobileMenu loggedIn={!!user} />
-        <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap min-w-0">
+        {/* logo KHÔNG được co (từng bị min-w-0 -> chữ hiệu tràn đè lên menu khi đã đăng nhập, 16/8) */}
+        <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="NhaDat Radar" className="w-8 h-8 rounded-lg object-contain shrink-0" />
-          {/* mobile <400px: chữ hiệu bị cắt "NhaDat Rac…" (UX audit 16/8) -> ẩn chữ, giữ logo */}
+          {/* mobile <420px: chữ hiệu bị cắt "NhaDat Rac…" (UX audit 16/8) -> ẩn chữ, giữ logo */}
           <span className="hidden min-[420px]:inline">NhaDat&nbsp;<span className="text-brand">Radar</span></span>
         </Link>
-        <nav className="hidden md:flex gap-0.5 ml-5 pl-5 border-l border-[var(--line)] text-sm font-semibold text-[var(--ink-soft)]">
+        {/* menu ngang chỉ từ lg (1024px): ở md khi đăng nhập có thêm ♥/chat/avatar/Đăng tin/Đăng xuất -> không đủ chỗ */}
+        <nav className="hidden lg:flex gap-0.5 ml-5 pl-5 border-l border-[var(--line)] text-sm font-semibold text-[var(--ink-soft)] min-w-0 overflow-hidden">
           <Link href="/nha-dat-ban" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Nhà đất bán</Link>
           <Link href="/nha-dat-cho-thue" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Nhà đất cho thuê</Link>
           <Link href="/projects" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Dự án</Link>
@@ -31,7 +33,7 @@ export default async function Nav() {
           <Link href="/dinh-gia" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Định Giá AI</Link>
           <Link href="/tinh-lai-vay" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Lãi Vay</Link>
         </nav>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 shrink-0">
           <NavFav />
           {user ? (
             <>
@@ -47,7 +49,7 @@ export default async function Nav() {
                 + Đăng tin
               </Link>
               {/* mobile: Đăng xuất nằm trong menu ☰ / trang tài khoản, tránh tràn thanh nav */}
-              <form action={signOut} className="hidden md:block">
+              <form action={signOut} className="hidden lg:block">
                 <button className="btn" type="submit">Đăng xuất</button>
               </form>
             </>

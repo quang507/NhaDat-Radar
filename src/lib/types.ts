@@ -82,6 +82,8 @@ export type Project = {
   price_min: number | null;
   price_max: number | null;
   status: string;
+  priority?: number | null;   // 012: cao lên trước (dự án Nhã Đạt/đối tác)
+  is_partner?: boolean | null;
 };
 
 export type Profile = {

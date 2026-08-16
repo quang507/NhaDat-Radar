@@ -55,7 +55,7 @@ export default async function Home({
   const { data } = await query.order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150);
   const listings = (data ?? []) as Listing[];
 
-  const { data: projData } = await supabase.from("projects").select("*").eq("status", "published").limit(6);
+  const { data: projData } = await supabase.from("projects").select("*").eq("status", "published").order("priority", { ascending: false }).order("name").limit(6);
   const projects = (projData ?? []) as Project[];
 
   // Số liệu "tin đang rao / quận / nguồn" phải THẬT trên toàn DB (UX audit 16/8: trước đây đếm trên 150 tin

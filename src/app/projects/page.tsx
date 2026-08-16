@@ -14,10 +14,11 @@ export default async function ProjectsPage() {
     .from("projects")
     .select("*")
     .eq("status", "published")
+    .order("priority", { ascending: false })   // dự án đối tác/Nhã Đạt (priority cao) lên đầu — migration 012
     .order("name");
   const projects = (data ?? []) as Project[];
-  // Dự án có ảnh lên trước cho đẹp
-  const sorted = [...projects].sort((a, b) => (b.images?.length ? 1 : 0) - (a.images?.length ? 1 : 0));
+  // giữ thứ tự priority; trong cùng mức thì dự án có ảnh lên trước
+  const sorted = [...projects].sort((a, b) => ((b.priority ?? 0) - (a.priority ?? 0)) || ((b.images?.length ? 1 : 0) - (a.images?.length ? 1 : 0)));
 
   return (
     <div>
@@ -39,7 +40,7 @@ export default async function ProjectsPage() {
                 {p.images?.[0] ? (
                   <SafeImg src={p.images[0]} alt={p.name} className="lc-img w-full h-full object-cover" />
                 ) : "🏙️"}
-                <span className="absolute top-2 left-2 text-[0.65rem] font-bold px-2 py-0.5 rounded-md bg-black/55 text-white backdrop-blur-sm">Dự án</span>
+                <span className={`absolute top-2 left-2 text-[0.65rem] font-bold px-2 py-0.5 rounded-md text-white backdrop-blur-sm ${p.is_partner ? "bg-brand" : "bg-black/55"}`}>{p.is_partner ? "Đối tác Radar" : "Dự án"}</span>
               </div>
               <div className="p-4 flex flex-col flex-1">
                 <h3 className="font-bold leading-snug group-hover:text-brand transition-colors">{p.name}</h3>
