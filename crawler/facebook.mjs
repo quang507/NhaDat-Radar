@@ -47,7 +47,10 @@ async function gemini(text) {
     if (res.status === 429) { _ki++; continue; }   // key hết quota -> xoay sang key khác
     const j = await res.json();
     if (!res.ok) throw new Error("Gemini " + res.status + ": " + JSON.stringify(j).slice(0, 160));
-    return JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
+    const raw = j.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    // Gemini thỉnh thoảng trả escape hỏng ("\u" cụt, emoji) -> "Bad Unicode escape" làm mất tin; vá nhẹ rồi parse lại
+    try { return JSON.parse(raw); }
+    catch { return JSON.parse(raw.replace(/\\u(?![0-9a-fA-F]{4})/g, "\\\\u").replace(/[\x00-\x1f]/g, "")); }
   }
   throw new Error("Tất cả " + KEYS.length + " key Gemini đều 429 (hết quota) - cần thêm key project khác hoặc bật trả phí");
 }
@@ -128,12 +131,15 @@ async function scrapePlaywright() {
 
   await page.goto("https://www.facebook.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
   await sleep(4000);
-  if (page.url().includes("/login") || (await page.$('input[name="pass"]'))) {
-    console.error("⚠ FB: cookie hết hạn (bị đá về login). Export cookie mới bằng Cookie-Editor.");
+  // Kiểm tra THẬT: FB xoá cookie xs/c_user ngay khi phiên không hợp lệ (trang chủ khi đó hiện màn "Tiếp tục / Dùng trang
+  // cá nhân khác" — KHÔNG có ô mật khẩu, nên check cũ báo "đăng nhập OK" giả và các nhóm chỉ ra 1-3 bài công khai, 16/8).
+  const alive = (await ctx.cookies("https://www.facebook.com")).some((c) => c.name === "c_user");
+  if (!alive || page.url().includes("/login") || (await page.$('input[name="pass"]'))) {
+    console.error("⚠ FB: phiên cookie KHÔNG hợp lệ (FB đã xoá c_user/xs) -> đăng nhập lại acc clone trên Chrome rồi Export cookie mới bằng Cookie-Editor.");
     await browser.close();
     return [];
   }
-  console.error("FB: đăng nhập OK");
+  console.error("FB: đăng nhập OK (c_user còn sống)");
 
   const groupUrls = JSON.parse(process.env.FB_GROUP_URLS || "[]");
   const posts = [];
@@ -143,21 +149,29 @@ async function scrapePlaywright() {
     const url = raw0.replace(/\/$/, "") + "/";
     try {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-      // cuộn nhiều lần để FB lazy-load bài (KHÔNG hard-fail nếu selector chưa có ngay)
-      let last = 0, stable = 0;
-      for (let i = 0; i < 14; i++) {
-        await page.mouse.wheel(0, 3500);
-        await sleep(2500);
-        const n = await page.$$eval(POST_SEL, (x) => x.length).catch(() => 0);
-        if (n === last) { if (++stable >= 3 && n > 0) break; } else stable = 0;
-        last = n;
+      // FB ẢO HOÁ feed: chỉ giữ ~3 bài trong DOM, cuộn xuống là bài cũ bị gỡ -> phải GOM SAU MỖI LẦN CUỘN
+      // (bản cũ chỉ bốc 1 lần cuối -> mãi 3 bài/nhóm, kiểm chứng 16/8). Khử trùng theo link/text; dừng khi đủ
+      // FB_POSTS (mặc định 30) hoặc 4 lần cuộn liên tiếp không thêm bài mới.
+      const WANT = Number(process.env.FB_POSTS || 30);
+      const seen = new Map(); // key -> {text,url}
+      let stale = 0;
+      for (let i = 0; i < 40 && seen.size < WANT; i++) {
+        const batch = await page.$$eval(POST_SEL, (nodes) =>
+          nodes.map((n) => ({
+            text: n.innerText || "",
+            url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
+          }))).catch(() => []);
+        const before = seen.size;
+        for (const t of batch) {
+          if (t.text.length <= 40) continue;
+          const key = (t.url && t.url.replace(/[?#].*$/, "")) || t.text.slice(0, 120);
+          if (!seen.has(key)) seen.set(key, t);
+        }
+        if (seen.size === before) { if (++stale >= 4 && seen.size > 0) break; } else stale = 0;
+        await page.mouse.wheel(0, 2500);
+        await sleep(2200);
       }
-      const texts = await page.$$eval(POST_SEL, (nodes) =>
-        nodes.map((n) => ({
-          text: n.innerText || "",
-          url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
-        })));
-      const kept = texts.filter((t) => t.text.length > 40);
+      const kept = [...seen.values()];
       if (!kept.length) {
         // Chẩn đoán: FB trả về gì? (login wall / checkpoint / trang rỗng do chặn headless)
         const title = await page.title().catch(() => "");
