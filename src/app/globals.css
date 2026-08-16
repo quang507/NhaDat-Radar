@@ -11,9 +11,9 @@
   --ink-faint: #8b93a1;
   --line: #e5e9f0;
   --line-strong: #d3d9e3;
-  --brand: #d6402c;        /* đỏ gạch — chất sàn BĐS Việt, bớt "xanh AI" */
-  --brand-ink: #b53321;
-  --accent: #1f6f5c;
+  --brand: #1e7b52;        /* xanh lá đậm — khớp logo "nd" (đổi từ đỏ gạch theo yêu cầu 16/8) */
+  --brand-ink: #165f3f;
+  --accent: #c2711b;       /* cam đất — điểm nhấn phụ (nút bản đồ) để không lẫn với brand xanh */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -26,9 +26,9 @@
     --line: #232c3a;
     --line-strong: #33405230;
     --line-strong: #334052;
-    --brand: #f2705c;
-    --brand-ink: #f58a79;
-    --accent: #3aa98a;
+    --brand: #4cc38a;
+    --brand-ink: #6bd6a2;
+    --accent: #e0973f;
   }
 }
 html { color-scheme: light dark; }
