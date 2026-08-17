@@ -1,0 +1,35 @@
+name: E2E tests
+
+on:
+  pull_request: {}          # mỗi PR chạy toàn bộ unit + e2e trên web production
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL cần test (mặc định production)"
+        required: false
+  schedule:
+    - cron: "30 2 * * *"    # 09:30 VN, sau crawl 09:00 — canh dữ liệu mới không làm vỡ web
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm ci
+      # chromium cho desktop + webkit cho project iPhone 14 (thiếu webkit = 19 ca mobile fail, 17/8)
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Run tests
+        run: npx playwright test
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || 'https://nha-dat-radar-rkyn.vercel.app' }}
+      - name: Upload báo cáo HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/report-html
+          retention-days: 14

@@ -1,0 +1,82 @@
+[
+  {
+    "_note": "Dữ liệu kiểm thử — nạp bằng: node --env-file=.env.local tests/fixtures/seed-test.mjs. Phủ các ca biên: đủ trường, thiếu giá, thiếu ảnh, thiếu toạ độ, giá lệch, tin thuê, nhiều nguồn.",
+    "id": "test-0001",
+    "title": "[TEST] Căn hộ 2PN đầy đủ thông tin — ca chuẩn",
+    "kind": "can_ho", "deal": "ban", "source": "crawl", "source_site": "chotot",
+    "price_vnd": 3200000000, "area_m2": 68, "bedrooms": 2, "bathrooms": 2,
+    "province": "Hà Nội", "district": "Cầu Giấy", "ward": "Dịch Vọng",
+    "lat": 21.0362, "lng": 105.7906, "ai_score": 92,
+    "images": ["https://picsum.photos/seed/t1a/1200/800", "https://picsum.photos/seed/t1b/1200/800", "https://picsum.photos/seed/t1c/1200/800"]
+  },
+  {
+    "id": "test-0002",
+    "title": "[TEST] Nhà phố KHÔNG có giá — phải hiện 'Thoả thuận'",
+    "kind": "nha", "deal": "ban", "source": "crawl", "source_site": "mogi",
+    "price_vnd": null, "area_m2": 45,
+    "province": "Hồ Chí Minh", "district": "Quận 7",
+    "lat": 10.7379, "lng": 106.7017,
+    "images": ["https://picsum.photos/seed/t2/1200/800"]
+  },
+  {
+    "id": "test-0003",
+    "title": "[TEST] Đất nền KHÔNG ảnh — card phải hiện gradient thay ảnh",
+    "kind": "dat", "deal": "ban", "source": "crawl", "source_site": "nhadat",
+    "price_vnd": 1500000000, "area_m2": 100,
+    "province": "Đà Nẵng", "district": "Ngũ Hành Sơn",
+    "lat": 16.0022, "lng": 108.2631,
+    "images": []
+  },
+  {
+    "id": "test-0004",
+    "title": "[TEST] Phòng trọ cho thuê — giá phải có hậu tố /th",
+    "kind": "phong_tro", "deal": "cho_thue", "source": "crawl", "source_site": "chotot",
+    "price_vnd": 3500000, "area_m2": 25,
+    "province": "Hà Nội", "district": "Đống Đa",
+    "lat": 21.0146, "lng": 105.8262,
+    "images": ["https://picsum.photos/seed/t4/1200/800"]
+  },
+  {
+    "id": "test-0005",
+    "title": "[TEST] Tin GIÁ LỆCH — phải hiện cảnh báo ⚠ giá lệch",
+    "kind": "can_ho", "deal": "ban", "source": "crawl", "source_site": "batdongsan",
+    "price_vnd": 150000000, "area_m2": 80, "price_flag": true,
+    "province": "Hồ Chí Minh", "district": "Quận 1",
+    "lat": 10.7757, "lng": 106.7004,
+    "images": ["https://picsum.photos/seed/t5/1200/800"]
+  },
+  {
+    "id": "test-0006",
+    "title": "[TEST] Tin KHÔNG toạ độ — chi tiết không được sập, map ẩn/geocode bù",
+    "kind": "nha", "deal": "ban", "source": "crawl", "source_site": "facebook",
+    "price_vnd": 2800000000, "area_m2": 52,
+    "province": "Hà Nội", "district": "Hoàng Mai",
+    "lat": null, "lng": null,
+    "images": ["https://picsum.photos/seed/t6/1200/800"]
+  },
+  {
+    "id": "test-0007",
+    "title": "[TEST] Tin 12 ảnh — gallery phải có nút +N ảnh và vuốt hết được",
+    "kind": "can_ho", "deal": "ban", "source": "crawl", "source_site": "chotot",
+    "price_vnd": 5100000000, "area_m2": 95, "bedrooms": 3, "bathrooms": 2,
+    "province": "Hồ Chí Minh", "district": "Quận 2",
+    "lat": 10.7872, "lng": 106.7498,
+    "images": [
+      "https://picsum.photos/seed/t7a/1200/800", "https://picsum.photos/seed/t7b/1200/800",
+      "https://picsum.photos/seed/t7c/1200/800", "https://picsum.photos/seed/t7d/1200/800",
+      "https://picsum.photos/seed/t7e/1200/800", "https://picsum.photos/seed/t7f/1200/800",
+      "https://picsum.photos/seed/t7g/1200/800", "https://picsum.photos/seed/t7h/1200/800",
+      "https://picsum.photos/seed/t7i/1200/800", "https://picsum.photos/seed/t7j/1200/800",
+      "https://picsum.photos/seed/t7k/1200/800", "https://picsum.photos/seed/t7l/1200/800"
+    ]
+  },
+  {
+    "id": "test-0008",
+    "title": "[TEST] Tiêu đề chứa ký tự đặc biệt <script>alert(1)</script> & \"quote\" — phải escape, không XSS",
+    "kind": "khac", "deal": "ban", "source": "crawl", "source_site": "facebook",
+    "price_vnd": 999000000, "area_m2": 30,
+    "province": "Hà Nội", "district": "Hà Đông",
+    "lat": 20.9709, "lng": 105.7791,
+    "images": []
+  }
+]

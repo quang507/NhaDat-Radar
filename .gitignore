@@ -21,3 +21,7 @@ crawler/extra.json
 crawler/projects.json
 tsconfig.tsbuildinfo
 crawler/.running
+
+# Playwright
+tests/report-html/
+test-results/
