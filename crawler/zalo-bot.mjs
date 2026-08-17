@@ -159,7 +159,7 @@ async function handle(text) {
 // Gửi tin nhắn trả lời (cú pháp thật: zalo-agent msg send -t 0|1 <threadId> <message>)
 function sendReply(toId, text, { group = false } = {}) {
   try {
-    execFileSync(CLI, [...ZALO.pre, "msg", "send", "-t", group ? "1" : "0", String(toId), text], { stdio: "ignore" });
+    execFileSync(CLI, [...ZALO.pre, "msg", "send", "-t", group ? "1" : "0", String(toId), text], { stdio: "ignore", windowsHide: true });
   } catch (e) {
     console.error("Gửi Zalo lỗi:", e.message);
   }
@@ -170,7 +170,9 @@ function startListener() {
   console.log("Zalo bot: bắt đầu lắng nghe... (Ctrl+C để dừng)");
   // --json là option TOÀN CỤC của zalo-agent-cli -> đặt TRƯỚC listen; --no-self để CLI tự lọc tin mình gửi
   // --auto-accept: tự đồng ý kết bạn để người lạ nhắn được cho bot
-  const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message", "-f", "all", "--no-self", "--auto-accept"], { stdio: ["ignore", "pipe", "inherit"] });
+  // windowsHide: chưa `zalo-agent login` thì listen chết ngay -> vòng restart 5s, mỗi lần spawn bật 1 cửa sổ
+  // CMD nảy lên màn hình liên tục (sự cố 17/8). Ẩn cửa sổ để lỗi chỉ nằm trong log pm2.
+  const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message", "-f", "all", "--no-self", "--auto-accept"], { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
   child.on("error", (e) => console.error("spawn zalo-agent lỗi:", e.message)); // CLI thiếu/ENOENT -> không văng uncaught (audit 16/8)
 
   // Xử lý 1 event (async). Chạy TUẦN TỰ qua hàng đợi promise — handler 'data' cũ là async + await trong vòng lặp

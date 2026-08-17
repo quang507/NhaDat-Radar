@@ -6,7 +6,9 @@ import fs from "node:fs";
 
 const here = import.meta.dirname;
 function step(cmd) {
-  try { console.log("▶", cmd); execSync(cmd, { stdio: "inherit", cwd: here }); return true; }
+  // windowsHide: pm2 chạy không có console -> mỗi bước con bật 1 cửa sổ CMD nảy lên màn hình; người dùng
+  // đóng cửa sổ = giết tiến trình con giữa chừng (sự cố 17/8: facebook.mjs + embed.mjs bị ^C theo cách này).
+  try { console.log("▶", cmd); execSync(cmd, { stdio: "inherit", cwd: here, windowsHide: true }); return true; }
   catch (e) { console.error("✗ lỗi:", cmd, e.message); return false; }
 }
 
@@ -34,7 +36,10 @@ if (!SEED_ONLY) {
     step("node facebook.mjs --apify-run");
   }
 }
-step("node merge.mjs");                                 // gộp tất cả nguồn -> combined.json
+// `--no-merge`: seed thẳng combined.json đang có, KHÔNG dựng lại. Cần khi đã chạy tay merge + geocode-all:
+// merge dựng combined.json từ file nguồn mà chỉ chotot.json có sẵn lat -> merge lại sau geocode sẽ xoá toạ độ
+// vừa bù, rồi seed ghi lat=null đè lên DB (mất pin bản đồ của ~2/3 số tin).
+if (!process.argv.includes("--no-merge")) step("node merge.mjs"); // gộp tất cả nguồn -> combined.json
 if (!SEED_ONLY) step("node geocode-all.mjs");           // bù toạ độ cho MỌI tin thiếu (để tin nào cũng có map)
 
 // 2) Seed vào Supabase (thay data crawl cũ)

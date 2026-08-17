@@ -17,7 +17,7 @@ if (last && ageH < STALE_H) {
 }
 console.log(`crawl-on-boot: ${last ? `đã ${ageH.toFixed(1)}h` : "chưa có mốc"} -> chạy daily.mjs ngay.`);
 try {
-  execFileSync(process.execPath, ["--env-file=.env.local", "crawler/daily.mjs"], { stdio: "inherit", cwd: path.join(here, "..") });
+  execFileSync(process.execPath, ["--env-file=.env.local", "crawler/daily.mjs"], { stdio: "inherit", cwd: path.join(here, ".."), windowsHide: true });
 } catch (e) {
   console.error("crawl-on-boot: daily.mjs lỗi:", e.message);
   process.exit(1);
