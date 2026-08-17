@@ -59,7 +59,7 @@ const comb = JSON.parse(fs.readFileSync(new URL("./combined.json", import.meta.u
 const oldRows = [];
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb.from("listings")
-    .select("id,source_site,source_post_id,first_seen_at,crawl_count").eq("source", "crawl").not("source_post_id", "is", null)
+    .select("id,source_site,source_post_id,first_seen_at,crawl_count,status").eq("source", "crawl").not("source_post_id", "is", null)
     .order("id").range(from, from + 999);
   if (error) { console.error("Đọc tin cũ lỗi:", error.message); process.exit(1); }
   oldRows.push(...(data || []));
@@ -104,7 +104,9 @@ for (const x of comb.listings) {
     price_flag: x.price_warning || null,
     source_count: x.source_count || 1, source_sites: x.source_sites || [x.source_site],
     posted_at: x.posted_at ?? null,                        // đăng trên nguồn lúc (nếu nguồn có)
-    status: "published", crawled_at: now, last_seen_at: now,
+    // Admin đã ẨN (nút "Ẩn tin" trên trang chi tiết, 17/8) thì giữ ẩn — không để lần cào sau bật lại tin rác.
+    // Chỉ 'gone' (mất rồi thấy lại) mới về published.
+    status: old?.status === "hidden" ? "hidden" : "published", crawled_at: now, last_seen_at: now,
     first_seen_at: (old && old.first_seen_at) || now,
     crawl_count: old ? (old.crawl_count || 1) + 1 : 1,
   });

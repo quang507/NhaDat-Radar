@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { classifyAndExtract } from "@/lib/ai";
 import { verifyZaloSignature, sendZaloText } from "@/lib/zalo";
 import { fmtPrice, PROP } from "@/lib/format";
+import { qualityGate } from "@/lib/quality-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,15 @@ export async function POST(req: Request) {
   // 1) NGƯỜI RAO cung cấp tin -> ghi lại (có consent vì họ chủ động gửi)
   if (ai.intent === "dang_tin" && ai.listing) {
     const L = ai.listing;
+    // Cổng chất lượng 17/8 (bỏ duyệt tay): thiếu từ khoá BĐS / SĐT / khu vực -> báo khách gửi bổ sung, không đăng
+    const why = qualityGate((L.title || "") + "\n" + text, L);
+    if (why) {
+      const need = why === "không có SĐT" ? "số điện thoại liên hệ"
+        : why === "không có khu vực" ? "khu vực (quận/huyện, phường/xã)"
+        : "loại BĐS (nhà / đất / căn hộ / mặt bằng…) và giá";
+      await sendZaloText(userId, `Dạ em chưa đăng được vì tin còn thiếu ${need}. Anh/chị gửi lại đầy đủ: loại BĐS + diện tích + giá + khu vực + SĐT (VD: "Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx") em đăng ngay ạ 🙏`);
+      return NextResponse.json({ ok: true });
+    }
     const KIND = ["nha", "dat", "can_ho", "mat_bang", "phong_tro", "khac"];
     const { error: insErr } = await admin.from("listings").insert({
       source: "zalo_oa",

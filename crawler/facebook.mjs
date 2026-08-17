@@ -4,6 +4,8 @@
 //   node facebook.mjs --apify apify_out.json : xử lý JSON xuất từ Apify FB Group Scraper (nhóm public: KHÔNG cần clone)
 //   node facebook.mjs --playwright           : tự cào bằng Playwright + fb-cookies.json (cookies clone của bạn, chạy ở MÁY BẠN)
 import fs from "node:fs";
+import { cleanFbText } from "./fb-clean.mjs";
+import { qualityGate } from "./quality-gate.mjs";
 
 // Xoay nhiều key Gemini (từ nhiều PROJECT/acc) để né 429. Cũng nhận GEMINI_API_KEYS="k1,k2,k3".
 const KEYS = [
@@ -55,10 +57,14 @@ async function gemini(text) {
   throw new Error("Tất cả " + KEYS.length + " key Gemini đều 429 (hết quota) - cần thêm key project khác hoặc bật trả phí");
 }
 
-// post thô {text, author, url, time} -> listing chuẩn (bỏ nếu không phải BĐS)
+// post thô {text, author, url, time} -> listing chuẩn (bỏ nếu không phải BĐS / không qua cổng chất lượng)
 async function toListing(post) {
   const ai = await gemini(post.text);
   if (!ai.is_property) return null;
+  // Cổng chất lượng 17/8: bỏ duyệt tay -> máy chặn tin thiếu từ khoá BĐS / SĐT / khu vực
+  // Xét cả TIÊU ĐỀ Gemini trích: mô tả FB hay viết tắt/tránh kiểm duyệt ("CC", "s.ổ h.ồng") -> chỉ dò mô tả sẽ loại oan
+  const why = qualityGate((ai.title_clean || "") + "\n" + post.text, { district: ai.district, province: ai.city });
+  if (why) { console.error(`  ↷ loại (${why}): ${(ai.title_clean || post.text || "").slice(0, 60)}`); return null; }
   return {
     // id ổn định theo LINK bài (innerText có số like/"3 giờ" đổi mỗi ngày -> hash text sinh tin mới giả mỗi lần cào — audit 16/8)
     id: "fb-" + (post.id || (post.url && post.url !== "#" ? Math.abs(hash(post.url.replace(/[?#].*$/, ""))).toString(36) : Math.abs(hash((post.text || "").replace(/\d+\s*(giờ|phút|ngày|lượt|bình luận|thích|chia sẻ)/gi, "").slice(0, 300))).toString(36))),
@@ -175,6 +181,14 @@ async function scrapePlaywright() {
     const seen = new Map(); // key -> {text,url}
     let stale = 0;
     for (let i = 0; i < 40 && seen.size < WANT; i++) {
+      // Bấm hết "Xem thêm" đang hiện: FB cắt bài dài, SĐT/giá thường nằm ở phần bị giấu -> không mở thì
+      // cổng chất lượng loại oan vì "không có SĐT" (17/8: 35/43 tin FB trong DB rớt vì lý do này)
+      await page.evaluate(() => {
+        for (const b of document.querySelectorAll('div[role="button"], span[role="button"]')) {
+          if (/^xem thêm$/i.test((b.textContent || "").trim())) { try { b.click(); } catch { /* bỏ qua */ } }
+        }
+      }).catch(() => {});
+      await sleep(600);
       // KHÔNG .catch(() => []) nữa: renderer chết cũng trả mảng rỗng -> vòng lặp cứ chạy tiếp 40 lần
       // trên page đã hỏng rồi báo "0 bài" như thể FB chặn (che mất crash thật, 17/8).
       const batch = await page.$$eval(POST_SEL, (nodes) =>
@@ -184,9 +198,21 @@ async function scrapePlaywright() {
         })));
       const before = seen.size;
       for (const t of batch) {
+        // Làm sạch NGAY: bỏ "Facebook Facebook…" (alt ảnh), chuỗi chống cào, chữ UI, phần bình luận (sự cố 17/8).
+        // Gemini nhận text sạch -> trích chuẩn hơn; key khử trùng theo text cũng ổn định hơn.
+        t.text = cleanFbText(t.text);
         if (t.text.length <= 40) continue;
+        // Dòng đầu thường là TÊN NGƯỜI ĐĂNG (ngắn, không số) -> tách làm author, không để lẫn vào mô tả
+        const nl = t.text.indexOf("\n");
+        const first = nl > 0 ? t.text.slice(0, nl).trim() : "";
+        if (first && first.length <= 40 && !/\d/.test(first) && first.split(/\s+/).length <= 6) {
+          t.author = first;
+          t.text = t.text.slice(nl + 1).trim();
+        }
         const key = (t.url && t.url.replace(/[?#].*$/, "")) || t.text.slice(0, 120);
-        if (!seen.has(key)) seen.set(key, t);
+        // cùng bài nhưng bản sau dài hơn (đã bung "Xem thêm") -> thay bản cụt
+        const prev = seen.get(key);
+        if (!prev || t.text.length > prev.text.length) seen.set(key, t);
       }
       if (seen.size === before) { if (++stale >= 4 && seen.size > 0) break; } else stale = 0;
       await page.mouse.wheel(0, 2500);

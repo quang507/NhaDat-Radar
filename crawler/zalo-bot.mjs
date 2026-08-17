@@ -13,6 +13,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { qualityGate } from "./quality-gate.mjs";
 
 // Windows: spawn/execFileSync KHÔNG chạy được shim .cmd của npm (ENOENT/EINVAL)
 // -> tìm file bin thật của zalo-agent-cli trong npm global rồi gọi `node <bin>`.
@@ -109,6 +110,9 @@ async function harvestGroup(text) {
   if (text.length < 40) return; // tin ngắn/chat vặt -> bỏ
   const ai = await classify(text);
   if (ai.intent === "dang_tin" && ai.listing) {
+    // Cổng chất lượng 17/8 (bỏ duyệt tay): thiếu từ khoá BĐS / SĐT / khu vực -> bỏ, không đăng
+    const why = qualityGate((ai.listing.title || "") + "\n" + text, ai.listing);
+    if (why) { console.log(`  ↷ bỏ (${why})`); return; }
     const { error } = await saveListing(ai.listing, text, { fromGroup: true });
     console.log(error ? "  (lưu lỗi: " + error.message + ")" : "  ✓ bóc được 1 tin BĐS từ group -> đã đăng");
   }
@@ -120,6 +124,14 @@ async function handle(text) {
 
   if (ai.intent === "dang_tin" && ai.listing) {
     const L = ai.listing;
+    // Cổng chất lượng 17/8: DM thì NÓI RÕ thiếu gì để khách gửi bổ sung (không im lặng bỏ như group)
+    const why = qualityGate((L.title || "") + "\n" + text, L);
+    if (why) {
+      const need = why === "không có SĐT" ? "số điện thoại liên hệ"
+        : why === "không có khu vực" ? "khu vực (quận/huyện, phường/xã)"
+        : "loại BĐS (nhà / đất / căn hộ / mặt bằng…) và giá";
+      return `Dạ em chưa đăng được vì tin còn thiếu ${need}. Anh/chị gửi lại đầy đủ 1 tin: loại BĐS + diện tích + giá + khu vực + SĐT (VD: "Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx") em đăng ngay ạ 🙏`;
+    }
     const { error } = await saveListing(L, text, { fromGroup: false });
     if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
     return `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT — nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
