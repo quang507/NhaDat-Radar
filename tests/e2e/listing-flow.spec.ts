@@ -4,15 +4,20 @@ import { test, expect } from "@playwright/test";
 
 test("trang chủ -> chi tiết tin: đủ gallery, form liên hệ", async ({ page }) => {
   await page.goto("/");
-  const first = page.locator('a[href^="/listings/"]').first();
+  // :visible — link đầu tiên trong DOM là hero collage (hidden lg:grid), ẩn trên mobile
+  const first = page.locator('a[href^="/listings/"]:visible').first();
   await expect(first, "trang chủ phải có ít nhất 1 tin").toBeVisible({ timeout: 20_000 });
   await first.click();
   await page.waitForURL(/\/listings\//);
 
-  // Có tiêu đề + giá + form liên hệ
+  // Có tiêu đề + khối liên hệ. Tin crawl hiện link "Xem bài gốc & liên hệ",
+  // tin người bán tự đăng mới có form lead — chấp nhận một trong hai.
   await expect(page.locator("h1").first()).toBeVisible();
-  // form:visible — form đầu tiên trong DOM là form ẩn của ChatWidget
-  await expect(page.locator("form:visible").first(), "phải có form liên hệ/lịch xem").toBeVisible();
+  await expect(page.locator('h3:has-text("Liên hệ")').first(), "phải có khối Liên hệ").toBeVisible();
+  await expect(
+    page.locator('form:visible, a:has-text("Xem bài gốc")').first(),
+    "phải có form lead hoặc link bài gốc"
+  ).toBeVisible();
 });
 
 test("gallery: vuốt/cuộn ảnh chính chuyển ảnh, mở lightbox rồi Esc đóng", async ({ page }) => {
