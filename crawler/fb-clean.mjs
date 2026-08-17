@@ -12,6 +12,7 @@ const UI_LINE = new RegExp("^(?:" + [
   "tất cả cảm xúc:.*", "\\d+ (?:lượt )?(?:thích|bình luận|chia sẻ|lượt xem).*",
   "\\d+\\s*(?:giờ|phút|ngày|tuần|tháng|năm)(?: trước)?", "vừa xong", "hôm qua", "·", "•", "\\.", "…",
   "chỉnh sửa", "đã chỉnh sửa", "được tài trợ", "sắp xếp bảng feed nhóm theo.*", "bài niêm yết hàng đầu", "hoạt động mới đây",
+  "\\+\\d+", "@mọi người", "@all", "xem bản dịch", "đánh giá bản dịch này",   // "+2" = số ảnh còn lại của album
 ].join("|") + ")$", "i");
 
 // Từ dòng này trở đi là phần BÌNH LUẬN / thanh tương tác của FB -> cắt bỏ hết phía sau
@@ -25,7 +26,9 @@ const INVISIBLE = new RegExp("[" + String.fromCharCode(0x034F, 0x200B, 0x200C, 0
 
 export function cleanFbText(raw) {
   if (!raw) return "";
-  const lines = String(raw).replace(/\r/g, "").split("\n").map((l) => l.replace(INVISIBLE, "").trim());
+  // NFKC: chữ "kiểu" Unicode toán học (𝐁𝐀́𝐍 𝐍𝐇𝐀̀, 𝟔 𝐓𝐀̂̀𝐍𝐆…) người đăng dùng cho nổi -> về chữ thường,
+  // không thì cổng chất lượng / Gemini không nhận ra "bán nhà". Tiếng Việt NFC không đổi.
+  const lines = String(raw).normalize("NFKC").replace(/\r/g, "").split("\n").map((l) => l.replace(INVISIBLE, "").trim());
   const out = [];
   let shortRun = [];                        // gom chuỗi dòng 2 ký tự liên tiếp (chuỗi chống cào)
   const flushShort = () => {

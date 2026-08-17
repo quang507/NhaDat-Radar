@@ -192,10 +192,25 @@ async function scrapePlaywright() {
       // KHÔNG .catch(() => []) nữa: renderer chết cũng trả mảng rỗng -> vòng lặp cứ chạy tiếp 40 lần
       // trên page đã hỏng rồi báo "0 bài" như thể FB chặn (che mất crash thật, 17/8).
       const batch = await page.$$eval(POST_SEL, (nodes) =>
-        nodes.map((n) => ({
-          text: n.innerText || "",
-          url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
-        })));
+        nodes.map((n) => {
+          // ẢNH bài đăng (17/8 — trước đây chế độ Playwright không lấy ảnh, tin FB nào cũng chỉ có icon màu):
+          // chỉ lấy ảnh CDN FB (scontent/fbcdn), bỏ avatar/emoji/icon nhỏ (URL cỡ p50x50, s40x40… hoặc bề rộng < 100px).
+          // Ảnh bị chặn tải (ctx.route) nhưng thuộc tính src vẫn có trong DOM.
+          const imgs = [];
+          for (const im of n.querySelectorAll("img")) {
+            const s = im.currentSrc || im.src || "";
+            if (!/scontent|fbcdn\.net/.test(s) || /emoji|\/[ps]\d{2}x\d{2}\/|\/cp0\//.test(s)) continue;
+            const w = im.getBoundingClientRect().width || im.width || 0;
+            if (w && w < 100) continue;
+            if (!imgs.includes(s)) imgs.push(s);
+            if (imgs.length >= 8) break;
+          }
+          return {
+            text: n.innerText || "",
+            url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
+            images: imgs,
+          };
+        }));
       const before = seen.size;
       for (const t of batch) {
         // Làm sạch NGAY: bỏ "Facebook Facebook…" (alt ảnh), chuỗi chống cào, chữ UI, phần bình luận (sự cố 17/8).
@@ -212,7 +227,13 @@ async function scrapePlaywright() {
         const key = (t.url && t.url.replace(/[?#].*$/, "")) || t.text.slice(0, 120);
         // cùng bài nhưng bản sau dài hơn (đã bung "Xem thêm") -> thay bản cụt
         const prev = seen.get(key);
-        if (!prev || t.text.length > prev.text.length) seen.set(key, t);
+        if (!prev) seen.set(key, t);
+        else {
+          // gộp: text lấy bản dài hơn, ảnh gộp cả 2 lần thấy (cuộn qua có thể lộ thêm ảnh lazy)
+          const merged = t.text.length > prev.text.length ? t : prev;
+          merged.images = [...new Set([...(prev.images || []), ...(t.images || [])])].slice(0, 8);
+          seen.set(key, merged);
+        }
       }
       if (seen.size === before) { if (++stale >= 4 && seen.size > 0) break; } else stale = 0;
       await page.mouse.wheel(0, 2500);

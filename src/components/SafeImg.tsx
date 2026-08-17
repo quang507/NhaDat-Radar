@@ -11,6 +11,8 @@ export default function SafeImg({ src, alt, className }: { src: string; alt: str
       alt={alt}
       loading="lazy"
       className={className}
+      // Ảnh CDN Facebook (tin cào FB, 17/8): gửi kèm Referer của mình dễ bị fbcdn từ chối -> không gửi
+      referrerPolicy={/fbcdn\.net|scontent/.test(src) ? "no-referrer" : undefined}
       onError={(e) => { const el = e.currentTarget; if (el.src !== src) el.src = src; }}
     />
   );
