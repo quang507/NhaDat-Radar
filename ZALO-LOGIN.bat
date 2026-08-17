@@ -48,9 +48,20 @@ if errorlevel 1 (
 
 echo.
 echo [3/3] Bat lai bot zalo tren pm2...
-call pm2 start zalo-bot
-call pm2 save
-call pm2 status
+REM Goi pm2 bang duong dan day du: cua so CMD mo truoc luc `npm i -g pm2` khong thay
+REM lenh nay -> 'pm2' is not recognized (su co 17/8, giong het zalo-agent).
+set "PM2=%APPDATA%\npm\pm2.cmd"
+if not exist "%PM2%" (
+  echo [BO QUA] Chua cai pm2. Bot van chua duoc bat lai.
+  echo Chay lenh:  npm i -g pm2
+  echo Roi chay:   pm2 start ecosystem.config.cjs ^&^& pm2 save
+  echo.
+  pause
+  exit /b 0
+)
+call "%PM2%" start zalo-bot
+call "%PM2%" save
+call "%PM2%" status
 
 echo.
 echo ============================================================
