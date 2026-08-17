@@ -23,11 +23,12 @@ jobs:
       # Muốn cào FB: chạy crawl-local.bat trên máy nhà (IP dân cư) — daily.mjs tự nhận.
       # Sự cố 16/8: bấm "Re-run" run cũ -> GitHub chạy lại COMMIT CŨ (seed kiểu xoá-chèn) -> DB mất ~1.600 tin.
       # Chặn: chỉ chạy ở lần thử đầu; muốn chạy tay thì dùng "Run workflow" (luôn lấy main mới nhất).
+      # ⚠ KHỐI env: PHẢI nằm ngay dưới step chạy daily.mjs. Sự cố 16-17/8: chèn step
+      # cảnh báo Re-run vào GIỮA `run:` và `env:` -> env rơi sang step echo, step crawl
+      # chạy trắng biến môi trường -> daily.mjs thoát ngay ở "Thiếu NEXT_PUBLIC_SUPABASE_URL".
       - name: Crawl + seed Supabase
         if: github.run_attempt == 1
         run: node crawler/daily.mjs
-      - if: github.run_attempt != 1
-        run: echo "::warning::Bỏ qua — đây là Re-run của run cũ (chạy commit cũ). Dùng 'Run workflow' để chạy code mới nhất."
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -45,3 +46,8 @@ jobs:
           NEXT_PUBLIC_SITE_URL: https://nha-dat-radar-rkyn.vercel.app
           # Vietmap geocode (tùy chọn - chính xác VN hơn Nominatim; free trial 60k request)
           VIETMAP_API_KEY: ${{ secrets.VIETMAP_API_KEY }}
+
+      # Step cảnh báo phải nằm CUỐI (nó không có env:) — xem chú thích ở trên.
+      - name: Bỏ qua vì là Re-run
+        if: github.run_attempt != 1
+        run: echo "::warning::Bỏ qua — đây là Re-run của run cũ (chạy commit cũ). Dùng 'Run workflow' để chạy code mới nhất."
