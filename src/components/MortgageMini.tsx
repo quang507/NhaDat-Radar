@@ -19,7 +19,7 @@ export default function MortgageMini({ price }: { price: number }) {
     <div className="card rounded-lg p-4 text-sm">
       <div className="flex items-baseline justify-between gap-2 mb-2">
         <h3 className="font-bold">Trả góp ước tính</h3>
-        <Link href={`/tinh-lai-vay?price=${price}&pct=${pct}&rate=${rate}&years=${years}`} className="text-xs text-brand font-semibold">Tính chi tiết →</Link>
+        <Link href={`/tinh-lai-vay?price=${price}&pct=${pct}&rate=${rate}&years=${years}`} className="text-xs text-brand font-semibold">Tính chi tiết ›</Link>
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs">
         <label>Vay <b>{pct}%</b><input type="range" min={0} max={90} step={5} value={pct} onChange={(e) => setPct(+e.target.value)} className="w-full accent-[var(--brand)]" /></label>

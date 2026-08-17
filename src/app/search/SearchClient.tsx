@@ -347,7 +347,10 @@ export default function SearchClient({
 
       {/* ===== Kết quả + bản đồ ===== */}
       <div className={`grid gap-4 items-start ${showMap && mapItems.length > 0 ? "lg:grid-cols-[1fr_420px]" : ""}`}>
-        <div>
+        {/* min-w-0 BẮT BUỘC: mô tả trong ListingRow dùng line-clamp (-webkit-box) -> bề rộng nội tại = cả đoạn text
+            chưa xuống dòng -> cột 1fr phình (đo được 2190px ở viewport 1400) đẩy cột bản đồ 420px ra NGOÀI màn hình.
+            Sự cố 17/8: "Xem bản đồ" bấm không thấy gì. */}
+        <div className="min-w-0">
           {display.length ? (
             <>
               <div className="flex flex-col gap-3">
@@ -395,7 +398,14 @@ export default function SearchClient({
 
       {/* ===== Tìm kiếm phổ biến (kiểu footer SEO batdongsan) ===== */}
       {(() => {
-        const prov = f.province || provinces[0];
+        // Chưa chọn tỉnh -> lấy tỉnh NHIỀU TIN NHẤT trong kết quả (trước lấy provinces[0] = sort() ->
+        // luôn ra "Bà Rịa - Vũng Tàu" chỉ vì đứng đầu bảng chữ cái, 17/8)
+        const topProv = (() => {
+          const c = new Map<string, number>();
+          for (const x of listings) if (x.province) c.set(x.province, (c.get(x.province) || 0) + 1);
+          return [...c.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+        })();
+        const prov = f.province || topProv || (geo["Hồ Chí Minh"] ? "Hồ Chí Minh" : provinces[0]);
         const ds = prov && geo[prov] ? Object.keys(geo[prov]).sort().slice(0, 12) : [];
         if (!ds.length) return null;
         return (
@@ -413,7 +423,7 @@ export default function SearchClient({
                 </Link>
               ))}
               <Link href={areaPath(f.deal === "cho_thue" ? "cho_thue" : "ban", prov)} className="text-xs px-2.5 py-1.5 rounded-lg border border-brand text-brand font-semibold">
-                Toàn {prov} →
+                Toàn {prov} ›
               </Link>
             </div>
           </section>

@@ -88,12 +88,12 @@ export default function Gallery({ images, title }: { images: string[]; title: st
                   aria-label="Ảnh trước"
                   onClick={() => go(-1)}
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white text-xl"
-                >←</button>
+                >‹</button>
                 <button
                   aria-label="Ảnh sau"
                   onClick={() => go(1)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white text-xl"
-                >→</button>
+                >›</button>
               </>
             )}
           </div>

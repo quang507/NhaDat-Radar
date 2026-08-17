@@ -44,7 +44,7 @@ export default async function ProjectDetail({
 
   return (
     <div>
-      <Link href="/projects" className="text-sm text-[var(--ink-soft)] font-semibold">← Về danh sách dự án</Link>
+      <Link href="/projects" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Về danh sách dự án</Link>
 
       <div className="my-4">
         {(() => {

@@ -52,7 +52,7 @@ export default function Turnstile() {
           "error-callback": (code: string) => {
             if (!ref.current) return;
             const fix = code === "110200"
-              ? `Tên miền ${typeof window !== "undefined" ? window.location.hostname : ""} chưa được khai báo cho captcha. Quản trị viên cần thêm vào Cloudflare → Turnstile → Hostname Management.`
+              ? `Tên miền ${typeof window !== "undefined" ? window.location.hostname : ""} chưa được khai báo cho captcha. Quản trị viên cần thêm vào Cloudflare › Turnstile › Hostname Management.`
               : "Tải lại trang; nếu vẫn lỗi, báo quản trị viên kèm mã trên.";
             ref.current.innerHTML =
               `<p class="text-xs text-amber-600">Captcha lỗi (mã ${code}). ${fix}</p>`;

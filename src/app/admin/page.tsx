@@ -25,7 +25,7 @@ export default async function AdminPage({
       <div className="card rounded-lg p-10 text-center max-w-md mx-auto mt-10">
         <div className="text-4xl mb-3">🔒</div>
         <p className="text-sm text-[var(--ink-soft)]">
-          Trang này chỉ dành cho admin. Cấp quyền: Supabase → Table Editor → profiles → đổi <code>role</code> của tài khoản bạn thành <code>admin</code>.
+          Trang này chỉ dành cho admin. Cấp quyền: Supabase › Table Editor › profiles › đổi <code>role</code> của tài khoản bạn thành <code>admin</code>.
         </p>
       </div>
     );
@@ -97,8 +97,8 @@ export default async function AdminPage({
               <span className="font-semibold">{l.name}</span>
               <a href={`tel:${l.phone}`} className="text-brand font-mono">{l.phone}</a>
               {l.message && <span className="text-[var(--ink-soft)] truncate max-w-[420px]">“{l.message}”</span>}
-              {l.listing_id ? <Link href={`/listings/${l.listing_id}`} className="text-xs text-brand">xem tin →</Link>
-                : l.project_id ? <Link href={`/projects/${l.project_id}`} className="text-xs text-brand">🏙 {projMap.get(l.project_id) || "dự án"} →</Link>
+              {l.listing_id ? <Link href={`/listings/${l.listing_id}`} className="text-xs text-brand">xem tin ›</Link>
+                : l.project_id ? <Link href={`/projects/${l.project_id}`} className="text-xs text-brand">🏙 {projMap.get(l.project_id) || "dự án"} ›</Link>
                 : <span className="text-xs text-[var(--ink-faint)]">(liên hệ chung)</span>}
               <span className="ml-auto text-xs text-[var(--ink-faint)]">{new Date(l.created_at).toLocaleString("vi-VN")}</span>
             </div>

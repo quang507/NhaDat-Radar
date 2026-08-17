@@ -26,7 +26,7 @@ export default async function AccountPage({
           <h1 className="prata text-2xl">Tài khoản của tôi</h1>
           <p className="text-[var(--ink-soft)] text-sm">👤 {user.email}</p>
         </div>
-        <Link href="/dashboard" className="btn">Kênh người bán →</Link>
+        <Link href="/dashboard" className="btn">Kênh người bán ›</Link>
       </div>
 
       {sp.error && <p className="text-sm text-red-600 mb-3">{sp.error}</p>}

@@ -242,7 +242,7 @@ export default async function Home({
               ["/thong-ke", "📊", "Bản Đồ Giá", "Giá trung vị theo khu vực"],
             ] as const).map(([href, , t, d]) => (
               <Link key={href} href={href} className="card rounded-xl p-4 hover:border-[var(--line-strong)] hover:shadow-md transition-all group/t">
-                <span className="block font-bold text-sm group-hover/t:text-brand transition-colors">{t} →</span>
+                <span className="block font-bold text-sm group-hover/t:text-brand transition-colors">{t} ›</span>
                 <span className="block text-xs text-[var(--ink-soft)] mt-0.5">{d}</span>
               </Link>
             ))}
@@ -276,7 +276,7 @@ export default async function Home({
                 >
                   <h3 className="prata text-xl mb-1 group-hover/c:text-white/90">{t}</h3>
                   <p className="text-sm text-white/60">{d}</p>
-                  <span className="inline-block mt-4 text-xs font-semibold text-white/70 group-hover/c:text-white transition">Xem tin →</span>
+                  <span className="inline-block mt-4 text-xs font-semibold text-white/70 group-hover/c:text-white transition">Xem tin ›</span>
                 </Link>
               ))}
             </div>
@@ -298,7 +298,7 @@ function Section({ title, href, children }: { title: string; href: string; child
     <section className="mt-10">
       <div className="flex items-baseline gap-3 mb-4">
         <h2 className="prata text-xl md:text-2xl border-l-[3px] border-brand pl-3">{title}</h2>
-        <Link href={href} className="text-sm text-brand font-semibold ml-auto whitespace-nowrap">Xem tất cả →</Link>
+        <Link href={href} className="text-sm text-brand font-semibold ml-auto whitespace-nowrap">Xem tất cả ›</Link>
       </div>
       {children}
     </section>

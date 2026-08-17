@@ -126,7 +126,7 @@ export default async function ListingDetail({
   return (
     <div>
       <div className="flex items-center gap-3">
-        <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">← Quay lại</Link>
+        <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Quay lại</Link>
         <span className="ml-auto"><FavButton id={x.id} /></span>
       </div>
 
@@ -348,7 +348,7 @@ export default async function ListingDetail({
                 khiến khách tưởng nhắn tới người bán, trong khi lead vào Radar). Form Radar là hành động phụ, ghi rõ. */}
             {isCrawl && x.source_url && x.source_url !== "#" ? (
               <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary w-full text-center block mb-3">
-                Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} →
+                Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} ›
               </a>
             ) : null}
             {x.agent_id && (
@@ -380,7 +380,7 @@ export default async function ListingDetail({
                 rel="noopener nofollow"
                 className="block text-center mt-3 text-sm text-brand font-semibold"
               >
-                Xem bài gốc trên {x.source_site || "nguồn"} →
+                Xem bài gốc trên {x.source_site || "nguồn"} ›
               </a>
             ) : null}
             <div className="mt-3 pt-3 border-t border-[var(--line)] flex justify-between items-start gap-2">
@@ -425,7 +425,7 @@ export default async function ListingDetail({
           <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
         </div>
         {isCrawl && x.source_url && x.source_url !== "#" ? (
-          <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Xem bài gốc →</a>
+          <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Xem bài gốc ›</a>
         ) : (
           <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Liên hệ</a>
         )}

@@ -29,7 +29,7 @@ export default function MapResults({ items }: { items: MapItem[] }) {
       const bounds: [number, number][] = [];
       for (const it of items) {
         const icon = L.divIcon({ className: "price-pin", html: `<div class="pp">${it.label}</div>`, iconSize: [1, 1] });
-        const popup = `<div style="font-weight:600;margin-bottom:4px;max-width:200px">${it.title.replace(/</g, "&lt;").slice(0, 80)}</div><a href="/listings/${it.id}" style="color:#b23a1e;font-weight:600">Xem chi tiết →</a>`;
+        const popup = `<div style="font-weight:600;margin-bottom:4px;max-width:200px">${it.title.replace(/</g, "&lt;").slice(0, 80)}</div><a href="/listings/${it.id}" style="color:#b23a1e;font-weight:600">Xem chi tiết ›</a>`;
         L.marker([it.lat, it.lng], { icon }).addTo(map).bindPopup(popup);
         bounds.push([it.lat, it.lng]);
       }

@@ -82,7 +82,7 @@ export default function AuthForm({
           <Turnstile />
           <button className="btn btn-primary w-full mt-1" type="submit">Gửi Link Đặt Lại</button>
           <button type="button" onClick={() => setMode("login")} className="text-xs text-[var(--ink-soft)] font-semibold text-center">
-            ← Quay lại đăng nhập
+            ‹ Quay lại đăng nhập
           </button>
         </form>
       )}

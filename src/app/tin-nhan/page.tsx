@@ -147,7 +147,7 @@ function Chat() {
               <div className="px-4 py-3 border-b border-[var(--line)]">
                 <div className="font-bold text-sm">{cur.other}</div>
                 {cur.listing_id && (
-                  <Link href={`/listings/${cur.listing_id}`} className="text-xs text-brand truncate block">{cur.title} →</Link>
+                  <Link href={`/listings/${cur.listing_id}`} className="text-xs text-brand truncate block">{cur.title} ›</Link>
                 )}
               </div>
               <div ref={bodyRef} className="flex-1 overflow-y-auto p-4 space-y-2">

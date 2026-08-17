@@ -104,7 +104,7 @@ export default function ListingForm({ geo = {} }: { geo?: Record<string, string[
       ) : null}
       {state.error ? <div className="text-red-600 text-sm" role="alert">{state.error}</div> : null}
       <button className="btn btn-primary" type="submit" disabled={pending}>
-        {pending ? "Đang đăng..." : "Đăng tin →"}
+        {pending ? "Đang đăng..." : "Đăng tin ›"}
       </button>
     </form>
   );

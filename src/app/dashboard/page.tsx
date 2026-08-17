@@ -111,7 +111,7 @@ export default async function Dashboard() {
       ) : (
         <p className="text-[var(--ink-soft)] py-8">
           Bạn chưa đăng tin nào.{" "}
-          <Link href="/dashboard/new" className="text-brand font-semibold">Đăng tin đầu tiên →</Link>
+          <Link href="/dashboard/new" className="text-brand font-semibold">Đăng tin đầu tiên ›</Link>
         </p>
       )}
     </div>

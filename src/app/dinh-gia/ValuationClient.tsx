@@ -199,7 +199,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                 </div>
                 <Link href={`/search?deal=${r.deal}&province=${encodeURIComponent(f.province)}${f.district ? `&district=${encodeURIComponent(f.district)}` : ""}`}
                   className="btn w-full mt-3 text-sm text-center block">
-                  Xem các tin so sánh →
+                  Xem các tin so sánh ›
                 </Link>
               </div>
 

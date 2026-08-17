@@ -50,7 +50,7 @@ export default async function AgentsPage() {
           bất động sản của bạn tại Việt Nam.
         </p>
         <Link href="/account" className="btn btn-primary inline-block">Trở thành Người Bán</Link>
-        <p className="text-xs text-[var(--ink-faint)] mt-2">Đăng nhập → vào Tài khoản → điền “Hồ sơ người bán” là xuất hiện tại đây.</p>
+        <p className="text-xs text-[var(--ink-faint)] mt-2">Đăng nhập › vào Tài khoản › điền “Hồ sơ người bán” là xuất hiện tại đây.</p>
       </section>
 
       {/* Danh sách */}

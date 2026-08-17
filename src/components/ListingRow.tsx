@@ -66,7 +66,7 @@ export default function ListingRow({ x }: { x: Listing }) {
         </div>
         <div className="text-xs text-[var(--ink-soft)] truncate">{loc || "—"}</div>
         {x.description && (
-          <p className="text-xs text-[var(--ink-soft)] line-clamp-2 leading-relaxed">{x.description}</p>
+          <p className="text-xs text-[var(--ink-soft)] line-clamp-2 leading-relaxed break-words min-w-0">{x.description}</p>
         )}
         <div className="mt-auto pt-2 border-t border-[var(--line)] flex items-center gap-2 text-[0.7rem]">
           <span className={`font-bold px-1.5 py-0.5 rounded ${x.source === "agent" ? "text-emerald-600 bg-emerald-500/10" : "text-[var(--ink-soft)] bg-[var(--surface-2)]"}`}>

@@ -172,7 +172,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
       <section className="mt-6">
         <div className="flex items-baseline justify-between gap-3 mb-3">
           <h2 className="font-bold">Tin {deal === "ban" ? "bán" : "cho thuê"} mới nhất tại {where}</h2>
-          <Link href={searchHref} className="text-sm text-brand font-semibold">Xem tất cả {total.toLocaleString("vi-VN")} tin + bộ lọc →</Link>
+          <Link href={searchHref} className="text-sm text-brand font-semibold">Xem tất cả {total.toLocaleString("vi-VN")} tin + bộ lọc ›</Link>
         </div>
         {show.length ? (
           <div className="flex flex-col gap-3">{show.map((x) => <ListingRow key={x.id} x={x} />)}</div>
@@ -197,10 +197,10 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
 
       {/* Liên kết chéo */}
       <section className="mt-6 text-sm flex flex-wrap gap-x-4 gap-y-1">
-        <Link href={areaPath(otherDeal, province, district)} className="text-brand">{DEAL_WORD[otherDeal]} nhà đất {where} →</Link>
-        {district ? <Link href={areaPath(deal, province)} className="text-brand">Toàn {province} →</Link> : null}
-        <Link href="/thong-ke" className="text-brand">Thống kê giá →</Link>
-        <Link href="/dinh-gia" className="text-brand">Định giá nhanh →</Link>
+        <Link href={areaPath(otherDeal, province, district)} className="text-brand">{DEAL_WORD[otherDeal]} nhà đất {where} ›</Link>
+        {district ? <Link href={areaPath(deal, province)} className="text-brand">Toàn {province} ›</Link> : null}
+        <Link href="/thong-ke" className="text-brand">Thống kê giá ›</Link>
+        <Link href="/dinh-gia" className="text-brand">Định giá nhanh ›</Link>
       </section>
     </div>
   );
