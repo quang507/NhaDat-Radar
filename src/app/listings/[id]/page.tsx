@@ -22,6 +22,7 @@ import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
 import PhoneReveal from "@/components/PhoneReveal";
 import SourceBadge from "@/components/SourceBadge";
+import RichText from "@/components/RichText";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
@@ -273,9 +274,9 @@ export default async function ListingDetail({
 
           <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-3">Mô tả</h3>
-            <p className="text-[var(--ink)] whitespace-pre-line text-base leading-[1.65] max-w-prose">
-              {x.description || "(Không có mô tả)"}
-            </p>
+            {/* 17/8: trước dùng whitespace-pre-line -> tin dài (nhất là bài FB) thành khối chữ liền.
+                RichText tách đoạn, và bài nào có "- " thì thành gạch đầu dòng cho dễ quét. */}
+            <RichText text={x.description || ""} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
           </div>
           {/* Công cụ ra quyết định tại chỗ (ISO 9241-110): trả góp cho tin bán */}
           {x.deal === "ban" && x.price_vnd && x.price_vnd >= 3e8 ? <MortgageMini price={x.price_vnd} /> : null}

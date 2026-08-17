@@ -9,6 +9,7 @@ import { cleanImages } from "@/lib/img";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
 import ProjectContact from "./ProjectContact";
+import RichText from "@/components/RichText";
 import type { Project, Listing } from "@/lib/types";
 
 export default async function ProjectDetail({
@@ -66,11 +67,41 @@ export default async function ProjectDetail({
             📍 {[p.address, p.district, p.province].filter(Boolean).join(", ") || "-"}
           </div>
 
-          <div className="card rounded-lg p-5 mt-5">
-            <h3 className="font-bold mb-2">Giới thiệu dự án</h3>
-            <p className="text-[var(--ink-soft)] text-sm whitespace-pre-line">
-              {p.description || "(Chưa có mô tả)"}
-            </p>
+          {/* Bảng thông số (migration 013): tổng DT, DT xây dựng, DT căn từ-đến, ngày khởi công/hoàn
+              thành, pháp lý — thông tin người mua tìm đầu tiên, phải nằm TRÊN phần mô tả dài. */}
+          {(() => {
+            const specs = (p.specs ?? {}) as Record<string, string>;
+            const rows = Object.entries(specs).filter(([, v]) => v);
+            if (p.handover) rows.push(["Bàn giao", p.handover]);
+            if (!rows.length) return null;
+            return (
+              <dl className="card rounded-lg p-5 mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                {rows.map(([k, v]) => (
+                  <div key={k} className="flex items-baseline gap-2 border-b border-[var(--line)] pb-2 last:border-0">
+                    <dt className="text-xs text-[var(--ink-soft)] shrink-0">{k}</dt>
+                    <dd className="ml-auto text-sm font-semibold text-right">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            );
+          })()}
+
+          <div className="card rounded-lg p-5 mt-4">
+            <h2 className="font-bold mb-3">Giới thiệu dự án</h2>
+            {/* Mô tả dài -> gấp lại, mở bằng <details> (không cần JS, hoạt động cả khi tắt script) */}
+            {(p.description || "").length > 1200 ? (
+              <details className="group">
+                <summary className="cursor-pointer list-none">
+                  <RichText text={(p.description || "").slice(0, 900)} />
+                  <span className="mt-3 inline-block text-sm font-semibold text-brand group-open:hidden">Xem đầy đủ ↓</span>
+                </summary>
+                <div className="mt-3 pt-3 border-t border-[var(--line)]">
+                  <RichText text={p.description || ""} />
+                </div>
+              </details>
+            ) : (
+              <RichText text={p.description || ""} />
+            )}
           </div>
 
           {p.amenities?.length ? (
@@ -105,9 +136,12 @@ export default async function ProjectDetail({
         <div>
           <div className="card rounded-lg p-5 sticky top-20">
             <div className="text-xs text-[var(--ink-soft)] uppercase">Mức giá từ</div>
-            <div className="prata text-2xl text-brand mb-4">
+            <div className="prata text-2xl text-brand">
               {fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}
             </div>
+            {p.price_per_m2_text ? (
+              <div className="text-xs text-[var(--ink-soft)] mb-4">{p.price_per_m2_text}</div>
+            ) : <div className="mb-4" />}
             <Row k="Chủ đầu tư" v={p.investor || "-"} />
             <Row k="Khu vực" v={[p.district, p.province].filter(Boolean).join(", ") || "-"} />
             <Row k={related ? "Tin gợi ý cùng khu vực" : "Số tin đang bán"} v={String(listings.length)} />

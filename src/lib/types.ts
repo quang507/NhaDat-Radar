@@ -84,5 +84,10 @@ export type Project = {
   status: string;
   priority?: number | null;   // 012: cao lên trước (dự án Nhã Đạt/đối tác)
   is_partner?: boolean | null;
+  // 013: thông số bóc từ nguồn — cặp nhãn/giá trị tuỳ dự án (Tổng diện tích, Ngày bàn giao, Pháp lý…)
+  specs?: Record<string, string> | null;
+  handover?: string | null;          // "2020" / "Quý III/2020"
+  source_url?: string | null;        // link trang gốc trên nguồn
+  price_per_m2_text?: string | null; // "65 - 68 triệu/m²"
 };
 

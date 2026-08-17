@@ -10,13 +10,49 @@ import { pathToFileURL } from "node:url";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const PAGES = Number(process.env.MOGI_PROJECT_PAGES || 8);
+
+// mogi có ~1.600 dự án (đã dò: cp=200 vẫn ra dự án mới). Sàn phục vụ khách miền Nam nên
+// CÀO TP.HCM TRƯỚC (?tinh-thanh=ho-chi-minh), xong mới quét toàn quốc cho phần còn lại.
+const SEEDS = [
+  { url: "https://mogi.vn/du-an?tinh-thanh=ho-chi-minh", pages: Number(process.env.MOGI_HCM_PAGES || 60), ten: "TP.HCM" },
+  { url: "https://mogi.vn/du-an", pages: Number(process.env.MOGI_ALL_PAGES || 40), ten: "toàn quốc" },
+];
 
 const dec = (s) => (s || "")
   .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
   .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
   .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (_, e) => ({ amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " })[e])
   .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+// HTML mô tả -> text CÓ CẤU TRÚC (17/8: bản đầu nhét cả bài thành 1 khối 3.200 ký tự, trang dự án
+// thành bức tường chữ). Giữ lại phân đoạn của nguồn: <h2/h3/h4/strong đứng riêng> -> "## Tiêu đề",
+// <li> -> "- gạch đầu dòng", <p>/<br> -> xuống dòng. Trang web tự render lại theo các dấu này.
+export function structText(html) {
+  if (!html) return "";
+  let s = String(html)
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<h[1-6][^>]*>/gi, "\n\n## ")
+    .replace(/<\/h[1-6]>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "\n- ")
+    .replace(/<\/li>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|ul|ol|table|tr)>/gi, "\n\n")
+    .replace(/<[^>]+>/g, " ");
+  s = dec0(s);
+  return s
+    .split("\n")
+    .map((l) => l.replace(/[ \t ]+/g, " ").trim())
+    .filter((l, i, a) => l || (a[i - 1] || "").length)     // gộp dòng trống liên tiếp
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/^\s*##\s*$/gm, "")                            // tiêu đề rỗng
+    .trim();
+}
+// giải mã entity nhưng KHÔNG bóc thẻ (structText đã xử lý thẻ trước đó)
+const dec0 = (s) => (s || "")
+  .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
+  .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (_, e) => ({ amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " })[e]);
 
 function canonProvince(s) {
   const t = (s || "").toLowerCase();
@@ -78,10 +114,12 @@ export function parseDetail(html, base) {
 
   // Mô tả dài nằm trong <div id="project-intro"> (KHÔNG phải class) — cắt tới khối kế tiếp.
   // ld.description chỉ là câu SEO ngắn nên chỉ dùng làm phương án dự phòng.
-  const intro = dec((html.match(/id="project-intro">([\s\S]*?)(?:<div (?:id|class)="(?!.*project-intro)|<section|<\/section)/) || [])[1] || "")
-    .slice(0, 4000);
+  const introHtml = (html.match(/id="project-intro">([\s\S]*?)(?:<div (?:id|class)="(?!.*project-intro)|<section|<\/section)/) || [])[1] || "";
+  const intro = structText(introHtml).slice(0, 6000);
+  // dec() bóc thẻ nên "m<sup>2</sup>" thành "m 2" -> ghép lại thành m² cho ra hồn
+  const m2 = (s) => s.replace(/\bm\s*2\b/g, "m²");
   const specs = [...html.matchAll(/<li>\s*<span>\s*([^<]+?)\s*<\/span>([\s\S]*?)<\/li>/g)]
-    .map((m) => [dec(m[1]), dec(m[2])]).filter(([k, v]) => k && v);
+    .map((m) => [dec(m[1]), m2(dec(m[2]))]).filter(([k, v]) => k && v);
 
   const images = [...new Set(
     [...html.matchAll(/https:\/\/cloud\.mogi\.vn\/project\/(?!thumb-)[^\s"']+?\.(?:jpg|jpeg|png)/g)].map((m) => m[0]),
@@ -115,19 +153,29 @@ async function get(url) {
 }
 
 async function crawl() {
-  const cards = [];
-  for (let p = 1; p <= PAGES; p++) {
-    const url = p === 1 ? "https://mogi.vn/du-an" : `https://mogi.vn/du-an?cp=${p}`;
-    try {
-      const list = parseList(await get(url));
-      if (!list.length) { console.error(`trang ${p}: 0 dự án -> dừng`); break; }
-      cards.push(...list);
-      console.error(`trang ${p}: ${list.length} dự án`);
-    } catch (e) { console.error(`trang ${p} lỗi:`, e.message); }
-    await sleep(1200);
+  const byHref = new Map();  // khử trùng ngay: dự án nổi bật lặp ở nhiều trang, và HCM trùng toàn quốc
+  for (const seed of SEEDS) {
+    let rong = 0;
+    for (let p = 1; p <= seed.pages; p++) {
+      const url = p === 1 ? seed.url : seed.url + (seed.url.includes("?") ? "&" : "?") + `cp=${p}`;
+      try {
+        const list = parseList(await get(url));
+        if (!list.length) { console.error(`  ${seed.ten} trang ${p}: 0 dự án -> dừng seed này`); break; }
+        const truoc = byHref.size;
+        for (const c of list) if (!byHref.has(c.href)) byHref.set(c.href, c);
+        const moi = byHref.size - truoc;
+        if (p % 10 === 0 || moi === 0) console.error(`  ${seed.ten} trang ${p}: +${moi} mới (tổng ${byHref.size})`);
+        // Dừng sớm khi hết dự án mới — nhưng CHỈ sau trang 12 và cần 8 trang trống liên tiếp.
+        // Sự cố 17/8: seed "toàn quốc" có ~8 trang đầu là dự án NỔI BẬT, trùng hết với phần
+        // TP.HCM vừa cào -> ngưỡng 3 trang cắt ngay trang 3, không bao giờ tới dự án Hà Nội/Đà Nẵng.
+        if (moi === 0 && p >= 12) { if (++rong >= 8) { console.error(`  ${seed.ten}: 8 trang liền không có dự án mới -> dừng`); break; } }
+        else if (moi > 0) rong = 0;
+      } catch (e) { console.error(`  ${seed.ten} trang ${p} lỗi:`, e.message); }
+      await sleep(900);
+    }
+    console.error(`${seed.ten}: xong, tổng gom được ${byHref.size} dự án`);
   }
-  // khử trùng theo href (dự án nổi bật lặp lại ở nhiều trang)
-  const uniq = [...new Map(cards.map((c) => [c.href, c])).values()];
+  const uniq = [...byHref.values()];
   console.error(`\n${uniq.length} dự án duy nhất -> lấy chi tiết...`);
 
   const out = [];
@@ -137,8 +185,11 @@ async function crawl() {
       const d = parseDetail(await get(url), c.href);
       const slug = c.href.replace(/^\//, "");
       const priceMin = parsePrice(c.priceText);
+      // "Từ 3 tỷ 55 triệu (65 - 68 triệu/m²)" -> tách phần đơn giá trong ngoặc để hiện riêng
+      const ppm2 = (c.priceText.replace(/\bm\s*2\b/g, "m²").match(/\(([^)]*\/m²?)/) || [])[1];
       out.push({
         slug, source_url: url, mogi_id: d.mogiId,
+        price_per_m2_text: ppm2 ? ppm2.replace(/\s*2\s*$/, "²").trim() : null,
         name: d.name || c.name,
         investor: d.investor || c.investor,
         description: d.description,
@@ -178,6 +229,8 @@ async function seed(projects) {
       slug: p.slug, name: p.name, investor: p.investor, description: p.description,
       province: p.province, district: p.district, ward: p.ward, address: p.address,
       images: p.images || [], price_min: p.price_min, price_max: p.price_max,
+      specs: p.specs || {}, handover: p.handover, source_url: p.source_url,
+      price_per_m2_text: p.price_per_m2_text,
       status: "published",
       // geography(Point,4326): PostgREST nhận EWKT
       ...(p.lat != null && p.lng != null ? { geo: `SRID=4326;POINT(${p.lng} ${p.lat})` } : {}),
