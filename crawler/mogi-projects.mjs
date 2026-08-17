@@ -104,9 +104,13 @@ export function parseDetail(html, base) {
     if (!/GeoCoordinates/.test(m[1])) continue;
     try { cands.push(JSON.parse(m[1])); } catch { /* khối hỏng -> bỏ */ }
   }
+  // Loại khối của CHÍNH trang mogi (tên "Mogi", url về trang chủ) — sự cố 17/8: 17 dự án bị đặt tên
+  // "Mogi" vì không khối nào khớp url dự án nên rơi vào nhánh cuối và vớ đúng khối của website.
+  const laMogi = (c) => /^mogi/i.test(String(c?.name || "").trim()) || /^https?:\/\/mogi\.vn\/?$/.test(String(c?.url || ""));
   const ld = cands.find((c) => typeof c?.url === "string" && c.url.includes(base))
-    || cands.find((c) => typeof c?.address === "string")
-    || cands[cands.length - 1] || null;
+    || cands.filter((c) => !laMogi(c)).find((c) => typeof c?.address === "string")
+    || cands.filter((c) => !laMogi(c)).pop()
+    || null;
   const lat = ld?.geo?.latitude ? Number(ld.geo.latitude) : null;
   const lng = ld?.geo?.longitude ? Number(ld.geo.longitude) : null;
   // Toạ độ phải nằm trong lãnh thổ VN, không thì là địa chỉ văn phòng mogi lọt vào
@@ -190,7 +194,9 @@ async function crawl() {
       out.push({
         slug, source_url: url, mogi_id: d.mogiId,
         price_per_m2_text: ppm2 ? ppm2.replace(/\s*2\s*$/, "²").trim() : null,
-        name: d.name || c.name,
+        // Tên ở TRANG DANH SÁCH (c.name) luôn đúng vì bóc từ <h2 class="project-title">;
+        // JSON-LD chỉ dùng khi danh sách không có, và không bao giờ nhận "Mogi" (tên website).
+        name: c.name || (/^mogi$/i.test((d.name || "").trim()) ? null : d.name) || null,
         investor: d.investor || c.investor,
         description: d.description,
         address: d.address,
