@@ -21,6 +21,7 @@ const CUT_FROM = /^(?:viết bình luận(?: công khai)?[.…]*|xem thêm bình
 // Đuôi "… Xem thêm" FB gắn khi cắt bài dài (nội dung sau đó bị ẩn -> chỉ bỏ nhãn)
 const SEE_MORE_TAIL = /\s*(?:…|\.{3})?\s*xem thêm$/i;
 
+// (structText của dự án nằm ở crawler/mogi-projects.mjs — file này chỉ lo text Facebook)
 // Ký tự vô hình / kết hợp mà FB chèn để phá copy: U+034F (COMBINING GRAPHEME JOINER), zero-width, BOM, soft hyphen
 const INVISIBLE = new RegExp("[" + String.fromCharCode(0x034F, 0x200B, 0x200C, 0x200D, 0x200E, 0x200F, 0x2060, 0xFEFF, 0x00AD) + "]", "g"); // U+034F CGJ, zero-width, BOM, soft hyphen
 

@@ -63,8 +63,14 @@ export default async function ProjectDetail({
         <div>
           <h1 className="prata text-3xl">{p.name}</h1>
           <div className="text-brand font-semibold">{p.investor}</div>
+          {/* address của nguồn thường ĐÃ chứa quận/tỉnh -> chỉ nối thêm phần chưa có, không thì ra
+              "Lê Cơ, Phường An Lạc, Quận Bình Tân, TPHCM, Quận Bình Tân, Hồ Chí Minh" (17/8) */}
           <div className="text-sm text-[var(--ink-soft)] mt-1">
-            📍 {[p.address, p.district, p.province].filter(Boolean).join(", ") || "-"}
+            📍 {(() => {
+              const co = (s?: string | null) => !!s && (p.address || "").toLowerCase().includes(s.toLowerCase());
+              const phan = [p.address, co(p.district) ? null : p.district, co(p.province) ? null : p.province];
+              return phan.filter(Boolean).join(", ") || "-";
+            })()}
           </div>
 
           {/* Bảng thông số (migration 013): tổng DT, DT xây dựng, DT căn từ-đến, ngày khởi công/hoàn
@@ -86,6 +92,9 @@ export default async function ProjectDetail({
             );
           })()}
 
+          {/* Không có mô tả thì ẨN hẳn khối, đừng hiện cái thẻ trống ghi "(Chưa có mô tả)" —
+              266 dự án đã bị mogi gỡ trang chi tiết nên không bao giờ có mô tả (17/8) */}
+          {(p.description || "").trim() && (
           <div className="card rounded-lg p-5 mt-4">
             <h2 className="font-bold mb-3">Giới thiệu dự án</h2>
             {/* Mô tả dài -> gấp lại, mở bằng <details> (không cần JS, hoạt động cả khi tắt script) */}
@@ -114,6 +123,7 @@ export default async function ProjectDetail({
               );
             })()}
           </div>
+          )}
 
           {p.amenities?.length ? (
             <div className="card rounded-lg p-5 mt-4">
@@ -146,9 +156,12 @@ export default async function ProjectDetail({
 
         <div>
           <div className="card rounded-lg p-5 sticky top-20">
-            <div className="text-xs text-[var(--ink-soft)] uppercase">Mức giá từ</div>
+            {/* Không có giá nào -> "Giá thoả thuận" (17/8: trước hiện "Thoả thuận - Thoả thuận") */}
+            <div className="text-xs text-[var(--ink-soft)] uppercase">{p.price_min ? "Mức giá từ" : "Mức giá"}</div>
             <div className="prata text-2xl text-brand">
-              {fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}
+              {p.price_min
+                ? fmtPrice(p.price_min, "ban") + (p.price_max ? " - " + fmtPrice(p.price_max, "ban") : "")
+                : "Giá thoả thuận"}
             </div>
             {p.price_per_m2_text ? (
               <div className="text-xs text-[var(--ink-soft)] mb-4">{p.price_per_m2_text}</div>

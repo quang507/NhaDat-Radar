@@ -39,13 +39,20 @@ export function structText(html) {
     .replace(/<\/(p|div|ul|ol|table|tr)>/gi, "\n\n")
     .replace(/<[^>]+>/g, " ");
   s = dec0(s);
-  return s
-    .split("\n")
-    .map((l) => l.replace(/[ \t ]+/g, " ").trim())
-    .filter((l, i, a) => l || (a[i - 1] || "").length)     // gộp dòng trống liên tiếp
+  const dong = s.split("\n").map((l) => l.replace(/\s+/g, " ").trim());
+  // Ghép dấu đầu dòng bị MỒ CÔI: mogi hay lồng <p> trong <li> nên "-" rơi thành một dòng riêng,
+  // chữ tụt xuống dòng sau -> trang hiện một gạch đầu dòng TRỐNG rồi mới tới nội dung (17/8).
+  const ghep = [];
+  for (const l of dong) {
+    const truoc = ghep.length ? ghep[ghep.length - 1] : null;
+    if (l && (truoc === "-" || truoc === "##")) { ghep[ghep.length - 1] = truoc + " " + l; continue; }
+    ghep.push(l);
+  }
+  return ghep
+    .filter((l, i, a) => l || (a[i - 1] || "").length)      // gộp dòng trống liên tiếp
+    .filter((l) => l !== "-" && l !== "##")                 // dấu/tiêu đề rỗng còn sót
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
-    .replace(/^\s*##\s*$/gm, "")                            // tiêu đề rỗng
     .trim();
 }
 // giải mã entity nhưng KHÔNG bóc thẻ (structText đã xử lý thẻ trước đó)
@@ -53,6 +60,21 @@ const dec0 = (s) => (s || "")
   .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
   .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
   .replace(/&(amp|lt|gt|quot|apos|nbsp);/g, (_, e) => ({ amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " })[e]);
+
+// Dòng khu vực ở TRANG DANH SÁCH: "Quận 10, TPHCM | Bàn giao: 2020" -> {district, province}.
+// Đây là nguồn khu vực ĐÁNG TIN nhất cho dự án đã gỡ trang chi tiết (17/8: 287 dự án từng bị gán
+// district = "Thành phố Hồ Chí Minh", ward = "TP.Hồ Chí Minh" vì lấy nhầm khối JSON-LD văn phòng mogi).
+export function parseAddrLine(line) {
+  const truoc = String(line || "").split("|")[0].trim();
+  if (!truoc) return { district: null, province: null };
+  const phan = truoc.split(",").map((s) => s.trim()).filter(Boolean);
+  if (!phan.length) return { district: null, province: null };
+  const province = canonProvince(phan[phan.length - 1]);
+  const district = phan.length >= 2 ? phan[phan.length - 2] : null;
+  // "Thành phố Hồ Chí Minh" không phải QUẬN -> bỏ, không thì hiện "Thành phố Hồ Chí Minh, Hồ Chí Minh"
+  const rac = district && canonProvince(district) === province;
+  return { district: rac ? null : district, province };
+}
 
 function canonProvince(s) {
   const t = (s || "").toLowerCase();
