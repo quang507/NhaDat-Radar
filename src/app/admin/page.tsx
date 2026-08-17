@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 import { setListingStatus, deleteListing, setVerified, resolveReport } from "./actions";
@@ -134,7 +135,7 @@ export default async function AdminPage({
   }
 
   // ===== Tab: tin đăng (user / crawl) =====
-  let query = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(60);
+  let query = supabase.from("listings").select(LISTING_COLS).order("created_at", { ascending: false }).limit(60);
   query = tab === "user" ? query.neq("source", "crawl") : query.eq("source", "crawl");
   if (sp.q) query = query.ilike("title", `%${sp.q}%`);
   const { data } = await query;

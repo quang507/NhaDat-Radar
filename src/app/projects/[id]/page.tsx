@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice, AMEN } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
 import ListingCard from "@/components/ListingCard";
@@ -23,7 +24,7 @@ export default async function ProjectDetail({
 
   const { data: ls } = await supabase
     .from("listings")
-    .select("*")
+    .select(LISTING_CARD_COLS)
     .eq("project_id", id)
     .eq("status", "published")
     .order("first_seen_at", { ascending: false })
@@ -34,7 +35,7 @@ export default async function ProjectDetail({
   let related = false;
   if (!listings.length && (p.district || p.province)) {
     const { data: near } = await supabase
-      .from("listings").select("*").eq("status", "published")
+      .from("listings").select(LISTING_CARD_COLS).eq("status", "published")
       .ilike(p.district ? "district" : "province", `%${p.district || p.province}%`)
       .not("images", "eq", "{}")
       .order("ai_score", { ascending: false, nullsFirst: false }).limit(8);

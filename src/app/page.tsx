@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import { fmtPrice, PROP, shortPrice } from "@/lib/format";
@@ -41,7 +42,7 @@ export default async function Home({
   const { deal, kind, province, bedrooms, priceMax, q } = sp;
   const supabase = await createClient();
 
-  let query = supabase.from("listings").select("*").eq("status", "published");
+  let query = supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published");
   if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
   if (kind) query = query.eq("kind", kind);
   if (province) query = query.ilike("province", `%${province}%`);

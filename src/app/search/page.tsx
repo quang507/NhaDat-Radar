@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Listing } from "@/lib/types";
 import { canonDistrict, startOfDayVN } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
+import { LISTING_CARD_COLS } from "@/lib/cols";
 import SearchClient from "./SearchClient";
 
 export const metadata = { title: "Tìm kiếm bất động sản - NhaDat Radar" };
@@ -44,7 +45,8 @@ export default async function SearchPage({
     return query;
   };
 
-  let query = applyFilters(supabase.from("listings").select("*").eq("status", "published"));
+  // KHÔNG dùng select("*"): cột embedding vector(768) nặng ~15KB/dòng, 200 dòng = ~3MB vô ích (xem lib/cols)
+  let query = applyFilters(supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published"));
 
   // "N tin mới hôm nay" (kiểu Homigo): tin Radar thấy lần đầu từ 0h hôm nay theo giờ VN, cùng bộ lọc
   const newTodayQuery = applyFilters(

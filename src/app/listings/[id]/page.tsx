@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
@@ -56,7 +57,7 @@ export default async function ListingDetail({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("listings").select("*").eq("id", id).single();
+  const { data } = await supabase.from("listings").select(LISTING_COLS).eq("id", id).single();
   if (!data) notFound();
   const x = data as Listing;
   const t = thumb(x.kind);
@@ -80,14 +81,14 @@ export default async function ListingDetail({
       : Promise.resolve({ data: [] as { price_per_m2: number }[] }),
     // audit 16/8: thiếu cả quận lẫn tỉnh thì ilike "%%" trả tin toàn quốc -> chỉ hỏi khi có khu vực; ảnh không rỗng lọc ở DB
     (x.district || x.province)
-      ? supabase.from("listings").select("*")
+      ? supabase.from("listings").select(LISTING_CARD_COLS)
           .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
           .eq(x.district ? "district" : "province", x.district || x.province!)
           .not("images", "eq", "{}")
           .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
       : Promise.resolve({ data: [] as Listing[] }),
     x.poster_key
-      ? supabase.from("listings").select("*", { count: "exact" })
+      ? supabase.from("listings").select(LISTING_CARD_COLS, { count: "exact" })
           .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
           .order("first_seen_at", { ascending: false }).limit(6)
       : Promise.resolve({ data: [] as Listing[], count: 0 }),
