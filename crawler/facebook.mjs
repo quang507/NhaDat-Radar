@@ -106,15 +106,18 @@ function normalizeCookies(raw) {
 }
 
 // ---- Chế độ Playwright: cào bằng cookies clone ----
-async function scrapePlaywright() {
-  const { chromium } = await import("playwright");
-  const raw = JSON.parse(fs.readFileSync(new URL("./fb-cookies.json", import.meta.url)));
-  const cookies = normalizeCookies(raw);
-  console.error(`FB: nạp ${cookies.length} cookie`);
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage", "--lang=vi-VN"],
-  });
+// Sự cố 17/8: dùng CHUNG 1 browser cho cả 14 nhóm -> RAM renderer tích luỹ dần rồi "Target crashed"
+// / "Page crashed" từ nhóm thứ 3 trở đi; 12/14 nhóm mất trắng, cả run chỉ còn 4 bài thô.
+// Chống bằng 3 lớp: (1) không tải ảnh/video/font — crawler chỉ đọc innerText + link nên bỏ đi
+// không mất gì mà nhẹ hẳn; (2) dựng lại browser sau mỗi FB_RESTART_EVERY nhóm để trả sạch RAM;
+// (3) nhóm nào crash thì dựng browser mới thử lại 1 lần thay vì bỏ luôn.
+const BROWSER_ARGS = [
+  "--no-sandbox", "--disable-blink-features=AutomationControlled", "--disable-dev-shm-usage", "--lang=vi-VN",
+  "--blink-settings=imagesEnabled=false", "--disable-extensions", "--mute-audio",
+];
+
+async function openBrowser(chromium, cookies) {
+  const browser = await chromium.launch({ headless: true, args: BROWSER_ARGS });
   const ctx = await browser.newContext({
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     viewport: { width: 1366, height: 900 },
@@ -128,8 +131,22 @@ async function scrapePlaywright() {
     Object.defineProperty(navigator, "languages", { get: () => ["vi-VN", "vi", "en-US"] });
     Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
   });
+  // Chặn ngay ở tầng mạng (chắc hơn imagesEnabled: chặn cả video/font/ảnh chèn bằng CSS)
+  await ctx.route("**/*", (route) => {
+    const t = route.request().resourceType();
+    return t === "image" || t === "media" || t === "font" ? route.abort() : route.continue();
+  });
   await ctx.addCookies(cookies);
-  const page = await ctx.newPage();
+  return { browser, ctx };
+}
+
+async function scrapePlaywright() {
+  const { chromium } = await import("playwright");
+  const raw = JSON.parse(fs.readFileSync(new URL("./fb-cookies.json", import.meta.url)));
+  const cookies = normalizeCookies(raw);
+  console.error(`FB: nạp ${cookies.length} cookie`);
+  let { browser, ctx } = await openBrowser(chromium, cookies);
+  let page = await ctx.newPage();
 
   await page.goto("https://www.facebook.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
   await sleep(4000);
@@ -147,49 +164,77 @@ async function scrapePlaywright() {
   const posts = [];
   // Nhiều selector cho bài viết (FB đổi DOM liên tục + nhóm mua/bán layout khác)
   const POST_SEL = 'div[role="article"], div[role="feed"] > div, div[data-pagelet^="GroupFeed"] > div, div[aria-posinset]';
-  for (const raw0 of groupUrls) {
+  // Gom 1 nhóm bằng `page` hiện hành. Ném lỗi ra ngoài để vòng dưới quyết định thử lại hay bỏ.
+  async function scrapeGroup(raw0) {
     const url = raw0.replace(/\/$/, "") + "/";
-    try {
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-      // FB ẢO HOÁ feed: chỉ giữ ~3 bài trong DOM, cuộn xuống là bài cũ bị gỡ -> phải GOM SAU MỖI LẦN CUỘN
-      // (bản cũ chỉ bốc 1 lần cuối -> mãi 3 bài/nhóm, kiểm chứng 16/8). Khử trùng theo link/text; dừng khi đủ
-      // FB_POSTS (mặc định 30) hoặc 4 lần cuộn liên tiếp không thêm bài mới.
-      const WANT = Number(process.env.FB_POSTS || 30);
-      const seen = new Map(); // key -> {text,url}
-      let stale = 0;
-      for (let i = 0; i < 40 && seen.size < WANT; i++) {
-        const batch = await page.$$eval(POST_SEL, (nodes) =>
-          nodes.map((n) => ({
-            text: n.innerText || "",
-            url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
-          }))).catch(() => []);
-        const before = seen.size;
-        for (const t of batch) {
-          if (t.text.length <= 40) continue;
-          const key = (t.url && t.url.replace(/[?#].*$/, "")) || t.text.slice(0, 120);
-          if (!seen.has(key)) seen.set(key, t);
-        }
-        if (seen.size === before) { if (++stale >= 4 && seen.size > 0) break; } else stale = 0;
-        await page.mouse.wheel(0, 2500);
-        await sleep(2200);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    // FB ẢO HOÁ feed: chỉ giữ ~3 bài trong DOM, cuộn xuống là bài cũ bị gỡ -> phải GOM SAU MỖI LẦN CUỘN
+    // (bản cũ chỉ bốc 1 lần cuối -> mãi 3 bài/nhóm, kiểm chứng 16/8). Khử trùng theo link/text; dừng khi đủ
+    // FB_POSTS (mặc định 30) hoặc 4 lần cuộn liên tiếp không thêm bài mới.
+    const WANT = Number(process.env.FB_POSTS || 30);
+    const seen = new Map(); // key -> {text,url}
+    let stale = 0;
+    for (let i = 0; i < 40 && seen.size < WANT; i++) {
+      // KHÔNG .catch(() => []) nữa: renderer chết cũng trả mảng rỗng -> vòng lặp cứ chạy tiếp 40 lần
+      // trên page đã hỏng rồi báo "0 bài" như thể FB chặn (che mất crash thật, 17/8).
+      const batch = await page.$$eval(POST_SEL, (nodes) =>
+        nodes.map((n) => ({
+          text: n.innerText || "",
+          url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
+        })));
+      const before = seen.size;
+      for (const t of batch) {
+        if (t.text.length <= 40) continue;
+        const key = (t.url && t.url.replace(/[?#].*$/, "")) || t.text.slice(0, 120);
+        if (!seen.has(key)) seen.set(key, t);
       }
-      const kept = [...seen.values()];
-      if (!kept.length) {
-        // Chẩn đoán: FB trả về gì? (login wall / checkpoint / trang rỗng do chặn headless)
-        const title = await page.title().catch(() => "");
-        const bodyLen = await page.$eval("body", (b) => (b.innerText || "").length).catch(() => 0);
-        const snippet = await page.$eval("body", (b) => (b.innerText || "").replace(/\s+/g, " ").slice(0, 140)).catch(() => "");
-        console.error(`⚠ FB: nhóm ${raw0} -> 0 bài | title="${title}" | body ${bodyLen} ký tự | "${snippet}"`);
-      } else {
-        console.error(`FB: nhóm ${raw0} -> ${kept.length} bài`);
-        kept.forEach((t) => posts.push(t));
-      }
-      await sleep(2500);
-    } catch (e) {
-      console.error(`⚠ FB: lỗi nhóm ${raw0}:`, e.message);
+      if (seen.size === before) { if (++stale >= 4 && seen.size > 0) break; } else stale = 0;
+      await page.mouse.wheel(0, 2500);
+      await sleep(2200);
     }
+    return [...seen.values()];
   }
-  await browser.close();
+
+  // Dựng lại browser + page sạch (dùng cả cho restart định kỳ lẫn hồi phục sau crash)
+  async function restart(why) {
+    await browser.close().catch(() => { /* browser đã chết theo renderer */ });
+    ({ browser, ctx } = await openBrowser(chromium, cookies));
+    page = await ctx.newPage();
+    console.error(`FB: dựng lại trình duyệt (${why})`);
+  }
+
+  const RESTART_EVERY = Number(process.env.FB_RESTART_EVERY || 3);
+  let done = 0;
+  for (const raw0 of groupUrls) {
+    if (done && done % RESTART_EVERY === 0) await restart(`đã xong ${done} nhóm, giải phóng RAM`);
+    done++;
+
+    let kept = null;
+    for (let tryN = 1; tryN <= 2; tryN++) {
+      try { kept = await scrapeGroup(raw0); break; }
+      catch (e) {
+        const first = String(e.message).split("\n")[0];
+        console.error(`⚠ FB: lỗi nhóm ${raw0} (lần ${tryN}/2): ${first}`);
+        // Renderer chết -> browser hiện tại vô dụng, phải dựng mới mới thử lại được
+        if (tryN === 1 && /crash/i.test(first)) await restart("nhóm vừa rồi crash");
+        else break;
+      }
+    }
+
+    if (kept === null) continue;                  // thử 2 lần vẫn lỗi -> bỏ nhóm, sang nhóm kế
+    if (!kept.length) {
+      // Chẩn đoán: FB trả về gì? (login wall / checkpoint / trang rỗng do chặn headless)
+      const title = await page.title().catch(() => "");
+      const bodyLen = await page.$eval("body", (b) => (b.innerText || "").length).catch(() => 0);
+      const snippet = await page.$eval("body", (b) => (b.innerText || "").replace(/\s+/g, " ").slice(0, 140)).catch(() => "");
+      console.error(`⚠ FB: nhóm ${raw0} -> 0 bài | title="${title}" | body ${bodyLen} ký tự | "${snippet}"`);
+    } else {
+      console.error(`FB: nhóm ${raw0} -> ${kept.length} bài`);
+      kept.forEach((t) => posts.push(t));
+    }
+    await sleep(2500);
+  }
+  await browser.close().catch(() => {});
   console.error(`FB: tổng thu được ${posts.length} bài thô`);
   return posts;
 }
