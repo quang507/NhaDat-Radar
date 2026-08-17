@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       contact_phone: L.contact_phone ?? null, // consent: người dùng tự cung cấp
       ai_score: 85,
       poster_role_guess: "chu_nha",
-      status: "pending", // chờ duyệt trước khi hiện public
+      status: "published", // 17/8: bỏ duyệt trước — lên thẳng, admin gỡ tin rác ngay trên trang tin
     });
     if (insErr) {
       await sendZaloText(userId, "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏");
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     }
     await sendZaloText(
       userId,
-      `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd ?? null, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}\n\nTin sẽ hiển thị sau khi duyệt. Cảm ơn anh/chị! 🏠`,
+      `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd ?? null, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}\n\nTin đã lên trang. Cảm ơn anh/chị! 🏠`,
     );
     return NextResponse.json({ ok: true });
   }

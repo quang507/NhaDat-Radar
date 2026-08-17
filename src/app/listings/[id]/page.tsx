@@ -23,6 +23,7 @@ import PhoneReveal from "@/components/PhoneReveal";
 import SourceBadge from "@/components/SourceBadge";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
+import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
 
 function agoMin(iso: string | null): number | null {
   if (!iso) return null;
@@ -60,6 +61,14 @@ export default async function ListingDetail({
   const x = data as Listing;
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
+
+  // 17/8: bỏ duyệt trước — tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
+  const { data: { user } } = await supabase.auth.getUser();
+  let isAdmin = false;
+  if (user) {
+    const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    isAdmin = prof?.role === "admin";
+  }
 
   // So sánh giá + tin liên quan (cùng loại + cùng quận) + tin khác của cùng người đăng (song song)
   const [{ data: compRows }, { data: relRows }, { data: posterRows, count: posterCount }] = await Promise.all([
@@ -120,6 +129,25 @@ export default async function ListingDetail({
         <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">← Quay lại</Link>
         <span className="ml-auto"><FavButton id={x.id} /></span>
       </div>
+
+      {/* Thanh admin: gỡ tin không liên quan / kém chất lượng tại chỗ (chỉ admin thấy) */}
+      {isAdmin && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs">
+          <span className="font-bold text-amber-700">🛡 Admin</span>
+          <span className="text-[var(--ink-soft)]">tin đang <b>{x.status}</b></span>
+          <span className="ml-auto flex items-center gap-2">
+            <form action={setListingStatusFromDetail}>
+              <input type="hidden" name="id" value={x.id} />
+              <input type="hidden" name="status" value={x.status === "hidden" ? "published" : "hidden"} />
+              <button className="btn !py-1 text-xs" type="submit">{x.status === "hidden" ? "Hiện lại" : "Ẩn tin"}</button>
+            </form>
+            <form action={deleteListingFromDetail}>
+              <input type="hidden" name="id" value={x.id} />
+              <button className="btn !py-1 text-xs !text-red-600" type="submit">Xoá hẳn</button>
+            </form>
+          </span>
+        </div>
+      )}
 
       {/* Breadcrumb + tiêu đề + giá TRÊN gallery: khách từ Google phải thấy "tin gì, giá bao nhiêu" ngay màn hình đầu
           (UX audit 16/8: trước đây màn hình đầu chỉ có ảnh, giá/tiêu đề nằm dưới fold) */}

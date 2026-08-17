@@ -31,6 +31,26 @@ export async function deleteListing(formData: FormData) {
   revalidatePath("/admin");
 }
 
+// 17/8: bỏ duyệt trước (tin lên thẳng) -> admin cần gỡ tin rác NGAY TRÊN trang chi tiết,
+// không phải quay về /admin tìm lại. 2 action dưới dùng cho thanh admin ở /listings/[id].
+export async function setListingStatusFromDetail(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const status = String(formData.get("status") || "");
+  if (!id || !["published", "hidden"].includes(status)) return;
+  await createAdminClient().from("listings").update({ status }).eq("id", id);
+  revalidatePath(`/listings/${id}`);
+}
+
+export async function deleteListingFromDetail(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  await createAdminClient().from("listings").delete().eq("id", id);
+  revalidatePath("/search");
+  redirect("/search"); // tin đã xoá hẳn -> ở lại trang cũ chỉ thấy 404
+}
+
 // Xử lý báo cáo tin xấu: resolved (đã xử lý) / ignored (bỏ qua); kèm tuỳ chọn ẩn tin luôn.
 export async function resolveReport(formData: FormData) {
   await requireAdmin();

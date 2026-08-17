@@ -83,6 +83,11 @@ async function classify(text) {
 
 const KIND = ["nha", "dat", "can_ho", "mat_bang", "phong_tro", "khac"];
 
+// Chống lặp câu "Em nhận được ảnh rồi ạ": fromId -> mốc nhắc gần nhất (đặt ở module
+// để listener restart không mất; map nhỏ, chỉ giữ người nhắn ảnh nên không cần dọn)
+const photoHintAt = new Map();
+const HINT_GAP_MS = Number(process.env.ZALO_HINT_GAP_MS || 60_000);
+
 // Lưu 1 BĐS vào DB (dùng cho cả DM đăng tin lẫn tin bóc từ group)
 async function saveListing(L, text, { fromGroup } = {}) {
   return sb.from("listings").insert({
@@ -94,7 +99,8 @@ async function saveListing(L, text, { fromGroup } = {}) {
     kind: KIND.includes(L.property_type || "") ? L.property_type : "khac",
     province: L.province ?? null, district: L.district ?? null, ward: L.ward ?? null,
     legal_status: L.legal ?? null, amenities: L.amenities || [], contact_phone: L.contact_phone ?? null,
-    ai_score: fromGroup ? 70 : 85, poster_role_guess: "khong_ro", status: "pending", // chờ duyệt ở /admin
+    ai_score: fromGroup ? 70 : 85, poster_role_guess: "khong_ro",
+    status: "published", // 17/8: bỏ duyệt trước — lên thẳng, admin gỡ tin rác ngay trên trang tin
   });
 }
 
@@ -104,7 +110,7 @@ async function harvestGroup(text) {
   const ai = await classify(text);
   if (ai.intent === "dang_tin" && ai.listing) {
     const { error } = await saveListing(ai.listing, text, { fromGroup: true });
-    console.log(error ? "  (lưu lỗi: " + error.message + ")" : "  ✓ bóc được 1 tin BĐS từ group -> chờ duyệt");
+    console.log(error ? "  (lưu lỗi: " + error.message + ")" : "  ✓ bóc được 1 tin BĐS từ group -> đã đăng");
   }
 }
 
@@ -116,7 +122,7 @@ async function handle(text) {
     const L = ai.listing;
     const { error } = await saveListing(L, text, { fromGroup: false });
     if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
-    return `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT — nhắn thêm SĐT để khách liên hệ được)"}\n\nRadar duyệt tin trong ngày rồi đăng lên ${SITE}. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
+    return `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT — nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
   }
 
   if (ai.intent === "hoi_tin" && ai.query) {
@@ -192,6 +198,12 @@ function startListener() {
     const msgType = String(d.msgType ?? ev.msgType ?? "");
     if (!text) {
       if (!isGroup && /photo|image|file|video|chat\.(photo|file|video)/i.test(msgType)) {
+        // Sự cố 17/8: album 5 ảnh về thành 5 event riêng -> bot lặp câu hướng dẫn 5 lần liền
+        // (khách tưởng bot lỗi, Zalo dễ gắn cờ spam). Nhớ mốc nhắc gần nhất theo fromId,
+        // trong HINT_GAP_MS chỉ nhắc 1 lần cho cả album.
+        const now = Date.now();
+        if (now - (photoHintAt.get(fromId) || 0) < HINT_GAP_MS) return;
+        photoHintAt.set(fromId, now);
         const hint = "Em nhận được ảnh rồi ạ 📷. Để đăng tin, anh/chị nhắn kèm 1 dòng: loại BĐS + diện tích + giá + khu vực + SĐT (VD: \"Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx\"). Em ghép với ảnh và đăng ngay.";
         sendReply(fromId, hint);
         console.log(`← [${fromId}] (${msgType}, không chữ) → hướng dẫn`);
