@@ -89,19 +89,30 @@ export default async function ProjectDetail({
           <div className="card rounded-lg p-5 mt-4">
             <h2 className="font-bold mb-3">Giới thiệu dự án</h2>
             {/* Mô tả dài -> gấp lại, mở bằng <details> (không cần JS, hoạt động cả khi tắt script) */}
-            {(p.description || "").length > 1200 ? (
-              <details className="group">
-                <summary className="cursor-pointer list-none">
-                  <RichText text={(p.description || "").slice(0, 900)} />
-                  <span className="mt-3 inline-block text-sm font-semibold text-brand group-open:hidden">Xem đầy đủ ↓</span>
-                </summary>
-                <div className="mt-3 pt-3 border-t border-[var(--line)]">
-                  <RichText text={p.description || ""} />
-                </div>
-              </details>
-            ) : (
-              <RichText text={p.description || ""} />
-            )}
+            {(() => {
+              const full = p.description || "";
+              if (full.length <= 1200) return <RichText text={full} />;
+              // Cắt tại ĐẦU DÒNG gần 900 ký tự nhất — cắt giữa chừng sẽ vỡ "## tiêu đề" / "- gạch đầu dòng".
+              const cut = full.lastIndexOf("\n", 900);
+              const dau = full.slice(0, cut > 300 ? cut : 900);
+              const con = full.slice(dau.length);   // phần CÒN LẠI, không lặp lại phần đã hiện
+              return (
+                <>
+                  <RichText text={dau} />
+                  <details className="group mt-2">
+                    {/* chỉ chữ "Xem đầy đủ" nằm trong summary — để cả đoạn văn vào đây thì bôi đen
+                        chọn chữ cũng vô tình đóng/mở, và nội dung sẽ hiện lặp hai lần khi mở */}
+                    <summary className="cursor-pointer list-none text-sm font-semibold text-brand">
+                      <span className="group-open:hidden">Xem đầy đủ ↓</span>
+                      <span className="hidden group-open:inline">Thu gọn ↑</span>
+                    </summary>
+                    <div className="mt-3">
+                      <RichText text={con} />
+                    </div>
+                  </details>
+                </>
+              );
+            })()}
           </div>
 
           {p.amenities?.length ? (

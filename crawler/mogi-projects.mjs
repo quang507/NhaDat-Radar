@@ -156,6 +156,18 @@ async function get(url) {
   return res.text();
 }
 
+// Lấy trang CHI TIẾT dự án, phát hiện trang đã bị gỡ.
+// Sự cố 17/8: 279/700 dự án còn trong danh sách nhưng trang chi tiết đã chết — mogi trả
+// 302 về https://mogi.vn/du-an. fetch() mặc định ĐI THEO redirect nên crawler âm thầm parse
+// trang danh sách chung: không có JSON-LD của dự án -> tên rơi về "Mogi" (tên website),
+// địa chỉ/toạ độ rỗng. Giờ bắt redirect và báo rõ để dùng dữ liệu trang danh sách thay thế.
+async function getDetail(url) {
+  const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" }, redirect: "manual" });
+  if (res.status >= 300 && res.status < 400) return { html: null, goBo: true };
+  if (res.status !== 200) throw new Error("HTTP " + res.status);
+  return { html: await res.text(), goBo: false };
+}
+
 async function crawl() {
   const byHref = new Map();  // khử trùng ngay: dự án nổi bật lặp ở nhiều trang, và HCM trùng toàn quốc
   for (const seed of SEEDS) {
@@ -183,10 +195,18 @@ async function crawl() {
   console.error(`\n${uniq.length} dự án duy nhất -> lấy chi tiết...`);
 
   const out = [];
+  let goBoDem = 0;   // số dự án còn trong danh sách nhưng trang chi tiết đã bị gỡ (302)
   for (const [i, c] of uniq.entries()) {
     const url = "https://mogi.vn" + c.href;
     try {
-      const d = parseDetail(await get(url), c.href);
+      const { html, goBo } = await getDetail(url);
+      // Trang chi tiết đã gỡ -> KHÔNG parse (sẽ ra rác), chỉ dùng dữ liệu trang danh sách.
+      // Vẫn giữ dự án vì tên/CĐT/khu vực/giá/ảnh bìa ở danh sách là thật và có ích.
+      const d = goBo
+        ? { name: null, mogiId: null, description: null, investor: null, address: null,
+            province: null, district: null, ward: null, lat: null, lng: null, images: [], specs: [] }
+        : parseDetail(html, c.href);
+      if (goBo) goBoDem++;
       const slug = c.href.replace(/^\//, "");
       const priceMin = parsePrice(c.priceText);
       // "Từ 3 tỷ 55 triệu (65 - 68 triệu/m²)" -> tách phần đơn giá trong ngoặc để hiện riêng
@@ -216,7 +236,8 @@ async function crawl() {
     summary: { crawled_at: new Date().toISOString().slice(0, 10), total: out.length, with_geo: out.filter((x) => x.lat).length, with_img: out.filter((x) => x.images.length).length },
     projects: out,
   }, null, 0));
-  console.error(`\nTỔNG ${out.length} dự án (toạ độ: ${out.filter((x) => x.lat).length}, ảnh: ${out.filter((x) => x.images.length).length}) -> projects.json`);
+  console.error(`\nTỔNG ${out.length} dự án (toạ độ: ${out.filter((x) => x.lat).length}, ảnh: ${out.filter((x) => x.images.length).length}, `
+    + `${goBoDem} dự án trang chi tiết đã gỡ -> chỉ có dữ liệu danh sách) -> projects.json`);
   return out;
 }
 
