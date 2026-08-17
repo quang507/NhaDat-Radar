@@ -8,10 +8,13 @@
 | Hạng mục | Số ca | Pass | Fail | Ghi chú |
 |---|---|---|---|---|
 | Unit (`tests/unit/format.spec.ts`) | 11 | **11** | 0 | fmtPrice/shortPrice/fmtPpm2/canonDistrict/fresh/hiRes/cleanImages |
-| E2E smoke (11 trang + SEO + 404) | 13×2 thiết bị | chạy trên CI | — | Xem tab **Actions → E2E tests** của PR, báo cáo HTML trong artifact `playwright-report` |
-| E2E luồng tin + gallery + ♥ | 3×2 | chạy trên CI | — | Gồm ca vuốt gallery mới (bộ đếm 2/n, lightbox Esc) |
-| E2E search + lãi vay + menu mobile | 4×2 | chạy trên CI | — | |
+| E2E desktop Chrome (CI, chạy trên production) | 20 | **19** | 0 | 1 skip (ca menu ☰ chỉ chạy mobile) |
+| E2E iPhone 14 / WebKit (CI, production) | 20 | **20** | 0 | Gồm vuốt gallery (đếm 2/n, lightbox Esc), ♥, menu ☰ |
+| **Tổng run CI 17/8 (lần 3)** | **51** | **50** | **0** | Run xanh: Actions run 32040043404 · báo cáo HTML trong artifact `playwright-report` |
 | Test tay (TC-05..09, 17, 19..31) | 19 | **chưa chạy** | — | Cần người thật + tài khoản email/Google — checklist trong `TEST-CASES.md` |
+
+Tốc độ đo được từ CI (runner ở Mỹ, gọi production): trang desktop 0.6–2s, mobile 1.6–3.4s; lần đầu sau cold start ~4s.
+17/8 đổi region functions Vercel `hnd1` (Tokyo) → `sin1` (Singapore) để API phản hồi gần khách VN hơn.
 
 > Môi trường CI chạy E2E trên web thật mỗi PR + mỗi sáng 09:30 VN (sau crawl 09:00) — crawl làm vỡ web sẽ phát hiện trong ngày.
 
