@@ -30,7 +30,7 @@ test("máy tính lãi vay: đổi giá trị -> số tiền hàng tháng thay đ
 test("nav mobile: menu ☰ mở được các trang chính", async ({ page, isMobile }) => {
   test.skip(!isMobile, "chỉ chạy ở project mobile");
   await page.goto("/");
-  const burger = page.locator("button", { hasText: /☰|menu/i }).or(page.locator('[aria-label*="menu" i]')).first();
+  const burger = page.locator('button[aria-label="Mở menu"]').first();
   await expect(burger).toBeVisible({ timeout: 15_000 });
   await burger.click();
   await expect(page.locator('a[href="/search"]').first()).toBeVisible();

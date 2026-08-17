@@ -20,7 +20,8 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # chromium cho desktop + webkit cho project iPhone 14 (thiếu webkit = 19 ca mobile fail, 17/8)
+      - run: npx playwright install --with-deps chromium webkit
       - name: Run tests
         run: npx playwright test
         env:

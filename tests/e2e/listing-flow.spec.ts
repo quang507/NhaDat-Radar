@@ -11,7 +11,8 @@ test("trang chủ -> chi tiết tin: đủ gallery, form liên hệ", async ({ p
 
   // Có tiêu đề + giá + form liên hệ
   await expect(page.locator("h1").first()).toBeVisible();
-  await expect(page.locator("form").first(), "phải có form liên hệ/lịch xem").toBeVisible();
+  // form:visible — form đầu tiên trong DOM là form ẩn của ChatWidget
+  await expect(page.locator("form:visible").first(), "phải có form liên hệ/lịch xem").toBeVisible();
 });
 
 test("gallery: vuốt/cuộn ảnh chính chuyển ảnh, mở lightbox rồi Esc đóng", async ({ page }) => {
@@ -22,8 +23,9 @@ test("gallery: vuốt/cuộn ảnh chính chuyển ảnh, mở lightbox rồi Es
   await multi.click();
   await page.waitForURL(/\/listings\//);
 
+  await page.waitForLoadState("domcontentloaded");
   const track = page.locator(".snap-x").first();
-  await expect(track).toBeVisible({ timeout: 15_000 });
+  await expect(track, "trang chi tiết phải có track vuốt (bản deploy có Gallery scroll-snap)").toBeVisible({ timeout: 15_000 });
 
   // Cuộn track sang phải 1 khung hình -> bộ đếm phải nhảy sang 2/n
   await track.evaluate((el) => el.scrollTo({ left: el.clientWidth, behavior: "instant" as ScrollBehavior }));
