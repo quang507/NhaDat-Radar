@@ -287,6 +287,17 @@ async function crawl() {
     } catch (e) { console.error(`  lỗi ${c.href}:`, e.message); }
     await sleep(900);
   }
+  // ---- CỔNG CHẤT LƯỢNG (17/8) ----
+  // Dự án thiếu cả bảng thông số lẫn mô tả thì trang chi tiết trống trơn, đưa lên chỉ tổ rác.
+  // Nhiều dự án cũ trên mogi có <ul class="info-general"> RỖNG và không có #project-intro —
+  // đã kiểm chứng tay (empire-city-thu-thiem, green-valley-thung-lung-xanh) chứ không phải bị chặn.
+  // PHẢI lọc ở đây, không thì lượt cào sau lại nạp về đúng đám vừa xoá khỏi DB.
+  const duTieuChuan = (p) => Object.keys(p.specs || {}).length > 0 && (p.description || "").trim().length > 200;
+  const giu = out.filter(duTieuChuan);
+  const loai = out.length - giu.length;
+  console.error(`\nCổng chất lượng: giữ ${giu.length}/${out.length} dự án (loại ${loai} vì thiếu cả thông số lẫn mô tả)`);
+  out.length = 0; out.push(...giu);
+
   if (!out.length) { console.error("mogi-projects: 0 dự án -> giữ projects.json cũ"); return null; }
   fs.writeFileSync(new URL("./projects.json", import.meta.url), JSON.stringify({
     summary: { crawled_at: new Date().toISOString().slice(0, 10), total: out.length, with_geo: out.filter((x) => x.lat).length, with_img: out.filter((x) => x.images.length).length },

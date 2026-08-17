@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { fmtPrice } from "@/lib/format";
 import SafeImg from "@/components/SafeImg";
+import { tinhMoi } from "@/lib/sap-nhap";
 import type { Project } from "@/lib/types";
 
 export const metadata = { title: "Dự án bất động sản - NhaDat Radar" };
@@ -72,8 +73,12 @@ export default async function ProjectsPage({
               key={p}
               href={`/projects?tinh=${encodeURIComponent(p)}`}
               className={`text-xs px-3 py-1.5 rounded-lg border transition ${tinh === p ? "border-brand text-brand font-semibold" : "border-[var(--line)] hover:border-brand"}`}
+              // Giữ tên tỉnh CŨ để bấm/tìm được như thói quen thị trường, nhưng nói rõ nó đã
+              // sáp nhập vào đâu (2025). Xem src/lib/sap-nhap.ts.
+              title={tinhMoi(p) ? `${p} đã sáp nhập vào ${tinhMoi(p)} (2025)` : undefined}
             >
               {p} <span className="text-[var(--ink-faint)]">({n})</span>
+              {tinhMoi(p) && <span className="ml-1 text-[0.6rem] text-[var(--ink-faint)]">· nay thuộc {tinhMoi(p)}</span>}
             </Link>
           ))}
         </div>
