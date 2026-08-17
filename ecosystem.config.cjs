@@ -13,15 +13,15 @@ module.exports = {
       restart_delay: 5000,
     },
     {
-      // Cào toàn bộ nguồn (gồm FB Playwright) mỗi ngày 5h sáng
+      // Cào toàn bộ nguồn (gồm FB Playwright) 9h sáng + 15h chiều mỗi ngày (giờ máy = giờ VN)
       name: "daily-crawl",
       script: "crawler/daily.mjs",
       node_args: "--env-file=.env.local",
       autorestart: false,
-      cron_restart: "0 5 * * *",
+      cron_restart: "0 9,15 * * *",
     },
     {
-      // Bật máy trễ giờ cron (5h) -> nếu lần cào gần nhất >20h thì cào ngay (FB/Zalo máy nhà không mất ngày)
+      // Bật máy trễ giờ cron -> nếu lần cào gần nhất đã quá cũ thì cào ngay (FB/Zalo máy nhà không mất lượt)
       name: "crawl-on-boot",
       script: "crawler/run-if-stale.mjs",
       node_args: "--env-file=.env.local",
