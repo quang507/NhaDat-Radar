@@ -46,6 +46,17 @@ export default function Turnstile() {
           size: "flexible",
           theme: "auto",
           "response-field-name": "cf-turnstile-response",
+          // Script tải OK nhưng render vẫn fail được (sai site key / sai domain) -> trước đây im lặng:
+          // không iframe, token rỗng, người dùng bấm Đăng nhập rồi mới nhận "captcha thất bại" khó hiểu.
+          // Sự cố 17/8: mã 110200 trên nha-dat-radar-rkyn.vercel.app vì hostname chưa khai trong widget.
+          "error-callback": (code: string) => {
+            if (!ref.current) return;
+            const fix = code === "110200"
+              ? `Tên miền ${typeof window !== "undefined" ? window.location.hostname : ""} chưa được khai báo cho captcha. Quản trị viên cần thêm vào Cloudflare → Turnstile → Hostname Management.`
+              : "Tải lại trang; nếu vẫn lỗi, báo quản trị viên kèm mã trên.";
+            ref.current.innerHTML =
+              `<p class="text-xs text-amber-600">Captcha lỗi (mã ${code}). ${fix}</p>`;
+          },
         });
       } else if (!window.turnstile) {
         setTimeout(tryRender, 300);
