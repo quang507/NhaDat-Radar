@@ -8,6 +8,7 @@ import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import { PROP, shortPrice } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
+import { tinhCuGopVao } from "@/lib/sap-nhap";
 import type { Listing } from "@/lib/types";
 import PlaceSuggest, { buildPlaces, type Place } from "@/components/PlaceSuggest";
 import RecentlyViewed, { RecentSearches, rememberSearch } from "@/components/RecentlyViewed";
@@ -59,6 +60,8 @@ export default function SearchClient({
   // (hệ 2 cấp, bỏ quận); TẮT = duyệt theo quận cũ như thói quen thị trường.
   const [newAddr, setNewAddr] = useState(params.newAddr === "1");
   const own = params.own === "1"; // chỉ tin chính chủ tự đăng
+  // Tỉnh cũ được gộp thêm vào kết quả khi bật "Địa chỉ mới sau sáp nhập" (xem lib/sap-nhap)
+  const gomThem = useMemo(() => (f.province ? tinhCuGopVao(f.province) : []), [f.province]);
 
   const provinces = useMemo(() => Object.keys(geo).sort(), [geo]);
   const districts = useMemo(() => (f.province && geo[f.province] ? Object.keys(geo[f.province]).sort() : []), [geo, f.province]);
@@ -142,6 +145,12 @@ export default function SearchClient({
             {newToday > 0 ? <><b className="text-emerald-600">{newToday.toLocaleString("vi-VN")} tin mới hôm nay</b> · </> : null}
             Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{(total ?? 0) > listings.length ? ` (đang hiển thị ${listings.length} tin mới nhất — thu hẹp bộ lọc để xem đúng phần bạn cần)` : ""}.
           </p>
+          {/* Nói rõ vì sao lọc "Hồ Chí Minh" lại ra tin ghi Bình Dương — không thì khách tưởng lọc sai */}
+          {newAddr && gomThem.length > 0 && (
+            <p className="text-xs text-[var(--ink-soft)] mt-1">
+              Theo địa giới 2025, kết quả gồm cả tin còn ghi <b>{gomThem.join(", ")}</b> (đã sáp nhập vào {f.province}).
+            </p>
+          )}
         </div>
         <div className="ml-auto flex items-center gap-2">
           <SaveSearchButton filters={f} />
@@ -223,6 +232,7 @@ export default function SearchClient({
           role="switch" aria-checked={!!newAddr}
           className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
           onClick={() => push({ ...f, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
+          title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 — chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
         >
           <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />

@@ -5,6 +5,7 @@ import type { Listing } from "@/lib/types";
 import { canonDistrict, startOfDayVN } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
 import { LISTING_CARD_COLS } from "@/lib/cols";
+import { tinhCuGopVao } from "@/lib/sap-nhap";
 import SearchClient from "./SearchClient";
 
 export const metadata = { title: "Tìm kiếm bất động sản - NhaDat Radar" };
@@ -15,7 +16,7 @@ export default async function SearchPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const { deal, kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own, legal, direction } = sp;
+  const { deal, kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own, legal, direction, newAddr } = sp;
   const supabase = await createClient();
 
   // Làm sạch input trước khi đưa vào ilike/or của PostgREST: %/_ là wildcard, ",()" phá cú pháp .or() (audit 16/8: province/district/ward từng đưa thẳng)
@@ -26,7 +27,17 @@ export default async function SearchPage({
     if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
     if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
     if (kind) query = query.eq("kind", kind);
-    if (province) query = query.ilike("province", `%${clean(province)}%`);
+    // Công tắc "Địa chỉ mới sau sáp nhập" BẬT -> lọc theo địa giới 2025: chọn "Hồ Chí Minh"
+    // thì trả về CẢ tin còn ghi "Bình Dương" / "Bà Rịa - Vũng Tàu", vì nguồn vẫn dùng tên tỉnh cũ.
+    // TẮT (mặc định) -> đúng tên tỉnh như nguồn ghi, giữ thói quen tìm của thị trường.
+    if (province) {
+      const cu = newAddr === "1" ? tinhCuGopVao(province) : [];
+      if (cu.length) {
+        query = query.or([province, ...cu].map((p) => `province.ilike.%${clean(p)}%`).join(","));
+      } else {
+        query = query.ilike("province", `%${clean(province)}%`);
+      }
+    }
     // district trong DB đã chuẩn hoá (merge.mjs canonDistrict + UPDATE 16/8) -> so KHỚP CHÍNH XÁC, không còn prefix + post-filter
     if (district) query = query.eq("district", canonDistrict(district));
     if (ward) query = query.ilike("ward", `%${clean(ward)}%`);

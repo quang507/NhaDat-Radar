@@ -36,3 +36,16 @@ export function gopTinh(tinh: string | null | undefined): string | null {
   const t = (tinh || "").trim();
   return t ? SAP_NHAP_TINH[t] ?? t : null;
 }
+
+/**
+ * Tra NGƯỢC: tỉnh hiện hành này gồm những tỉnh cũ nào?
+ *   tinhCuGopVao("Hồ Chí Minh") -> ["Bình Dương", "Bà Rịa - Vũng Tàu", ...]
+ * Dùng khi công tắc "Địa chỉ mới sau sáp nhập" BẬT: lọc "Hồ Chí Minh" thì phải trả về
+ * cả tin còn ghi tên tỉnh cũ, vì nguồn chưa cập nhật theo địa giới mới.
+ * Trả mảng rỗng nếu tỉnh không nhận sáp nhập từ đâu cả.
+ */
+export function tinhCuGopVao(tinhHienHanh: string | null | undefined): string[] {
+  const t = (tinhHienHanh || "").trim();
+  if (!t) return [];
+  return [...new Set(Object.entries(SAP_NHAP_TINH).filter(([, moi]) => moi === t).map(([cu]) => cu))];
+}
