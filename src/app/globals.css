@@ -164,3 +164,7 @@ img { transition: opacity .3s ease; }
   border: 5px solid transparent; border-top-color: #1c1c1e; border-bottom: 0;
 }
 .leaflet-container { font: inherit; background: var(--surface); }
+
+/* Track vuốt ảnh (Gallery): ẩn thanh cuộn nhưng vẫn cuộn được */
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
