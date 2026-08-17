@@ -193,7 +193,8 @@ async function scrapePlaywright() {
       await sleep(600);
       // KHÔNG .catch(() => []) nữa: renderer chết cũng trả mảng rỗng -> vòng lặp cứ chạy tiếp 40 lần
       // trên page đã hỏng rồi báo "0 bài" như thể FB chặn (che mất crash thật, 17/8).
-      const batch = await page.$$eval(POST_SEL, (nodes) =>
+      const gid = (raw0.match(/\/groups\/([^/?#]+)/) || [])[1] || "";
+      const batch = await page.$$eval(POST_SEL, (nodes, gid) =>
         nodes.map((n) => {
           // ẢNH bài đăng (17/8 — trước đây chế độ Playwright không lấy ảnh, tin FB nào cũng chỉ có icon màu):
           // chỉ lấy ảnh CDN FB (scontent/fbcdn), bỏ avatar/emoji/icon nhỏ (URL cỡ p50x50, s40x40… hoặc bề rộng < 100px).
@@ -207,12 +208,22 @@ async function scrapePlaywright() {
             if (!imgs.includes(s)) imgs.push(s);
             if (imgs.length >= 8) break;
           }
-          return {
-            text: n.innerText || "",
-            url: (n.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/groups/"][href*="/posts"]') || {}).href || "",
-            images: imgs,
-          };
-        }));
+
+          // LINK BÀI GỐC — 17/8: 226/243 tin trong DB là "#", nút "Xem bài gốc" chết.
+          // Chẩn đoán DOM thật: trong bài KHÔNG có anchor "/posts/". Permalink ở dấu thời gian có
+          // href="?__cft__[0]=..." — chỉ query, không path, nên a.href chỉ ra lại URL nhóm (vô dụng).
+          // Nhưng link ảnh có dạng /photo/?fbid=...&set=pcb.<POST_ID> -> lấy POST_ID dựng permalink chuẩn.
+          // Trèo lên [aria-posinset] = đúng wrapper 1 bài; KHÔNG trèo cao hơn kẻo vớ link bài kế bên.
+          const box = n.closest("[aria-posinset]") || n;
+          let url = box.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/permalink.php"],a[href*="/story.php"]')?.href || "";
+          if (!url && gid) {
+            for (const a of box.querySelectorAll('a[href*="set=pcb."]')) {
+              const id = (a.getAttribute("href") || "").match(/set=pcb\.(\d+)/)?.[1];
+              if (id) { url = `https://www.facebook.com/groups/${gid}/posts/${id}/`; break; }
+            }
+          }
+          return { text: n.innerText || "", url, images: imgs };
+        }), gid);   // gid truyền vào trình duyệt để dựng permalink
       const before = seen.size;
       for (const t of batch) {
         // Làm sạch NGAY: bỏ "Facebook Facebook…" (alt ảnh), chuỗi chống cào, chữ UI, phần bình luận (sự cố 17/8).
