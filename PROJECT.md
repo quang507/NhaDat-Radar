@@ -13,7 +13,7 @@
 | **GitHub repo** | https://github.com/quang507/NhaDat-Radar |
 | **Web live (Vercel)** | https://nha-dat-radar-rkyn.vercel.app |
 | **Supabase project** | `dlpedtfmbtuxmgrdnhij` · https://dlpedtfmbtuxmgrdnhij.supabase.co |
-| **Apify** | actor `apify/facebook-groups-scraper` (cào FB) |
+| ~~Apify~~ | ĐÃ BỎ 17/8 — FB cào bằng Playwright + cookie clone ở máy nhà (miễn phí) |
 
 ## 2. Trạng thái hiện tại (cập nhật 2026-08-14)
 - **448 tin thật** từ 5 nguồn: Chợ Tốt 198 · Batdongsan 123 · nhadat 82 · Mogi 30 · Facebook 15.
@@ -27,7 +27,7 @@
 | DB + Auth | **Supabase** (Postgres + PostGIS + RLS) |
 | Bản đồ | **Leaflet + OpenStreetMap** (free; có `NEXT_PUBLIC_MAPBOX_TOKEN` thì dùng Mapbox) |
 | AI | **Google Gemini** `gemini-flash-lite-latest` (xoay tối đa 5 key) |
-| Crawler | Node (fetch/HTML parse) + Apify (FB) + Playwright (dự phòng) |
+| Crawler | Node (fetch/HTML parse) + Playwright (FB, batdongsan) |
 | Deploy | **Vercel** (web) + **GitHub Actions** (crawl cron) + **Supabase** (DB) |
 | Font | Lora (display) + Inter (body), màu chủ đạo xanh `#2563eb` |
 
@@ -61,7 +61,7 @@ nhadat-radar-app/
     chotot.mjs        # Chợ Tốt - API JSON công khai (có sẵn lat/lng + ảnh + phường). NGON NHẤT.
     mogi.mjs          # Mogi.vn - HTML SSR (fetch qua Cloudflare OK), có ảnh
     batdongsan.mjs    # Batdongsan - Cloudflare (Node fetch bị chặn -> curl HTML rồi --test), có ảnh
-    facebook.mjs      # FB: --apify-run (Apify API) | --apify <file> | --playwright | --demo
+    facebook.mjs      # FB: --playwright (cookie clone, máy nhà) | --demo
     geocode-all.mjs   # geocode BÙ mọi tin thiếu toạ độ -> tin nào cũng có map
     merge.mjs         # Gộp tất cả *.json -> combined.json (chuẩn hoá tỉnh + dedupe cross-source)
     daily.mjs         # ORCHESTRATOR: chạy chuỗi crawl -> merge -> geocode-all -> seed Supabase
@@ -75,7 +75,7 @@ Chợ Tốt(API) ─┐
 Mogi(HTML)   ─┤
 nhadat(HTTP) ─┼─► chuẩn hoá ─► AI Gemini (lọc rác + trích giá/DT/phường + cò/cá nhân + cảnh báo giá)
 Batdongsan   ─┤        (chỉ FB cần AI; các nguồn khác đã có field cấu trúc)
-Facebook(Apify)┘
+Facebook(PW)  ┘
               └─► merge.mjs (dedupe) ─► geocode-all.mjs (bù toạ độ) ─► seed Supabase (delete source=crawl + insert)
                                                                               │
                           Next.js (Vercel) đọc Supabase ◄──────────────────┘
@@ -87,10 +87,10 @@ Cron GitHub Actions 5h sáng/ngày = chạy toàn bộ chuỗi trên (daily.mjs)
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `NEXT_PUBLIC_SITE_URL` (=domain vercel). Zalo (khi có): `ZALO_APP_ID`, `ZALO_OA_SECRET`, `ZALO_OA_ACCESS_TOKEN`.
 
 **GitHub → Settings → Secrets and variables → Actions** (cho CRAWL tự động):
-- Secrets: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `GEMINI_API_KEY2..5` (mỗi key từ 1 acc Google KHÁC = quota riêng), `APIFY_TOKEN`.
+- Secrets: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `GEMINI_API_KEY2..5` (mỗi key từ 1 acc Google KHÁC = quota riêng).
 - Variables: `FB_GROUP_URLS` (mảng JSON `["url1","url2"]` các nhóm BĐS public), `FB_POSTS` (vd 30).
 
-**Local `.env.local`** (gitignored) = như Vercel + thêm `APIFY_TOKEN`, `FB_GROUP_URLS` nếu chạy crawler ở máy.
+**Local `.env.local`** (gitignored) = như Vercel + thêm `FB_GROUP_URLS`, `ZALO_POST_GROUPS` nếu chạy crawler/bot ở máy.
 
 ## 7. Chạy local
 ```bash
@@ -111,7 +111,7 @@ Setup DB mới: Supabase → SQL Editor → chạy `supabase/schema.sql` rồi `
 | **Mogi** | HTML SSR | ✅ | geocode | ✅ | Node fetch OK |
 | **nhadat** | HTTP (vBulletin) | ❌ text-only | geocode | ✅ | Tin chữ, đã ẩn khỏi feed chính |
 | **Batdongsan** | curl HTML (Cloudflare) | ✅ | geocode | bán tự động | Node fetch bị chặn -> curl rồi parse; committed batdongsan.json |
-| **Facebook** | Apify (public) hoặc Playwright+cookie (private) | ✅ | geocode | ✅ nếu có APIFY_TOKEN + keys | Tốn phí Apify (~$5/1000 bài). Cần nhiều key Gemini né 429 |
+| **Facebook** | Playwright + cookie clone (máy nhà) | ✅ | geocode | ❌ CI (IP bị FB chặn) | Miễn phí. Cần nhiều key Gemini né 429. Cổng chất lượng: phải có từ khoá BĐS + SĐT + khu vực |
 
 ## 9. Checklist tính năng
 ✅ Feed đa nguồn + lọc (quận/giá/loại/phòng ngủ) · **trang /search hoàn chỉnh** (tỉnh/quận/phường + sort + ẩn/hiện lọc & map) · chi tiết + gallery + **map thật** · dự án + chi tiết dự án · thống kê giá theo quận (map + bảng) · auth email+Google · đăng tin (RLS) · form liên hệ (leads) · **chatbot web AI** (nút 💬, /api/chat, xoay key Gemini + fallback keyword) · **yêu thích ♥** (localStorage + badge trên Nav) · **/agents** · **hướng dẫn mua & bán** · **máy tính lãi vay** · **landing /ban** · **footer** · trang chủ kiểu homigo (cách hoạt động, vì sao chọn, testimonial, danh mục, CTA) · Zalo OA bot (code) · AI cò/cá nhân + cảnh báo giá ảo + lọc rác · crawl tự động hằng ngày · geocode mọi tin · xoay nhiều key Gemini.
@@ -125,9 +125,9 @@ Setup DB mới: Supabase → SQL Editor → chạy `supabase/schema.sql` rồi `
 ## 10. Lỗi/gotcha đã biết
 - **`migration 001` bắt buộc chạy**: nếu chưa, có lỗ hổng tự phong admin qua anon key (trigger đọc role từ metadata + policy profiles không chặn cột role). File: `supabase/migrations/001_security_fixes.sql`.
 - **Gemini 429**: key free cạn quota nhanh, quota theo PROJECT (nhiều key cùng project = vô ích). Giải: nhiều acc/project HOẶC bật trả phí (~$1-5/tháng). Code đã xoay `GEMINI_API_KEY..KEY5`.
-- **Apify tốn phí**: FB ~$5/1000 bài. Kiểm soát bằng `FB_POSTS` nhỏ + ít nhóm, hoặc dùng Playwright+cookie (free) local.
+- **Apify đã bỏ hẳn (17/8)**: trước tốn ~$5/1000 bài. Playwright + cookie ở máy nhà cho nhiều bài hơn (376 bài thô/lượt, có ảnh) mà miễn phí.
 - **nhadat & Batdongsan**: Node `fetch` bị Cloudflare chặn với batdongsan (dùng curl). nhadat không có ảnh (tin chữ đời cũ).
-- **Facebook cookies/token = credential sống** (`fb-cookies.json`, APIFY_TOKEN): đã gitignore, KHÔNG bao giờ commit. Dùng acc CLONE cho FB (đừng acc chính).
+- **Facebook cookies/token = credential sống** (`fb-cookies.json`): đã gitignore, KHÔNG bao giờ commit. Dùng acc CLONE cho FB (đừng acc chính).
 - **daily seed** `delete source='crawl'` rồi insert -> KHÔNG động tới tin `source in (agent, zalo_oa)` (tin người dùng đăng vẫn giữ).
 - Windows: git cảnh báo LF->CRLF (vô hại).
 

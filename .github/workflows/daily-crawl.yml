@@ -38,8 +38,8 @@ jobs:
           GEMINI_API_KEY3: ${{ secrets.GEMINI_API_KEY3 }}
           GEMINI_API_KEY4: ${{ secrets.GEMINI_API_KEY4 }}
           GEMINI_API_KEY5: ${{ secrets.GEMINI_API_KEY5 }}
-          # Facebook qua Apify (tùy chọn - có thì FB tự cào mỗi ngày)
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          # FB không chạy trên CI (xem chú thích trên) — biến này chỉ để crawler máy nhà dùng chung cấu hình.
+          # 17/8: đã bỏ APIFY_TOKEN, FB chỉ còn cào bằng Playwright + cookie ở máy nhà (miễn phí).
           FB_GROUP_URLS: ${{ vars.FB_GROUP_URLS }}
           FB_POSTS: ${{ vars.FB_POSTS }}
           # Email báo tin mới (tùy chọn): key từ resend.com (free 100 mail/ngày)

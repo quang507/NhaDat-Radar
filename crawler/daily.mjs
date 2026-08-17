@@ -39,9 +39,7 @@ if (!SEED_ONLY) {
   if (process.env.GITHUB_ACTIONS) {
     console.log("↷ Bỏ qua Facebook trên CI (IP datacenter bị chặn) — chạy crawl-local.bat trên máy nhà để lấy tin FB.");
   } else if (fs.existsSync(new URL("./fb-cookies.json", import.meta.url)) && process.env.FB_GROUP_URLS) {
-    step("node facebook.mjs --playwright");
-  } else if (process.env.APIFY_TOKEN && process.env.FB_GROUP_URLS) {
-    step("node facebook.mjs --apify-run");
+    step("node facebook.mjs --playwright");   // 17/8: bỏ hẳn nhánh Apify (tốn phí) — chỉ còn Playwright miễn phí
   }
 }
 // `--no-merge`: seed thẳng combined.json đang có, KHÔNG dựng lại. Cần khi đã chạy tay merge + geocode-all:

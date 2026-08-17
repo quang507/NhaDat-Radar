@@ -1,8 +1,10 @@
 // Nguồn FACEBOOK -> listing chuẩn. Bài FB là text tự do -> để Gemini trích field + lọc rác + phân loại cò/cá nhân.
-// 3 chế độ:
-//   node facebook.mjs --demo                 : chạy thử trên bài mẫu (cần GEMINI_API_KEY) — KHÔNG cần FB
-//   node facebook.mjs --apify apify_out.json : xử lý JSON xuất từ Apify FB Group Scraper (nhóm public: KHÔNG cần clone)
-//   node facebook.mjs --playwright           : tự cào bằng Playwright + fb-cookies.json (cookies clone của bạn, chạy ở MÁY BẠN)
+// 2 chế độ:
+//   node facebook.mjs --demo       : chạy thử trên bài mẫu (cần GEMINI_API_KEY) — KHÔNG cần FB
+//   node facebook.mjs --playwright : tự cào bằng Playwright + fb-cookies.json (cookies clone của bạn, chạy ở MÁY BẠN)
+//
+// 17/8: BỎ HẲN Apify (actor facebook-groups-scraper, ~$5/1000 bài). Playwright + cookie clone chạy ở
+// máy nhà cho kết quả tốt hơn hẳn mà miễn phí (376 bài thô/lượt, có ảnh) — Apify chỉ còn là chi phí thừa.
 import fs from "node:fs";
 import { cleanFbText } from "./fb-clean.mjs";
 import { qualityGate } from "./quality-gate.mjs";
@@ -286,28 +288,6 @@ async function scrapePlaywright() {
   return posts;
 }
 
-// --- Chế độ Apify API: gọi actor facebook-groups-scraper, lấy bài -> xử lý (dùng trong daily) ---
-async function apifyRun() {
-  const token = process.env.APIFY_TOKEN;
-  const groups = JSON.parse(process.env.FB_GROUP_URLS || "[]");
-  if (!token || !groups.length) { console.error("Thiếu APIFY_TOKEN / FB_GROUP_URLS"); return []; }
-  const input = {
-    startUrls: groups.map((u) => ({ url: u })),
-    resultsLimit: Number(process.env.FB_POSTS || 30),
-  };
-  const res = await fetch(`https://api.apify.com/v2/acts/apify~facebook-groups-scraper/run-sync-get-dataset-items?token=${token}`,
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
-  if (!res.ok) { console.error("Apify lỗi", res.status, (await res.text()).slice(0, 200)); return []; }
-  const items = await res.json();
-  return (Array.isArray(items) ? items : []).map((p) => ({
-    id: p.postId || p.id || p.legacyId,
-    text: p.text || p.postText || p.message || p.content || "",
-    author: p.user?.name || p.authorName || p.author?.name || null,
-    url: p.url || p.postUrl || p.facebookUrl || p.permalink || "#",
-    images: (p.media || p.attachments || p.images || []).map?.((m) => m?.url || m?.image || m).filter(Boolean) || [],
-  })).filter((p) => (p.text || "").length > 30);
-}
-
 const DEMO = [
   { author: "Minh Trọ", text: "Cho thuê phòng trọ mới xây Bình Thạnh, đường Điện Biên Phủ, phường 15. DT 25m2 có gác lửng, máy lạnh, wifi, giờ giấc tự do. Giá 3tr8/tháng. Chính chủ cho thuê không qua trung gian nhé. LH 090xxxxxxx" },
   { author: "Hùng BĐS", text: "🔥🔥 BÁN GẤP nhà hẻm xe hơi Gò Vấp 📍 4x15m, 1 trệt 2 lầu, sổ hồng riêng chính chủ. Giá chỉ 5.6 tỷ TL mạnh. Em Hùng hỗ trợ vay 70% ngân hàng, bên em còn nhiều căn khu vực Gò Vấp - Q12. Call/Zalo 0908xxxxxx 📞📞" },
@@ -319,21 +299,8 @@ async function run() {
   const arg = process.argv[2];
   let posts = [];
   if (arg === "--demo") posts = DEMO;
-  else if (arg === "--apify") {
-    // Nhận output từ nhiều actor Apify khác nhau (tên field khác nhau -> map linh hoạt)
-    const raw = JSON.parse(fs.readFileSync(process.argv[3]));
-    const arr = Array.isArray(raw) ? raw : raw.items || raw.posts || [];
-    posts = arr.map((p) => ({
-      id: p.postId || p.id || p.legacyId || p.topLevelUrl,
-      text: p.text || p.postText || p.message || p.content || p.caption || "",
-      author: p.user?.name || p.authorName || p.author?.name || p.ownerName || p.pageName || null,
-      url: p.url || p.postUrl || p.facebookUrl || p.permalink || p.topLevelUrl || "#",
-      time: p.time || p.date || p.timestamp || p.publishTime || null,
-      images: (p.media || p.attachments || p.images || []).map?.((m) => m?.url || m?.image || m?.src || m).filter(Boolean) || [],
-    })).filter((p) => (p.text || "").length > 30);
-  } else if (arg === "--apify-run") posts = await apifyRun();
   else if (arg === "--playwright") posts = await scrapePlaywright();
-  else { console.error("Dùng: --demo | --apify <file.json> | --apify-run | --playwright"); process.exit(1); }
+  else { console.error("Dùng: --demo | --playwright"); process.exit(1); }
 
   const out = [];
   for (const p of posts) {
