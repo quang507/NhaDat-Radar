@@ -15,8 +15,35 @@ function step(cmd) {
 // 1) Crawl các nguồn headless (Chợ Tốt API + nhadat HTTP + Mogi HTML)
 //    `node daily.mjs --seed-only`: bỏ qua cào, chỉ merge + seed từ file đang có (test nhanh trên máy)
 const SEED_ONLY = process.argv.includes("--seed-only");
-// Ghi mốc NGAY LÚC BẮT ĐẦU (và lại khi xong): bật máy đúng giờ cron -> daily-crawl (cron) & crawl-on-boot không chạy song song
-// rồi đụng unique index khi cùng insert (audit 16/8)
+
+// ---- KHOÁ CHỐNG CHẠY CHỒNG (17/8) ----
+// Mốc .last-run trước đây chỉ được GHI chứ không ai ĐỌC để chặn: crawl-on-boot có đọc, nhưng
+// cron daily-crawl thì không. Kịch bản hỏng: bật máy 8:00 -> crawl-on-boot thấy quá 7h nên chạy
+// daily.mjs (mất 40-60 phút) -> 9:00 cron khởi động daily.mjs LẦN NỮA trong khi lượt đầu chưa xong
+// -> hai tiến trình cùng insert, đụng unique index uq_listings_source_post và seed thất bại.
+// Giờ dùng file khoá .running chứa PID: lượt sau thấy tiến trình cũ còn sống thì tự nhường.
+// Khoá quá 3h coi như hỏng (máy tắt đột ngột / tiến trình chết) -> bỏ qua để không kẹt vĩnh viễn.
+const LOCK = new URL("./.running", import.meta.url);
+const FORCE = process.argv.includes("--force");
+if (!FORCE) {
+  try {
+    const [pidS, atS] = fs.readFileSync(LOCK, "utf8").trim().split("|");
+    const pid = Number(pidS), ageH = (Date.now() - Number(atS)) / 36e5;
+    let dangChay = false;
+    try { process.kill(pid, 0); dangChay = true; } catch { /* tiến trình đã chết */ }
+    if (dangChay && ageH < 3) {
+      console.log(`↷ daily.mjs đang chạy ở PID ${pid} (${Math.round(ageH * 60)} phút trước) -> bỏ lượt này để khỏi seed chồng.`);
+      process.exit(0);
+    }
+    if (dangChay) console.log(`⚠ Khoá cũ ${Math.round(ageH)}h (PID ${pid}) -> coi như hỏng, chạy tiếp.`);
+  } catch { /* chưa có khoá */ }
+}
+try { fs.writeFileSync(LOCK, `${process.pid}|${Date.now()}`); } catch { /* không quan trọng */ }
+const boKhoa = () => { try { fs.unlinkSync(LOCK); } catch { /* đã xoá */ } };
+process.on("exit", boKhoa);
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { boKhoa(); process.exit(1); });
+
+// Mốc "lần cào gần nhất" cho crawl-on-boot (ghi lúc bắt đầu và lại khi xong)
 try { fs.writeFileSync(new URL("./.last-run", import.meta.url), String(Date.now())); } catch { /* không quan trọng */ }
 if (!SEED_ONLY) {
   step("node chotot.mjs");

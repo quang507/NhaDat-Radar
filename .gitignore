@@ -20,3 +20,4 @@ crawler/chotot.json
 crawler/extra.json
 crawler/projects.json
 tsconfig.tsbuildinfo
+crawler/.running
