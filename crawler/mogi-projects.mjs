@@ -71,7 +71,9 @@ export function parseAddrLine(line) {
   if (!phan.length) return { district: null, province: null };
   const province = canonProvince(phan[phan.length - 1]);
   const district = phan.length >= 2 ? phan[phan.length - 2] : null;
-  // "Thành phố Hồ Chí Minh" không phải QUẬN -> bỏ, không thì hiện "Thành phố Hồ Chí Minh, Hồ Chí Minh"
+  // Bỏ district khi nó chính là TÊN TỈNH ("Thành phố Hồ Chí Minh" trong tỉnh "Hồ Chí Minh")
+  // -> hiện ra sẽ thành "Thành phố Hồ Chí Minh, Hồ Chí Minh". LƯU Ý: "Thành phố Dĩ An",
+  // "Thành phố Thuận An", "Thành phố Thủ Đức" là ĐƠN VỊ CẤP HUYỆN có thật, phải giữ.
   const rac = district && canonProvince(district) === province;
   return { district: rac ? null : district, province };
 }
@@ -172,22 +174,52 @@ export function parseDetail(html, base) {
   };
 }
 
+// fetch KHÔNG có timeout mặc định — một kết nối treo là đứng cả lượt cào mà không có dấu hiệu gì.
+// (17/8: script bổ sung tạm bị nghi treo vì thiếu đúng chỗ này.)
+const TIMEOUT_MS = Number(process.env.MOGI_TIMEOUT_MS || 30000);
+async function fetchTO(url, opt = {}) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try { return await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" }, signal: ctrl.signal, ...opt }); }
+  finally { clearTimeout(t); }
+}
+
 async function get(url) {
-  const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" } });
+  const res = await fetchTO(url);
   if (res.status !== 200) throw new Error("HTTP " + res.status);
   return res.text();
 }
 
-// Lấy trang CHI TIẾT dự án, phát hiện trang đã bị gỡ.
-// Sự cố 17/8: 279/700 dự án còn trong danh sách nhưng trang chi tiết đã chết — mogi trả
-// 302 về https://mogi.vn/du-an. fetch() mặc định ĐI THEO redirect nên crawler âm thầm parse
-// trang danh sách chung: không có JSON-LD của dự án -> tên rơi về "Mogi" (tên website),
-// địa chỉ/toạ độ rỗng. Giờ bắt redirect và báo rõ để dùng dữ liệu trang danh sách thay thế.
+// Lấy trang CHI TIẾT dự án.
+//
+// Sự cố 17/8 — CHẨN ĐOÁN SAI LẦN ĐẦU, ghi lại để không lặp: lượt cào đầu có 280/700 dự án trả
+// 302 về /du-an. Tôi kết luận "mogi đã gỡ dự án" sau khi thử ĐÚNG MỘT URL. Sai. Thử lại 12 URL
+// với nhịp 3 giây thì 11/12 trả 200 kèm JSON-LD đầy đủ — nghĩa là mogi CHẶN TỐC ĐỘ khi bị bắn
+// 700 request cách nhau 0.9s, và 302 là tín hiệu "chậm lại", không phải "trang không còn".
+// (fetch() mặc định đi theo redirect nên crawler âm thầm parse trang danh sách chung -> tên rơi
+//  về "Mogi", địa chỉ thành văn phòng mogi, toạ độ sai cho 288 dự án.)
+//
+// -> Gặp 3xx thì NGHỈ RỒI THỬ LẠI (5s, 15s, 30s). Chỉ khi hết lượt mới coi là không lấy được,
+//    và kể cả khi đó cũng KHÔNG kết luận là bị gỡ — chỉ ghi nhận "chưa lấy được lần này".
+const DETAIL_GAP_MS = Number(process.env.MOGI_DETAIL_GAP_MS || 2500);
 async function getDetail(url) {
-  const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Language": "vi" }, redirect: "manual" });
-  if (res.status >= 300 && res.status < 400) return { html: null, goBo: true };
-  if (res.status !== 200) throw new Error("HTTP " + res.status);
-  return { html: await res.text(), goBo: false };
+  const cho = [5000, 15000, 30000];
+  for (let lan = 0; lan <= cho.length; lan++) {
+    let res;
+    try { res = await fetchTO(url, { redirect: "manual" }); }
+    catch (e) { // timeout / lỗi mạng -> coi như lần thử hỏng, nghỉ rồi thử lại
+      if (lan === cho.length) return { html: null, chuaLay: true };
+      await sleep(cho[lan]); continue;
+    }
+    if (res.status === 200) return { html: await res.text(), chuaLay: false };
+    if (res.status >= 300 && res.status < 400) {
+      if (lan === cho.length) return { html: null, chuaLay: true };   // bị chặn liên tục -> bỏ qua lượt này
+      await sleep(cho[lan]);
+      continue;
+    }
+    throw new Error("HTTP " + res.status);
+  }
+  return { html: null, chuaLay: true };
 }
 
 async function crawl() {
@@ -217,18 +249,20 @@ async function crawl() {
   console.error(`\n${uniq.length} dự án duy nhất -> lấy chi tiết...`);
 
   const out = [];
-  let goBoDem = 0;   // số dự án còn trong danh sách nhưng trang chi tiết đã bị gỡ (302)
+  let chuaLayDem = 0;   // số dự án chưa lấy được trang chi tiết lượt này (bị chặn tốc độ)
   for (const [i, c] of uniq.entries()) {
     const url = "https://mogi.vn" + c.href;
     try {
-      const { html, goBo } = await getDetail(url);
-      // Trang chi tiết đã gỡ -> KHÔNG parse (sẽ ra rác), chỉ dùng dữ liệu trang danh sách.
-      // Vẫn giữ dự án vì tên/CĐT/khu vực/giá/ảnh bìa ở danh sách là thật và có ích.
-      const d = goBo
+      const { html, chuaLay } = await getDetail(url);
+      // Chưa lấy được chi tiết (bị chặn tốc độ) -> KHÔNG parse, dùng dữ liệu trang danh sách.
+      // Lượt cào sau sẽ lấy lại; tuyệt đối không ghi đè bằng dữ liệu rác.
+      const d = chuaLay
         ? { name: null, mogiId: null, description: null, investor: null, address: null,
             province: null, district: null, ward: null, lat: null, lng: null, images: [], specs: [] }
         : parseDetail(html, c.href);
-      if (goBo) goBoDem++;
+      if (chuaLay) chuaLayDem++;
+      // Khu vực từ trang danh sách ("Quận 10, TPHCM | Bàn giao: 2020") — dùng khi chi tiết không có
+      const kv = parseAddrLine(c.addrLine);
       const slug = c.href.replace(/^\//, "");
       const priceMin = parsePrice(c.priceText);
       // "Từ 3 tỷ 55 triệu (65 - 68 triệu/m²)" -> tách phần đơn giá trong ngoặc để hiện riêng
@@ -242,7 +276,7 @@ async function crawl() {
         investor: d.investor || c.investor,
         description: d.description,
         address: d.address,
-        province: d.province, district: d.district, ward: d.ward,
+        province: d.province || kv.province, district: d.district || kv.district, ward: d.ward,
         lat: d.lat, lng: d.lng,
         images: d.images.length ? d.images : (c.thumb ? [c.thumb] : []),
         price_min: priceMin, price_max: null,
@@ -259,7 +293,7 @@ async function crawl() {
     projects: out,
   }, null, 0));
   console.error(`\nTỔNG ${out.length} dự án (toạ độ: ${out.filter((x) => x.lat).length}, ảnh: ${out.filter((x) => x.images.length).length}, `
-    + `${goBoDem} dự án trang chi tiết đã gỡ -> chỉ có dữ liệu danh sách) -> projects.json`);
+    + `${chuaLayDem} chưa lấy được chi tiết lượt này) -> projects.json`);
   return out;
 }
 
