@@ -47,6 +47,9 @@ jobs:
           NEXT_PUBLIC_SITE_URL: https://nha-dat-radar-rkyn.vercel.app
           # Vietmap geocode (tùy chọn - chính xác VN hơn Nominatim; free trial 60k request)
           VIETMAP_API_KEY: ${{ secrets.VIETMAP_API_KEY }}
+          # Dự án mogi.vn/du-an: số trang list (10 dự án/trang) và tuổi tối đa của projects.json trước khi cào lại
+          MOGI_PROJECT_PAGES: ${{ vars.MOGI_PROJECT_PAGES || 8 }}
+          PROJECT_MAX_AGE_H: ${{ vars.PROJECT_MAX_AGE_H || 72 }}
 
       # Step cảnh báo phải nằm CUỐI (nó không có env:) — xem chú thích ở trên.
       - name: Bỏ qua vì là Re-run

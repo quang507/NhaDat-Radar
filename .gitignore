@@ -18,4 +18,5 @@ crawler/listings3.json
 crawler/ai-extract-out.json
 crawler/chotot.json
 crawler/extra.json
+crawler/projects.json
 tsconfig.tsbuildinfo
