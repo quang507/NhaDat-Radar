@@ -1,0 +1,8 @@
+# File .bat PHAI la CRLF. Chi co LF thi cmd.exe doc hong: moi chu thanh 1 lenh
+# ('ALO' is not recognized...), bien %VAR% mat gia tri -> `node ""` roi vao REPL.
+# Su co 17/8 voi ZALO-LOGIN.bat.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Script chay tren Linux (GitHub Actions) thi nguoc lai
+*.sh text eol=lf
