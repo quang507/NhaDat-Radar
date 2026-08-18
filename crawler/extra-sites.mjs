@@ -1,7 +1,10 @@
 // Crawler 3 trang BĐS nhỏ (thăm dò 2026-08-14 xác nhận crawl được từ GitHub Actions):
-//   1) batdongsantoanquoc.vn — card .box-product_, link ...-p{id}.html + title="đầy đủ"
-//   2) bannhadat123.vn      — card .media, link /(ban|cho-thue)-.../...-eid-{id}/
-//   3) sosanhnha.com        — card tailwind, link /(ban|cho-thue)-...-cla{id}
+//   1) bannhadat123.vn — card .media, link /(ban|cho-thue)-.../...-eid-{id}/
+//
+// 18/8: BỎ batdongsantoanquoc.vn và sosanhnha.com. Không phải lỗi kỹ thuật — cào được
+// nhưng tin của chúng thiếu giá/diện tích nên rớt hết ở cổng chất lượng: đo trên DB
+// batdongsantoanquoc 142/145 tin và sosanhnha 4/5 tin ở trạng thái "gone". Giữ lại chỉ
+// tốn ~4 request + 3.6s mỗi lượt cào mà không thêm được tin nào dùng được.
 // Cách bóc: cắt block HTML giữa 2 anchor tin liên tiếp (giống batdongsan.mjs), regex field
 // trong block + fallback từ slug. Trang đổi markup -> parser trả 0 tin, không vỡ pipeline.
 import fs from "node:fs";
@@ -82,31 +85,6 @@ function row(site, id, url, title, block, slug) {
   };
 }
 
-// --- 1) batdongsantoanquoc.vn ---
-async function batdongsantoanquoc() {
-  const out = [];
-  for (const path of ["/ban-nha", "/ban-dat", "/cho-thue"]) {
-    const h = await get("https://batdongsantoanquoc.vn" + path);
-    if (!h) continue;
-    for (const b of blocks(h, /href="(https?:\/\/batdongsantoanquoc\.vn\/[^"]*-p(\d{6,})\.html)"[^>]*title="([^"]{15,200})"/g)) {
-      const title = strip((b.block.match(/title="([^"]{15,200})"/) || [])[1] || "");
-      // giá/tỉnh nằm trong card: class price-desc / province
-      const price = strip((b.block.match(/class="price-desc"[^>]*>([\s\S]{0,80}?)<\//) || [])[1] || "");
-      const prov = strip((b.block.match(/class="province"[^>]*>([\s\S]{0,80}?)<\//) || [])[1] || "");
-      const r = row({ key: "btq", name: "batdongsantoanquoc.vn" }, b.id, b.href, title, b.block, b.href);
-      r.price_vnd = priceFromText(price) ?? r.price_vnd;
-      if (prov) r.province = prov.replace(/^tại\s*/i, "") || r.province;
-      r.listing_type = dealOf(path);
-      // loại theo mục đang cào, không đoán từ tiêu đề ("Cần Bán NHAnh Lô Đất" từng bị bắt chữ "nha" -> kind nhà) — audit 16/8
-      if (path === "/ban-dat") r.property_type = "dat";
-      else if (path === "/ban-nha") r.property_type = "nha";
-      out.push(r);
-    }
-    await sleep(1200);
-  }
-  return out;
-}
-
 // --- 2) bannhadat123.vn ---
 async function bannhadat123() {
   const out = [];
@@ -131,23 +109,9 @@ async function bannhadat123() {
   return out;
 }
 
-// --- 3) sosanhnha.com ---
-async function sosanhnha() {
-  const out = [];
-  const h = await get("https://sosanhnha.com/");
-  if (!h) return out;
-  for (const b of blocks(h, /href="(\/(?:ban|cho-thue)[^"]{10,200}-(cla[A-Za-z0-9]{4,12}))"/g)) {
-    const url = "https://sosanhnha.com" + b.href;
-    const title = strip((b.block.match(/class="w-full block line-clamp-2[^"]*"[^>]*>([\s\S]{0,240}?)<\/a>/) || [])[1] || "")
-      || b.href.slice(1).replace(/-cla\w+$/, "").replace(/-/g, " ");
-    out.push(row({ key: "ssn", name: "sosanhnha.com" }, b.id, url, title, b.block, b.href));
-  }
-  return out;
-}
-
 async function main() {
   const all = [];
-  for (const [name, fn] of [["batdongsantoanquoc", batdongsantoanquoc], ["bannhadat123", bannhadat123], ["sosanhnha", sosanhnha]]) {
+  for (const [name, fn] of [["bannhadat123", bannhadat123]]) {
     try {
       const rows = await fn();
       console.error(`${name}: +${rows.length}`);
