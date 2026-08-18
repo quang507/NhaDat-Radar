@@ -15,6 +15,10 @@ function step(cmd) {
 // 1) Crawl các nguồn headless (Chợ Tốt API + nhadat HTTP + Mogi HTML)
 //    `node daily.mjs --seed-only`: bỏ qua cào, chỉ merge + seed từ file đang có (test nhanh trên máy)
 const SEED_ONLY = process.argv.includes("--seed-only");
+// `--fb-only`: CHỈ cào Facebook rồi gộp + seed. Dùng cho CHAY.bat ở máy nhà, vì các nguồn web
+// (chotot, mogi, batdongsan, extra-sites) đã được GitHub Actions tự cào 9h/15h — cào lại ở máy
+// là làm hai lần cùng một việc. Còn Facebook thì CI không làm được (IP datacenter bị FB chặn).
+const FB_ONLY = process.argv.includes("--fb-only");
 
 // ---- KHOÁ CHỐNG CHẠY CHỒNG (17/8) ----
 // Mốc .last-run trước đây chỉ được GHI chứ không ai ĐỌC để chặn: crawl-on-boot có đọc, nhưng
@@ -46,6 +50,7 @@ for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { boKho
 // Mốc "lần cào gần nhất" cho crawl-on-boot (ghi lúc bắt đầu và lại khi xong)
 try { fs.writeFileSync(new URL("./.last-run", import.meta.url), String(Date.now())); } catch { /* không quan trọng */ }
 if (!SEED_ONLY) {
+ if (!FB_ONLY) {
   step("node chotot.mjs");
   step("node mogi.mjs");
   step("node extra-sites.mjs");                          // batdongsantoanquoc + bannhadat123 + sosanhnha
@@ -61,6 +66,9 @@ if (!SEED_ONLY) {
                                                          // bị chặn thì giữ file cũ, merge tự bỏ qua file quá 2 ngày
   // nhadat.vn: domain đã về VNNIC (tên miền hết hạn, cert *.vnnic.vn — kiểm chứng 16/8/2026) -> nguồn CHẾT, bỏ khỏi pipeline.
   // (crawl.js/geocode.mjs đã xoá 16/8 — cần thì lấy lại từ git history commit e171411)
+ } else {
+  console.log("↷ --fb-only: bỏ qua nguồn web (GitHub Actions lo phần đó), chỉ cào Facebook.");
+ }
   // FB: IP GitHub Actions bị Facebook chặn (kiểm chứng 14/8: 13 nhóm đều trả trang login,
   // 0 bài, tốn ~9 phút/run) -> CI BỎ QUA FB hẳn. Chạy máy nhà (IP dân cư) vẫn cào bình thường.
   if (process.env.GITHUB_ACTIONS) {

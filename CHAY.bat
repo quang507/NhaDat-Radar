@@ -6,16 +6,17 @@ cd /d "%~dp0"
 REM ============================================================
 REM  BAM DUP FILE NAY LA XONG. Khong can bam gi khac.
 REM
-REM  LUU Y: cac trang web (chotot, mogi, batdongsan, extra-sites) da duoc
-REM  GitHub Actions tu cao 9h va 15h moi ngay, KHONG can may nay bat.
-REM  File nay can cho: FACEBOOK va ZALO (phai chay o may vi can IP dan cu
-REM  + phien dang nhap), va de day du lieu len GitHub.
-REM  Dung bam file nay dung 9h/15h -- de tranh trung voi luot cua GitHub.
+REM  Chia viec:
+REM    GitHub Actions (tu chay 9h + 15h, KHONG can may nay bat)
+REM        -> chotot, mogi, batdongsan, extra-sites
+REM    File nay (bam tay)
+REM        -> bot Zalo + cao Facebook + day len Supabase
+REM    Facebook/Zalo phai chay o may vi can IP dan cu + phien dang nhap;
+REM    IP cua GitHub bi Facebook chan.
 REM
-REM  Viec no lam, theo thu tu:
-REM    1. Bat bot Zalo (neu chua chay)
-REM    2. Cao tat ca nguon -> gop -> bu toa do -> day len Supabase
-REM    3. Commit + push du lieu len GitHub
+REM  Dung bam dung 9h/15h -- tranh trung luot cua GitHub (hai ben cung
+REM  ghi vao DB mot luc co the dung unique index).
+REM
 REM  Muon dung giua chung: dong cua so nay.
 REM ============================================================
 
@@ -26,50 +27,38 @@ echo   ============================================
 echo.
 
 REM ---------- 1. Bot Zalo ----------
-echo [1/3] Bat bot Zalo...
+echo [1/2] Bat bot Zalo...
 set "PM2=%APPDATA%\npm\pm2.cmd"
 if not exist "%PM2%" (
   echo       [BO QUA] Chua cai pm2. Chay: npm i -g pm2
 ) else (
   call "%PM2%" describe zalo-bot >nul 2>&1
   if errorlevel 1 (
-    call "%PM2%" start ecosystem.config.cjs --only zalo-bot >nul 2>&1
+    call "%PM2%" start ecosystem.config.cjs >nul 2>&1
   ) else (
     call "%PM2%" restart zalo-bot >nul 2>&1
   )
   call "%PM2%" save >nul 2>&1
-  echo       Bot Zalo: dang chay
+  echo       Bot Zalo dang chay. Tu day no tu boc tin BDS trong cac group Zalo.
 )
 
-REM ---------- 2. Cao du lieu ----------
+REM ---------- 2. Cao Facebook + day len Supabase ----------
 echo.
-echo [2/3] Cao du lieu (30-60 phut, cu de day chay)...
+echo [2/2] Cao Facebook roi day len Supabase (20-40 phut, cu de day chay)...
 echo.
-node --env-file=.env.local crawler\daily.mjs
+node --env-file=.env.local crawler\daily.mjs --fb-only
 if errorlevel 1 (
   echo.
-  echo       [LOI] Cao that bai. Xem thong bao o tren.
+  echo       [LOI] That bai. Xem thong bao o tren.
   echo.
   pause
   exit /b 1
 )
 
-REM ---------- 3. Day len GitHub ----------
-echo.
-echo [3/3] Luu du lieu len GitHub...
-git add crawler/batdongsan.json crawler/mogi.json >nul 2>&1
-git diff --cached --quiet
-if errorlevel 1 (
-  git commit -q -m "data: cao ngay %DATE%"
-  git push origin main
-  echo       Da day len GitHub.
-) else (
-  echo       Du lieu khong doi, khong can day.
-)
-
 echo.
 echo   ============================================
 echo     XONG. Xem web: https://nha-dat-radar-rkyn.vercel.app
+echo     Bot Zalo van chay nen (dong cua so nay khong tat bot).
 echo   ============================================
 echo.
 pause
