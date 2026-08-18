@@ -33,6 +33,12 @@ if not exist "%PM2%" (
 
 cd /d "%~dp0"
 call "%PM2%" resurrect>>"%LOG%" 2>&1
+REM crawl-on-boot duoc luu trong dump.pm2 o trang thai "stopped" nen resurrect KHONG bat no,
+REM ma no lai la thu duy nhat cao bu khi dang nhap muon hon gio cron (18/8: dang nhap 10:00
+REM thi khong co luot nao cho toi 15:00). Phai bat tay o day.
+REM An toan khi goi moi lan: chinh crawl-on-boot tu kiem tra moc .last-run, chua qua 7h thi bo qua.
+call "%PM2%" start crawl-on-boot>>"%LOG%" 2>&1
+
 echo ----- trang thai sau resurrect:>>"%LOG%"
 call "%PM2%" list>>"%LOG%" 2>&1
 echo ===== %DATE% %TIME% : xong>>"%LOG%"
