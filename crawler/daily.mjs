@@ -53,20 +53,14 @@ if (!SEED_ONLY) {
  if (!FB_ONLY) {
   step("node chotot.mjs");
   step("node mogi.mjs");
-  step("node extra-sites.mjs");                          // batdongsantoanquoc + bannhadat123 + sosanhnha
+  step("node extra-sites.mjs");
+  step("node guland.mjs");                               // guland.vn — tải bằng curl (Node fetch bị chặn TLS); ảnh lấy ở trang chi tiết, chỉ cho tin mới                          // batdongsantoanquoc + bannhadat123 + sosanhnha
   // Dự án (mogi.vn/du-an) đổi rất chậm mà tốn ~80 lượt tải chi tiết -> chỉ làm mới nếu projects.json
   // đã quá PROJECT_MAX_AGE_H (mặc định 72h). Tự seed thẳng vào bảng projects, KHÔNG qua merge/listings.
-  // 18/8: projects.json nằm trong .gitignore -> CI checkout KHÔNG có file này -> ageH = Infinity
-  // -> cào lại toàn bộ 700+ dự án MỖI LƯỢT, mất ~30 phút trong khi timeout 20 phút => lượt nào
-  // cũng bị cắt giữa chừng. Dự án đổi rất chậm nên CI bỏ hẳn; muốn cào thì đặt CRAWL_PROJECTS=1.
-  if (process.env.GITHUB_ACTIONS && process.env.CRAWL_PROJECTS !== "1") {
-    console.log("↷ Bỏ qua dự án trên CI (đổi chậm, tốn ~30 phút). Đặt CRAWL_PROJECTS=1 nếu muốn cào.");
-  } else {
-    const f = new URL("./projects.json", import.meta.url);
-    const ageH = fs.existsSync(f) ? (Date.now() - fs.statSync(f).mtimeMs) / 36e5 : Infinity;
-    if (ageH >= Number(process.env.PROJECT_MAX_AGE_H || 72)) step("node mogi-projects.mjs --seed");
-    else console.log(`↷ Bỏ qua dự án (projects.json mới ${ageH.toFixed(1)}h trước)`);
-  }
+  // Dự án: mogi-projects.mjs giờ CỘNG DỒN — nó hỏi DB xem slug nào đã đủ dữ liệu rồi chỉ tải
+  // chi tiết những dự án MỚI (đo thật: 40 gom được, 39 đã có -> chỉ tải 1). Nên chạy mỗi lượt
+  // cũng rẻ, không cần né CI nữa. Trước đây tải lại cả 700+ dự án (~30 phút) nên CI hay bị cắt.
+  step("node mogi-projects.mjs --seed");
   step("node batdongsan.mjs");                           // Cloudflare -> cần Playwright (devDep + npx playwright install chromium);
                                                          // bị chặn thì giữ file cũ, merge tự bỏ qua file quá 2 ngày
   // nhadat.vn: domain đã về VNNIC (tên miền hết hạn, cert *.vnnic.vn — kiểm chứng 16/8/2026) -> nguồn CHẾT, bỏ khỏi pipeline.

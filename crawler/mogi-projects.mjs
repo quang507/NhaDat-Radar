@@ -222,7 +222,11 @@ async function getDetail(url) {
   return { html: null, chuaLay: true };
 }
 
-async function crawl() {
+// daBiet = slug da co du du lieu trong DB -> KHONG tai lai trang chi tiet.
+// 18/8: truoc day moi luot tai lai chi tiet ca 700+ du an (~30 phut) du chang co gi doi,
+// nen CI 20 phut luot nao cung bi cat. Du an gan nhu khong doi -> chi CONG DON du an moi.
+// Danh sach van quet du de phat hien du an moi xuat hien.
+async function crawl(daBiet = new Set()) {
   const byHref = new Map();  // khử trùng ngay: dự án nổi bật lặp ở nhiều trang, và HCM trùng toàn quốc
   for (const seed of SEEDS) {
     let rong = 0;
@@ -245,8 +249,17 @@ async function crawl() {
     }
     console.error(`${seed.ten}: xong, tổng gom được ${byHref.size} dự án`);
   }
-  const uniq = [...byHref.values()];
-  console.error(`\n${uniq.length} dự án duy nhất -> lấy chi tiết...`);
+  let uniq = [...byHref.values()];
+  const tongGom = uniq.length;
+  if (daBiet.size) {
+    uniq = uniq.filter((c) => !daBiet.has(c.href.replace(/^\//, "")));
+    console.error(`
+${tongGom} dự án gom được, ${tongGom - uniq.length} đã đủ dữ liệu trong DB -> chỉ lấy chi tiết ${uniq.length} dự án MỚI.`);
+    if (!uniq.length) { console.error("Không có dự án mới."); return []; }
+  } else {
+    console.error(`
+${uniq.length} dự án duy nhất -> lấy chi tiết...`);
+  }
 
   const out = [];
   let chuaLayDem = 0;   // số dự án chưa lấy được trang chi tiết lượt này (bị chặn tốc độ)
@@ -339,11 +352,31 @@ async function seed(projects) {
   console.error(`Seed dự án: ${ins} mới · ${upd} cập nhật`);
 }
 
+// Slug da co DU du lieu (co bang thong so) -> luot sau khoi tai lai chi tiet.
+// Du an thieu specs thi VAN tai lai, biet dau nguon da bo sung.
+async function slugDaCo() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return new Set();
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(url, key, { auth: { persistSession: false } });
+    const ra = new Set();
+    for (let from = 0; ; from += 1000) {   // PostgREST cat 1000 dong/lan
+      const { data, error } = await sb.from("projects").select("slug,specs").not("slug", "is", null).order("slug").range(from, from + 999);
+      if (error) { console.error("Doc slug cu loi:", error.message); return ra; }
+      for (const r of data || []) if (r.specs && Object.keys(r.specs).length) ra.add(r.slug);
+      if (!data || data.length < 1000) break;
+    }
+    return ra;
+  } catch { return new Set(); }
+}
+
 async function run() {
   const seedOnly = process.argv.includes("--seed-only");
+  const toanBo = process.argv.includes("--all");   // ep tai lai chi tiet tat ca
   let projects;
   if (seedOnly) projects = JSON.parse(fs.readFileSync(new URL("./projects.json", import.meta.url))).projects;
-  else projects = await crawl();
+  else projects = await crawl(toanBo ? new Set() : await slugDaCo());
   if (projects && (seedOnly || process.argv.includes("--seed"))) await seed(projects);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) run();
