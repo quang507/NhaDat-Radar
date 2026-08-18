@@ -27,3 +27,5 @@ tests/report-html/
 test-results/
 crawler/pm2-khoidong.log
 crawler/guland.json
+.env.local.bak*
+.env*.bak*

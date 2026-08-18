@@ -12,7 +12,10 @@ on:
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # 18/8: do that 2 luot gan nhat deu 39 phut (commit 20c4c47 them nguon guland +
+    # bat lai cao du an tren CI) -> sat nut timeout 40, chi can 1 nguon cham la bi cat
+    # giua chung nhu luot 02:47. Repo public nen phut Actions mien phi -> noi rong 60.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
