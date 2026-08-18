@@ -53,8 +53,7 @@ if (!SEED_ONLY) {
  if (!FB_ONLY) {
   step("node chotot.mjs");
   step("node mogi.mjs");
-  step("node extra-sites.mjs");
-  step("node guland.mjs");                               // guland.vn — HTML sạch, tải bằng curl (Node fetch bị chặn TLS)                          // batdongsantoanquoc + bannhadat123 + sosanhnha
+  step("node extra-sites.mjs");                          // batdongsantoanquoc + bannhadat123 + sosanhnha
   // Dự án (mogi.vn/du-an) đổi rất chậm mà tốn ~80 lượt tải chi tiết -> chỉ làm mới nếu projects.json
   // đã quá PROJECT_MAX_AGE_H (mặc định 72h). Tự seed thẳng vào bảng projects, KHÔNG qua merge/listings.
   // 18/8: projects.json nằm trong .gitignore -> CI checkout KHÔNG có file này -> ageH = Infinity

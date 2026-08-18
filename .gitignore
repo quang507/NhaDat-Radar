@@ -26,4 +26,3 @@ crawler/.running
 tests/report-html/
 test-results/
 crawler/pm2-khoidong.log
-crawler/guland.json

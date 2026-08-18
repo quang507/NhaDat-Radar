@@ -95,7 +95,7 @@ function norm(x) {
 }
 
 // (listings3.json = nhadat.vn đã bỏ 16/8 — domain chết)
-const sources = ["chotot.json", "batdongsan.json", "mogi.json", "facebook.json", "extra.json", "guland.json"];
+const sources = ["chotot.json", "batdongsan.json", "mogi.json", "facebook.json", "extra.json"];
 let all = [];
 for (const f of sources) { const rows = load(f).map(norm); all = all.concat(rows); console.error(f, "->", rows.length); }
 
