@@ -5,6 +5,13 @@ cd /d "%~dp0"
 
 REM ============================================================
 REM  BAM DUP FILE NAY LA XONG. Khong can bam gi khac.
+REM
+REM  LUU Y: cac trang web (chotot, mogi, batdongsan, extra-sites) da duoc
+REM  GitHub Actions tu cao 9h va 15h moi ngay, KHONG can may nay bat.
+REM  File nay can cho: FACEBOOK va ZALO (phai chay o may vi can IP dan cu
+REM  + phien dang nhap), va de day du lieu len GitHub.
+REM  Dung bam file nay dung 9h/15h -- de tranh trung voi luot cua GitHub.
+REM
 REM  Viec no lam, theo thu tu:
 REM    1. Bat bot Zalo (neu chua chay)
 REM    2. Cao tat ca nguon -> gop -> bu toa do -> day len Supabase

@@ -1,12 +1,12 @@
 name: Daily crawl - làm mới data BĐS
 
 on:
-  # 18/8: BỎ lịch tự chạy theo yêu cầu — giờ chỉ có MỘT cách chạy là bấm nút.
-  # Ở máy: bấm đúp CHAY.bat. Trên GitHub: tab Actions -> Run workflow.
-  # Muốn bật lại tự động thì bỏ comment 3 dòng dưới.
-  # schedule:
-  #   - cron: "0 2 * * *"     # 02:00 UTC = 09:00 giờ Việt Nam
-  #   - cron: "0 8 * * *"     # 08:00 UTC = 15:00 giờ Việt Nam
+  # GitHub tự cào các nguồn web (chotot, mogi, batdongsan, extra-sites) — KHÔNG cần máy
+  # ở nhà bật. Facebook và Zalo vẫn phải chạy ở máy (IP dân cư + phiên đăng nhập), đó là
+  # việc của CHAY.bat.
+  schedule:
+    - cron: "0 2 * * *"     # 02:00 UTC = 09:00 giờ Việt Nam
+    - cron: "0 8 * * *"     # 08:00 UTC = 15:00 giờ Việt Nam
   workflow_dispatch: {}      # bấm chạy tay ở tab Actions
 
 jobs:
