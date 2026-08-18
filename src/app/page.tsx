@@ -91,7 +91,7 @@ export default async function Home({
             // banner Villa Ny'ah -> trang Nhã Đạt (anh Quang chốt 16/8); env ghi đè được khi đổi đối tác
             const link = process.env.NEXT_PUBLIC_HERO_LINK || "https://nhadat.company/";
             /* eslint-disable-next-line @next/next/no-img-element */
-            const img = <img src={hero} alt={process.env.NEXT_PUBLIC_HERO_ALT || "Quảng cáo đối tác"} className="w-full h-[160px] object-cover md:h-auto md:max-h-[320px] md:object-cover" />;
+            const img = <img src={hero} alt={process.env.NEXT_PUBLIC_HERO_ALT || "Quảng cáo đối tác"} className="w-full h-auto" />;
             return link ? <a href={link} target="_blank" rel="noopener sponsored" aria-label="Xem quảng cáo đối tác">{img}</a> : img;
           })()}
           <span className="absolute top-2 right-3 text-[0.65rem] font-semibold px-1.5 py-0.5 rounded bg-black/45 text-white/90 tracking-wide">Quảng cáo</span>
