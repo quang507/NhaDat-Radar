@@ -5,14 +5,14 @@ on:
   # ở nhà bật. Facebook và Zalo vẫn phải chạy ở máy (IP dân cư + phiên đăng nhập), đó là
   # việc của CHAY.bat.
   schedule:
-    - cron: "0 2 * * *"     # 02:00 UTC = 09:00 giờ Việt Nam
-    - cron: "0 8 * * *"     # 08:00 UTC = 15:00 giờ Việt Nam
+    # 4 tiếng/lần. Giờ UTC -> VN cộng 7: 01,05,09,13,17,21 UTC = 08,12,16,20,00,04 giờ VN.
+    - cron: "0 1,5,9,13,17,21 * * *"
   workflow_dispatch: {}      # bấm chạy tay ở tab Actions
 
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
