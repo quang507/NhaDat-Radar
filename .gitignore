@@ -25,3 +25,4 @@ crawler/.running
 # Playwright
 tests/report-html/
 test-results/
+crawler/pm2-khoidong.log
