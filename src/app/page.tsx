@@ -86,7 +86,7 @@ export default async function Home({
           (UX audit 16/8: H1 "Tìm nhà đất…" từng nằm đè lên "VILLA NY'AH" -> hai thông điệp chồng nhau).
           Gắn nhãn "Quảng cáo" (minh bạch), bấm được nếu có NEXT_PUBLIC_HERO_LINK. Mobile cắt vừa 200px. ===== */}
       {!hasFilter && hero && (
-        <section className="hero-art relative w-screen left-1/2 -translate-x-1/2 overflow-hidden mb-6 -mt-6">
+        <section className="hero-art relative overflow-hidden rounded-xl shadow-sm mb-6">
           {(() => {
             // banner Villa Ny'ah -> trang Nhã Đạt (anh Quang chốt 16/8); env ghi đè được khi đổi đối tác
             const link = process.env.NEXT_PUBLIC_HERO_LINK || "https://nhadat.company/";
