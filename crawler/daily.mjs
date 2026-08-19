@@ -136,6 +136,7 @@ for (const x of comb.listings) {
     direction: x.direction, legal_status: x.legal, furnishing: x.furnishing,
     province: x.province, district: x.district, ward: x.ward, lat: x.lat ?? null, lng: x.lng ?? null,
     amenities: x.amenities || [], images: x.images || [],
+    specs: x.specs ?? null,                                // bảng thông số nguồn (guland/batdongsan) — web ẩn ô trống
     contact_phone: null,                                   // NĐ13: không lưu SĐT thô của tin cào
     phone_masked: x.phone_masked ?? null,                  // đã che 4 số -> hiển thị được (giống Homigo)
     ai_score: x.ai_score, trust_score: trustScore(x), poster_role_guess: x.poster_role,

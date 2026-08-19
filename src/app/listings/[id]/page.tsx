@@ -116,12 +116,24 @@ export default async function ListingDetail({
   const fmtDT = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—";
 
+  // Chỉ hiện ô CÓ dữ liệu. Trước đây danh sách cứng 6 ô nên tin đất nền hiện "Nội thất -",
+  // "Số tầng -", "Chỗ đậu xe -" — vừa vô nghĩa vừa làm tin trông thiếu thốn. Mỗi loại BĐS
+  // có bộ thông số riêng (đất: mặt tiền/chiều dài/hình dáng; nhà: số tầng/nội thất/thang máy).
+  const specs = (x.specs ?? null) as Record<string, string> | null;
+  // các nhãn đã có ô riêng ở trên -> không lặp lại ở phần thông số nguồn
+  const daCo = /^(hướng (nhà|đất)|pháp lý|giấy tờ pháp lý|loại sổ|tình trạng sổ|số tầng|nội thất|tổng diện tích đất|diện tích)/i;
+
   const details: [string, ReactNode][] = [
-    ["Hướng", x.direction || "-"],
-    ["Pháp lý", <LegalHint key="legal" value={x.legal_status} />], // chú giải + mức rủi ro (ISO 9241-110)
-    ["Số tầng", x.floors ? `${x.floors} tầng` : "-"],
-    ["Nội thất", x.furnishing || "-"],
-    ["Chỗ đậu xe", x.amenities?.includes("parking") ? "Có" : "-"],
+    ...(x.direction ? [["Hướng", x.direction] as [string, ReactNode]] : []),
+    ...(x.legal_status ? [["Pháp lý", <LegalHint key="legal" value={x.legal_status} />] as [string, ReactNode]] : []),
+    ...(x.floors ? [["Số tầng", `${x.floors} tầng`] as [string, ReactNode]] : []),
+    ...(x.furnishing ? [["Nội thất", x.furnishing] as [string, ReactNode]] : []),
+    ...(x.amenities?.includes("parking") ? [["Chỗ đậu xe", "Có"] as [string, ReactNode]] : []),
+    // thông số riêng của nguồn (guland: mặt tiền, chiều dài, hình dáng đất, số mặt tiếp giáp…)
+    ...Object.entries(specs || {})
+      .filter(([k, v]) => v && String(v).trim() !== "-" && !daCo.test(k))
+      .slice(0, 14)
+      .map(([k, v]) => [k, String(v)] as [string, ReactNode]),
     ["Mã tin", x.id.slice(0, 8)],
   ];
 

@@ -11,7 +11,7 @@
 // supabase-js suy kiểu kết quả từ kiểu literal của tham số select(); nếu là `string` thường thì
 // kết quả ra GenericStringError[] và typecheck fail.
 // Khi thêm cột mới vào bảng listings thì thêm vào đây.
-export const LISTING_COLS = "id,source,source_site,source_url,source_post_id,agent_id,project_id,deal,kind,title,description,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,floors,direction,legal_status,furnishing,province,district,ward,address,lat,lng,amenities,images,contact_name,contact_phone,phone_masked,ai_score,trust_score,poster_role_guess,poster_listing_count,poster_reasons,poster_key,price_flag,source_count,source_sites,status,posted_at,first_seen_at,last_seen_at,crawled_at,crawl_count,created_at";
+export const LISTING_COLS = "id,source,source_site,source_url,source_post_id,agent_id,project_id,deal,kind,title,description,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,floors,direction,legal_status,furnishing,province,district,ward,address,lat,lng,amenities,specs,images,contact_name,contact_phone,phone_masked,ai_score,trust_score,poster_role_guess,poster_listing_count,poster_reasons,poster_key,price_flag,source_count,source_sites,status,posted_at,first_seen_at,last_seen_at,crawled_at,crawl_count,created_at";
 
 // Bản GỌN cho danh sách/thẻ tin (trang chủ, /search, tin liên quan): bỏ các cột chỉ trang chi tiết
 // mới cần. /search tải 200 tin nên mỗi cột thừa đều nhân lên 200 lần.

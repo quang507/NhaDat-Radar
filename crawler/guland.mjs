@@ -139,7 +139,7 @@ async function boSungChiTiet(all, idCu) {
   const can = all.filter((x) => x.source_url && (!idCu.has(x.id) || !x.description)).slice(0, ANH_MAX);
   if (!can.length) { console.error("Không tin nào cần lấy chi tiết."); return; }
   console.error(`\nLấy chi tiết (ảnh + mô tả + SĐT) cho ${can.length} tin (${ANH_GAP_MS}ms/tin)...`);
-  let anh = 0, mota = 0, sdt = 0;
+  let anh = 0, mota = 0, sdt = 0, spec = 0;
   for (const [i, x] of can.entries()) {
     const html = tai(x.source_url);
     if (html) {
@@ -156,16 +156,39 @@ async function boSungChiTiet(all, idCu) {
         if (t.length > 60) { x.description = t.slice(0, 4000); mota++; }
       }
 
+      // Bảng "Đặc điểm bất động sản": cặp nhãn/giá trị rất sạch, gồm cả thứ không nguồn nào
+      // khác có (mặt tiền, chiều dài, hình dáng đất, số mặt tiếp giáp, loại sổ, hầm xe...).
+      //   <div class="s-dtl-inf__lbl">Tổng diện tích đất:</div>
+      //   <div class="s-dtl-inf__val"><b>505 m²</b></div>
+      const sp = {};
+      for (const m of html.matchAll(/s-dtl-inf__lbl">([^<]{2,40}?):?<\/div>\s*<div class="s-dtl-inf__val">([\s\S]{0,120}?)<\/div>/g)) {
+        const v = m[2].replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+        if (v && v !== "-") sp[m[1].trim()] = v;
+      }
+      if (Object.keys(sp).length) {
+        x.specs = sp; spec++;
+        // đổ vào đúng cột web đang hiển thị (trước đó toàn dấu gạch)
+        x.direction = sp["Hướng nhà"] || sp["Hướng đất"] || x.direction || null;
+        x.legal = sp["Loại sổ"] || sp["Tình trạng sổ"] || x.legal || null;
+        x.furnishing = sp["Nội thất"] || x.furnishing || null;
+        const t = parseInt(sp["Số tầng"] || "", 10);
+        if (t > 0) x.floors = t;
+        const am = new Set(x.amenities || []);
+        if (/^có/i.test(sp["Hầm để xe"] || "")) am.add("parking");
+        if (/^có/i.test(sp["Thang máy"] || "")) am.add("elevator");
+        x.amenities = [...am];
+      }
+
       // SĐT: nút "gọi" của người đăng — class call-post. KHÔNG quét cả trang vì trang còn
       // chứa số của các tin gợi ý bên cạnh (đo: 5 số khác nhau trong 1 trang).
       const p = html.match(/class="[^"]*call-post[^"]*"[\s\S]{0,300}?((?:0|\+84)\d{8,10})/)
         || html.match(/tel:((?:0|\+84)\d{8,10})/);
       if (p) { x.contact_phone = p[1].replace(/^\+84/, "0"); sdt++; }
     }
-    if ((i + 1) % 20 === 0) console.error(`  ...${i + 1}/${can.length} | ảnh ${anh} · mô tả ${mota} · SĐT ${sdt}`);
+    if ((i + 1) % 20 === 0) console.error(`  ...${i + 1}/${can.length} | ảnh ${anh} · mô tả ${mota} · SĐT ${sdt} · thông số ${spec}`);
     await sleep(ANH_GAP_MS);
   }
-  console.error(`Chi tiết xong: ảnh ${anh}/${can.length} · mô tả ${mota}/${can.length} · SĐT ${sdt}/${can.length}`);
+  console.error(`Chi tiết xong: ảnh ${anh}/${can.length} · mô tả ${mota}/${can.length} · SĐT ${sdt}/${can.length} · thông số ${spec}/${can.length}`);
 }
 
 async function run() {

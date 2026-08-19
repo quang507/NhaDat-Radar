@@ -96,6 +96,7 @@ function norm(x) {
     province: canonProvince(x.province), district: dc.district, ward: x.ward ?? dc.wardHint ?? null,
     lat: x.lat ?? null, lng: x.lng ?? null,
     amenities: x.amenities || [],
+    specs: x.specs && Object.keys(x.specs).length ? x.specs : null,   // bảng thông số riêng của nguồn
     poster_role: x.poster_role || "khong_ro", poster_listing_count: x.poster_listing_count || 1,
     poster_id: x.poster_id ?? null,
     poster_reasons: Array.isArray(x.poster_reasons) ? x.poster_reasons : [],

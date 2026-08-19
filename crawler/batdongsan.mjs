@@ -152,6 +152,9 @@ export function parseDetail(html) {
   const ngayDang = info["Ngày đăng"];   // "14/08/2026"
   const iso = ngayDang?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   return {
+    // trả về CẢ bảng: trước đây chỉ lấy 4 trường rồi vứt phần còn lại (mặt tiền, đường vào,
+    // số phòng ngủ/toilet, năm xây...) — đúng những thứ làm tin đáng tin hơn. 19/8.
+    specs: { ...specs, ...info },
     direction: specs["Hướng nhà"] || null,
     balcony_direction: specs["Hướng ban công"] || null,
     legal: specs["Pháp lý"] || specs["Giấy tờ pháp lý"] || null,

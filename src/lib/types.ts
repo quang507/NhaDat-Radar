@@ -25,6 +25,10 @@ export type Listing = {
   lat: number | null;
   lng: number | null;
   amenities: string[];
+  // Bảng thông số riêng của từng nguồn — mỗi nguồn/mỗi loại BĐS một bộ nhãn khác nhau
+  // (đất: mặt tiền, chiều dài, hình dáng, số mặt tiếp giáp; nhà: số tầng, thang máy, năm xây)
+  // nên để nguyên dạng nhãn→giá trị, trang chi tiết chỉ hiện ô nào có dữ liệu.
+  specs: Record<string, string> | null;
   images: string[];
   contact_name: string | null;
   contact_phone: string | null;
