@@ -30,7 +30,9 @@ async function run() {
     let g = await geocode(k + ", Việt Nam");
     if (!g) g = await geocode((k.split(",").pop() || "") + ", Việt Nam");
     cache[k] = g;
-    await sleep(1100);
+    // 1100ms là để tôn trọng giới hạn 1 request/giây của Nominatim. Vietmap không có
+    // ràng buộc đó -> nhanh hơn 5 lần, nên trong cùng 5 phút bù được nhiều khu vực hơn hẳn.
+    await sleep(usingVietmap ? 220 : 1100);
   }
   let hit = 0;
   db.listings.forEach((x) => {
