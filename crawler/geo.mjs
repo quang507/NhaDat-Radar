@@ -3,14 +3,22 @@
 const VIETMAP_KEY = process.env.VIETMAP_API_KEY || "";
 const NOMINATIM_UA = "NhaDatRadar/1.0 (proptech)";
 
+// Phân biệt "hỏi hỏng" với "hỏi xong, không có".
+// Sự cố 19/8: chạy lại geocode toàn bộ nhiều lượt liên tiếp -> Vietmap trả HTTP 429. Hàm cũ
+// trả null cho MỌI mã lỗi nên 429 trông y hệt "không tìm thấy", rồi geocode-all ghi null đó
+// vào cache BỀN -> 63 khu vực bị đầu độc, lượt sau không bao giờ tra lại. Cùng kiểu lỗi đã
+// mắc với mogi hôm 18/8: nhầm bị chặn tần suất thành dữ liệu không tồn tại.
+export const LOI = Symbol("loi-mang");     // hỏng: đừng cache, thử lại lượt sau
+
 async function fetchJSON(url, headers = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
     const res = await fetch(url, { headers, signal: ctrl.signal });
+    if (res.status === 429 || res.status >= 500) return LOI;   // bị chặn tần suất / lỗi máy chủ
     if (!res.ok) return null;
     return await res.json();
-  } catch { return null; }
+  } catch { return LOI; }                                       // timeout / mất mạng
   finally { clearTimeout(timer); }
 }
 
@@ -70,6 +78,7 @@ async function vietmap(query) {
   const s = await fetchJSON(
     `https://maps.vietmap.vn/api/search/v3?apikey=${VIETMAP_KEY}&text=${encodeURIComponent(query)}`,
   );
+  if (s === LOI) return LOI;
   if (!Array.isArray(s)) return null;
   // ref_id mang mã loại: "vm:WARD:..." (phường/xã), "vm:DIST:..." (quận/huyện), "vmg:POI:..."
   // (cửa hàng, công ty, spa...). Ta luôn tra ĐƠN VỊ HÀNH CHÍNH nên phải loại POI và STREET,
@@ -97,6 +106,7 @@ async function nominatim(query) {
     `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=vn&q=${encodeURIComponent(query)}`,
     { "User-Agent": NOMINATIM_UA, "Accept-Language": "vi" },
   );
+  if (j === LOI) return LOI;
   if (!Array.isArray(j)) return null;
   for (const r of j) {
     if (khopTinh(r.display_name || "", query)) return { lat: +r.lat, lng: +r.lon, src: "osm" };
@@ -118,8 +128,17 @@ async function nominatim(query) {
 const TINH_CU_GOP_VAO = { "Hồ Chí Minh": ["Bình Dương", "Bà Rịa - Vũng Tàu"] };
 
 // API chính: thử Vietmap trước, không được thì Nominatim; cả hai đều thử tên tỉnh cũ nếu cần
+// Trả về: {lat,lng,src} nếu tìm thấy | null nếu tra xong mà không có | LOI nếu hỏi hỏng.
+// Người gọi PHẢI phân biệt null với LOI — chỉ null mới đáng ghi vào cache.
 export async function smartGeocode(query) {
-  const thu = async (q) => (await vietmap(q)) || (await nominatim(q));
+  let hong = false;
+  const thu = async (q) => {
+    const a = await vietmap(q);
+    if (a === LOI) hong = true; else if (a) return a;
+    const b = await nominatim(q);
+    if (b === LOI) hong = true; else if (b) return b;
+    return null;
+  };
   const g = await thu(query);
   if (g) return g;
 
@@ -128,7 +147,7 @@ export async function smartGeocode(query) {
     const g2 = await thu(query.replace(tinh, cu));
     if (g2) return { ...g2, src: g2.src + "-tinh-cu" };
   }
-  return null;
+  return hong ? LOI : null;
 }
 
 export const usingVietmap = !!VIETMAP_KEY;
