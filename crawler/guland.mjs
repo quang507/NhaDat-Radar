@@ -31,7 +31,10 @@ const SEEDS = [
 function parseGia(s) {
   const t = (s || "").toLowerCase();
   if (!t || /thỏa thuận|thoả thuận|liên hệ/.test(t)) return null;
-  const num = (v) => parseFloat(v.replace(/\./g, "").replace(",", "."));
+  // review 19/8: bản cũ bỏ MỌI dấu chấm nên "4.2 tỷ" (chấm thập phân) thành 42 tỷ — đúng
+  // lỗi mà priceFromText (extra-sites) và parsePrice (mogi) đã vá hôm 16/8 nhưng bản copy
+  // này không mang theo. Chấm chỉ là ngăn-cách-nghìn khi đứng trước ĐÚNG 3 chữ số.
+  const num = (v) => parseFloat(v.replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", "."));
   const ty = t.match(/([\d.,]+)\s*tỷ/);
   if (ty) return Math.round(num(ty[1]) * 1e9);
   const tr = t.match(/([\d.,]+)\s*(?:triệu|tr)\b/);
@@ -64,13 +67,9 @@ function loaiBds(s) {
 
 export function parseGuland(html, tinhMacDinh, deal) {
   const out = [];
-  // mỗi tin bắt đầu bằng thẻ tiêu đề; cắt theo mốc đó
-  // Cắt ở WRAPPER thẻ tin, không cắt ở tiêu đề: ảnh nằm TRƯỚC tiêu đề nên cắt ở tiêu đề
-  // sẽ đẩy ảnh sang mảnh trước đó -> mất sạch ảnh (18/8: lần đầu ra 0 ảnh vì lỗi này).
-  // Cắt ở TIÊU ĐỀ. Đã thử cắt ở c-sdb-card__wrap để lấy được cả ảnh (ảnh nằm trước tiêu đề)
-  // nhưng __wrap không bao tiêu đề -> ra 0 tin. Cắt ở "c-sdb-card" trần thì khớp cả
-  // __cnt/__tle/__inf nên mảnh vụn, tiêu đề và giá rơi vào 2 mảnh khác nhau -> 0 giá.
-  // => giữ mốc này: đúng giá/diện tích/khu vực, tạm chưa lấy được ảnh (xem TODO cuối file).
+  // Cắt ở TIÊU ĐỀ (__tle). Đã thử 2 mốc khác hôm 18/8 và đều hỏng: __wrap không bao tiêu đề
+  // -> 0 tin; "c-sdb-card" trần khớp cả __cnt/__inf nên tiêu đề và giá rơi vào 2 mảnh -> 0 giá.
+  // Ảnh không nằm trong mảnh này — boSungChiTiet() lấy từ trang chi tiết.
   const khoi = html.split('class="c-sdb-card__tle"').slice(1);
   for (const k0 of khoi) {
     const k = k0.slice(0, 4000);
@@ -89,14 +88,15 @@ export function parseGuland(html, tinhMacDinh, deal) {
     const diaChi = dec((k.match(/data-type-adr"[^>]*>([\s\S]*?)<\/div>/) || [])[1] || "");
     const phan = diaChi.split(",").map((s) => s.trim()).filter(Boolean);
     const tinh = phan.length ? phan[phan.length - 1] : tinhMacDinh;
-    const quan = phan.length >= 2 ? phan[phan.length - 2] : null;
-    const phuong = phan.length >= 3 ? phan[phan.length - 3] : null;
+    // Nhận diện theo TIỀN TỐ, không theo vị trí — review 19/8: địa chỉ 2 cấp sau sáp nhập
+    // ("Đường TC5, Xã Đức Lập, Tây Ninh") từng bị đọc thành quận="Xã Đức Lập",
+    // phường="Đường TC5" -> bộ lọc quận/phường ra bucket rác, khoá geocode vô nghĩa.
+    const giua = phan.slice(0, -1);
+    const phuong = giua.find((x) => /^(Phường|Xã|Thị trấn|P\.\s*\d)/i.test(x)) || null;
+    const quan = giua.find((x) => /^(Quận|Huyện|Thị xã|Thành phố|TP\.?|Q\.\s*\d)/i.test(x)) || null;
 
     // KHÔNG lấy ảnh ở trang danh sách: ảnh ở đó là /users/image/...-op.webp = AVATAR NGƯỜI ĐĂNG
-    // (kiểm chứng 18/8: 9 tin khác nhau dùng chung 1 ảnh vì cùng người đăng). Ảnh thật của BĐS
-    // nằm ở /files/... và CHỈ có trên trang chi tiết -> boSungAnh() lấy sau, chỉ cho tin MỚI.
-    const anh = [];
-
+    // (kiểm chứng 18/8: 9 tin dùng chung 1 ảnh). Ảnh thật chỉ có ở trang chi tiết -> boSungChiTiet().
     const gia = parseGia(giaTxt);
     out.push({
       id: "gl-" + (id || Math.abs(hash(url)).toString(36)),
@@ -110,9 +110,12 @@ export function parseGuland(html, tinhMacDinh, deal) {
       bedrooms: null, bathrooms: null, floors: null,
       listing_type: deal, property_type: loaiBds(title),
       province: sachTinh(tinh) || tinhMacDinh, district: quan, ward: phuong,
-      lat: null, lng: null, amenities: [], images: [...new Set(anh)].slice(0, 6),
+      lat: null, lng: null, amenities: [], images: [],
       poster_role: "khong_ro",
-      ai_score: Math.max(40, Math.min(95, 55 + (gia ? 8 : 0) + (dt ? 6 : 0) + (anh.length ? 10 : 0) + (quan ? 4 : 0))),
+      // ai_score để null cho heuristicScore() của merge chấm — review 19/8: công thức tự chế
+      // ở đây chấm guland trên thang khác hẳn các nguồn còn lại, và mọi tinh chỉnh thang chung
+      // không bao giờ tới được guland.
+      ai_score: null,
     });
   }
   return out;
@@ -134,15 +137,23 @@ function tai(url) {
 
 // Ảnh THẬT chỉ có ở trang chi tiết (/files/...). Chỉ lấy cho tin MỚI — so id với guland.json
 // lượt trước — nên mỗi lượt chỉ vài chục lượt tải thay vì toàn bộ.
-const ANH_GAP_MS = Number(process.env.GULAND_IMG_GAP_MS || 1200);
-const ANH_MAX = Number(process.env.GULAND_IMG_MAX || 120);
+// review 19/8: tên cũ ANH_/GULAND_IMG_* gây lạc lối — hai hằng này giờ điều tiết CẢ lượt lấy
+// chi tiết (ảnh + mô tả + SĐT + thông số), ai chỉnh "giới hạn ảnh" là vô tình bóp luôn phần kia.
+// Trần nâng 120 -> 250: guland.json nằm trong .gitignore nên trên CI mỗi run đều VÔ TRẠNG THÁI,
+// tin ngoài trần sẽ mang images:[] + description:null đi GHI ĐÈ dữ liệu run trước trong DB.
+// 250 phủ trọn ~200 tin/lượt (~5 phút với 1.2s/tin — CI đã nới 60 phút).
+const CT_GAP_MS = Number(process.env.GULAND_DETAIL_GAP_MS || process.env.GULAND_IMG_GAP_MS || 1200);
+const CT_MAX = Number(process.env.GULAND_DETAIL_MAX || process.env.GULAND_IMG_MAX || 250);
 // Cùng 1 lượt tải trang chi tiết lấy được CẢ BA: ảnh, mô tả, SĐT. Trang danh sách không
 // có thứ nào trong ba (đo 19/8: 99/99 tin guland trong DB mô tả rỗng, 0% có SĐT).
 // Lấy cho tin MỚI, và cho cả tin cũ còn THIẾU mô tả — để 99 tin đã nằm trong DB được bù.
 async function boSungChiTiet(all, idCu) {
-  const can = all.filter((x) => x.source_url && (!idCu.has(x.id) || !x.description)).slice(0, ANH_MAX);
+  // "đã lấy chi tiết" là DẤU MỐC tường minh (chi_tiet_luc), không suy từ dữ liệu — review 19/8:
+  // suy từ "có ảnh && có mô tả" khiến tin mà trang chi tiết vốn không có ảnh bị tải lại VĨNH
+  // VIỄN mỗi lượt, chiếm chỗ trong trần CT_MAX của tin mới thật.
+  const can = all.filter((x) => x.source_url && !idCu.has(x.id)).slice(0, CT_MAX);
   if (!can.length) { console.error("Không tin nào cần lấy chi tiết."); return; }
-  console.error(`\nLấy chi tiết (ảnh + mô tả + SĐT) cho ${can.length} tin (${ANH_GAP_MS}ms/tin)...`);
+  console.error(`\nLấy chi tiết (ảnh + mô tả + SĐT) cho ${can.length} tin (${CT_GAP_MS}ms/tin)...`);
   let anh = 0, mota = 0, sdt = 0, spec = 0;
   for (const [i, x] of can.entries()) {
     const html = tai(x.source_url);
@@ -183,32 +194,36 @@ async function boSungChiTiet(all, idCu) {
         x.amenities = [...am];
       }
 
-      // SĐT: nút "gọi" của người đăng — class call-post. KHÔNG quét cả trang vì trang còn
-      // chứa số của các tin gợi ý bên cạnh (đo: 5 số khác nhau trong 1 trang).
-      const p = html.match(/class="[^"]*call-post[^"]*"[\s\S]{0,300}?((?:0|\+84)\d{8,10})/)
-        || html.match(/tel:((?:0|\+84)\d{8,10})/);
+      // SĐT: CHỈ lấy từ nút gọi của người đăng (class call-post). KHÔNG quét tel: cả trang —
+      // review 19/8: trang còn chứa số của các tin gợi ý bên cạnh (đo: 5 số khác nhau/trang),
+      // fallback tel: từng có thể gắn số NGƯỜI KHÁC vào tin -> khách gọi nhầm chủ.
+      const p = html.match(/class="[^"]*call-post[^"]*"[\s\S]{0,300}?((?:0|\+84)\d{8,10})/);
       if (p) { x.contact_phone = p[1].replace(/^\+84/, "0"); sdt++; }
     }
+    x.chi_tiet_luc = new Date().toISOString();   // đã tải chi tiết — dù trang có gì hay không
     if ((i + 1) % 20 === 0) console.error(`  ...${i + 1}/${can.length} | ảnh ${anh} · mô tả ${mota} · SĐT ${sdt} · thông số ${spec}`);
-    await sleep(ANH_GAP_MS);
+    await sleep(CT_GAP_MS);
   }
   console.error(`Chi tiết xong: ảnh ${anh}/${can.length} · mô tả ${mota}/${can.length} · SĐT ${sdt}/${can.length} · thông số ${spec}/${can.length}`);
 }
 
 async function run() {
-  // id lượt trước -> biết tin nào MỚI để chỉ lấy ảnh cho chúng
-  const idCu = new Set();
+  // Đọc guland.json lượt trước MỘT lần (review 19/8: trước đây parse 2 lần, 2 Map lệch nhau)
+  let cuMap = new Map();
   try {
     const cu = JSON.parse(fs.readFileSync(new URL("./guland.json", import.meta.url), "utf8"));
-    for (const x of cu.listings || []) if (x.images?.length && x.description) idCu.add(x.id);
+    cuMap = new Map((cu.listings || []).map((x) => [x.id, x]));
   } catch { /* lần đầu */ }
+  // "đã lấy chi tiết" = có dấu mốc chi_tiet_luc; tin cũ trước khi có dấu mốc thì suy tạm từ mô tả
+  const idCu = new Set([...cuMap.values()].filter((x) => x.chi_tiet_luc || x.description).map((x) => x.id));
 
   let all = [];
   for (const [base, tinh, deal] of SEEDS) {
     const html = tai(base);
     if (!html) { console.error(`  ${base} -> không tải được`); continue; }
-    all = all.concat(parseGuland(html, tinh, deal));
-    console.error(`  ${tinh}/${deal} trang gốc: +${parseGuland(html, tinh, deal).length}`);
+    const rows = parseGuland(html, tinh, deal);   // review 19/8: từng parse 2 lần chỉ để log số
+    all = all.concat(rows);
+    console.error(`  ${tinh}/${deal} trang gốc: +${rows.length}`);
 
     // gom link khu vực trên chính trang đó rồi cào thêm (mỗi khu ~45 tin)
     const khu = [...new Set([...html.matchAll(/href="(\/mua-ban-bat-dong-san-[a-z0-9-]{10,})"/g)].map((m) => m[1]))]
@@ -230,18 +245,23 @@ async function run() {
   all = all.filter((x) => (seen.has(x.id) ? false : seen.add(x.id)));
   if (!all.length) { console.error("guland: 0 tin -> giữ guland.json cũ"); return; }
 
-  // giữ lại ảnh đã lấy được ở lượt trước cho tin cũ
-  try {
-    const cu = JSON.parse(fs.readFileSync(new URL("./guland.json", import.meta.url), "utf8"));
-    const anhCu = new Map((cu.listings || []).filter((x) => x.images?.length).map((x) => [x.id, x.images]));
-    for (const x of all) if (!x.images.length && anhCu.has(x.id)) x.images = anhCu.get(x.id);
-    const ctCu = new Map((cu.listings || []).map((x) => [x.id, x]));
-    for (const x of all) {
-      const c = ctCu.get(x.id);
-      if (c?.description && !x.description) x.description = c.description;
-      if (c?.contact_phone && !x.contact_phone) x.contact_phone = c.contact_phone;
-    }
-  } catch { /* lần đầu */ }
+  // Mang sang từ lượt trước MỌI thứ chỉ trang chi tiết mới có — review 19/8: bản cũ chỉ mang
+  // description + contact_phone, làm specs/hướng/pháp lý/số tầng/tiện ích thành null ở lượt
+  // N+1 rồi upsert nguyên hàng GHI ĐÈ null lên DB: thông số biến mất sau đúng một ngày.
+  for (const x of all) {
+    const c = cuMap.get(x.id);
+    if (!c) continue;
+    if (!x.images.length && c.images?.length) x.images = c.images;
+    if (!x.description && c.description) x.description = c.description;
+    if (!x.contact_phone && c.contact_phone) x.contact_phone = c.contact_phone;
+    if (!x.specs && c.specs) x.specs = c.specs;
+    if (!x.direction && c.direction) x.direction = c.direction;
+    if (!x.legal && c.legal) x.legal = c.legal;
+    if (!x.furnishing && c.furnishing) x.furnishing = c.furnishing;
+    if (!x.floors && c.floors) x.floors = c.floors;
+    if (!x.amenities?.length && c.amenities?.length) x.amenities = c.amenities;
+    if (c.chi_tiet_luc) x.chi_tiet_luc = c.chi_tiet_luc;
+  }
 
   if (!process.argv.includes("--no-img")) await boSungChiTiet(all, idCu);
   fs.writeFileSync(new URL("./guland.json", import.meta.url), JSON.stringify({

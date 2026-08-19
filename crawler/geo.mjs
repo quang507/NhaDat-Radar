@@ -91,6 +91,9 @@ async function vietmap(query) {
     const p = await fetchJSON(
       `https://maps.vietmap.vn/api/place/v3?apikey=${VIETMAP_KEY}&refid=${encodeURIComponent(ung.ref_id)}`,
     );
+    // review 19/8: search OK nhưng place trả 429 -> p là Symbol LOI, p?.lat ra undefined và bị
+    // bỏ qua IM LẶNG -> smartGeocode trả null -> cache bền ghi "không tìm thấy". Phải lan LOI lên.
+    if (p === LOI) return LOI;
     const lat = p?.lat ?? p?.latitude ?? p?.geometry?.location?.lat;
     const lng = p?.lng ?? p?.lon ?? p?.longitude ?? p?.geometry?.location?.lng;
     if (lat && lng && khopTinh(p?.display || ung.display || "", query)) {
@@ -100,8 +103,15 @@ async function vietmap(query) {
   return null;
 }
 
-// Nominatim (fallback) — cũng phải khớp tỉnh mới nhận
+// Nominatim (fallback) — cũng phải khớp tỉnh mới nhận.
+// TỰ giữ luật 1 request/giây của Nominatim ngay tại đây: review 19/8 chỉ ra khi Vietmap hết
+// hạn mức GIỮA run, caller vẫn chạy nhịp 220ms và mọi truy vấn dồn hết vào Nominatim — gấp 5
+// luật của họ, liều bị cấm UA. Đặt phanh ở tầng biết rõ ai đang trả lời thì caller hết bắn nhầm.
+let _nomTruoc = 0;
 async function nominatim(query) {
+  const cho = 1100 - (Date.now() - _nomTruoc);
+  if (cho > 0) await new Promise((r) => setTimeout(r, cho));
+  _nomTruoc = Date.now();
   const j = await fetchJSON(
     `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=vn&q=${encodeURIComponent(query)}`,
     { "User-Agent": NOMINATIM_UA, "Accept-Language": "vi" },

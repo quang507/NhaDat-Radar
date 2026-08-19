@@ -312,9 +312,19 @@ ${uniq.length} dự án duy nhất -> lấy chi tiết...`);
   out.length = 0; out.push(...giu);
 
   if (!out.length) { console.error("mogi-projects: 0 dự án -> giữ projects.json cũ"); return null; }
+  // GOP voi snapshot cu truoc khi ghi - review 19/8: che do cong don tung ghi de projects.json
+  // bang DUNG tap du an moi (1 thay vi ~700), pha duong khoi phuc --seed-only ma chinh header
+  // file nay chi dan. DB khong sao (upsert) nhung file snapshot thi mat trang.
+  let ghi = out;
+  try {
+    const cuSnap = JSON.parse(fs.readFileSync(new URL("./projects.json", import.meta.url), "utf8")).projects || [];
+    const gop = new Map(cuSnap.map((x) => [x.slug, x]));
+    for (const x of out) gop.set(x.slug, x);
+    ghi = [...gop.values()];
+  } catch { /* lan dau */ }
   fs.writeFileSync(new URL("./projects.json", import.meta.url), JSON.stringify({
-    summary: { crawled_at: new Date().toISOString().slice(0, 10), total: out.length, with_geo: out.filter((x) => x.lat).length, with_img: out.filter((x) => x.images.length).length },
-    projects: out,
+    summary: { crawled_at: new Date().toISOString().slice(0, 10), total: ghi.length, with_geo: ghi.filter((x) => x.lat).length, with_img: ghi.filter((x) => x.images.length).length },
+    projects: ghi,
   }, null, 0));
   console.error(`\nTỔNG ${out.length} dự án (toạ độ: ${out.filter((x) => x.lat).length}, ảnh: ${out.filter((x) => x.images.length).length}, `
     + `${chuaLayDem} chưa lấy được chi tiết lượt này) -> projects.json`);
@@ -362,9 +372,11 @@ async function slugDaCo() {
     const sb = createClient(url, key, { auth: { persistSession: false } });
     const ra = new Set();
     for (let from = 0; ; from += 1000) {   // PostgREST cat 1000 dong/lan
-      const { data, error } = await sb.from("projects").select("slug,specs").not("slug", "is", null).order("slug").range(from, from + 999);
+      const { data, error } = await sb.from("projects").select("slug").not("slug", "is", null).not("specs", "is", null).order("slug").range(from, from + 999);
       if (error) { console.error("Doc slug cu loi:", error.message); return ra; }
-      for (const r of data || []) if (r.specs && Object.keys(r.specs).length) ra.add(r.slug);
+           // seed chi ghi specs khi non-empty (cong chat luong) nen specs non-null <=> da du du lieu;
+           // loc o server khoi tai ca cot jsonb cua 700+ du an moi luot chi de dem key (review 19/8)
+           for (const r of data || []) ra.add(r.slug);
       if (!data || data.length < 1000) break;
     }
     return ra;

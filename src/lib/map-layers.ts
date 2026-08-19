@@ -16,7 +16,8 @@ export function ganLopNen(L: any, map: any) {
 
   const veTinh = L.layerGroup([
     L.tileLayer(`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, { attribution: "© Esri", maxZoom: 19 }),
-    L.tileLayer(`${ESRI}/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 19 }),
+    // minZoom 10: nhan duong chi doc duoc khi phong gan; o muc toan quoc no chi ton them tile vo ich
+    L.tileLayer(`${ESRI}/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 19, minZoom: 10 }),
     L.tileLayer(`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 19 }),
   ]);
 
@@ -47,5 +48,8 @@ export function ganLopNen(L: any, map: any) {
   // ra/vào toàn màn hình thì kích thước khung đổi -> phải báo Leaflet tính lại, không thì tile trắng
   const onFs = () => setTimeout(() => map.invalidateSize(), 120);
   document.addEventListener("fullscreenchange", onFs);
-  map.on("remove", () => document.removeEventListener("fullscreenchange", onFs));
+  // "unload" chu khong phai "remove" - review 19/8 doi chieu leaflet-src: map.remove() phat
+  // "unload" ("remove" la su kien cua Layer). Nghe nham ten = listener khong bao gio duoc go,
+  // moi lan chuyen trang ro mot listener goi invalidateSize() tren map da huy.
+  map.on("unload", () => document.removeEventListener("fullscreenchange", onFs));
 }

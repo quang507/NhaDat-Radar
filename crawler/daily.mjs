@@ -15,6 +15,14 @@ function step(cmd) {
 // 1) Crawl các nguồn headless (Chợ Tốt API + nhadat HTTP + Mogi HTML)
 //    `node daily.mjs --seed-only`: bỏ qua cào, chỉ merge + seed từ file đang có (test nhanh trên máy)
 const SEED_ONLY = process.argv.includes("--seed-only");
+
+// Kiem creds NGAY DAU - review 19/8: thieu creds thi slugDaCo() lang le tra Set rong, buoc
+// du an cao lai chi tiet ca 700+ du an (~30 phut) roi moi chet o buoc seed vi dung ly do do.
+// Chet som 30 giay dau re hon chet sau 30 phut.
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("Thieu NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (.env.local hoac GitHub Secrets) - dung truoc khi cao.");
+  process.exit(1);
+}
 // `--fb-only`: CHỈ cào Facebook rồi gộp + seed. Dùng cho CHAY.bat ở máy nhà, vì các nguồn web
 // (chotot, mogi, batdongsan, extra-sites) đã được GitHub Actions tự cào 9h/15h — cào lại ở máy
 // là làm hai lần cùng một việc. Còn Facebook thì CI không làm được (IP datacenter bị FB chặn).

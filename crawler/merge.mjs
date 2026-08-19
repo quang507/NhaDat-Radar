@@ -79,12 +79,16 @@ function norm(x) {
   const dc = canonDistrict(x.district);
   // nguồn nào không có sẵn trường SĐT thì dò trong mô tả — chotot/mogi người đăng hay tự
   // viết số vào bài (đo: 98% tin facebook dò ra được số ngay trong mô tả).
-  const sdt = cheSdt(x.contact_phone || (x.description || "").match(PHONE_RE)?.[0]);
+  const sdt = x.phone_masked ? { masked: x.phone_masked, hash: x.phone_hash ?? null }
+    : cheSdt(x.contact_phone || (x.description || "").match(PHONE_RE)?.[0]);
   return {
     id: x.id,
     source: x.source || "crawl",
     source_site: x.source_site || "nhadat.vn",
-    url: x.url || x.source_url || "#",
+    // null chu khong phai "#" - review 19/8: "#" la chuoi khac rong nen lot moi kiem tra
+    // truthy, tung lam nut "Xem bai goc" hien ra ma bam dung yen (319/808 tin facebook).
+    // Day la diem hep duy nhat moi nguon di qua -> chan o day, ha nguon khoi phai nho.
+    url: x.url || x.source_url || null,
     source_post_id: x.source_post_id || x.id,
     title: x.title || "",
     description: x.description || "",
