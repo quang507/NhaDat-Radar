@@ -104,10 +104,12 @@ const comb = JSON.parse(fs.readFileSync(new URL("./combined.json", import.meta.u
 // - Tin không còn thấy ≥ 36h (≈2 lần cào ngày) -> status 'gone' (ẩn khỏi tìm kiếm, chi tiết vẫn mở kèm nhãn) — không biến mất im lặng
 // PostgREST cắt 1000 dòng/lần -> phải phân trang, không thì tin cũ ngoài 1000 bị coi là mới -> insert đụng
 // unique index uq_listings_source_post (migration 001) và seed thất bại.
+// Lấy thêm các cột DỄ RỖNG để KHÔNG ghi null đè lên giá trị tốt (xem giuNeuTrong bên dưới).
+const COT_DE_RONG = "lat,lng,images,description,specs,phone_masked,poster_key,address,posted_at,direction,legal_status,furnishing,floors,bedrooms,bathrooms,amenities";
 const oldRows = [];
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb.from("listings")
-    .select("id,source_site,source_post_id,first_seen_at,crawl_count,status").eq("source", "crawl").not("source_post_id", "is", null)
+    .select(`id,source_site,source_post_id,first_seen_at,crawl_count,status,${COT_DE_RONG}`).eq("source", "crawl").not("source_post_id", "is", null)
     .order("id").range(from, from + 999);
   if (error) { console.error("Đọc tin cũ lỗi:", error.message); process.exit(1); }
   oldRows.push(...(data || []));
@@ -115,6 +117,20 @@ for (let from = 0; ; from += 1000) {
 }
 const oldMap = new Map(oldRows.map((r) => [r.source_site + "|" + r.source_post_id, r]));
 console.log(`(DB đang có ${oldRows.length} tin crawl)`);
+
+// ---- KHÔNG GHI RỖNG ĐÈ LÊN DỮ LIỆU TỐT (review /ultrareview) ----
+// Payload upsert trước đây gán thẳng giá trị lượt hiện tại cho MỌI cột, không COALESCE. Bất kỳ
+// cột nào lượt này không lấy được đều xoá mất giá trị lượt trước. Hai đường đã đo được:
+//   1. geo-cache.json nằm trong .gitignore và workflow KHÔNG có bước cache -> mỗi lượt CI geocode
+//      từ số 0, hết ngân sách 8 phút giữa chừng -> tin giữ lat=null -> ghi đè toạ độ đang đúng.
+//      (61% tin - 742/1218 - phụ thuộc hoàn toàn vào geocode-all; chú thích dòng 87-89 đã cảnh báo
+//      đúng cơ chế này nhưng chỉ chặn cho cờ tay --no-merge.)
+//   2. guland: một lần curl 403 thoáng qua -> images:[] + description:null đi đè lên hàng đang tốt.
+// Quy tắc: null / "" / [] / {} của lượt này KHÔNG được xoá giá trị đã có. Muốn xoá thật thì sửa tay.
+const rong = (v) => v == null || v === ""
+  || (Array.isArray(v) && v.length === 0)
+  || (typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0);
+const giuNeuTrong = (moi, cu) => (rong(moi) && cu !== undefined ? cu : moi);
 
 // Độ tin cậy: heuristic có phổ theo dữ liệu thật (trước đây gán cứng 78 cho mọi tin).
 function trustScore(x) {
@@ -139,27 +155,39 @@ for (const x of comb.listings) {
   rows.push({
     ...(old ? { id: old.id } : {}),
     source: "crawl", source_site: x.source_site, source_url: x.url, source_post_id: x.source_post_id || x.id,
-    deal: x.listing_type, kind: x.property_type, title: x.title, description: x.description,
-    price_vnd: x.price_vnd, area_m2: x.area_m2, bedrooms: x.bedrooms, bathrooms: x.bathrooms, floors: x.floors,
-    direction: x.direction, legal_status: x.legal, furnishing: x.furnishing,
-    province: x.province, district: x.district, ward: x.ward, address: x.address ?? null,
-    lat: x.lat ?? null, lng: x.lng ?? null,
-    amenities: x.amenities || [], images: x.images || [],
-    specs: x.specs ?? null,                                // bảng thông số nguồn (guland/batdongsan) — web ẩn ô trống
+    // Các cột LUÔN lấy tươi: đều có sẵn ở trang danh sách nên lượt nào cũng đáng tin.
+    deal: x.listing_type, kind: x.property_type, title: x.title,
+    price_vnd: x.price_vnd, area_m2: x.area_m2,
+    province: x.province, district: x.district, ward: x.ward,
+    // Các cột đến từ TRANG CHI TIẾT hoặc GEOCODE -> hay rỗng khi bị chặn/hết ngân sách: giữ giá trị cũ.
+    description: giuNeuTrong(x.description, old?.description),
+    bedrooms: giuNeuTrong(x.bedrooms, old?.bedrooms), bathrooms: giuNeuTrong(x.bathrooms, old?.bathrooms),
+    floors: giuNeuTrong(x.floors, old?.floors),
+    direction: giuNeuTrong(x.direction, old?.direction), legal_status: giuNeuTrong(x.legal, old?.legal_status),
+    furnishing: giuNeuTrong(x.furnishing, old?.furnishing),
+    address: giuNeuTrong(x.address ?? null, old?.address),
+    lat: giuNeuTrong(x.lat ?? null, old?.lat), lng: giuNeuTrong(x.lng ?? null, old?.lng),
+    amenities: giuNeuTrong(x.amenities || [], old?.amenities), images: giuNeuTrong(x.images || [], old?.images),
+    specs: giuNeuTrong(x.specs ?? null, old?.specs),        // bảng thông số nguồn (guland/batdongsan) — web ẩn ô trống
     contact_phone: null,                                   // NĐ13: không lưu SĐT thô của tin cào
-    phone_masked: x.phone_masked ?? null,                  // đã che 4 số -> hiển thị được (giống Homigo)
-    ai_score: x.ai_score, trust_score: trustScore(x), poster_role_guess: x.poster_role,
+    phone_masked: giuNeuTrong(x.phone_masked ?? null, old?.phone_masked),  // đã che 4 số -> hiển thị được (giống Homigo)
+    ai_score: x.ai_score, poster_role_guess: x.poster_role,
     poster_listing_count: x.poster_listing_count ?? null, poster_reasons: x.poster_reasons || [],
-    poster_key: x.phone_hash || x.poster_id || null,       // id tài khoản trên nguồn / hash SĐT -> "N tin khác của người đăng"
+    // id tài khoản trên nguồn / hash SĐT -> "N tin khác của người đăng"
+    poster_key: giuNeuTrong(x.phone_hash || x.poster_id || null, old?.poster_key),
     price_flag: x.price_warning || null,
     source_count: x.source_count || 1, source_sites: x.source_sites || [x.source_site],
-    posted_at: x.posted_at ?? null,                        // đăng trên nguồn lúc (nếu nguồn có)
+    posted_at: giuNeuTrong(x.posted_at ?? null, old?.posted_at),   // đăng trên nguồn lúc (nếu nguồn có)
     // Admin đã ẨN (nút "Ẩn tin" trên trang chi tiết, 17/8) thì giữ ẩn — không để lần cào sau bật lại tin rác.
     // Chỉ 'gone' (mất rồi thấy lại) mới về published.
     status: old?.status === "hidden" ? "hidden" : "published", crawled_at: now, last_seen_at: now,
     first_seen_at: (old && old.first_seen_at) || now,
     crawl_count: old ? (old.crawl_count || 1) + 1 : 1,
   });
+  // trust_score phải chấm trên hàng ĐÃ HỢP NHẤT, không phải trên x thô: nếu không, một lượt mà
+  // trang chi tiết hỏng sẽ hạ điểm tin xuống (mất ảnh/mô tả) dù DB vẫn còn đủ dữ liệu đó.
+  const r = rows[rows.length - 1];
+  r.trust_score = trustScore({ ...x, images: r.images, description: r.description, phone_hash: r.poster_key, price_warning: r.price_flag });
 }
 const updates = rows.filter((r) => r.id), inserts = rows.filter((r) => !r.id);
 const CHUNK = 200;
@@ -185,14 +213,38 @@ const HOME_ONLY = ["facebook.com", "facebook", "batdongsan.com.vn"];
     await Promise.all(nulls.slice(i, i + 20).map((r) => sb.from("listings").update({ last_seen_at: r.crawled_at || r.first_seen_at || r.created_at }).eq("id", r.id)));
   if (nulls.length) console.log(`(backfill last_seen_at cho ${nulls.length} tin cũ thiếu mốc)`);
 }
+// ---- CHỐT CHẶN NGUỒN SỤT SẢN LƯỢNG (review /ultrareview) ----
+// Mỗi crawler đã có chốt "0 tin thì giữ file cũ", nhưng chốt đó CHỈ bắt đúng mốc 0 — mà bị chặn
+// MỘT PHẦN mới là chuyện hay xảy ra: mogi.mjs log lỗi HTTP rồi đi tiếp, batdongsan fetchSRP trả ""
+// nên trang đó lặng lẽ ra 0 tin. File vẫn được ghi với crawled_at mới tinh nhưng thiếu 80% tin;
+// merge.load() chỉ kiểm TUỔI file chứ không kiểm SỐ LƯỢNG nên nhận -> phần thiếu tụt khỏi
+// combined.json -> last_seen_at đứng yên -> 36h sau thành 'gone', 30 ngày sau bị XOÁ HẲN.
+// Không thể so với lượt trước bằng file trạng thái (mọi file .json đều .gitignore nên CI luôn
+// trắng). So với chính DB thì bền và dùng được ở cả CI lẫn máy nhà.
+const NGUONG_SUT = Number(process.env.SOURCE_DROP_FLOOR || 0.6);   // còn < 60% so với DB = nghi bị chặn
+const demLuot = {}, demDB = {};
+for (const r of rows) demLuot[r.source_site] = (demLuot[r.source_site] || 0) + 1;
+for (const r of oldRows) if (r.status === "published") demDB[r.source_site] = (demDB[r.source_site] || 0) + 1;
+const nguonSut = Object.keys(demDB).filter((s) => demDB[s] >= 20 && (demLuot[s] || 0) < demDB[s] * NGUONG_SUT);
+for (const s of nguonSut) {
+  console.error(`⚠ NGUỒN SỤT: ${s} chỉ có ${demLuot[s] || 0} tin lượt này so với ${demDB[s]} trong DB `
+    + `(< ${Math.round(NGUONG_SUT * 100)}%) -> NGHI BỊ CHẶN, tạm không đánh dấu 'gone' cho nguồn này.`);
+}
+
 const goneCutoff = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
 const goneCutoffHome = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+// Nguồn đang nghi bị chặn thì HOÃN hạ 'gone': thà giữ vài tin đã gỡ thêm một lượt còn hơn chôn
+// hàng loạt tin còn sống chỉ vì crawler bị 403 nửa chừng.
+const boQuaGone = [...new Set([...HOME_ONLY, ...nguonSut])];
 // NOT IN bỏ sót source_site NULL (NULL NOT IN … = NULL) -> thêm nhánh is.null (audit 16/8)
 const { count: goneN1 } = await sb.from("listings").update({ status: "gone" }, { count: "exact" })
   .eq("source", "crawl").eq("status", "published")
-  .or(`source_site.is.null,source_site.not.in.(${HOME_ONLY.map((s) => `"${s}"`).join(",")})`).lt("last_seen_at", goneCutoff);
-const { count: goneN2 } = await sb.from("listings").update({ status: "gone" }, { count: "exact" })
-  .eq("source", "crawl").eq("status", "published").in("source_site", HOME_ONLY).lt("last_seen_at", goneCutoffHome);
+  .or(`source_site.is.null,source_site.not.in.(${boQuaGone.map((s) => `"${s}"`).join(",")})`).lt("last_seen_at", goneCutoff);
+const homeConLai = HOME_ONLY.filter((s) => !nguonSut.includes(s));
+const { count: goneN2 } = homeConLai.length
+  ? await sb.from("listings").update({ status: "gone" }, { count: "exact" })
+      .eq("source", "crawl").eq("status", "published").in("source_site", homeConLai).lt("last_seen_at", goneCutoffHome)
+  : { count: 0 };
 const goneN = (goneN1 || 0) + (goneN2 || 0);
 const purgeCutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
 const { count: purgedN } = await sb.from("listings").delete({ count: "exact" })

@@ -9,6 +9,7 @@
 // trong block + fallback từ slug. Trang đổi markup -> parser trả 0 tin, không vỡ pipeline.
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
+import { soVN } from "./so-vn.mjs";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -25,14 +26,13 @@ function priceFromText(t) {
   const m = t.match(/([\d.,]+)\s*(tỷ|ty\b|triệu|trieu)/i);
   if (!m) return null;
   // "4.2 tỷ" = thập phân, "8.500.000.000" = ngăn nghìn — audit 16/8: xoá mọi dấu chấm từng biến 4.2 tỷ thành 42 tỷ
-  const raw = m[1];
-  const n = parseFloat(/^\d{1,3}(\.\d{3})+$/.test(raw) ? raw.replace(/\./g, "") : raw.replace(",", "."));
+  const n = soVN(m[1]);
   if (!n || n > 100000) return null;
   return Math.round(n * (/tỷ|ty/i.test(m[2]) ? 1e9 : 1e6));
 }
 function areaFromText(t) {
   const m = t.match(/([\d.,]+)\s*m²|([\d.,]+)\s*m2\b|dien-tich-([\d]+)-?m/i);
-  const v = parseFloat(((m && (m[1] || m[2] || m[3])) || "").replace(",", "."));
+  const v = soVN((m && (m[1] || m[2] || m[3])) || "");
   return v > 0 && v < 100000 ? v : null;
 }
 function dealOf(s) { return /cho-thue|cho thuê/i.test(s) ? "cho_thue" : "ban"; }
@@ -41,8 +41,11 @@ function kindOf(s) {
   if (/can-ho|căn hộ|chung-cu|chung cư/.test(t)) return "can_ho";
   if (/mat-bang|mặt bằng|kiot|ki-ot|shophouse|van-phong|văn phòng|toa-nha|tòa nhà/.test(t)) return "mat_bang";
   if (/phong-tro|phòng trọ/.test(t)) return "phong_tro";
-  if (/dat|đất/.test(t) && !/nha|nhà/.test(t)) return "dat";
-  if (/nha|nhà|biet-thu|biệt thự|lien-ke|liền kề/.test(t)) return "nha";
+  // review /ultrareview: guard `&& !/nha|nhà/` tu no ban nham vi "nha" khop ben trong TEN DIA DANH
+  // trong slug — kindOf("ban-dat-nen-nha-trang-khanh-hoa") tra "nha" (Nha Trang!) thay vi "dat".
+  // Slug ngan cach bang gach ngang -> doi bien theo GACH NGANG/dau chuoi, va bo guard bat nham.
+  if (/(?:^|[-\s])(?:dat|đất)(?:[-\s]|$)|dat-nen|đất nền/u.test(t)) return "dat";
+  if (/(?:^|[-\s])(?:nha|nhà)(?:[-\s]|$)|biet-thu|biệt thự|lien-ke|liền kề/u.test(t)) return "nha";
   return "khac";
 }
 const PROVINCES = [

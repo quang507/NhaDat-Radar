@@ -1,5 +1,5 @@
 // Lớp AI dùng chung (Gemini) cho webhook Zalo: phân loại ý định + trích field / phân tích câu hỏi.
-const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
+import { gemini } from "@/lib/gemini";
 
 export type ZaloIntent = {
   intent: "dang_tin" | "hoi_tin" | "khac";
@@ -36,19 +36,20 @@ const PROMPT = `Bạn là trợ lý Zalo OA của một sàn nhà đất. Đọc
 Giá quy về VND (3tr5 -> 3500000, 6 tỷ -> 6000000000). Chỉ suy từ nội dung, không bịa.`;
 
 export async function classifyAndExtract(text: string): Promise<ZaloIntent> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return { intent: "khac", reply_hint: "Xin chào! Anh/chị cần đăng tin hay tìm nhà đất ạ?" };
-  const body = {
-    contents: [{ parts: [{ text: PROMPT + "\n\n--- TIN NHẮN ---\n" + text }] }],
-    generationConfig: { responseMimeType: "application/json", temperature: 0 },
-  };
+  // review /ultrareview: bản cũ tự gọi fetch với DUY NHẤT process.env.GEMINI_API_KEY — không xoay
+  // khoá, không kiểm res.ok, không có nhánh 429. Khi bị chặn tần suất, phản hồi lỗi không có
+  // `candidates` nên rơi vào `|| "{}"` và hàm trả về object rỗng -> bot đáp "em chưa rõ", tức là
+  // HIỂU NHẦM bị-chặn-tần-suất THÀNH tin-nhắn-không-rõ-nghĩa. Người dùng bị đổ lỗi cho sự cố hạ tầng.
+  //
+  // Cách làm đúng đã có sẵn ngay trong repo: lib/gemini.ts xoay tối đa 5 khoá và `continue` khi gặp
+  // 429. Dùng lại nó thay vì giữ bản sao thứ hai đã trôi khỏi bản gốc.
+  const txt = await gemini(PROMPT + "\n\n--- TIN NHẮN ---\n" + text, { json: true, temperature: 0 });
+  // Phân biệt "gọi được model nhưng không ra intent" với "KHÔNG gọi được model": gemini() trả null
+  // khi đã thử hết mọi khoá mà vẫn hỏng -> nói đúng chuyện đang xảy ra, đừng đổ cho người nhắn.
+  if (txt == null) {
+    return { intent: "khac", reply_hint: "Dạ hệ thống đang quá tải, anh/chị nhắn lại giúp em sau ít phút ạ 🙏" };
+  }
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
-    );
-    const j = await res.json();
-    const txt = j?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     return JSON.parse(txt) as ZaloIntent;
   } catch {
     return { intent: "khac", reply_hint: "Dạ em chưa rõ, anh/chị muốn đăng tin hay tìm nhà đất ạ?" };

@@ -23,6 +23,11 @@ const load = (f) => {
     const j = JSON.parse(fs.readFileSync(new URL("./" + f, import.meta.url)));
     const at = j.summary && j.summary.crawled_at;
     if (at && (Date.now() - new Date(at).getTime()) / 864e5 > STALE_DAYS) { console.error(f, "-> BỎ QUA (cào lần cuối", at, "- quá", STALE_DAYS, "ngày)"); return []; }
+    // File THIẾU crawled_at thì cổng chống-file-cũ ở trên không có gì để so -> mọi tin trong đó
+    // được nhận vô thời hạn, last_seen_at luôn tươi, và tin đã chết KHÔNG BAO GIỜ chuyển 'gone'.
+    // Đã xảy ra thật: nhánh `--test` của batdongsan.mjs ghi summary không kèm crawled_at
+    // (review /ultrareview — nay đã sửa). Kêu to để lần sau còn biết đường lần.
+    if (!at) console.error(f, "-> ⚠ THIẾU crawled_at: không kiểm được tuổi file, tin cũ có thể sống mãi.");
     return j.listings || [];
   } catch { return []; }
 };

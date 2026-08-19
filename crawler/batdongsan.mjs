@@ -2,6 +2,7 @@
 // Parser tách từ HTML trang kết quả (SRP). Test parser: node batdongsan.mjs --test bds.html
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
+import { soVN } from "./so-vn.mjs";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -32,7 +33,11 @@ function pickLoc(block) {
   const spans = [...seg.matchAll(/<span[^>]*>([\s\S]*?)<\/span>/g)].map((m) => clean(m[1])).filter((t) => /[a-zà-ỹ]/i.test(t));
   return spans[spans.length - 1] || null;
 }
-function num(s) { if (!s) return null; const m = s.replace(/\./g, "").match(/[\d,]+/); return m ? parseFloat(m[0].replace(",", ".")) : null; }
+// review /ultrareview: ban cu xoa MOI dau cham truoc khi parse -> "4.2 ty" ra 42 ty (lech 10 lan),
+// "3.05 ty" ra 305 ty (lech 100 lan). Day la ban sao CUOI CUNG chua va cua loi da sua o
+// extra-sites (16/8), mogi (16/8), guland (19/8). Nay dung chung so-vn.mjs de khoi sot lan nua.
+// Hien chua co hang nao dinh (0/221 tin) vi trang render dau phay thap phan - loi nam cho.
+function num(s) { if (!s) return null; const m = String(s).match(/[\d.,]+/); return m ? soVN(m[0]) : null; }
 function parsePrice(s) {
   if (!s) return null; const t = s.toLowerCase();
   if (/thỏa thuận|liên hệ/.test(t)) return null;
@@ -228,7 +233,10 @@ async function main() {
     const rows = parseBatdongsan(html, "Hồ Chí Minh");
     console.error("Parsed", rows.length, "tin từ HTML lưu sẵn");
     rows.slice(0, 4).forEach((x) => console.error(JSON.stringify({ title: (x.title || "").slice(0, 50), deal: x.listing_type, type: x.property_type, price: x.price_vnd, area: x.area_m2, bed: x.bedrooms, loc: x.district, url: x.source_url.slice(0, 60) })));
-    fs.writeFileSync(new URL("./batdongsan.json", import.meta.url), JSON.stringify({ summary: { source: "batdongsan.com.vn", total: rows.length }, listings: rows }, null, 0));
+    // PHAI co crawled_at: merge.mjs load() coi file THIEU crawled_at la "van nhan" bat ke tuoi,
+    // nen mot lan chay --test se vo hieu hoa cong chong-file-cu VINH VIEN -> tin chet duoc hoi
+    // sinh moi luot va last_seen_at luon tuoi, khong bao gio chuyen sang "gone" (review /ultrareview).
+    fs.writeFileSync(new URL("./batdongsan.json", import.meta.url), JSON.stringify({ summary: { source: "batdongsan.com.vn", crawled_at: new Date().toISOString().slice(0, 10), total: rows.length }, listings: rows }, null, 0));
     return;
   }
   // id của lượt trước -> biết tin nào MỚI để chỉ lấy chi tiết cho chúng

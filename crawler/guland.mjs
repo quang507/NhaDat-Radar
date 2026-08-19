@@ -7,6 +7,7 @@
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { soVN } from "./so-vn.mjs";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -31,14 +32,10 @@ const SEEDS = [
 function parseGia(s) {
   const t = (s || "").toLowerCase();
   if (!t || /thỏa thuận|thoả thuận|liên hệ/.test(t)) return null;
-  // review 19/8: bản cũ bỏ MỌI dấu chấm nên "4.2 tỷ" (chấm thập phân) thành 42 tỷ — đúng
-  // lỗi mà priceFromText (extra-sites) và parsePrice (mogi) đã vá hôm 16/8 nhưng bản copy
-  // này không mang theo. Chấm chỉ là ngăn-cách-nghìn khi đứng trước ĐÚNG 3 chữ số.
-  const num = (v) => parseFloat(v.replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", "."));
   const ty = t.match(/([\d.,]+)\s*tỷ/);
-  if (ty) return Math.round(num(ty[1]) * 1e9);
+  if (ty) return Math.round(soVN(ty[1]) * 1e9);
   const tr = t.match(/([\d.,]+)\s*(?:triệu|tr)\b/);
-  if (tr) return Math.round(num(tr[1]) * 1e6);
+  if (tr) return Math.round(soVN(tr[1]) * 1e6);
   return null;
 }
 
@@ -54,10 +51,22 @@ const sachTinh = (s) => {
   return t;
 };
 
-function loaiBds(s) {
+// "đất" cần NHIỀU HƠN là biên chữ. Tiếng Việt tách âm tiết bằng khoảng trắng, nên trong
+// "Xã Đất Cuốc" chữ "đất" VẪN là một token độc lập — biên (?<!\p{L})/(?!\p{L}) không cứu được.
+// Đo thật trên 175 tiêu đề guland: thêm biên cho kết quả Y HỆT bản không biên (106 dat cả hai).
+// Phải chặn theo NGỮ CẢNH:
+//   1. sau đơn vị hành chính -> là ĐỊA DANH: Xã Đất Cuốc, Huyện Đất Đỏ (BRVT), Xã Đất Mũi (Cà Mau)
+//   2. sau "nhà và/&/+"       -> là NHÀ kèm đất, không phải bán đất: "BÁN NHÀ VÀ ĐẤT 220M2"
+//   3. "nền tảng"            -> không phải bất động sản (chú thích cũ nói đã chặn, thực ra chưa)
+// odt|ont phải có biên: không thì khớp vào waterfront/belmont/piedmont/fontana -> shophouse thành "dat".
+const DON_VI_HC = "(?:xã|huyện|phường|quận|thị\\s+trấn|thị\\s+xã|tp\\.?|thành\\s+phố|tỉnh)\\s+";
+const RE_DAT = new RegExp(
+  `(?<!${DON_VI_HC})(?<!nhà\\s(?:và|&|\\+)\\s)(?<!\\p{L})(?:đất|thổ\\s*cư|nền(?!\\s*tảng)|odt|ont)(?!\\p{L})`, "u");
+
+export function loaiBds(s) {
   const t = (s || "").toLowerCase();
   if (/căn hộ|chung cư|c\.hộ/.test(t)) return "can_ho";
-  if (/đất|thổ cư|(?<!\p{L})nền(?!\p{L})|odt|ont/u.test(t)) return "dat";   // "nền" cần biên: không thì khớp "nền tảng"
+  if (RE_DAT.test(t)) return "dat";
   // "kho" cần biên chữ hai đầu: "kho" trần khớp cả "khoảng", "khu" -> 44 tin bị xếp nhầm (18/8)
   if (/mặt bằng|(?<!\p{L})kho(?!\p{L})|xưởng|văn phòng|shophouse|mặt tiền kinh doanh/u.test(t)) return "mat_bang";
   if (/phòng trọ|nhà trọ/.test(t)) return "phong_tro";
@@ -75,7 +84,11 @@ export function parseGuland(html, tinhMacDinh, deal) {
     const k = k0.slice(0, 4000);
     const m = k.match(/<a href="(https:\/\/guland\.vn\/post\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/);
     if (!m) continue;
-    const url = m[1], title = dec(m[2]);
+    const url = m[1];
+    // NFC — review /ultrareview: (?!\p{L}) coi dấu tổ hợp NFD (VD ký tự "ô" tách thành "o"+dấu) là
+    // biên chữ, nên regex có biên tự thêm hôm nay có thể bị vô hiệu trên text NFD. Dữ liệu guland
+    // đo thật đang là NFC (178/179), giữ vậy để không phụ thuộc vào nguồn không đổi định dạng.
+    const title = dec(m[2]).normalize("NFC");
     if (!title || title.length < 10) continue;
     const id = (url.match(/-(\d+)$/) || [])[1];
 
@@ -83,7 +96,10 @@ export function parseGuland(html, tinhMacDinh, deal) {
     const o = [...k.matchAll(/sdb-inf-data[^"]*"><b>([\s\S]*?)<\/b>/g)].map((x) => dec(x[1]));
     const giaTxt = o.find((v) => /tỷ|triệu|thỏa thuận/i.test(v) && !/\/m/.test(v));
     const dtTxt = o.find((v) => /m²|m2/i.test(v) && !/\//.test(v));
-    const dt = dtTxt ? parseFloat(dtTxt.replace(/[^\d.,]/g, "").replace(",", ".")) : null;
+    // Diện tích dùng CHUNG quy tắc chấm với parseGia (review /ultrareview: bản cũ để nguyên dấu
+    // chấm nên parseFloat("1.200m²") = 1.2 — mảnh 1.200m² thành 1,2m². Vì price_per_m2 = giá/DT,
+    // sai 1000 lần ở đây đẩy đơn giá lệch 1000 lần và làm hỏng cả trung vị của cụm so giá.)
+    const dt = dtTxt ? soVN(dtTxt.replace(/[^\d.,]/g, "")) : null;
 
     const diaChi = dec((k.match(/data-type-adr"[^>]*>([\s\S]*?)<\/div>/) || [])[1] || "");
     const phan = diaChi.split(",").map((s) => s.trim()).filter(Boolean);
@@ -200,7 +216,10 @@ async function boSungChiTiet(all, idCu) {
       const p = html.match(/class="[^"]*call-post[^"]*"[\s\S]{0,300}?((?:0|\+84)\d{8,10})/);
       if (p) { x.contact_phone = p[1].replace(/^\+84/, "0"); sdt++; }
     }
-    x.chi_tiet_luc = new Date().toISOString();   // đã tải chi tiết — dù trang có gì hay không
+    // review /ultrareview: trước đây đóng dấu NGOÀI khối if(html) -> một lần curl hỏng thoáng qua
+    // (403/timeout — đúng chế độ dòng 125-128 mô tả) bị coi là "đã lấy chi tiết", loại tin đó khỏi
+    // mọi lần thử lại VĨNH VIỄN dù chưa từng lấy được gì. Chỉ đóng dấu khi html tải thành công.
+    if (html) x.chi_tiet_luc = new Date().toISOString();
     if ((i + 1) % 20 === 0) console.error(`  ...${i + 1}/${can.length} | ảnh ${anh} · mô tả ${mota} · SĐT ${sdt} · thông số ${spec}`);
     await sleep(CT_GAP_MS);
   }
@@ -226,7 +245,11 @@ async function run() {
     console.error(`  ${tinh}/${deal} trang gốc: +${rows.length}`);
 
     // gom link khu vực trên chính trang đó rồi cào thêm (mỗi khu ~45 tin)
-    const khu = [...new Set([...html.matchAll(/href="(\/mua-ban-bat-dong-san-[a-z0-9-]{10,})"/g)].map((m) => m[1]))]
+    // review /ultrareview: seed "cho_thue" từng lọc theo tiền tố "mua-ban-..." nên 0 link khu vực
+    // khớp -> chỉ lấy được ~45 tin từ trang gốc, bỏ sót phần mở rộng. Đo thật trên trang cho thuê
+    // TP.HCM: 120 href dạng "cho-thue-bat-dong-san-*", 0 dạng "mua-ban-...". Đổi tiền tố theo deal.
+    const tienToKhu = deal === "cho_thue" ? "cho-thue" : "mua-ban";
+    const khu = [...new Set([...html.matchAll(new RegExp(`href="(/${tienToKhu}-bat-dong-san-[a-z0-9-]{10,})"`, "g"))].map((m) => m[1]))]
       .slice(0, Number(process.env.GULAND_AREAS || 12));
     for (const k of khu) {
       const url = "https://guland.vn" + k;

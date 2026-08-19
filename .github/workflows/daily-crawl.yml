@@ -22,6 +22,26 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
+
+      # ---- CACHE TOẠ ĐỘ (review /ultrareview) ----
+      # crawler/geo-cache.json nằm trong .gitignore và ở đây TRƯỚC ĐÂY KHÔNG có bước cache nào,
+      # nên mỗi lượt CI geocode lại từ con số 0 — 6 lượt/ngày, không lượt nào tích luỹ cho lượt sau.
+      # Hai hậu quả đã đo được:
+      #   1. MẤT DỮ LIỆU: cần tra 179 khoá quận + 182 khoá phường (chưa kể khoá đường) trong ngân
+      #      sách 8 phút; khoá chưa kịp tra -> tin giữ lat=null -> seed ghi null ĐÈ lên toạ độ đang
+      #      đúng trong DB. 61% tin (742/1218) phụ thuộc hoàn toàn vào geocode-all.
+      #   2. ĐỐT HẠN MỨC: Vietmap Trial có trần 1.500 lượt/ngày, mỗi khoá tốn tối thiểu 2 request
+      #      (search -> place) chưa kể fallback Nominatim và lượt thử lại bằng tên tỉnh cũ.
+      # Toạ độ một phường/quận không bao giờ đổi -> cache dùng lại được vô thời hạn.
+      # restore-keys cho phép nhận cache của lượt trước rồi ghi đè bản mới (cache GH bất biến theo key).
+      - name: Khôi phục cache geocode
+        uses: actions/cache/restore@v4
+        with:
+          path: crawler/geo-cache.json
+          key: geo-cache-${{ github.run_id }}
+          restore-keys: |
+            geo-cache-
+
       # Chromium cho batdongsan.mjs (Cloudflare chặn fetch thẳng). Nếu CI vẫn bị chặn thì
       # batdongsan.mjs giữ file cũ và merge tự bỏ qua file quá 2 ngày — máy nhà cào bù.
       - run: npx playwright install --with-deps chromium
@@ -56,6 +76,14 @@ jobs:
           # Dự án mogi.vn/du-an: số trang list (10 dự án/trang) và tuổi tối đa của projects.json trước khi cào lại
           MOGI_PROJECT_PAGES: ${{ vars.MOGI_PROJECT_PAGES || 8 }}
           PROJECT_MAX_AGE_H: ${{ vars.PROJECT_MAX_AGE_H || 72 }}
+
+      # Lưu cache geocode kể cả khi bước cào hỏng giữa chừng — phần khoá đã tra được vẫn quý.
+      - name: Lưu cache geocode
+        if: always() && github.run_attempt == 1
+        uses: actions/cache/save@v4
+        with:
+          path: crawler/geo-cache.json
+          key: geo-cache-${{ github.run_id }}
 
       # Step cảnh báo phải nằm CUỐI (nó không có env:) — xem chú thích ở trên.
       - name: Bỏ qua vì là Re-run

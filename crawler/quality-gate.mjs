@@ -3,7 +3,12 @@
 // Bản TS song song cho webhook Zalo OA ở src/lib/quality-gate.ts — sửa 1 nơi thì sửa nơi kia.
 
 // LƯU Ý: \b của JS chỉ hiểu ASCII -> "nhà", "giá" (có dấu) không khớp \b. Dùng (?<!\p{L}) / (?!\p{L}) + cờ u.
-const B = "(?<!\\p{L})", E = "(?!\\p{L})"; // đầu/cuối từ, hiểu Unicode
+// EXPORT: review /ultrareview - hai hang nay da ton tai va duoc doc-dia-chi.mjs goi ten trong
+// chu thich, nhung KHONG export, nen moi noi can bien lai chep tay literal. Chinh viec chep tay
+// do la cach 5 byte BACKSPACE (0x08) lot vao regex va song sot tron mot commit (4dade2d).
+export const B = "(?<!\\p{L})", E = "(?!\\p{L})"; // đầu/cuối từ, hiểu Unicode
+/** Boc cac tu khoa bang bien Unicode - dung thay cho viec tu noi chuoi o tung file. */
+export const tuKhoa = (...tu) => new RegExp(`${B}(?:${tu.join("|")})${E}`, "iu");
 
 // (1) Từ khoá BĐS: giá / nhà / đất (nền) / dự án / bất động sản / căn hộ / mặt bằng + vài từ hay gặp
 export const BDS_KEYWORD = new RegExp([
@@ -13,7 +18,12 @@ export const BDS_KEYWORD = new RegExp([
 ].join("|"), "iu");
 
 // (2) SĐT Việt Nam: 0xxxxxxxxx / +84 / 84, cho phép cách bằng . - khoảng trắng
-export const PHONE_RE = /(?:\+?84|0)(?:[\s.\-]?\d){9,10}(?!\d)/;
+// (?<!\d) BAT BUOC: review /ultrareview - khong co no, regex khop tu GIUA mot day so dai.
+//   "So tai khoan 19001234567890" -> khop "01234567890" (bat dau tu giua day)
+// So sai chay tiep vao phone_hash, ma hash do la khoa dedupe lien nguon (merge.mjs), la
+// poster_key gom "N tin khac cua nguoi dang", va la don vi dem "nguoi dang rieng biet" cua
+// cum so gia -> mot so tai khoan ngan hang dung chung se gop nhieu tin thanh cung mot nguoi.
+export const PHONE_RE = /(?<!\d)(?:\+?84|0)(?:[\s.\-]?\d){9,10}(?!\d)/;
 
 // (3) Khu vực: quận/huyện/phường/xã/TP/tỉnh, "Q7" "P5", hoặc tên tỉnh-thành / quận lớn
 export const AREA_HINT = new RegExp([

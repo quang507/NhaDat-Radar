@@ -16,6 +16,26 @@ import PriceTrend from "@/components/PriceTrend";
 type Deal = "ban" | "cho_thue";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nha-dat-radar-rkyn.vercel.app";
 
+/**
+ * Tuần tự hoá JSON-LD an toàn để nhúng vào <script>.
+ *
+ * XSS LƯU TRỮ (review /ultrareview): JSON.stringify KHÔNG escape "<" hay "/", nên một tiêu đề tin
+ * CÀO chứa "</script>" thoát ra khỏi thẻ script và chạy mã trên chính origin của site. Kiểm chứng:
+ *   title = 'Bán nhà Q7 </script><img src=x onerror=alert(document.domain)>'
+ *   JSON.stringify(o).includes("</script>") === true
+ * Đường tấn công không cần tài khoản: đăng tin lên bất kỳ nguồn nào Radar cào (chotot/mogi/guland/
+ * group Facebook) -> crawler nhận -> seed ghi vào DB -> MỌI trang khu vực render cho mọi khách.
+ * Đây lại đúng là nhóm trang được index SEO nên có lưu lượng cao nhất, và script chạy cùng origin
+ * nên đọc được phiên Supabase trong localStorage.
+ * Escape sang \\u00XX: vẫn là JSON hợp lệ, trình duyệt vẫn parse đúng, mà không thoát được thẻ.
+ */
+function ldJson(o: unknown): string {
+  return JSON.stringify(o)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
 /** slug -> tên thật, dựa trên cây khu vực CACHE (lib/geo) — audit 16/8: bản cũ select 5.000 dòng x2 mỗi request (metadata + page) */
 export type AreaInfo = { province: string; ban: number; cho_thue: number; districts: Record<string, { ban: number; cho_thue: number }> };
 export async function resolveArea(provinceSlug: string, districtSlug?: string): Promise<{ province: string; district: string | null; area: AreaInfo } | null> {
@@ -115,7 +135,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
 
   return (
     <div>
-      {ld.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(o) }} />)}
+      {ld.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(o) }} />)}
 
       <nav className="text-xs text-[var(--ink-soft)] mb-3 flex flex-wrap gap-1">
         <Link href="/" className="hover:text-brand">Trang chủ</Link><span>/</span>

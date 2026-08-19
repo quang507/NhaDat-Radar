@@ -20,6 +20,22 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
+
+      # Chặn BYTE ĐIỀU KHIỂN lọt vào mã nguồn (review /ultrareview).
+      # Commit 4dade2d từng nhét 5 byte BACKSPACE (0x08) vào GIỮA các regex — "m\x08", "\x08đất\x08",
+      # "\x08kho\x08"… — khiến những nhánh đó KHÔNG BAO GIỜ khớp được. Mắt thường không thấy, diff
+      # không hiện, review không bắt, và lỗi sống trọn một commit. Chốt chặn này rẻ và không bao giờ
+      # phải bảo trì. (Cho phép TAB 0x09, LF 0x0A, CR 0x0D.)
+      - name: Không cho byte điều khiển lọt vào mã nguồn
+        run: |
+          if grep -rlP '[\x00-\x08\x0B\x0C\x0E-\x1F]' \
+               --include='*.mjs' --include='*.ts' --include='*.tsx' --include='*.js' \
+               --exclude-dir=node_modules --exclude-dir=.next . ; then
+            echo "::error::Có byte điều khiển trong các file trên — gần như chắc chắn là lỗi dán nhầm, hãy gỡ trước khi merge."
+            exit 1
+          fi
+          echo "Sạch: không có byte điều khiển."
+
       # chromium cho desktop + webkit cho project iPhone 14 (thiếu webkit = 19 ca mobile fail, 17/8)
       - run: npx playwright install --with-deps chromium webkit
       - name: Run tests
