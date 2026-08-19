@@ -13,6 +13,7 @@ import ContactForm from "./ContactForm";
 import ReportButton from "./ReportButton";
 import PriceTrend from "@/components/PriceTrend";
 import { areaPath } from "@/lib/slug";
+import { nhanTinh } from "@/lib/sap-nhap";
 import ScoreInfo from "@/components/ScoreInfo";
 import LegalHint from "@/components/LegalHint";
 import MortgageMini from "@/components/MortgageMini";
@@ -123,6 +124,13 @@ export default async function ListingDetail({
   // các nhãn đã có ô riêng ở trên -> không lặp lại ở phần thông số nguồn
   const daCo = /^(hướng (nhà|đất)|pháp lý|giấy tờ pháp lý|loại sổ|tình trạng sổ|số tầng|nội thất|tổng diện tích đất|diện tích)/i;
 
+  // Sáp nhập 1/7/2025: người đăng lúc ghi tên CŨ (quen miệng), lúc ghi tên MỚI. Các sàn lớn
+  // đều hiện CẢ HAI để ai đọc cũng nhận ra chỗ đó — chotot: "Quận 11, TP.HCM (Phường Phú Thọ,
+  // TP.HCM mới)", guland: "Tây Ninh (Mới) · Long An". Ta làm tương tự ở mức TỈNH (mức phường
+  // cần bộ dữ liệu vài nghìn dòng, chưa có).
+  const diaChiDayDu = (addr: string | null, quan: string | null, tinh: string | null) =>
+    [addr, quan, nhanTinh(tinh)].filter(Boolean).join(", ") || "-";
+
   const details: [string, ReactNode][] = [
     ...(x.direction ? [["Hướng", x.direction] as [string, ReactNode]] : []),
     ...(x.legal_status ? [["Pháp lý", <LegalHint key="legal" value={x.legal_status} />] as [string, ReactNode]] : []),
@@ -181,7 +189,7 @@ export default async function ListingDetail({
         <div className="min-w-0">
           <h1 className="prata text-xl md:text-3xl leading-tight">{x.title}</h1>
           <div className="text-[var(--ink-soft)] text-sm mt-1">
-            📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
+            📍 {diaChiDayDu(x.address, x.district, x.province)}
           </div>
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
           <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
@@ -318,7 +326,7 @@ export default async function ListingDetail({
           <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-2">Vị trí</h3>
             <div className="text-sm text-[var(--ink-soft)] mb-3">
-              📍 {[x.address, x.district, x.province].filter(Boolean).join(", ") || "-"}
+              📍 {diaChiDayDu(x.address, x.district, x.province)}
             </div>
             {x.lat != null && x.lng != null ? (
               <>

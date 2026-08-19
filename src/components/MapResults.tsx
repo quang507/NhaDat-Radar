@@ -28,8 +28,11 @@ export default function MapResults({ items }: { items: MapItem[] }) {
       const veTinh = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         { attribution: "© Esri", maxZoom: 19 });
-      nen.addTo(map);
-      L.control.layers({ "Bản đồ": nen, "Vệ tinh": veTinh }, {}, { position: "topright" }).addTo(map);
+      // MẶC ĐỊNH là VỆ TINH: với nhà đất, thứ người mua cần thấy đầu tiên là hiện trạng thật
+      // quanh miếng đất (hẻm rộng hẹp, nhà san sát hay còn ruộng, có sông/kênh gần không).
+      // Bản đồ đường nét vẫn đổi lại được ở nút góc trên bên phải.
+      veTinh.addTo(map);
+      L.control.layers({ "Vệ tinh": veTinh, "Bản đồ": nen }, {}, { position: "topright" }).addTo(map);
       const bounds: [number, number][] = [];
       for (const it of items) {
         const icon = L.divIcon({ className: "price-pin", html: `<div class="pp">${it.label}</div>`, iconSize: [1, 1] });
