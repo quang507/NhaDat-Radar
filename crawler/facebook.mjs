@@ -7,14 +7,16 @@
 // máy nhà cho kết quả tốt hơn hẳn mà miễn phí (376 bài thô/lượt, có ảnh) — Apify chỉ còn là chi phí thừa.
 import fs from "node:fs";
 import { cleanFbText } from "./fb-clean.mjs";
-import { qualityGate } from "./quality-gate.mjs";
+import { qualityGate, PHONE_RE } from "./quality-gate.mjs";
 
 // Xoay nhiều key Gemini (từ nhiều PROJECT/acc) để né 429. Cũng nhận GEMINI_API_KEYS="k1,k2,k3".
 const KEYS = [
   ...(process.env.GEMINI_API_KEYS || "").split(",").map((s) => s.trim()),
   process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
   process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5,
-].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+  // Trừ key dành riêng cho bot Zalo: quota free là 500 request/NGÀY/key, một lượt cào FB
+  // đốt gần hết một key -> nếu dùng chung thì bot phục vụ khách thật bị đói. 19/8.
+].filter((k) => k && k !== process.env.ZALO_GEMINI_KEY).filter((v, i, a) => a.indexOf(v) === i);
 const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 let _ki = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -61,6 +63,12 @@ async function gemini(text) {
 
 // post thô {text, author, url, time} -> listing chuẩn (bỏ nếu không phải BĐS / không qua cổng chất lượng)
 async function toListing(post) {
+  // Loc RE truoc khi goi AI: khong co SDT trong text thi AI cung khong bia ra duoc, ma van
+  // ton 1 lenh trong han muc 500/ngay. Do luot 19/8: 153/515 bai bi loai, da so vi thieu SDT.
+  if (!PHONE_RE.test(post.text || "")) {
+    console.error(`  ↷ loại (không có SĐT, bỏ qua AI): ${(post.text || "").slice(0, 55)}`);
+    return null;
+  }
   const ai = await gemini(post.text);
   if (!ai.is_property) return null;
   // Cổng chất lượng 17/8: bỏ duyệt tay -> máy chặn tin thiếu từ khoá BĐS / SĐT / khu vực
@@ -84,6 +92,10 @@ async function toListing(post) {
     amenities: ai.amenities || [],
     poster_role: ai.poster_type === "ca_nhan" ? "chu_nha" : ai.poster_type === "moi_gioi" ? "moi_gioi" : "khong_ro",
     poster_name: post.author || null, poster_reason: ai.poster_reason,
+    // SĐT: trước đây KHÔNG hề gán -> 799/799 tin FB trong DB có contact_phone = null, khách
+    // phải tự dò số trong mô tả, mà mô tả lại bị cắt ở 1100 ký tự nên có tin số bị cắt mất luôn.
+    // Lấy từ TOÀN VĂN post.text (không phải bản đã cắt) rồi bỏ dấu cách/chấm cho dễ bấm gọi. 19/8.
+    contact_phone: ((post.text || "").match(PHONE_RE)?.[0] || "").replace(/[\s.\-]/g, "") || null,
     scam_suspect: !!ai.scam_suspect, ai_score: ai.scam_suspect ? 45 : 80,
     freshness_min: 30, images: post.images || [],
   };

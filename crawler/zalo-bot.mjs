@@ -38,8 +38,14 @@ function resolveZalo() {
 const ZALO = resolveZalo();
 const CLI = ZALO.exe; // + ZALO.pre trước args
 const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
-const KEYS = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
+// Quota Gemini free = 500 request/NGAY/key. Crawler FB dot 1 luot ~500 lenh nen no an
+// het key1 -> bot phuc vu khach that bi doi. Nguyen tac: viec nen KHONG duoc doi viec truoc mat.
+//  - Co ZALO_GEMINI_KEY  -> bot dung rieng key do truoc, crawler khong bao gio dung (xem facebook.mjs)
+//  - Khong co            -> bot duyet danh sach NGUOC (key cuoi truoc), crawler duyet xuoi
+//    -> voi 2 key: crawler dot key1, bot xai key2, chi dung do khi ca hai da can.
+const _KEYS_CHUNG = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
   process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5].filter(Boolean);
+const KEYS = [process.env.ZALO_GEMINI_KEY, ..._KEYS_CHUNG.reverse()].filter(Boolean);
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) { console.error("Thiếu SUPABASE env (.env.local)"); process.exit(1); }
