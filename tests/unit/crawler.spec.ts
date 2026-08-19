@@ -102,6 +102,21 @@ test("biên Unicode B/E phải được export và hoạt động với chữ c�
   expect(tuKhoa("nhà").test("bán nhà quận 7")).toBe(true);
 });
 
+test("hai bản quality-gate (.mjs cho crawler / .ts cho webhook Zalo) không được lệch nhau", async () => {
+  // Header của CẢ HAI file đều ghi "sửa 1 nơi thì sửa nơi kia" — nhưng lời nhắc bằng chú thích
+  // không chặn được gì. Đợt vá PHONE_RE đầu tiên sửa .mjs mà bỏ quên .ts, để nguyên lỗi cắt-SĐT-
+  // từ-giữa-dãy-số trên đường USER-FACING (mọi tin nhắn vào Zalo OA đi qua qualityGate).
+  // Ca này biến "contract" đó thành thứ CI kiểm được.
+  const mjs = await import(CRAWLER + "quality-gate.mjs");
+  const ts = await import("../../src/lib/quality-gate");
+  for (const ten of ["PHONE_RE", "BDS_KEYWORD", "AREA_HINT"] as const) {
+    expect(String(ts[ten]), `${ten} lệch giữa bản .ts và .mjs`).toBe(String(mjs[ten]));
+  }
+  // và bản .ts phải thật sự chặn được dãy số không phải SĐT
+  expect(ts.qualityGate("Bán nhà quận 7, số tài khoản 19001234567890")).toBe("không có SĐT");
+  expect(ts.qualityGate("Bán nhà quận 7, LH 0908123456")).toBeNull();
+});
+
 test("soVN: dấu chấm là ngăn nghìn hay thập phân tuỳ vị trí", async () => {
   const { soVN } = await import(CRAWLER + "so-vn.mjs");
   // ngăn nghìn: đứng trước ĐÚNG 3 chữ số

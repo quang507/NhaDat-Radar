@@ -186,8 +186,15 @@ for (const x of comb.listings) {
   });
   // trust_score phải chấm trên hàng ĐÃ HỢP NHẤT, không phải trên x thô: nếu không, một lượt mà
   // trang chi tiết hỏng sẽ hạ điểm tin xuống (mất ảnh/mô tả) dù DB vẫn còn đủ dữ liệu đó.
+  // `legal` PHẢI có trong danh sách override: trustScore đọc x.legal (+8 điểm) còn cột đã hợp nhất
+  // tên là legal_status. Thiếu nó thì DB giữ đúng pháp lý nhưng điểm vẫn tụt 8 — đúng lớp hồi quy
+  // mà mấy dòng này sinh ra để chặn (review /ultrareview vòng 2).
   const r = rows[rows.length - 1];
-  r.trust_score = trustScore({ ...x, images: r.images, description: r.description, phone_hash: r.poster_key, price_warning: r.price_flag });
+  r.trust_score = trustScore({
+    ...x,
+    images: r.images, description: r.description, legal: r.legal_status,
+    phone_hash: r.poster_key, price_warning: r.price_flag,
+  });
 }
 const updates = rows.filter((r) => r.id), inserts = rows.filter((r) => !r.id);
 const CHUNK = 200;

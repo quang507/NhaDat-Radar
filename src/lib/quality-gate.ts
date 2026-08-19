@@ -11,7 +11,12 @@ export const BDS_KEYWORD = new RegExp([
   "nh[àa]\\s*ph[ốo]", "m[ặa]t\\s*ti[ềe]n", "s[ổo]\\s*(?:h[ồo]ng|đ[ỏo])",
 ].join("|"), "iu");
 
-export const PHONE_RE = /(?:\+?84|0)(?:[\s.\-]?\d){9,10}(?!\d)/;
+// (?<!\d) BẮT BUỘC — phải khớp y hệt crawler/quality-gate.mjs. Không có nó, regex khớp từ GIỮA
+// một dãy số dài: "Số tài khoản 19001234567890" -> "01234567890". Ở đây hậu quả nặng hơn bên
+// crawler vì hàm này chạy trên MỌI tin nhắn người dùng gửi vào Zalo OA (api/zalo/webhook/route.ts:47),
+// tức cổng chất lượng cho tin do người thật đăng, không phải tin cào.
+// tests/unit/crawler.spec.ts có ca so khớp hai bản — sửa lệch là test đỏ ngay.
+export const PHONE_RE = /(?<!\d)(?:\+?84|0)(?:[\s.\-]?\d){9,10}(?!\d)/;
 
 export const AREA_HINT = new RegExp([
   "qu[ậa]n", "huy[ệe]n", "ph[ưu][ờo]ng", `${B}x[ãa]${E}`, "th[àa]nh\\s*ph[ốo]", `${B}tp\\.?\\s*\\p{L}`, `t[ỉi]nh${E}`,
