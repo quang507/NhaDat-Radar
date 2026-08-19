@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
+import { ganLopNen } from "@/lib/map-layers";
 
 // Bản đồ 1 tin (Leaflet + OSM miễn phí, hoặc Mapbox nếu có token)
 export default function ListingMap({ lat, lng, title }: { lat: number; lng: number; title: string }) {
@@ -17,29 +18,14 @@ export default function ListingMap({ lat, lng, title }: { lat: number; lng: numb
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
       const map = L.map(ref.current, { scrollWheelZoom: false }).setView([lat, lng], 15);
       mapRef.current = map;
-      // Lớp nền: BẢN ĐỒ và VỆ TINH, người xem tự chọn ở góc trên bên phải.
-      // Ảnh vệ tinh dùng Esri World Imagery — MIỄN PHÍ, không cần token, độ phân giải tốt ở
-      // đô thị VN. (Mapbox đẹp hơn nhưng phải có NEXT_PUBLIC_MAPBOX_TOKEN, hiện chưa đặt.)
-      // Với nhà đất thì ảnh vệ tinh quan trọng: nhìn ra được hẻm rộng hay hẹp, nhà quay hướng
-      // nào, quanh đó là khu dân cư hay ruộng — thứ mà bản đồ đường nét không cho thấy.
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      const nen = token
-        ? L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${token}`,
-          { tileSize: 512, zoomOffset: -1, attribution: "© Mapbox © OpenStreetMap" })
-        : L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 });
-      const veTinh = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { attribution: "© Esri", maxZoom: 19 });
-      // MẶC ĐỊNH là VỆ TINH: với nhà đất, thứ người mua cần thấy đầu tiên là hiện trạng thật
-      // quanh miếng đất (hẻm rộng hẹp, nhà san sát hay còn ruộng, có sông/kênh gần không).
-      // Bản đồ đường nét vẫn đổi lại được ở nút góc trên bên phải.
-      veTinh.addTo(map);
-      L.control.layers({ "Vệ tinh": veTinh, "Bản đồ": nen }, {}, { position: "topright" }).addTo(map);
+      ganLopNen(L, map);
       const icon = L.divIcon({ className: "price-pin", html: `<div class="pp">📍</div>`, iconSize: [1, 1] });
       L.marker([lat, lng], { icon }).addTo(map).bindPopup(title).openPopup();
     })();
     return () => { cancelled = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, [lat, lng, title]);
 
-  return <div ref={ref} style={{ height: 300 }} className="w-full rounded-xl border border-[var(--line)] z-0" />;
+  // 300px là quá bé để nhìn khu đất (người dùng 19/8 so với batdongsan - bản đồ của họ chiếm nửa
+  // màn hình). 460px + nút ⛶ toàn màn hình: đủ nhìn mà không phải cuộn trang quá dài.
+  return <div ref={ref} className="w-full h-[460px] rounded-xl border border-[var(--line)] z-0 bg-[var(--bg)]" />;
 }

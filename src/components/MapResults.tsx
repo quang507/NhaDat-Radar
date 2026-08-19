@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
+import { ganLopNen } from "@/lib/map-layers";
 
 export type MapItem = { id: string; lat: number; lng: number; label: string; title: string };
 
@@ -19,20 +20,7 @@ export default function MapResults({ items }: { items: MapItem[] }) {
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
       const map = L.map(ref.current, { scrollWheelZoom: false }).setView([16.05, 108.2], 5);
       mapRef.current = map;
-      // Lớp nền bản đồ / vệ tinh — xem ListingMap.tsx để biết vì sao dùng Esri (miễn phí, không token)
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      const nen = token
-        ? L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${token}`,
-          { tileSize: 512, zoomOffset: -1, attribution: "© Mapbox © OpenStreetMap" })
-        : L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 });
-      const veTinh = L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        { attribution: "© Esri", maxZoom: 19 });
-      // MẶC ĐỊNH là VỆ TINH: với nhà đất, thứ người mua cần thấy đầu tiên là hiện trạng thật
-      // quanh miếng đất (hẻm rộng hẹp, nhà san sát hay còn ruộng, có sông/kênh gần không).
-      // Bản đồ đường nét vẫn đổi lại được ở nút góc trên bên phải.
-      veTinh.addTo(map);
-      L.control.layers({ "Vệ tinh": veTinh, "Bản đồ": nen }, {}, { position: "topright" }).addTo(map);
+      ganLopNen(L, map);
       const bounds: [number, number][] = [];
       for (const it of items) {
         const icon = L.divIcon({ className: "price-pin", html: `<div class="pp">${it.label}</div>`, iconSize: [1, 1] });
