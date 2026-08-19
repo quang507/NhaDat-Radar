@@ -151,3 +151,10 @@ export async function smartGeocode(query) {
 }
 
 export const usingVietmap = !!VIETMAP_KEY;
+
+/** Vietmap có đang dùng được không? (hết hạn mức ngày -> 429). Dò 1 lượt để chọn nhịp chạy. */
+export async function vietmapConSong() {
+  if (!VIETMAP_KEY) return false;
+  const r = await fetchJSON(`https://maps.vietmap.vn/api/search/v3?apikey=${VIETMAP_KEY}&text=${encodeURIComponent("Quận 1, Hồ Chí Minh")}`);
+  return r !== LOI;
+}

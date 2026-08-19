@@ -2,7 +2,7 @@
 // Ưu tiên Vietmap (VIETMAP_API_KEY), fallback Nominatim.
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
-import { smartGeocode, usingVietmap, LOI } from "./geo.mjs";
+import { smartGeocode, usingVietmap, vietmapConSong, LOI } from "./geo.mjs";
 import { docDuong } from "./doc-dia-chi.mjs";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -67,6 +67,12 @@ async function run() {
 // và CI đã nới timeout lên 60 phút. Cache bền nên lượt sau gần như không tốn gì.
 const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
   let hong = 0;
+  // Vietmap Trial có TRẦN NGÀY (1.500 lượt geocode) — hết thì trả 429 và mọi truy vấn rơi
+  // xuống Nominatim, mà Nominatim bắt chờ 1 giây/lượt. Chạy 220ms trong lúc đó là tự đâm
+  // vào tường thứ hai. Dò 1 lượt ở đầu run để chọn nhịp cho đúng.
+  const vmSong = usingVietmap ? await vietmapConSong() : false;
+  const NHIP = vmSong ? 220 : 1100;
+  if (usingVietmap && !vmSong) console.error("  ⚠ Vietmap đang 429 (hết hạn mức ngày) -> chạy bằng Nominatim, nhịp 1.1s/lượt");
   const canTra = keys.filter((k) => !(k in cache));
   console.error(`  cache đã có ${daBiet} khu vực -> chỉ tra thêm ${canTra.length}`);
   for (const k of canTra) {
@@ -82,7 +88,7 @@ const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
     cache[k] = g;
     // 1100ms là để tôn trọng giới hạn 1 request/giây của Nominatim. Vietmap không có
     // ràng buộc đó -> nhanh hơn 5 lần, nên trong cùng 5 phút bù được nhiều khu vực hơn hẳn.
-    await sleep(usingVietmap ? 220 : 1100);
+    await sleep(NHIP);
   }
   try { fs.writeFileSync(FILE_CACHE, JSON.stringify(cache, null, 0)); } catch { /* không quan trọng */ }
 
