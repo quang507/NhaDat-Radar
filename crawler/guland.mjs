@@ -57,9 +57,9 @@ const sachTinh = (s) => {
 function loaiBds(s) {
   const t = (s || "").toLowerCase();
   if (/căn hộ|chung cư|c\.hộ/.test(t)) return "can_ho";
-  if (/đất|đất nền|đất thổ|thổ cư|lô đất|nền|odt|ont/.test(t)) return "dat";
-  // kho chứ không phải /kho/: "kho" trần khớp cả "khoảng", "khu" -> 44 tin bị xếp nhầm (18/8)
-  if (/mặt bằng|kho|nhà xưởng|xưởng|văn phòng|shophouse|mặt tiền kinh doanh/.test(t)) return "mat_bang";
+  if (/đất|thổ cư|(?<!\p{L})nền(?!\p{L})|odt|ont/u.test(t)) return "dat";   // "nền" cần biên: không thì khớp "nền tảng"
+  // "kho" cần biên chữ hai đầu: "kho" trần khớp cả "khoảng", "khu" -> 44 tin bị xếp nhầm (18/8)
+  if (/mặt bằng|(?<!\p{L})kho(?!\p{L})|xưởng|văn phòng|shophouse|mặt tiền kinh doanh/u.test(t)) return "mat_bang";
   if (/phòng trọ|nhà trọ/.test(t)) return "phong_tro";
   if (/nhà|biệt thự|villa|nhà phố/.test(t)) return "nha";
   return "khac";

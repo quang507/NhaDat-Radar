@@ -50,12 +50,11 @@ export function docDuong(text) {
     if (/^\d+$/.test(ten)) continue;              // toàn số -> không phải tên đường
     // có đơn vị đo lẫn vào -> là mô tả kích thước, không phải tên đường
     // ("4 TẦNG", "trước Nhà 3m thông", "lộ nhựa 220m MĐS")
-    if (/\d\s*(?:m2|m²|m|tầng|lầu|tỷ|ty|triệu|tr|pn|wc|x\d)/iu.test(ten)) continue;
+    if (/\d\s*(?:m2|m²|m(?!\p{L})|tầng|lầu|tỷ|ty(?!\p{L})|triệu|tr(?!\p{L})|pn|wc|x\d)/iu.test(ten)) continue;
     // bien chu hai dau - khong thi "la" khop giua "Lang", "va" giua "Vanh" (review 19/8)
-    if (/(?:tầng|lầu|phòng|wc|sổ|giá|hướng|ngang|dài|rộng|thông|thoáng|để|được|có|là|và)/iu.test(ten)) continue;
+    if (/(?<!\p{L})(?:tầng|lầu|phòng|wc|sổ|giá|hướng|ngang|dài|rộng|thông|thoáng|để|được|có|là|và)(?!\p{L})/iu.test(ten)) continue;
     // MỌI từ phải bắt đầu bằng chữ HOA (hoặc là số) — tên riêng viết hoa, còn chữ thường
     // lọt vào là câu văn chứ không phải tên đường ("hông tứ hướng th", "623 để được")
-    if (!tu.slice(0, viTriThuong > 0 ? viTriThuong : tu.length).length) continue;
     if (!/[A-ZĐÀ-Ỹ]/u.test(ten)) continue;
     return ten;
   }
