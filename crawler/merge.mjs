@@ -94,6 +94,7 @@ function norm(x) {
     direction: x.direction ?? null, legal: x.legal ?? x.legal_status ?? null, furnishing: x.furnishing ?? null,
     listing_type: x.listing_type, property_type: x.property_type,
     province: canonProvince(x.province), district: dc.district, ward: x.ward ?? dc.wardHint ?? null,
+    address: x.address ?? null,                      // chuỗi địa chỉ nguyên văn của nguồn (có tên đường)
     lat: x.lat ?? null, lng: x.lng ?? null,
     amenities: x.amenities || [],
     specs: x.specs && Object.keys(x.specs).length ? x.specs : null,   // bảng thông số riêng của nguồn

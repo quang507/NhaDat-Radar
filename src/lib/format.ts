@@ -59,3 +59,12 @@ export function thumb(kind: string): { bg: string; icon: string } {
   const c = map[kind] || map.khac;
   return { bg: `linear-gradient(135deg, ${c[0]}, ${c[1]})`, icon: c[2] };
 }
+
+/**
+ * Có phải link thật dẫn ra ngoài không?
+ * Crawler ghi "#" khi không lấy được link gốc (Facebook giấu permalink ở nhiều bài).
+ * "#" là chuỗi khác rỗng nên mọi kiểm tra `url && ...` đều lọt -> nút hiện ra mà bấm
+ * vào đứng yên tại chỗ. Dùng hàm này thay cho việc tự nhớ so sánh `!== "#"` ở từng chỗ.
+ */
+export const coLinkThat = (u: string | null | undefined): boolean =>
+  !!u && u !== "#" && /^https?:\/\//i.test(u);

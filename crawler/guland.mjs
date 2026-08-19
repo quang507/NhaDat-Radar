@@ -102,6 +102,10 @@ export function parseGuland(html, tinhMacDinh, deal) {
       id: "gl-" + (id || Math.abs(hash(url)).toString(36)),
       source: "crawl", source_site: "guland.vn", source_url: url, source_post_id: id || null,
       title, description: null,
+      // chuỗi địa chỉ nguyên văn của nguồn ("Đường TC5, Xã Đức Lập, Tây Ninh") — trước đây
+      // tách xong lấy 3 mảnh cuối rồi VỨT, mất luôn tên đường. Giữ lại: vừa hiện cho khách
+      // đọc, vừa dùng geocode chính xác hơn tâm quận.
+      address: diaChi || null,
       price_vnd: gia, area_m2: dt && dt > 0 ? dt : null,
       bedrooms: null, bathrooms: null, floors: null,
       listing_type: deal, property_type: loaiBds(title),

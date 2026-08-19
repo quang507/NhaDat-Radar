@@ -134,7 +134,8 @@ for (const x of comb.listings) {
     deal: x.listing_type, kind: x.property_type, title: x.title, description: x.description,
     price_vnd: x.price_vnd, area_m2: x.area_m2, bedrooms: x.bedrooms, bathrooms: x.bathrooms, floors: x.floors,
     direction: x.direction, legal_status: x.legal, furnishing: x.furnishing,
-    province: x.province, district: x.district, ward: x.ward, lat: x.lat ?? null, lng: x.lng ?? null,
+    province: x.province, district: x.district, ward: x.ward, address: x.address ?? null,
+    lat: x.lat ?? null, lng: x.lng ?? null,
     amenities: x.amenities || [], images: x.images || [],
     specs: x.specs ?? null,                                // bảng thông số nguồn (guland/batdongsan) — web ẩn ô trống
     contact_phone: null,                                   // NĐ13: không lưu SĐT thô của tin cào
