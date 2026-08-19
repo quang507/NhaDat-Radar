@@ -1,6 +1,20 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
+import { PHONE_RE } from "./quality-gate.mjs";
+import { createHash } from "node:crypto";
+
+// SĐT tin cào: NĐ13 -> KHÔNG lưu số thô vào DB (daily.mjs vẫn ép contact_phone = null).
+// Nhưng thiết kế cũ có sẵn phone_masked để hiển thị, mà chưa nguồn nào tạo ra -> 0/4255 tin,
+// khách chỉ thấy "SĐT ẩn". Chuyển ở ĐÂY, một chỗ duy nhất cho mọi nguồn, nên số thô không
+// bao giờ chảy tiếp xuống seed.
+//   che: 0903994567 -> 090399***   (giống cách chotot hiện công khai: "Hiện số 090399 ***")
+//   hash: để gộp "N tin khác của cùng người đăng" mà không cần giữ số
+function cheSdt(raw) {
+  const d = String(raw || "").replace(/\D/g, "").replace(/^84/, "0");
+  if (d.length < 9 || d.length > 11) return { masked: null, hash: null };
+  return { masked: d.slice(0, 6) + "***", hash: createHash("sha256").update(d).digest("hex").slice(0, 16) };
+}
 // File nguồn quá cũ (crawler bị chặn/không chạy nên không ghi đè) -> BỎ QUA, không "thấy lại" tin cũ
 // (last_seen_at phải trung thực: chỉ tin cào được hôm nay mới tính là còn sống). File không có crawled_at -> vẫn nhận.
 const STALE_DAYS = Number(process.env.SOURCE_STALE_DAYS || 2);
@@ -63,6 +77,9 @@ function canonDistrict(raw) {
 function norm(x) {
   const price = x.price_vnd ?? null, area = x.area_m2 ?? null;
   const dc = canonDistrict(x.district);
+  // nguồn nào không có sẵn trường SĐT thì dò trong mô tả — chotot/mogi người đăng hay tự
+  // viết số vào bài (đo: 98% tin facebook dò ra được số ngay trong mô tả).
+  const sdt = cheSdt(x.contact_phone || (x.description || "").match(PHONE_RE)?.[0]);
   return {
     id: x.id,
     source: x.source || "crawl",
@@ -82,7 +99,7 @@ function norm(x) {
     poster_role: x.poster_role || "khong_ro", poster_listing_count: x.poster_listing_count || 1,
     poster_id: x.poster_id ?? null,
     poster_reasons: Array.isArray(x.poster_reasons) ? x.poster_reasons : [],
-    phone_masked: x.phone_masked ?? null, phone_hash: x.phone_hash ?? null,
+    phone_masked: x.phone_masked ?? sdt.masked, phone_hash: x.phone_hash ?? sdt.hash,
     posted_at: x.posted_at ?? null,          // thời điểm đăng trên nguồn (nếu nguồn có)
     ai_score: x.ai_score ?? heuristicScore(x),
     price_warning: x.price_warning ?? null,  // tính lại bên dưới trên toàn bộ dữ liệu (không còn phụ thuộc 1 nguồn)
