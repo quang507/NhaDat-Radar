@@ -132,23 +132,40 @@ function tai(url) {
 // lượt trước — nên mỗi lượt chỉ vài chục lượt tải thay vì toàn bộ.
 const ANH_GAP_MS = Number(process.env.GULAND_IMG_GAP_MS || 1200);
 const ANH_MAX = Number(process.env.GULAND_IMG_MAX || 120);
-async function boSungAnh(all, idCu) {
-  const moi = all.filter((x) => !idCu.has(x.id) && x.source_url).slice(0, ANH_MAX);
-  if (!moi.length) { console.error("Không có tin mới -> bỏ qua bước lấy ảnh."); return; }
-  console.error(`
-Lấy ảnh cho ${moi.length} tin MỚI (${ANH_GAP_MS}ms/tin)...`);
-  let co = 0;
-  for (const [i, x] of moi.entries()) {
+// Cùng 1 lượt tải trang chi tiết lấy được CẢ BA: ảnh, mô tả, SĐT. Trang danh sách không
+// có thứ nào trong ba (đo 19/8: 99/99 tin guland trong DB mô tả rỗng, 0% có SĐT).
+// Lấy cho tin MỚI, và cho cả tin cũ còn THIẾU mô tả — để 99 tin đã nằm trong DB được bù.
+async function boSungChiTiet(all, idCu) {
+  const can = all.filter((x) => x.source_url && (!idCu.has(x.id) || !x.description)).slice(0, ANH_MAX);
+  if (!can.length) { console.error("Không tin nào cần lấy chi tiết."); return; }
+  console.error(`\nLấy chi tiết (ảnh + mô tả + SĐT) cho ${can.length} tin (${ANH_GAP_MS}ms/tin)...`);
+  let anh = 0, mota = 0, sdt = 0;
+  for (const [i, x] of can.entries()) {
     const html = tai(x.source_url);
     if (html) {
       // /files/... = ảnh BĐS thật; /users/image/... = avatar -> loại
       const u = [...new Set([...html.matchAll(/https:\/\/bizcdn\.guland\.vn\/files\/[^"'\s)]+?\.(?:jpg|jpeg|png|webp)/g)].map((m) => m[0]))];
-      if (u.length) { x.images = u.slice(0, 8); co++; }
+      if (u.length) { x.images = u.slice(0, 8); anh++; }
+
+      // mô tả nằm trong div.dtl-inf__dsr (đo trên trang thật 19/8: ~1100 ký tự)
+      const d = html.match(/class="[^"]*dtl-inf__dsr[^"]*"[^>]*>([\s\S]*?)<\/div>/);
+      if (d) {
+        const t = d[1].replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+          .replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+        if (t.length > 60) { x.description = t.slice(0, 4000); mota++; }
+      }
+
+      // SĐT: nút "gọi" của người đăng — class call-post. KHÔNG quét cả trang vì trang còn
+      // chứa số của các tin gợi ý bên cạnh (đo: 5 số khác nhau trong 1 trang).
+      const p = html.match(/class="[^"]*call-post[^"]*"[\s\S]{0,300}?((?:0|\+84)\d{8,10})/)
+        || html.match(/tel:((?:0|\+84)\d{8,10})/);
+      if (p) { x.contact_phone = p[1].replace(/^\+84/, "0"); sdt++; }
     }
-    if ((i + 1) % 20 === 0) console.error(`  ...${i + 1}/${moi.length} | có ảnh ${co}`);
+    if ((i + 1) % 20 === 0) console.error(`  ...${i + 1}/${can.length} | ảnh ${anh} · mô tả ${mota} · SĐT ${sdt}`);
     await sleep(ANH_GAP_MS);
   }
-  console.error(`Ảnh xong: ${co}/${moi.length} tin lấy được ảnh thật.`);
+  console.error(`Chi tiết xong: ảnh ${anh}/${can.length} · mô tả ${mota}/${can.length} · SĐT ${sdt}/${can.length}`);
 }
 
 async function run() {
@@ -156,7 +173,7 @@ async function run() {
   const idCu = new Set();
   try {
     const cu = JSON.parse(fs.readFileSync(new URL("./guland.json", import.meta.url), "utf8"));
-    for (const x of cu.listings || []) if (x.images?.length) idCu.add(x.id);
+    for (const x of cu.listings || []) if (x.images?.length && x.description) idCu.add(x.id);
   } catch { /* lần đầu */ }
 
   let all = [];
@@ -191,9 +208,15 @@ async function run() {
     const cu = JSON.parse(fs.readFileSync(new URL("./guland.json", import.meta.url), "utf8"));
     const anhCu = new Map((cu.listings || []).filter((x) => x.images?.length).map((x) => [x.id, x.images]));
     for (const x of all) if (!x.images.length && anhCu.has(x.id)) x.images = anhCu.get(x.id);
+    const ctCu = new Map((cu.listings || []).map((x) => [x.id, x]));
+    for (const x of all) {
+      const c = ctCu.get(x.id);
+      if (c?.description && !x.description) x.description = c.description;
+      if (c?.contact_phone && !x.contact_phone) x.contact_phone = c.contact_phone;
+    }
   } catch { /* lần đầu */ }
 
-  if (!process.argv.includes("--no-img")) await boSungAnh(all, idCu);
+  if (!process.argv.includes("--no-img")) await boSungChiTiet(all, idCu);
   fs.writeFileSync(new URL("./guland.json", import.meta.url), JSON.stringify({
     summary: { source: "guland.vn", crawled_at: new Date().toISOString().slice(0, 10), total: all.length,
       with_price: all.filter((x) => x.price_vnd).length, with_img: all.filter((x) => x.images.length).length },
