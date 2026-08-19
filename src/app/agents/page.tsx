@@ -8,7 +8,7 @@ export const metadata = { title: "Người bán chuyên nghiệp - NhaDat Radar"
 type AgentRow = {
   id: string; full_name: string | null; avatar_url: string | null; bio: string | null;
   agency_name: string | null; specialties: string[] | null; languages: string[] | null;
-  years_experience: number | null; is_verified: boolean; license_no: string | null;
+  years_experience: number | null; is_verified: boolean; license_no?: string | null;   // chỉ có khi đã đăng nhập
 };
 
 const WHY = [
@@ -22,13 +22,26 @@ const WHY = [
 
 export default async function AgentsPage() {
   const supabase = await createClient();
+  // Số CCHN chỉ hiện cho người ĐÃ ĐĂNG NHẬP (quyết định 19/8). Cột license_no (và phone) đã bị
+  // thu quyền SELECT khỏi vai anon ở tầng DB (migration profiles_anon_column_grants — sửa lỗi
+  // gốc của 001: revoke theo cột không trừ được khỏi grant toàn bảng, nên revoke cũ chưa từng
+  // có hiệu lực). Khách vãng lai mà cứ select license_no là PostgREST trả 42501 cho CẢ truy vấn
+  // -> trang trắng với đúng nhóm khách đông nhất. Nên phải chọn cột theo trạng thái đăng nhập.
+  // Hai chuỗi literal tách rời (không ghép template) vì supabase-js chỉ suy kiểu từ literal.
+  const { data: { user } } = await supabase.auth.getUser();
   // Người bán = role agent/admin HOẶC đã điền hồ sơ người bán (tên công ty) ở /account
-  const { data } = await supabase
-    .from("profiles")
-    .select("id,full_name,avatar_url,bio,agency_name,specialties,languages,years_experience,is_verified,license_no")
-    .or("role.eq.agent,role.eq.admin,agency_name.not.is.null")
-    .order("years_experience", { ascending: false })
-    .limit(60);
+  const truyVan = supabase.from("profiles");
+  const { data } = user
+    ? await truyVan
+        .select("id,full_name,avatar_url,bio,agency_name,specialties,languages,years_experience,is_verified,license_no")
+        .or("role.eq.agent,role.eq.admin,agency_name.not.is.null")
+        .order("years_experience", { ascending: false })
+        .limit(60)
+    : await truyVan
+        .select("id,full_name,avatar_url,bio,agency_name,specialties,languages,years_experience,is_verified")
+        .or("role.eq.agent,role.eq.admin,agency_name.not.is.null")
+        .order("years_experience", { ascending: false })
+        .limit(60);
   const agents = (data ?? []) as AgentRow[];
 
   // Đếm số tin published của từng agent
