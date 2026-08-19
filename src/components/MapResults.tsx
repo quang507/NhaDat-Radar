@@ -19,13 +19,17 @@ export default function MapResults({ items }: { items: MapItem[] }) {
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
       const map = L.map(ref.current, { scrollWheelZoom: false }).setView([16.05, 108.2], 5);
       mapRef.current = map;
+      // Lớp nền bản đồ / vệ tinh — xem ListingMap.tsx để biết vì sao dùng Esri (miễn phí, không token)
       const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      if (token) {
-        L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${token}`,
-          { tileSize: 512, zoomOffset: -1, attribution: "© Mapbox © OpenStreetMap" }).addTo(map);
-      } else {
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 }).addTo(map);
-      }
+      const nen = token
+        ? L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${token}`,
+          { tileSize: 512, zoomOffset: -1, attribution: "© Mapbox © OpenStreetMap" })
+        : L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap", maxZoom: 19 });
+      const veTinh = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        { attribution: "© Esri", maxZoom: 19 });
+      nen.addTo(map);
+      L.control.layers({ "Bản đồ": nen, "Vệ tinh": veTinh }, {}, { position: "topright" }).addTo(map);
       const bounds: [number, number][] = [];
       for (const it of items) {
         const icon = L.divIcon({ className: "price-pin", html: `<div class="pp">${it.label}</div>`, iconSize: [1, 1] });
