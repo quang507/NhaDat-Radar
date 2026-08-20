@@ -1,4 +1,4 @@
-// "Điểm tin 82/100 ⓘ" — bấm mở giải thích (mobile không hover được tooltip; UX audit #13).
+// "Điểm tin 82/100 ⓘ" - bấm mở giải thích (mobile không hover được tooltip; UX audit #13).
 // Nói đúng bản chất: điểm ĐẦY ĐỦ THÔNG TIN theo heuristic, không phải xác minh/AI.
 export default function ScoreInfo({ score, trust }: { score: number | null; trust?: number | null }) {
   if (!score) return null;

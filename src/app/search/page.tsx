@@ -45,7 +45,7 @@ export default async function SearchPage({
     if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
     if (areaMin && !Number.isNaN(Number(areaMin))) query = query.gte("area_m2", Number(areaMin));
     if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
-    // bộ lọc nâng cao (NN/g #7): pháp lý & hướng — khớp chuỗi mềm vì nguồn ghi tự do ("Sổ hồng riêng", "Đông Nam")
+    // bộ lọc nâng cao (NN/g #7): pháp lý & hướng - khớp chuỗi mềm vì nguồn ghi tự do ("Sổ hồng riêng", "Đông Nam")
     if (legal) query = query.ilike("legal_status", `%${clean(legal)}%`);
     if (direction) query = query.ilike("direction", `%${clean(direction).split(" ")[0]}%`);
     if (q) {

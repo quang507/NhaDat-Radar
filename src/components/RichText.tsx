@@ -4,7 +4,7 @@
 //    "## Tiêu đề"  -> đầu mục
 //    "- nội dung"  -> gạch đầu dòng
 //    dòng trống    -> ngắt đoạn
-// Đây KHÔNG phải markdown đầy đủ (không cố ý hỗ trợ **đậm**, link…) — chỉ 3 quy ước trên,
+// Đây KHÔNG phải markdown đầy đủ (không cố ý hỗ trợ **đậm**, link…) - chỉ 3 quy ước trên,
 // đủ để dựng lại đúng bố cục bài gốc mà không cần thư viện.
 type Block =
   | { t: "h"; text: string }

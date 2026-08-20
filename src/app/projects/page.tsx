@@ -11,7 +11,7 @@ export const metadata = { title: "Dự án bất động sản - NhaDat Radar" }
 
 const PER_PAGE = 24;
 
-// Chỉ lấy cột cần cho THẺ dự án. Tuyệt đối không lấy `description` (~4.000 ký tự/dự án) —
+// Chỉ lấy cột cần cho THẺ dự án. Tuyệt đối không lấy `description` (~4.000 ký tự/dự án) -
 // sự cố 17/8: trang này select("*") KHÔNG limit, với 700+ dự án là ~3MB đổ vào một trang.
 const CARD_COLS = "id,name,investor,province,district,images,price_min,price_max,is_partner,priority,handover";
 
@@ -62,7 +62,7 @@ export default async function ProjectsPage({
         </p>
       </div>
 
-      {/* Lọc theo tỉnh — link thật để bot đọc được và bấm Back hoạt động đúng */}
+      {/* Lọc theo tỉnh - link thật để bot đọc được và bấm Back hoạt động đúng */}
       {tinhList.length > 1 && (
         <div className="flex flex-wrap gap-2 mb-5">
           <Link href="/projects" className={`text-xs px-3 py-1.5 rounded-lg border transition ${!tinh ? "border-brand text-brand font-semibold" : "border-[var(--line)] hover:border-brand"}`}>

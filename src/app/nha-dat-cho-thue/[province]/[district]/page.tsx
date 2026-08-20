@@ -1,4 +1,4 @@
-// /nha-dat-cho-thue/[tinh]/[quan] — trang SEO cấp quận/huyện (cho thuê)
+// /nha-dat-cho-thue/[tinh]/[quan] - trang SEO cấp quận/huyện (cho thuê)
 export const dynamic = "force-dynamic";
 import AreaLanding, { resolveArea, areaTitle } from "@/components/AreaLanding";
 

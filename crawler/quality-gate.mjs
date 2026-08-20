@@ -1,6 +1,6 @@
-// Cổng chất lượng trước khi ĐĂNG (17/8) — dùng chung cho tin Facebook (facebook.mjs) và Zalo (zalo-bot.mjs).
+// Cổng chất lượng trước khi ĐĂNG (17/8) - dùng chung cho tin Facebook (facebook.mjs) và Zalo (zalo-bot.mjs).
 // Bỏ duyệt tay nên phải chặn máy: tin phải có (1) từ khoá BĐS, (2) số điện thoại, (3) khu vực.
-// Bản TS song song cho webhook Zalo OA ở src/lib/quality-gate.ts — sửa 1 nơi thì sửa nơi kia.
+// Bản TS song song cho webhook Zalo OA ở src/lib/quality-gate.ts - sửa 1 nơi thì sửa nơi kia.
 
 // LƯU Ý: \b của JS chỉ hiểu ASCII -> "nhà", "giá" (có dấu) không khớp \b. Dùng (?<!\p{L}) / (?!\p{L}) + cờ u.
 // EXPORT: review /ultrareview - hai hang nay da ton tai va duoc doc-dia-chi.mjs goi ten trong

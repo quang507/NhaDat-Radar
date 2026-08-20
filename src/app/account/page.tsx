@@ -51,7 +51,7 @@ export default async function AccountPage({
         <div className="rounded-xl border border-brand/30 bg-brand/5 p-4">
           <h2 className="font-bold text-sm mb-1">🧑‍💼 Hồ sơ người bán</h2>
           <p className="text-xs text-[var(--ink-soft)] mb-3">
-            Điền phần này để xuất hiện trên trang <Link href="/agents" className="text-brand font-semibold">Người bán chuyên nghiệp</Link> — khách mua sẽ tìm thấy bạn.
+            Điền phần này để xuất hiện trên trang <Link href="/agents" className="text-brand font-semibold">Người bán chuyên nghiệp</Link> - khách mua sẽ tìm thấy bạn.
           </p>
           <div className="grid sm:grid-cols-2 gap-4">
             <label className="block">

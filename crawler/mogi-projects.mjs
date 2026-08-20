@@ -128,7 +128,7 @@ export function parseDetail(html, base) {
     if (!/GeoCoordinates/.test(m[1])) continue;
     try { cands.push(JSON.parse(m[1])); } catch { /* khối hỏng -> bỏ */ }
   }
-  // Loại khối của CHÍNH trang mogi (tên "Mogi", url về trang chủ) — sự cố 17/8: 17 dự án bị đặt tên
+  // Loại khối của CHÍNH trang mogi (tên "Mogi", url về trang chủ) - sự cố 17/8: 17 dự án bị đặt tên
   // "Mogi" vì không khối nào khớp url dự án nên rơi vào nhánh cuối và vớ đúng khối của website.
   const laMogi = (c) => /^mogi/i.test(String(c?.name || "").trim()) || /^https?:\/\/mogi\.vn\/?$/.test(String(c?.url || ""));
   const ld = cands.find((c) => typeof c?.url === "string" && c.url.includes(base))
@@ -140,7 +140,7 @@ export function parseDetail(html, base) {
   // Toạ độ phải nằm trong lãnh thổ VN, không thì là địa chỉ văn phòng mogi lọt vào
   const geoOk = lat != null && lng != null && lat > 8 && lat < 24 && lng > 102 && lng < 110;
 
-  // Mô tả dài nằm trong <div id="project-intro"> (KHÔNG phải class) — cắt tới khối kế tiếp.
+  // Mô tả dài nằm trong <div id="project-intro"> (KHÔNG phải class) - cắt tới khối kế tiếp.
   // ld.description chỉ là câu SEO ngắn nên chỉ dùng làm phương án dự phòng.
   const introHtml = (html.match(/id="project-intro">([\s\S]*?)(?:<div (?:id|class)="(?!.*project-intro)|<section|<\/section)/) || [])[1] || "";
   const intro = structText(introHtml).slice(0, 6000);
@@ -174,7 +174,7 @@ export function parseDetail(html, base) {
   };
 }
 
-// fetch KHÔNG có timeout mặc định — một kết nối treo là đứng cả lượt cào mà không có dấu hiệu gì.
+// fetch KHÔNG có timeout mặc định - một kết nối treo là đứng cả lượt cào mà không có dấu hiệu gì.
 // (17/8: script bổ sung tạm bị nghi treo vì thiếu đúng chỗ này.)
 const TIMEOUT_MS = Number(process.env.MOGI_TIMEOUT_MS || 30000);
 async function fetchTO(url, opt = {}) {
@@ -192,15 +192,15 @@ async function get(url) {
 
 // Lấy trang CHI TIẾT dự án.
 //
-// Sự cố 17/8 — CHẨN ĐOÁN SAI LẦN ĐẦU, ghi lại để không lặp: lượt cào đầu có 280/700 dự án trả
+// Sự cố 17/8 - CHẨN ĐOÁN SAI LẦN ĐẦU, ghi lại để không lặp: lượt cào đầu có 280/700 dự án trả
 // 302 về /du-an. Tôi kết luận "mogi đã gỡ dự án" sau khi thử ĐÚNG MỘT URL. Sai. Thử lại 12 URL
-// với nhịp 3 giây thì 11/12 trả 200 kèm JSON-LD đầy đủ — nghĩa là mogi CHẶN TỐC ĐỘ khi bị bắn
+// với nhịp 3 giây thì 11/12 trả 200 kèm JSON-LD đầy đủ - nghĩa là mogi CHẶN TỐC ĐỘ khi bị bắn
 // 700 request cách nhau 0.9s, và 302 là tín hiệu "chậm lại", không phải "trang không còn".
 // (fetch() mặc định đi theo redirect nên crawler âm thầm parse trang danh sách chung -> tên rơi
 //  về "Mogi", địa chỉ thành văn phòng mogi, toạ độ sai cho 288 dự án.)
 //
 // -> Gặp 3xx thì NGHỈ RỒI THỬ LẠI (5s, 15s, 30s). Chỉ khi hết lượt mới coi là không lấy được,
-//    và kể cả khi đó cũng KHÔNG kết luận là bị gỡ — chỉ ghi nhận "chưa lấy được lần này".
+//    và kể cả khi đó cũng KHÔNG kết luận là bị gỡ - chỉ ghi nhận "chưa lấy được lần này".
 const DETAIL_GAP_MS = Number(process.env.MOGI_DETAIL_GAP_MS || 2500);
 async function getDetail(url) {
   const cho = [5000, 15000, 30000];
@@ -239,7 +239,7 @@ async function crawl(daBiet = new Set()) {
         for (const c of list) if (!byHref.has(c.href)) byHref.set(c.href, c);
         const moi = byHref.size - truoc;
         if (p % 10 === 0 || moi === 0) console.error(`  ${seed.ten} trang ${p}: +${moi} mới (tổng ${byHref.size})`);
-        // Dừng sớm khi hết dự án mới — nhưng CHỈ sau trang 12 và cần 8 trang trống liên tiếp.
+        // Dừng sớm khi hết dự án mới - nhưng CHỈ sau trang 12 và cần 8 trang trống liên tiếp.
         // Sự cố 17/8: seed "toàn quốc" có ~8 trang đầu là dự án NỔI BẬT, trùng hết với phần
         // TP.HCM vừa cào -> ngưỡng 3 trang cắt ngay trang 3, không bao giờ tới dự án Hà Nội/Đà Nẵng.
         if (moi === 0 && p >= 12) { if (++rong >= 8) { console.error(`  ${seed.ten}: 8 trang liền không có dự án mới -> dừng`); break; } }
@@ -274,7 +274,7 @@ ${uniq.length} dự án duy nhất -> lấy chi tiết...`);
             province: null, district: null, ward: null, lat: null, lng: null, images: [], specs: [] }
         : parseDetail(html, c.href);
       if (chuaLay) chuaLayDem++;
-      // Khu vực từ trang danh sách ("Quận 10, TPHCM | Bàn giao: 2020") — dùng khi chi tiết không có
+      // Khu vực từ trang danh sách ("Quận 10, TPHCM | Bàn giao: 2020") - dùng khi chi tiết không có
       const kv = parseAddrLine(c.addrLine);
       const slug = c.href.replace(/^\//, "");
       const priceMin = parsePrice(c.priceText);
@@ -302,7 +302,7 @@ ${uniq.length} dự án duy nhất -> lấy chi tiết...`);
   }
   // ---- CỔNG CHẤT LƯỢNG (17/8) ----
   // Dự án thiếu cả bảng thông số lẫn mô tả thì trang chi tiết trống trơn, đưa lên chỉ tổ rác.
-  // Nhiều dự án cũ trên mogi có <ul class="info-general"> RỖNG và không có #project-intro —
+  // Nhiều dự án cũ trên mogi có <ul class="info-general"> RỖNG và không có #project-intro -
   // đã kiểm chứng tay (empire-city-thu-thiem, green-valley-thung-lung-xanh) chứ không phải bị chặn.
   // PHẢI lọc ở đây, không thì lượt cào sau lại nạp về đúng đám vừa xoá khỏi DB.
   const duTieuChuan = (p) => Object.keys(p.specs || {}).length > 0 && (p.description || "").trim().length > 200;

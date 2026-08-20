@@ -1,7 +1,7 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 // Client anon KHÔNG cookie cho route handler công khai (chat, định giá):
-// chỉ đọc được dữ liệu mà RLS cho phép (tin published) — dùng làm lưới an toàn
+// chỉ đọc được dữ liệu mà RLS cho phép (tin published) - dùng làm lưới an toàn
 // thay vì service-role vốn bỏ qua RLS (lỡ quên .eq("status","published") là lộ tin ẩn).
 export function createAnonClient() {
   return createSupabaseClient(
@@ -12,7 +12,7 @@ export function createAnonClient() {
 }
 
 // Rate-limit tối giản theo IP, trong RAM (best-effort trên serverless:
-// mỗi instance một bộ đếm — vẫn chặn được spam đơn giản từ một nguồn).
+// mỗi instance một bộ đếm - vẫn chặn được spam đơn giản từ một nguồn).
 const hits = new Map<string, { n: number; reset: number }>();
 export function rateLimit(key: string, max: number, windowMs: number): boolean {
   const now = Date.now();

@@ -35,7 +35,7 @@ function propType(url) {
 function parsePrice(s) {
   if (!s) return null; const t = s.toLowerCase();
   if (/thỏa thuận|liên hệ/.test(t)) return null;
-  // "4.2 tỷ" (thập phân) vs "8.500.000" (ngăn nghìn) — audit 16/8, cùng lỗi với extra-sites
+  // "4.2 tỷ" (thập phân) vs "8.500.000" (ngăn nghìn) - audit 16/8, cùng lỗi với extra-sites
   const toNum = (s) => parseFloat(/^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s.replace(",", "."));
   let vnd = 0;
   const ty = t.match(/([\d.,]+)\s*tỷ/); if (ty) vnd += toNum(ty[1]) * 1e9;

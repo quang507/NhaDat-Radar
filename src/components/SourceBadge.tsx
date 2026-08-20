@@ -1,4 +1,4 @@
-// ISO 9241-110 (self-descriptiveness): nguồn gốc tin nhìn thấy ngay dưới tiêu đề — favicon nguồn + tên + thời điểm đăng
+// ISO 9241-110 (self-descriptiveness): nguồn gốc tin nhìn thấy ngay dưới tiêu đề - favicon nguồn + tên + thời điểm đăng
 // trên nguồn (nếu có) / Radar thấy lần đầu + link bài gốc. Chỉ dùng dữ liệu thật của tin, không suy đoán.
 import { fresh, coLinkThat } from "@/lib/format";
 
@@ -44,9 +44,9 @@ export default function SourceBadge({ source, sourceSite, sourceUrl, postedAt, f
         </span>
       )}
       {/* Chỉ hiện nút khi thật sự có link. Facebook giấu permalink ở nhiều bài nên crawler
-          ghi source_url = "#" — mà "#" vẫn là chuỗi khác rỗng, nên trước đây nút vẫn hiện và
+          ghi source_url = "#" - mà "#" vẫn là chuỗi khác rỗng, nên trước đây nút vẫn hiện và
           bấm vào thì ĐỨNG YÊN TẠI CHỖ. Đo 19/8: 319/808 tin facebook (39%) rơi vào cảnh này.
-          Nút bấm không làm gì tệ hơn là không có nút — người dùng tưởng web hỏng. */}
+          Nút bấm không làm gì tệ hơn là không có nút - người dùng tưởng web hỏng. */}
       {!own && coLinkThat(sourceUrl) ? (
         <a href={sourceUrl!} target="_blank" rel="noopener nofollow" className="text-brand font-semibold hover:underline">Xem bài gốc ↗</a>
       ) : !own && sourceSite ? (

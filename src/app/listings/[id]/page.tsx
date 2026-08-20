@@ -67,7 +67,7 @@ export default async function ListingDetail({
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
-  // 17/8: bỏ duyệt trước — tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
+  // 17/8: bỏ duyệt trước - tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
   const { data: { user } } = await supabase.auth.getUser();
   let isAdmin = false;
   if (user) {
@@ -117,17 +117,17 @@ export default async function ListingDetail({
   const isCrawl = x.source === "crawl";
   const reasons = (x.poster_reasons || []).map(posterReasonText);
   const fmtDT = (iso: string | null | undefined) =>
-    iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "—";
+    iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "-";
 
   // Chỉ hiện ô CÓ dữ liệu. Trước đây danh sách cứng 6 ô nên tin đất nền hiện "Nội thất -",
-  // "Số tầng -", "Chỗ đậu xe -" — vừa vô nghĩa vừa làm tin trông thiếu thốn. Mỗi loại BĐS
+  // "Số tầng -", "Chỗ đậu xe -" - vừa vô nghĩa vừa làm tin trông thiếu thốn. Mỗi loại BĐS
   // có bộ thông số riêng (đất: mặt tiền/chiều dài/hình dáng; nhà: số tầng/nội thất/thang máy).
   const specs = (x.specs ?? null) as Record<string, string> | null;
   // các nhãn đã có ô riêng ở trên -> không lặp lại ở phần thông số nguồn
   const daCo = /^(hướng (nhà|đất)|pháp lý|giấy tờ pháp lý|loại sổ|tình trạng sổ|số tầng|nội thất|tổng diện tích đất|diện tích)/i;
 
   // Sáp nhập 1/7/2025: người đăng lúc ghi tên CŨ (quen miệng), lúc ghi tên MỚI. Các sàn lớn
-  // đều hiện CẢ HAI để ai đọc cũng nhận ra chỗ đó — chotot: "Quận 11, TP.HCM (Phường Phú Thọ,
+  // đều hiện CẢ HAI để ai đọc cũng nhận ra chỗ đó - chotot: "Quận 11, TP.HCM (Phường Phú Thọ,
   // TP.HCM mới)", guland: "Tây Ninh (Mới) · Long An". Ta làm tương tự ở mức TỈNH (mức phường
   // cần bộ dữ liệu vài nghìn dòng, chưa có).
   const diaChiDayDu = (addr: string | null, quan: string | null, tinh: string | null) =>
@@ -202,7 +202,7 @@ export default async function ListingDetail({
         </div>
       </div>
 
-      {/* Gallery + lightbox — cap chiều cao để không đẩy hết nội dung xuống dưới fold */}
+      {/* Gallery + lightbox - cap chiều cao để không đẩy hết nội dung xuống dưới fold */}
       <div className="my-4 [&_img]:max-h-[420px]">
         {images.length ? (
           <Gallery images={images} title={x.title} />
@@ -217,7 +217,7 @@ export default async function ListingDetail({
       </div>
 
       <div className="flex flex-wrap gap-x-6 gap-y-2 py-4 my-3 border-y border-[var(--line)] text-sm">
-        {/* chỉ hiện khi có số — "0 phòng ngủ" cho đất nền là vô nghĩa (UX audit) */}
+        {/* chỉ hiện khi có số - "0 phòng ngủ" cho đất nền là vô nghĩa (UX audit) */}
         {x.bedrooms ? <span><b>{x.bedrooms}</b> phòng ngủ</span> : null}
         {x.bathrooms ? <span><b>{x.bathrooms}</b> phòng tắm</span> : null}
         <span><b>{x.area_m2 ?? "-"}</b> m²</span>
@@ -251,21 +251,21 @@ export default async function ListingDetail({
                 </span>
               </div>
               <p className="text-[var(--ink-soft)]">
-                Giá/m² tin này: <b>{fmtPpm2(myPpm2!)}</b> — trung vị {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} tại {x.district}: <b>{fmtPpm2(med)}</b>
-                {p25 && p75 ? <> · khoảng phổ biến {fmtPpm2(p25)} – {fmtPpm2(p75)}/m²</> : null}.
+                Giá/m² tin này: <b>{fmtPpm2(myPpm2!)}</b> - trung vị {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} tại {x.district}: <b>{fmtPpm2(med)}</b>
+                {p25 && p75 ? <> · khoảng phổ biến {fmtPpm2(p25)} - {fmtPpm2(p75)}/m²</> : null}.
                 <span className="text-[var(--ink-faint)]"> Dựa trên {ppm2s.length} tin đang hiển thị cùng loại tại {x.district}. Chỉ mang tính tham khảo, không phải định giá.</span>
               </p>
             </div>
           )}
           {!enoughComps && myPpm2 && x.district ? (
             <div className="card rounded-lg p-4 text-sm text-[var(--ink-soft)]">
-              <b className="text-[var(--ink)]">So sánh giá:</b> chưa đủ dữ liệu — mới có {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} khác tại {x.district} (cần ≥{MIN_COMPS}). Radar không đưa ra kết luận khi mẫu quá nhỏ.
+              <b className="text-[var(--ink)]">So sánh giá:</b> chưa đủ dữ liệu - mới có {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} khác tại {x.district} (cần ≥{MIN_COMPS}). Radar không đưa ra kết luận khi mẫu quá nhỏ.
             </div>
           ) : null}
-          {/* Xu hướng giá khu vực từ price_history (snapshot mỗi sáng) — trước đây bảng có mà chi tiết tin không dùng */}
+          {/* Xu hướng giá khu vực từ price_history (snapshot mỗi sáng) - trước đây bảng có mà chi tiết tin không dùng */}
           {x.province ? <PriceTrend province={x.province} district={x.district} kind={x.kind} deal={x.deal} /> : null}
 
-          {/* Dấu hiệu chính chủ / môi giới — từ DỮ LIỆU (tần suất tài khoản, nguồn ghi nhận, nội dung), nêu rõ lý do */}
+          {/* Dấu hiệu chính chủ / môi giới - từ DỮ LIỆU (tần suất tài khoản, nguồn ghi nhận, nội dung), nêu rõ lý do */}
           {roleGuess === "moi_gioi" && (
             <div className="card rounded-lg p-4 border-sky-500/40 bg-sky-500/5 text-sm">
               <div className="font-bold mb-1">Có dấu hiệu môi giới</div>
@@ -273,7 +273,7 @@ export default async function ListingDetail({
                 <ul className="list-disc pl-5 text-[var(--ink-soft)] mb-1">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
               ) : null}
               <p className="text-[var(--ink-faint)] text-xs">
-                Nhận định từ dữ liệu Radar (tần suất đăng, nguồn ghi nhận, nội dung tin) — không phải xác minh danh tính. Hãy kiểm tra kỹ trước khi đặt cọc.
+                Nhận định từ dữ liệu Radar (tần suất đăng, nguồn ghi nhận, nội dung tin) - không phải xác minh danh tính. Hãy kiểm tra kỹ trước khi đặt cọc.
               </p>
             </div>
           )}
@@ -333,7 +333,7 @@ export default async function ListingDetail({
             {x.lat != null && x.lng != null ? (
               <>
                 <ListingMap lat={x.lat} lng={x.lng} title={x.title} />
-                {/* Tiện ích quanh đây (ISO 9241-110): mở Google Maps tìm quanh toạ độ — không cần API trả phí */}
+                {/* Tiện ích quanh đây (ISO 9241-110): mở Google Maps tìm quanh toạ độ - không cần API trả phí */}
                 <div className="flex flex-wrap gap-2 mt-3 text-xs">
                   <span className="text-[var(--ink-soft)] self-center">Quanh đây:</span>
                   {[["Trường học", "trường học"], ["Bệnh viện", "bệnh viện"], ["Chợ / siêu thị", "chợ siêu thị"], ["Bến xe buýt", "trạm xe buýt"]].map(([label, q]) => (
@@ -360,11 +360,11 @@ export default async function ListingDetail({
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {(x.contact_phone || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối — số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 — xem bài gốc"}
+                  {(x.contact_phone || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
                 </div>
               </div>
             </div>
-            {/* SĐT người đăng chỉ hiện sau ĐĂNG NHẬP (mô hình Homigo, miễn phí) — khách vãng lai
+            {/* SĐT người đăng chỉ hiện sau ĐĂNG NHẬP (mô hình Homigo, miễn phí) - khách vãng lai
                 thấy nút mở popup đăng ký. Hotline Radar bên dưới thì KHÔNG chặn: đó là kênh lead. */}
             {user && x.contact_phone && <div className="mb-3"><PhoneReveal phone={x.contact_phone} /></div>}
             {user && !x.contact_phone && x.phone_masked && (
@@ -392,7 +392,7 @@ export default async function ListingDetail({
             {isCrawl ? (
               <details className="mt-1">
                 <summary className="text-sm font-semibold cursor-pointer text-brand">Nhờ Radar hỗ trợ tìm/định giá tin tương tự</summary>
-                <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT — Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp trong khu vực.</p>
+                <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT - Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp trong khu vực.</p>
                 <ContactForm listingId={x.id} listingTitle={x.title} viaRadar />
               </details>
             ) : (
@@ -419,7 +419,7 @@ export default async function ListingDetail({
             </div>
           </div>
 
-          {/* Độ mới của tin — 3 mốc: đăng trên nguồn / Radar thấy lần đầu / thấy gần nhất */}
+          {/* Độ mới của tin - 3 mốc: đăng trên nguồn / Radar thấy lần đầu / thấy gần nhất */}
           <div className="card rounded-lg p-5 text-sm">
             <h3 className="font-bold mb-2">Độ mới của tin</h3>
             <div className="grid grid-cols-[1fr_auto] gap-y-1.5">
@@ -428,10 +428,10 @@ export default async function ListingDetail({
                 <span className="font-semibold">{fmtDT(x.posted_at)}</span>
               </>) : null}
               <span className="text-[var(--ink-soft)]">Radar thấy tin</span>
-              <span className="font-semibold" title={fmtDT(x.first_seen_at)}>{seen != null ? fresh(seen) : "—"}</span>
+              <span className="font-semibold" title={fmtDT(x.first_seen_at)}>{seen != null ? fresh(seen) : "-"}</span>
               <span className="text-[var(--ink-soft)]">Thấy gần nhất</span>
               <span className={`font-semibold ${isGone ? "text-amber-600" : ""}`} title={fmtDT(x.last_seen_at ?? x.crawled_at)}>
-                {lastSeen != null ? fresh(lastSeen) : (x.crawled_at ? fmtDT(x.crawled_at) : "—")}
+                {lastSeen != null ? fresh(lastSeen) : (x.crawled_at ? fmtDT(x.crawled_at) : "-")}
                 {x.crawl_count && x.crawl_count > 1 ? <span className="text-[var(--ink-faint)] font-normal"> · {x.crawl_count} lần</span> : null}
               </span>
               <span className="text-[var(--ink-soft)]">Nguồn</span>
@@ -439,7 +439,7 @@ export default async function ListingDetail({
                 {x.source === "agent" ? "Tự đăng" : (x.source_sites && x.source_sites.length > 1 ? x.source_sites.join(" + ") : x.source_site || "crawl")}
               </span>
               {x.trust_score ? (<>
-                <span className="text-[var(--ink-soft)]" title="Chấm theo mức đầy đủ dữ liệu: ảnh, pháp lý, mô tả, giá & diện tích, dấu hiệu chính chủ — không phải xác minh">Độ đầy đủ tin</span>
+                <span className="text-[var(--ink-soft)]" title="Chấm theo mức đầy đủ dữ liệu: ảnh, pháp lý, mô tả, giá & diện tích, dấu hiệu chính chủ - không phải xác minh">Độ đầy đủ tin</span>
                 <span className="font-semibold">{x.trust_score}/100</span>
               </>) : null}
             </div>
@@ -447,7 +447,7 @@ export default async function ListingDetail({
         </div>
       </div>
 
-      {/* Mobile: thanh CTA dính đáy — khối liên hệ nằm cuối trang, khách phải cuộn 4-5 màn (UX audit).
+      {/* Mobile: thanh CTA dính đáy - khối liên hệ nằm cuối trang, khách phải cuộn 4-5 màn (UX audit).
           Bù padding-bottom cho body qua div dưới. */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 py-2.5 flex items-center gap-3">
         <div className="min-w-0">
@@ -464,7 +464,7 @@ export default async function ListingDetail({
       {posterOthers.length > 0 && (
         <section className="mt-12">
           <h2 className="prata text-xl mb-1">Người đăng này còn {posterCount ?? posterOthers.length} tin khác</h2>
-          <p className="text-xs text-[var(--ink-soft)] mb-4">Gom theo tài khoản đăng trên {x.source_site || "nguồn"} — {(posterCount ?? 0) >= 3 ? "nhiều tin cùng lúc thường là môi giới/sàn." : "ít tin, có thể là chính chủ."}</p>
+          <p className="text-xs text-[var(--ink-soft)] mb-4">Gom theo tài khoản đăng trên {x.source_site || "nguồn"} - {(posterCount ?? 0) >= 3 ? "nhiều tin cùng lúc thường là môi giới/sàn." : "ít tin, có thể là chính chủ."}</p>
           <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
             {posterOthers.map((r) => <ListingCard key={r.id} x={r} />)}
           </div>

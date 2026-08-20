@@ -1,6 +1,6 @@
 // Trang SEO khu vực: /nha-dat-ban/[tinh]/[quan] & /nha-dat-cho-thue/[tinh]/[quan]
 // (học batdongsan: URL theo khu vực + H1 động + "N tin"; học homigo: tóm tắt thị trường tự sinh từ dữ liệu + FAQ + JSON-LD).
-// MỌI con số đều tính từ listings đang published — không hardcode.
+// MỌI con số đều tính từ listings đang published - không hardcode.
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -36,7 +36,7 @@ function ldJson(o: unknown): string {
     .replace(/&/g, "\\u0026");
 }
 
-/** slug -> tên thật, dựa trên cây khu vực CACHE (lib/geo) — audit 16/8: bản cũ select 5.000 dòng x2 mỗi request (metadata + page) */
+/** slug -> tên thật, dựa trên cây khu vực CACHE (lib/geo) - audit 16/8: bản cũ select 5.000 dòng x2 mỗi request (metadata + page) */
 export type AreaInfo = { province: string; ban: number; cho_thue: number; districts: Record<string, { ban: number; cho_thue: number }> };
 export async function resolveArea(provinceSlug: string, districtSlug?: string): Promise<{ province: string; district: string | null; area: AreaInfo } | null> {
   const { counts } = await getAreas();
@@ -51,7 +51,7 @@ export async function resolveArea(provinceSlug: string, districtSlug?: string): 
 
 export function areaTitle(deal: Deal, province: string, district: string | null, n: number) {
   const where = district ? `${district}, ${province}` : province;
-  return `${DEAL_WORD[deal]} nhà đất ${where} — ${n.toLocaleString("vi-VN")} tin mới nhất T${new Date().getMonth() + 1}/${new Date().getFullYear()} | NhaDat Radar`;
+  return `${DEAL_WORD[deal]} nhà đất ${where} - ${n.toLocaleString("vi-VN")} tin mới nhất T${new Date().getMonth() + 1}/${new Date().getFullYear()} | NhaDat Radar`;
 }
 
 const fmtP = (v: number, deal: Deal) => fmtPrice(v, deal);
@@ -72,7 +72,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
     (() => { let c = supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN()); if (district) c = c.eq("district", district); return c; })(),
   ]);
   const rows = (data ?? []) as Listing[];
-  // tổng THẬT từ cây đếm (cache) — audit: bản cũ dùng rows.length bị cap 300 cho cấp quận
+  // tổng THẬT từ cây đếm (cache) - audit: bản cũ dùng rows.length bị cap 300 cho cấp quận
   const total = district ? (area.districts[district]?.[deal] ?? rows.length) : (area[deal] || rows.length);
 
   // ---- Số liệu thị trường (thật) ----
@@ -155,7 +155,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
         <section className="card rounded-xl p-5 mt-5">
           <h2 className="font-bold mb-2">Thị trường {where} {monthLabel}</h2>
           <div className="grid gap-3 sm:grid-cols-3 text-sm">
-            <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Giá phổ biến</div><div className="font-bold">{fmtP(p25!, deal)} – {fmtP(p75!, deal)}</div></div>
+            <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Giá phổ biến</div><div className="font-bold">{fmtP(p25!, deal)} - {fmtP(p75!, deal)}</div></div>
             <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Trung vị</div><div className="font-bold">{fmtP(medPrice, deal)}{medPpm2 ? <span className="text-[var(--ink-soft)] font-normal"> · {fmtPpm2(medPpm2)}</span> : null}</div></div>
             <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Tin có ảnh</div><div className="font-bold">{withImg}/{rows.length}</div></div>
           </div>
@@ -197,7 +197,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
         {show.length ? (
           <div className="flex flex-col gap-3">{show.map((x) => <ListingRow key={x.id} x={x} />)}</div>
         ) : (
-          <p className="text-sm text-[var(--ink-soft)]">Chưa có tin nào — Radar cào lại mỗi sáng.</p>
+          <p className="text-sm text-[var(--ink-soft)]">Chưa có tin nào - Radar cào lại mỗi sáng.</p>
         )}
         {total > show.length ? <div className="mt-4 text-center"><Link href={searchHref} className="btn">Xem thêm {(total - show.length).toLocaleString("vi-VN")} tin</Link></div> : null}
       </section>

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const KEY = "ndr_favs";
 
-// Đồng bộ DB (bảng favorites) khi đã đăng nhập — fire-and-forget, localStorage vẫn là nguồn chính.
+// Đồng bộ DB (bảng favorites) khi đã đăng nhập - fire-and-forget, localStorage vẫn là nguồn chính.
 async function syncDb(id: string, on: boolean) {
   try {
     const supabase = createClient();
@@ -16,7 +16,7 @@ async function syncDb(id: string, on: boolean) {
   } catch { /* offline/chưa đăng nhập - bỏ qua */ }
 }
 
-// Kéo favorites từ DB về máy mới (gộp 2 chiều) — gọi ở trang /yeu-thich.
+// Kéo favorites từ DB về máy mới (gộp 2 chiều) - gọi ở trang /yeu-thich.
 export async function pullDbFavs(): Promise<void> {
   try {
     const supabase = createClient();
@@ -65,7 +65,7 @@ export function useFavCount(): number {
   return n;
 }
 
-// Trái tim lưu tin (localStorage, không cần đăng nhập) — dùng đè lên ảnh ListingCard.
+// Trái tim lưu tin (localStorage, không cần đăng nhập) - dùng đè lên ảnh ListingCard.
 export default function FavButton({ id, className = "" }: { id: string; className?: string }) {
   const [on, setOn] = useState(false);
   useEffect(() => {

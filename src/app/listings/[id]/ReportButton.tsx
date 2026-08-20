@@ -12,7 +12,7 @@ export default function ReportButton({ listingId }: { listingId: string }) {
   const [state, formAction, pending] = useActionState(reportListing, initial);
 
   if (state.ok) {
-    return <div className="text-xs text-emerald-600 py-2">✓ Đã ghi nhận báo cáo. Cảm ơn bạn — Radar sẽ kiểm tra tin này.</div>;
+    return <div className="text-xs text-emerald-600 py-2">✓ Đã ghi nhận báo cáo. Cảm ơn bạn - Radar sẽ kiểm tra tin này.</div>;
   }
   if (!open) {
     return (

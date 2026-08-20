@@ -74,7 +74,7 @@ export default async function ProjectDetail({
           </div>
 
           {/* Bảng thông số (migration 013): tổng DT, DT xây dựng, DT căn từ-đến, ngày khởi công/hoàn
-              thành, pháp lý — thông tin người mua tìm đầu tiên, phải nằm TRÊN phần mô tả dài. */}
+              thành, pháp lý - thông tin người mua tìm đầu tiên, phải nằm TRÊN phần mô tả dài. */}
           {(() => {
             const specs = (p.specs ?? {}) as Record<string, string>;
             const rows = Object.entries(specs).filter(([, v]) => v);
@@ -92,7 +92,7 @@ export default async function ProjectDetail({
             );
           })()}
 
-          {/* Không có mô tả thì ẨN hẳn khối, đừng hiện cái thẻ trống ghi "(Chưa có mô tả)" —
+          {/* Không có mô tả thì ẨN hẳn khối, đừng hiện cái thẻ trống ghi "(Chưa có mô tả)" -
               266 dự án đã bị mogi gỡ trang chi tiết nên không bao giờ có mô tả (17/8) */}
           {(p.description || "").trim() && (
           <div className="card rounded-lg p-5 mt-4">
@@ -101,7 +101,7 @@ export default async function ProjectDetail({
             {(() => {
               const full = p.description || "";
               if (full.length <= 1200) return <RichText text={full} />;
-              // Cắt tại ĐẦU DÒNG gần 900 ký tự nhất — cắt giữa chừng sẽ vỡ "## tiêu đề" / "- gạch đầu dòng".
+              // Cắt tại ĐẦU DÒNG gần 900 ký tự nhất - cắt giữa chừng sẽ vỡ "## tiêu đề" / "- gạch đầu dòng".
               const cut = full.lastIndexOf("\n", 900);
               const dau = full.slice(0, cut > 300 ? cut : 900);
               const con = full.slice(dau.length);   // phần CÒN LẠI, không lặp lại phần đã hiện
@@ -109,7 +109,7 @@ export default async function ProjectDetail({
                 <>
                   <RichText text={dau} />
                   <details className="group mt-2">
-                    {/* chỉ chữ "Xem đầy đủ" nằm trong summary — để cả đoạn văn vào đây thì bôi đen
+                    {/* chỉ chữ "Xem đầy đủ" nằm trong summary - để cả đoạn văn vào đây thì bôi đen
                         chọn chữ cũng vô tình đóng/mở, và nội dung sẽ hiện lặp hai lần khi mở */}
                     <summary className="cursor-pointer list-none text-sm font-semibold text-brand">
                       <span className="group-open:hidden">Xem đầy đủ ↓</span>

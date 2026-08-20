@@ -1,10 +1,10 @@
 // Nguồn FACEBOOK -> listing chuẩn. Bài FB là text tự do -> để Gemini trích field + lọc rác + phân loại cò/cá nhân.
 // 2 chế độ:
-//   node facebook.mjs --demo       : chạy thử trên bài mẫu (cần GEMINI_API_KEY) — KHÔNG cần FB
+//   node facebook.mjs --demo       : chạy thử trên bài mẫu (cần GEMINI_API_KEY) - KHÔNG cần FB
 //   node facebook.mjs --playwright : tự cào bằng Playwright + fb-cookies.json (cookies clone của bạn, chạy ở MÁY BẠN)
 //
 // 17/8: BỎ HẲN Apify (actor facebook-groups-scraper, ~$5/1000 bài). Playwright + cookie clone chạy ở
-// máy nhà cho kết quả tốt hơn hẳn mà miễn phí (376 bài thô/lượt, có ảnh) — Apify chỉ còn là chi phí thừa.
+// máy nhà cho kết quả tốt hơn hẳn mà miễn phí (376 bài thô/lượt, có ảnh) - Apify chỉ còn là chi phí thừa.
 import fs from "node:fs";
 import { cleanFbText } from "./fb-clean.mjs";
 import { qualityGate, PHONE_RE } from "./quality-gate.mjs";
@@ -21,7 +21,7 @@ const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 let _ki = 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Nhóm mục tiêu (từ ảnh của bạn) — dùng cho chế độ Apify/Playwright
+// Nhóm mục tiêu (từ ảnh của bạn) - dùng cho chế độ Apify/Playwright
 export const GROUPS = [
   "Nhà Đất TP Hồ Chí Minh- Mua Bán", "BẤT ĐỘNG SẢN TPHCM", "MUA BÁN, CHO THUÊ NHÀ ĐẤT TPHCM ( Nhà Tốt )",
   "NHÓM MUA BÁN GIAO DỊCH BẤT ĐỘNG SẢN NHÀ PHỐ TP.HCM", "Mua Bán Nhà, Đất Gò Vấp - Q12 - Hóc Môn - Củ Chi",
@@ -76,7 +76,7 @@ async function toListing(post) {
   const why = qualityGate((ai.title_clean || "") + "\n" + post.text, { district: ai.district, province: ai.city });
   if (why) { console.error(`  ↷ loại (${why}): ${(ai.title_clean || post.text || "").slice(0, 60)}`); return null; }
   return {
-    // id ổn định theo LINK bài (innerText có số like/"3 giờ" đổi mỗi ngày -> hash text sinh tin mới giả mỗi lần cào — audit 16/8)
+    // id ổn định theo LINK bài (innerText có số like/"3 giờ" đổi mỗi ngày -> hash text sinh tin mới giả mỗi lần cào - audit 16/8)
     id: "fb-" + (post.id || (post.url && post.url !== "#" ? Math.abs(hash(post.url.replace(/[?#].*$/, ""))).toString(36) : Math.abs(hash((post.text || "").replace(/\d+\s*(giờ|phút|ngày|lượt|bình luận|thích|chia sẻ)/gi, "").slice(0, 300))).toString(36))),
     source: "crawl", source_site: "facebook", source_url: post.url || "#", source_post_id: post.id || null,
     title: ai.title_clean || (post.text || "").slice(0, 80),
@@ -128,7 +128,7 @@ function normalizeCookies(raw) {
 // ---- Chế độ Playwright: cào bằng cookies clone ----
 // Sự cố 17/8: dùng CHUNG 1 browser cho cả 14 nhóm -> RAM renderer tích luỹ dần rồi "Target crashed"
 // / "Page crashed" từ nhóm thứ 3 trở đi; 12/14 nhóm mất trắng, cả run chỉ còn 4 bài thô.
-// Chống bằng 3 lớp: (1) không tải ảnh/video/font — crawler chỉ đọc innerText + link nên bỏ đi
+// Chống bằng 3 lớp: (1) không tải ảnh/video/font - crawler chỉ đọc innerText + link nên bỏ đi
 // không mất gì mà nhẹ hẳn; (2) dựng lại browser sau mỗi FB_RESTART_EVERY nhóm để trả sạch RAM;
 // (3) nhóm nào crash thì dựng browser mới thử lại 1 lần thay vì bỏ luôn.
 const BROWSER_ARGS = [
@@ -145,7 +145,7 @@ async function openBrowser(chromium, cookies) {
     timezoneId: "Asia/Ho_Chi_Minh",
     deviceScaleFactor: 1,
   });
-  // Ẩn dấu hiệu automation (navigator.webdriver, languages, plugins) — giảm bị FB chặn headless
+  // Ẩn dấu hiệu automation (navigator.webdriver, languages, plugins) - giảm bị FB chặn headless
   await ctx.addInitScript(() => {
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
     Object.defineProperty(navigator, "languages", { get: () => ["vi-VN", "vi", "en-US"] });
@@ -171,7 +171,7 @@ async function scrapePlaywright() {
   await page.goto("https://www.facebook.com/", { waitUntil: "domcontentloaded", timeout: 60000 });
   await sleep(4000);
   // Kiểm tra THẬT: FB xoá cookie xs/c_user ngay khi phiên không hợp lệ (trang chủ khi đó hiện màn "Tiếp tục / Dùng trang
-  // cá nhân khác" — KHÔNG có ô mật khẩu, nên check cũ báo "đăng nhập OK" giả và các nhóm chỉ ra 1-3 bài công khai, 16/8).
+  // cá nhân khác" - KHÔNG có ô mật khẩu, nên check cũ báo "đăng nhập OK" giả và các nhóm chỉ ra 1-3 bài công khai, 16/8).
   const alive = (await ctx.cookies("https://www.facebook.com")).some((c) => c.name === "c_user");
   if (!alive || page.url().includes("/login") || (await page.$('input[name="pass"]'))) {
     console.error("⚠ FB: phiên cookie KHÔNG hợp lệ (FB đã xoá c_user/xs) -> đăng nhập lại acc clone trên Chrome rồi Export cookie mới bằng Cookie-Editor.");
@@ -208,7 +208,7 @@ async function scrapePlaywright() {
       const gid = (raw0.match(/\/groups\/([^/?#]+)/) || [])[1] || "";
       const batch = await page.$$eval(POST_SEL, (nodes, gid) =>
         nodes.map((n) => {
-          // ẢNH bài đăng (17/8 — trước đây chế độ Playwright không lấy ảnh, tin FB nào cũng chỉ có icon màu):
+          // ẢNH bài đăng (17/8 - trước đây chế độ Playwright không lấy ảnh, tin FB nào cũng chỉ có icon màu):
           // chỉ lấy ảnh CDN FB (scontent/fbcdn), bỏ avatar/emoji/icon nhỏ (URL cỡ p50x50, s40x40… hoặc bề rộng < 100px).
           // Ảnh bị chặn tải (ctx.route) nhưng thuộc tính src vẫn có trong DOM.
           const imgs = [];
@@ -221,9 +221,9 @@ async function scrapePlaywright() {
             if (imgs.length >= 8) break;
           }
 
-          // LINK BÀI GỐC — 17/8: 226/243 tin trong DB là "#", nút "Xem bài gốc" chết.
+          // LINK BÀI GỐC - 17/8: 226/243 tin trong DB là "#", nút "Xem bài gốc" chết.
           // Chẩn đoán DOM thật: trong bài KHÔNG có anchor "/posts/". Permalink ở dấu thời gian có
-          // href="?__cft__[0]=..." — chỉ query, không path, nên a.href chỉ ra lại URL nhóm (vô dụng).
+          // href="?__cft__[0]=..." - chỉ query, không path, nên a.href chỉ ra lại URL nhóm (vô dụng).
           // Nhưng link ảnh có dạng /photo/?fbid=...&set=pcb.<POST_ID> -> lấy POST_ID dựng permalink chuẩn.
           // Trèo lên [aria-posinset] = đúng wrapper 1 bài; KHÔNG trèo cao hơn kẻo vớ link bài kế bên.
           const box = n.closest("[aria-posinset]") || n;

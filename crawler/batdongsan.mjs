@@ -1,4 +1,4 @@
-// Crawler BATDONGSAN.COM.VN — Cloudflare nên fetch bằng Playwright (fallback plain fetch cho quy mô nhỏ).
+// Crawler BATDONGSAN.COM.VN - Cloudflare nên fetch bằng Playwright (fallback plain fetch cho quy mô nhỏ).
 // Parser tách từ HTML trang kết quả (SRP). Test parser: node batdongsan.mjs --test bds.html
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -131,8 +131,8 @@ async function fetchSRP(url) {
 // ---- Trang CHI TIẾT: lấy các trường trang danh sách không có ----
 // 17/8: trang danh sách chỉ cho giá/DT/PN/WC/ảnh. Đo trên tin thật thì trang chi tiết còn có
 // hướng nhà, hướng ban công, pháp lý, số tầng, ngày đăng, phường, và TOẠ ĐỘ THẬT trong iframe
-// bản đồ — trước giờ phải geocode bù theo tên quận nên pin chỉ nằm giữa quận.
-// Bắt buộc dùng Playwright: fetch thẳng trang chi tiết trả HTTP 403 (Cloudflare) — đã kiểm chứng.
+// bản đồ - trước giờ phải geocode bù theo tên quận nên pin chỉ nằm giữa quận.
+// Bắt buộc dùng Playwright: fetch thẳng trang chi tiết trả HTTP 403 (Cloudflare) - đã kiểm chứng.
 const decD = (s) => (s || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 
 export function parseDetail(html) {
@@ -158,7 +158,7 @@ export function parseDetail(html) {
   const iso = ngayDang?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   return {
     // trả về CẢ bảng: trước đây chỉ lấy 4 trường rồi vứt phần còn lại (mặt tiền, đường vào,
-    // số phòng ngủ/toilet, năm xây...) — đúng những thứ làm tin đáng tin hơn. 19/8.
+    // số phòng ngủ/toilet, năm xây...) - đúng những thứ làm tin đáng tin hơn. 19/8.
     specs: { ...specs, ...info },
     direction: specs["Hướng nhà"] || null,
     balcony_direction: specs["Hướng ban công"] || null,
@@ -168,7 +168,7 @@ export function parseDetail(html) {
     lat: trongVN ? lat : null,
     lng: trongVN ? lng : null,
     posted_at: iso ? `${iso[3]}-${iso[2]}-${iso[1]}` : null,
-    // Breadcrumb phần tử thứ 4 KHÔNG phải lúc nào cũng là phường — thường là tên dự án
+    // Breadcrumb phần tử thứ 4 KHÔNG phải lúc nào cũng là phường - thường là tên dự án
     // ("Căn hộ chung cư tại Vlasta Premier Phú Thuận"). Chỉ nhận khi đúng dạng phường/xã,
     // không thì để null. Gán bừa tên dự án vào ward là kiểu lỗi đã phải sửa cả buổi 17/8.
     ward: bread.slice(1).find((b) => /^(Phường|Xã|Thị trấn|P\.\s*\d)/i.test(b)) || null,
@@ -196,8 +196,8 @@ async function fetchDetail(url) {
   } finally { if (ctx) await ctx.close().catch(() => {}); }
 }
 
-// Chỉ lấy chi tiết cho tin MỚI (id chưa có trong batdongsan.json lần trước) — mỗi ngày vài chục tin
-// thay vì 433, nên chỉ tốn vài phút. Giãn nhịp DETAIL_GAP_MS: bài học 17/8 từ mogi — cào dày quá
+// Chỉ lấy chi tiết cho tin MỚI (id chưa có trong batdongsan.json lần trước) - mỗi ngày vài chục tin
+// thay vì 433, nên chỉ tốn vài phút. Giãn nhịp DETAIL_GAP_MS: bài học 17/8 từ mogi - cào dày quá
 // thì bị chặn và nhận về dữ liệu rác mà không hề biết.
 const DETAIL_GAP_MS = Number(process.env.BDS_DETAIL_GAP_MS || 2000);
 const DETAIL_MAX = Number(process.env.BDS_DETAIL_MAX || 150);
@@ -261,7 +261,7 @@ async function main() {
   all = all.filter((x) => (seen.has(x.id) ? false : seen.add(x.id)));
   if (!all.length) {
     // Cloudflare chặn (thường gặp ở IP datacenter/CI) -> GIỮ file cũ, merge.mjs sẽ tự bỏ qua nếu file quá 2 ngày
-    console.error("DONE 0 — không lấy được tin (Cloudflare?). Giữ nguyên batdongsan.json cũ.");
+    console.error("DONE 0 - không lấy được tin (Cloudflare?). Giữ nguyên batdongsan.json cũ.");
     return;
   }
   // Bổ sung chi tiết cho tin mới (toạ độ thật, hướng, pháp lý, ngày đăng, phường)

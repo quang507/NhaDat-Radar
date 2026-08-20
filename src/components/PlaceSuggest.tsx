@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { stripAccents } from "@/lib/slug";
 
-// NN/g #5 (phòng lỗi): gợi ý địa danh khi gõ vào ô tìm — khớp không dấu, viết tắt "Q7"/"q.7"/"quan 7" -> "Quận 7 · Hồ Chí Minh",
+// NN/g #5 (phòng lỗi): gợi ý địa danh khi gõ vào ô tìm - khớp không dấu, viết tắt "Q7"/"q.7"/"quan 7" -> "Quận 7 · Hồ Chí Minh",
 // "bt" không đoán (quá mơ hồ). Nguồn gợi ý = cây Tỉnh -> Quận -> Phường thật từ DB (đã truyền cho SearchClient).
 export type Place = { level: "province" | "district" | "ward"; province: string; district?: string; ward?: string; label: string; sub: string };
 

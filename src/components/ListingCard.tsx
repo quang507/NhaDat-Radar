@@ -60,7 +60,7 @@ export default function ListingCard({ x }: { x: Listing }) {
           {x.title}
         </h3>
         <div className="text-xs text-[var(--ink-soft)] truncate">
-          {[x.district, x.province].filter(Boolean).join(", ") || "—"}
+          {[x.district, x.province].filter(Boolean).join(", ") || "-"}
         </div>
         <div className="flex items-center gap-1 text-xs text-[var(--ink-soft)]">
           <span className="truncate">

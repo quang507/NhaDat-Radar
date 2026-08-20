@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       sb.from("projects").select("id").eq("status", "published").limit(200),
       getAreas(), // cây khu vực dùng chung (cache 10') thay vì select 5.000 dòng riêng
     ]);
-    // Trang SEO khu vực: /nha-dat-ban/[tinh](/[quan]) — chỉ sinh cho khu vực đang có tin (≥3 tin cho cấp quận)
+    // Trang SEO khu vực: /nha-dat-ban/[tinh](/[quan]) - chỉ sinh cho khu vực đang có tin (≥3 tin cho cấp quận)
     const areaEntries: MetadataRoute.Sitemap = [];
     for (const [p, c] of Object.entries(counts)) {
       for (const deal of ["ban", "cho_thue"] as const) {

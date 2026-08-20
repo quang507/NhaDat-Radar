@@ -1,4 +1,4 @@
-// Lý do báo tin xấu — dùng chung cho form (client), server action và trang admin.
+// Lý do báo tin xấu - dùng chung cho form (client), server action và trang admin.
 export const REPORT_REASONS: Record<string, string> = {
   da_ban: "Tin đã bán / đã cho thuê",
   sai_gia: "Giá không đúng thực tế",

@@ -1,7 +1,7 @@
 // Crawler 3 trang BĐS nhỏ (thăm dò 2026-08-14 xác nhận crawl được từ GitHub Actions):
-//   1) bannhadat123.vn — card .media, link /(ban|cho-thue)-.../...-eid-{id}/
+//   1) bannhadat123.vn - card .media, link /(ban|cho-thue)-.../...-eid-{id}/
 //
-// 18/8: BỎ batdongsantoanquoc.vn và sosanhnha.com. Không phải lỗi kỹ thuật — cào được
+// 18/8: BỎ batdongsantoanquoc.vn và sosanhnha.com. Không phải lỗi kỹ thuật - cào được
 // nhưng tin của chúng thiếu giá/diện tích nên rớt hết ở cổng chất lượng: đo trên DB
 // batdongsantoanquoc 142/145 tin và sosanhnha 4/5 tin ở trạng thái "gone". Giữ lại chỉ
 // tốn ~4 request + 3.6s mỗi lượt cào mà không thêm được tin nào dùng được.
@@ -25,7 +25,7 @@ const strip = (s) => (s || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").r
 function priceFromText(t) {
   const m = t.match(/([\d.,]+)\s*(tỷ|ty\b|triệu|trieu)/i);
   if (!m) return null;
-  // "4.2 tỷ" = thập phân, "8.500.000.000" = ngăn nghìn — audit 16/8: xoá mọi dấu chấm từng biến 4.2 tỷ thành 42 tỷ
+  // "4.2 tỷ" = thập phân, "8.500.000.000" = ngăn nghìn - audit 16/8: xoá mọi dấu chấm từng biến 4.2 tỷ thành 42 tỷ
   const n = soVN(m[1]);
   if (!n || n > 100000) return null;
   return Math.round(n * (/tỷ|ty/i.test(m[2]) ? 1e9 : 1e6));
@@ -42,7 +42,7 @@ function kindOf(s) {
   if (/mat-bang|mặt bằng|kiot|ki-ot|shophouse|van-phong|văn phòng|toa-nha|tòa nhà/.test(t)) return "mat_bang";
   if (/phong-tro|phòng trọ/.test(t)) return "phong_tro";
   // review /ultrareview: guard `&& !/nha|nhà/` tu no ban nham vi "nha" khop ben trong TEN DIA DANH
-  // trong slug — kindOf("ban-dat-nen-nha-trang-khanh-hoa") tra "nha" (Nha Trang!) thay vi "dat".
+  // trong slug - kindOf("ban-dat-nen-nha-trang-khanh-hoa") tra "nha" (Nha Trang!) thay vi "dat".
   // Slug ngan cach bang gach ngang -> doi bien theo GACH NGANG/dau chuoi, va bo guard bat nham.
   if (/(?:^|[-\s])(?:dat|đất)(?:[-\s]|$)|dat-nen|đất nền/u.test(t)) return "dat";
   if (/(?:^|[-\s])(?:nha|nhà)(?:[-\s]|$)|biet-thu|biệt thự|lien-ke|liền kề/u.test(t)) return "nha";
@@ -119,7 +119,7 @@ async function main() {
       const rows = await fn();
       console.error(`${name}: +${rows.length}`);
       all.push(...rows);
-    } catch (e) { console.error(`${name}: lỗi ${e.message} — bỏ qua`); }
+    } catch (e) { console.error(`${name}: lỗi ${e.message} - bỏ qua`); }
   }
   // chỉ giữ tin có tiêu đề tử tế
   const ok = all.filter((x) => (x.title || "").length >= 15);

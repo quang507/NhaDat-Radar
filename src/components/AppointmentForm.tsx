@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// Đặt lịch xem nhà (chỉ tin người bán tự đăng — cần agent_id).
+// Đặt lịch xem nhà (chỉ tin người bán tự đăng - cần agent_id).
 export default function AppointmentForm({ listingId, agentId }: { listingId: string; agentId: string }) {
   const [slot, setSlot] = useState("");
   const [note, setNote] = useState("");
@@ -24,12 +24,12 @@ export default function AppointmentForm({ listingId, agentId }: { listingId: str
       listing_id: listingId, buyer_id: user.id, agent_id: agentId,
       slot: new Date(slot).toISOString(), note: note.slice(0, 500) || null,
     });
-    if (error) { console.error("appointment:", error.message); setErr("Chưa đặt được lịch — thử lại hoặc liên hệ trực tiếp người đăng."); setState("idle"); }
+    if (error) { console.error("appointment:", error.message); setErr("Chưa đặt được lịch - thử lại hoặc liên hệ trực tiếp người đăng."); setState("idle"); }
     else setState("done");
   }
 
   if (state === "done") {
-    return <p className="text-sm text-emerald-600 font-semibold">✅ Đã gửi yêu cầu xem nhà — người bán sẽ xác nhận, theo dõi tại Kênh người bán.</p>;
+    return <p className="text-sm text-emerald-600 font-semibold">✅ Đã gửi yêu cầu xem nhà - người bán sẽ xác nhận, theo dõi tại Kênh người bán.</p>;
   }
   return (
     <form onSubmit={submit} className="flex flex-col gap-2">

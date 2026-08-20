@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 // NN/g #6 "Recognition rather than recall": nhớ tin đã xem + tìm kiếm gần đây trong localStorage (không cần đăng nhập).
-// Track: gọi <RecentlyViewedTracker item={...}/> ở trang chi tiết. Hiển thị: <RecentlyViewed/> (search/home) — tối đa 8.
+// Track: gọi <RecentlyViewedTracker item={...}/> ở trang chi tiết. Hiển thị: <RecentlyViewed/> (search/home) - tối đa 8.
 export type Recent = { id: string; title: string; price: string; where: string; img?: string | null; at: number };
 const KEY = "radar:recent-listings";
 const KEY_Q = "radar:recent-searches";

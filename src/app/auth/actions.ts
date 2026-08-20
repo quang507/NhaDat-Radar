@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 // Lấy origin thật của request (chạy đúng trên mọi domain Vercel/preview/local),
-// fallback NEXT_PUBLIC_SITE_URL — fix lỗi redirect_to=undefined khi env thiếu.
+// fallback NEXT_PUBLIC_SITE_URL - fix lỗi redirect_to=undefined khi env thiếu.
 async function siteUrl(): Promise<string> {
   const h = await headers();
   const origin = h.get("origin");
@@ -20,11 +20,11 @@ async function siteUrl(): Promise<string> {
 function viErr(msg: string): string {
   const m = msg.toLowerCase();
   if (m.includes("invalid login credentials")) return "Email hoặc mật khẩu không đúng. Nếu vừa đăng ký, hãy kiểm tra email và bấm link xác nhận trước khi đăng nhập.";
-  if (m.includes("email not confirmed")) return "Email chưa được xác nhận — hãy mở hộp thư và bấm link xác nhận trong email từ Supabase.";
+  if (m.includes("email not confirmed")) return "Email chưa được xác nhận - hãy mở hộp thư và bấm link xác nhận trong email từ Supabase.";
   if (m.includes("already registered") || m.includes("already been registered")) return "Email này đã được đăng ký. Hãy chuyển sang tab Đăng Nhập.";
   if (m.includes("at least 6 characters") || m.includes("password should be")) return "Mật khẩu phải có ít nhất 6 ký tự.";
   if (m.includes("provider is not enabled") || m.includes("unsupported provider")) return "Đăng nhập Google chưa được bật trên Supabase. Vui lòng dùng email/mật khẩu, hoặc admin bật Google provider trong Supabase Dashboard.";
-  if (m.includes("captcha")) return "Xác minh captcha thất bại — tải lại trang và thử lại.";
+  if (m.includes("captcha")) return "Xác minh captcha thất bại - tải lại trang và thử lại.";
   if (m.includes("rate limit") || m.includes("too many")) return "Thao tác quá nhanh, vui lòng thử lại sau ít phút.";
   if (m.includes("invalid email") || m.includes("validate email")) return "Địa chỉ email không hợp lệ.";
   return msg;
@@ -102,7 +102,7 @@ export async function resetPassword(formData: FormData) {
     captchaToken: captchaOf(formData),
   });
   if (error) redirect("/auth?mode=forgot&error=" + encodeURIComponent(viErr(error.message)));
-  redirect("/auth?message=" + encodeURIComponent(`Đã gửi link đặt lại mật khẩu tới ${email} — kiểm tra hộp thư (cả mục Spam).`));
+  redirect("/auth?message=" + encodeURIComponent(`Đã gửi link đặt lại mật khẩu tới ${email} - kiểm tra hộp thư (cả mục Spam).`));
 }
 
 export async function updatePassword(formData: FormData) {

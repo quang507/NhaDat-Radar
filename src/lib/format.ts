@@ -22,7 +22,7 @@ export const fmtPpm2 = (v: number) => (v >= 1e6 ? (v / 1e6).toFixed(1).replace(/
 /** "Quận 9 (P. Long Bình mới)" -> "Quận 9" (từng lặp ở 5 file) */
 export const canonDistrict = (s: string | null | undefined) => (s || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
 
-/** 0h hôm nay theo giờ Việt Nam (ISO) — "N tin mới hôm nay" */
+/** 0h hôm nay theo giờ Việt Nam (ISO) - "N tin mới hôm nay" */
 export function startOfDayVN(): string {
   const d = new Date(Date.now() + 7 * 3600 * 1000);
   d.setUTCHours(0, 0, 0, 0);

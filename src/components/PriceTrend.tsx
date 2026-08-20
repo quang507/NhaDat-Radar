@@ -28,7 +28,7 @@ export default async function PriceTrend({ province, district, kind, deal, compa
   if (series.length < 2) {
     return compact ? null : (
       <p className="text-xs text-[var(--ink-faint)] rounded-lg bg-[var(--surface-2)] p-2.5">
-        📈 Lịch sử giá tại {d || province} đang được tích luỹ mỗi ngày — biểu đồ sẽ hiện sau vài ngày dữ liệu.
+        📈 Lịch sử giá tại {d || province} đang được tích luỹ mỗi ngày - biểu đồ sẽ hiện sau vài ngày dữ liệu.
       </p>
     );
   }
@@ -60,7 +60,7 @@ export default async function PriceTrend({ province, district, kind, deal, compa
           <span className="font-bold text-[var(--ink-soft)]">Đang tích luỹ ({series.length}/{MIN_DAYS_FOR_PCT} ngày)</span>
         )}
         <span className="text-xs text-[var(--ink-soft)]">
-          giá/m² trung vị {deal === "ban" ? "bán" : "thuê"} <b>tại {scope}</b>{scope !== (d || province) ? " (chưa đủ dữ liệu riêng cho " + (d || province) + ")" : ""}: {fmtPpm2(first)} → <b>{fmtPpm2(last)}</b> ({from}–{to}, ~{series[series.length - 1].n} tin/ngày)
+          giá/m² trung vị {deal === "ban" ? "bán" : "thuê"} <b>tại {scope}</b>{scope !== (d || province) ? " (chưa đủ dữ liệu riêng cho " + (d || province) + ")" : ""}: {fmtPpm2(first)} → <b>{fmtPpm2(last)}</b> ({from}-{to}, ~{series[series.length - 1].n} tin/ngày)
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-h-28 mt-1" preserveAspectRatio="none" role="img" aria-label="Biểu đồ giá/m² trung vị theo ngày">

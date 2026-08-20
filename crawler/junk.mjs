@@ -1,6 +1,6 @@
 // Bộ lọc tin rác dùng chung cho pipeline crawl.
 // Nguyên tắc chọn từ khóa: chỉ những cụm GẦN NHƯ KHÔNG BAO GIỜ xuất hiện trong tin BĐS thật
-// (tránh "ô tô" — dính "hẻm ô tô", "điều hòa"/"nội thất" — dính mô tả nhà).
+// (tránh "ô tô" - dính "hẻm ô tô", "điều hòa"/"nội thất" - dính mô tả nhà).
 export const JUNK_PATTERNS = [
   // thiết bị điện / xây dựng bán lẻ
   /đèn (đường|led|năng lượng|pha|trụ)/i, /công tắc/i, /ổ cắm/i,

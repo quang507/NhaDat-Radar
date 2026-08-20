@@ -1,4 +1,4 @@
-// /nha-dat-ban/[tinh] — trang SEO cấp tỉnh (số liệu thật + FAQ + JSON-LD). Xem src/components/AreaLanding.tsx
+// /nha-dat-ban/[tinh] - trang SEO cấp tỉnh (số liệu thật + FAQ + JSON-LD). Xem src/components/AreaLanding.tsx
 export const dynamic = "force-dynamic";
 import AreaLanding, { resolveArea, areaTitle } from "@/components/AreaLanding";
 

@@ -1,5 +1,5 @@
-// Cổng chất lượng trước khi ĐĂNG (17/8) — bản TS cho webhook Zalo OA (src/app/api/zalo/webhook).
-// SONG SONG với crawler/quality-gate.mjs (dùng cho facebook.mjs + zalo-bot.mjs) — sửa 1 nơi thì sửa nơi kia.
+// Cổng chất lượng trước khi ĐĂNG (17/8) - bản TS cho webhook Zalo OA (src/app/api/zalo/webhook).
+// SONG SONG với crawler/quality-gate.mjs (dùng cho facebook.mjs + zalo-bot.mjs) - sửa 1 nơi thì sửa nơi kia.
 // Tin phải có (1) từ khoá BĐS, (2) số điện thoại, (3) khu vực.
 
 // \b của JS chỉ hiểu ASCII -> "nhà", "giá" (có dấu) không khớp \b. Dùng (?<!\p{L}) / (?!\p{L}) + cờ u.
@@ -11,11 +11,11 @@ export const BDS_KEYWORD = new RegExp([
   "nh[àa]\\s*ph[ốo]", "m[ặa]t\\s*ti[ềe]n", "s[ổo]\\s*(?:h[ồo]ng|đ[ỏo])",
 ].join("|"), "iu");
 
-// (?<!\d) BẮT BUỘC — phải khớp y hệt crawler/quality-gate.mjs. Không có nó, regex khớp từ GIỮA
+// (?<!\d) BẮT BUỘC - phải khớp y hệt crawler/quality-gate.mjs. Không có nó, regex khớp từ GIỮA
 // một dãy số dài: "Số tài khoản 19001234567890" -> "01234567890". Ở đây hậu quả nặng hơn bên
 // crawler vì hàm này chạy trên MỌI tin nhắn người dùng gửi vào Zalo OA (api/zalo/webhook/route.ts:47),
 // tức cổng chất lượng cho tin do người thật đăng, không phải tin cào.
-// tests/unit/crawler.spec.ts có ca so khớp hai bản — sửa lệch là test đỏ ngay.
+// tests/unit/crawler.spec.ts có ca so khớp hai bản - sửa lệch là test đỏ ngay.
 export const PHONE_RE = /(?<!\d)(?:\+?84|0)(?:[\s.\-]?\d){9,10}(?!\d)/;
 
 export const AREA_HINT = new RegExp([

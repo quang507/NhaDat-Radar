@@ -29,7 +29,7 @@ async function fetchJSON(url, headers = {}) {
 //   "Phường Tân Khánh, Hồ Chí Minh"  -> trả "Phường An Khánh, Thủ Đức"      (sai phường)
 //   "Phường Tân Khánh, Bình Dương"   -> trả "Phường Tân Khánh, LONG AN"     (sai tỉnh)
 //   "Xã Tân Vĩnh Hiệp, Tân Uyên"     -> trả "Hội Người Mù ... Uyên Hưng"    (ra điểm POI)
-// Nhận bừa kết quả đầu là ghim tin Bình Dương xuống Long An — sai kiểu này TỆ HƠN để trống,
+// Nhận bừa kết quả đầu là ghim tin Bình Dương xuống Long An - sai kiểu này TỆ HƠN để trống,
 // vì khách tin bản đồ mà chạy nhầm tỉnh. Nominatim cũng có kiểu trả lệch tương tự.
 // => chỉ nhận khi tên tỉnh trong kết quả khớp tỉnh đã hỏi; không khớp thì thà không có ghim.
 const boDau = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -55,7 +55,7 @@ function diaDanhTrongQuery(query) {
 }
 
 // Phải khớp CẢ tỉnh LẪN tên phường/quận. Chỉ khớp tỉnh là chưa đủ: "Phường Tân Khánh,
-// Hồ Chí Minh" từng nhận nhầm "Phường An Khánh, Thủ Đức" — cùng TP.HCM nên lọt, mà lệch
+// Hồ Chí Minh" từng nhận nhầm "Phường An Khánh, Thủ Đức" - cùng TP.HCM nên lọt, mà lệch
 // ~30km. Tên số ("Quận 7" -> "7") thì bỏ qua vế này vì một chữ số khớp lung tung.
 function khopTinh(ketQua, query) {
   const kq = tenTran(ketQua);
@@ -103,9 +103,9 @@ async function vietmap(query) {
   return null;
 }
 
-// Nominatim (fallback) — cũng phải khớp tỉnh mới nhận.
+// Nominatim (fallback) - cũng phải khớp tỉnh mới nhận.
 // TỰ giữ luật 1 request/giây của Nominatim ngay tại đây: review 19/8 chỉ ra khi Vietmap hết
-// hạn mức GIỮA run, caller vẫn chạy nhịp 220ms và mọi truy vấn dồn hết vào Nominatim — gấp 5
+// hạn mức GIỮA run, caller vẫn chạy nhịp 220ms và mọi truy vấn dồn hết vào Nominatim - gấp 5
 // luật của họ, liều bị cấm UA. Đặt phanh ở tầng biết rõ ai đang trả lời thì caller hết bắn nhầm.
 let _nomTruoc = 0;
 async function nominatim(query) {
@@ -129,8 +129,8 @@ async function nominatim(query) {
 //
 // Bình Dương và Bà Rịa - Vũng Tàu đã nhập vào TP.HCM. Nguồn tin ghi theo tên MỚI, nhưng
 // dữ liệu bản đồ (cả Vietmap lẫn Nominatim) phần lớn còn theo tên CŨ. Hậu quả đo được 19/8:
-//   "Phường Tân Khánh, Hồ Chí Minh" -> 10.82, 106.64  (vùng Quận 12 — SAI)
-//   "Phường Tân Khánh, Bình Dương"  -> 11.00, 106.72  (Tân Uyên — ĐÚNG)
+//   "Phường Tân Khánh, Hồ Chí Minh" -> 10.82, 106.64  (vùng Quận 12 - SAI)
+//   "Phường Tân Khánh, Bình Dương"  -> 11.00, 106.72  (Tân Uyên - ĐÚNG)
 // Phường Tân Khánh lập 1/7/2025 từ Thạnh Phước / Tân Phước Khánh / Tân Vĩnh Hiệp / Thạnh Hội
 // (TP. Tân Uyên, Bình Dương cũ). Hỏi bằng tên tỉnh mới thì bản đồ không có, nó bèn chọn đại
 // một chỗ khác cũng thuộc TP.HCM -> lệch ~30km mà vẫn "khớp tỉnh" nên lọt qua kiểm tra.
@@ -139,7 +139,7 @@ const TINH_CU_GOP_VAO = { "Hồ Chí Minh": ["Bình Dương", "Bà Rịa - Vũng
 
 // API chính: thử Vietmap trước, không được thì Nominatim; cả hai đều thử tên tỉnh cũ nếu cần
 // Trả về: {lat,lng,src} nếu tìm thấy | null nếu tra xong mà không có | LOI nếu hỏi hỏng.
-// Người gọi PHẢI phân biệt null với LOI — chỉ null mới đáng ghi vào cache.
+// Người gọi PHẢI phân biệt null với LOI - chỉ null mới đáng ghi vào cache.
 export async function smartGeocode(query) {
   let hong = false;
   const thu = async (q) => {

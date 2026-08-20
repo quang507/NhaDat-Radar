@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
-// Cloudflare Turnstile (captcha vô hình/managed). Site key là CÔNG KHAI — secret
+// Cloudflare Turnstile (captcha vô hình/managed). Site key là CÔNG KHAI - secret
 // chỉ nằm trong Supabase Dashboard, không bao giờ ở code.
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "0x4AAAAAAEQClujXbzlwPwmn";
-// LƯU Ý: đường dẫn đúng có "/v0/" — bản cũ thiếu -> 404 -> widget không tải -> không có token
+// LƯU Ý: đường dẫn đúng có "/v0/" - bản cũ thiếu -> 404 -> widget không tải -> không có token
 // -> Supabase (đã bật captcha) từ chối MỌI đăng nhập (sự cố 16/8/2026).
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 

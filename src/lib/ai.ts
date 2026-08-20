@@ -36,7 +36,7 @@ const PROMPT = `Bạn là trợ lý Zalo OA của một sàn nhà đất. Đọc
 Giá quy về VND (3tr5 -> 3500000, 6 tỷ -> 6000000000). Chỉ suy từ nội dung, không bịa.`;
 
 export async function classifyAndExtract(text: string): Promise<ZaloIntent> {
-  // review /ultrareview: bản cũ tự gọi fetch với DUY NHẤT process.env.GEMINI_API_KEY — không xoay
+  // review /ultrareview: bản cũ tự gọi fetch với DUY NHẤT process.env.GEMINI_API_KEY - không xoay
   // khoá, không kiểm res.ok, không có nhánh 429. Khi bị chặn tần suất, phản hồi lỗi không có
   // `candidates` nên rơi vào `|| "{}"` và hàm trả về object rỗng -> bot đáp "em chưa rõ", tức là
   // HIỂU NHẦM bị-chặn-tần-suất THÀNH tin-nhắn-không-rõ-nghĩa. Người dùng bị đổ lỗi cho sự cố hạ tầng.

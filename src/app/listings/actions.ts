@@ -27,7 +27,7 @@ export async function createLead(
   const message = String(formData.get("message") || "").trim();
   if (!name || !phone) return { ok: false, error: "Nhập tên và số điện thoại." };
   if (!PHONE_RE.test(phone.replace(/[\s.-]/g, ""))) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
-  if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh — thử lại sau ít phút." };
+  if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút." };
 
   const supabase = await createClient();
   // Chỉ thêm project_id khi có (tránh lỗi nếu migration 004 chưa chạy trên DB).
@@ -48,7 +48,7 @@ export async function reportListing(_prev: LeadState, formData: FormData): Promi
   const detail = String(formData.get("detail") || "").trim().slice(0, 500);
   if (!listing_id || !REPORT_REASONS[reason]) return { ok: false, error: "Chọn lý do báo cáo." };
   if (reason === "khac" && detail.length < 10) return { ok: false, error: "Mô tả thêm giúp Radar xử lý đúng (≥10 ký tự)." };
-  if (await tooMany("report", 10)) return { ok: false, error: "Bạn báo cáo hơi nhanh — thử lại sau ít phút." };
+  if (await tooMany("report", 10)) return { ok: false, error: "Bạn báo cáo hơi nhanh - thử lại sau ít phút." };
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { error } = await supabase.from("listing_reports").insert({ listing_id, reason, detail: detail || null, reporter_id: user?.id ?? null });

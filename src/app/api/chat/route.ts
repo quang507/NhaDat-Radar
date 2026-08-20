@@ -128,9 +128,9 @@ export async function POST(req: NextRequest) {
     if (!stats.length) {
       return NextResponse.json({ reply: "Chưa đủ dữ liệu cho khu vực này. Bạn thử hỏi về Hà Nội, Hồ Chí Minh hoặc Đà Nẵng nhé.", listings: [] });
     }
-    const fm = (v: number | null) => (v ? (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k") : "—");
+    const fm = (v: number | null) => (v ? (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k") : "-");
     const table = stats
-      .map((s) => `${s.district} (${s.province}): bán ${fm(s.ban_ppm2)}/m² · thuê ${fm(s.thue_ppm2)}/m²/th · yield ${s.yield_pct ?? "—"}%/năm · ${s.n} tin`)
+      .map((s) => `${s.district} (${s.province}): bán ${fm(s.ban_ppm2)}/m² · thuê ${fm(s.thue_ppm2)}/m²/th · yield ${s.yield_pct ?? "-"}%/năm · ${s.n} tin`)
       .join("\n");
     const reply = await gemini(
       `Bạn là chuyên gia phân tích BĐS Việt Nam của NhaDat Radar. Người dùng hỏi: "${last}"
@@ -170,7 +170,7 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
         process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5].filter(Boolean) as string[];
       // Cùng danh sách model với crawler/embed.mjs (vector câu hỏi phải cùng model với vector đã lưu)
       let vec: number[] | null = null;
-      outer: for (const model of ["gemini-embedding-001"]) { // text-embedding-004 đã bị gỡ (404) — giữ đồng bộ với crawler/embed.mjs
+      outer: for (const model of ["gemini-embedding-001"]) { // text-embedding-004 đã bị gỡ (404) - giữ đồng bộ với crawler/embed.mjs
         for (const k of KEYS) {
           const body: Record<string, unknown> = { content: { parts: [{ text: last.slice(0, 1000) }] } };
           if (model === "gemini-embedding-001") body.outputDimensionality = 768;
@@ -201,10 +201,10 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
   let reply: string | null = null;
   if (found.length) {
     const summary = found
-      .map((x, i) => `${i + 1}. ${x.title} — ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? `, ${x.area_m2}m²` : ""} (${[x.district, x.province].filter(Boolean).join(", ")})`)
+      .map((x, i) => `${i + 1}. ${x.title} - ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? `, ${x.area_m2}m²` : ""} (${[x.district, x.province].filter(Boolean).join(", ")})`)
       .join("\n");
     reply = await gemini(
-      `Bạn là trợ lý sàn nhà đất NhaDat Radar. Người dùng hỏi: "${last}".\nHệ thống tìm được:\n${summary}\n\nViết 1-2 câu tiếng Việt thân thiện giới thiệu kết quả (KHÔNG liệt kê lại — web đã hiển thị thẻ tin). Gợi ý tinh chỉnh nếu phù hợp.`,
+      `Bạn là trợ lý sàn nhà đất NhaDat Radar. Người dùng hỏi: "${last}".\nHệ thống tìm được:\n${summary}\n\nViết 1-2 câu tiếng Việt thân thiện giới thiệu kết quả (KHÔNG liệt kê lại - web đã hiển thị thẻ tin). Gợi ý tinh chỉnh nếu phù hợp.`,
       { json: false },
     );
     reply ||= `Mình tìm được ${found.length} tin phù hợp, bạn xem bên dưới nhé! Bấm ♥ để lưu tin.`;

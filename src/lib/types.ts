@@ -25,7 +25,7 @@ export type Listing = {
   lat: number | null;
   lng: number | null;
   amenities: string[];
-  // Bảng thông số riêng của từng nguồn — mỗi nguồn/mỗi loại BĐS một bộ nhãn khác nhau
+  // Bảng thông số riêng của từng nguồn - mỗi nguồn/mỗi loại BĐS một bộ nhãn khác nhau
   // (đất: mặt tiền, chiều dài, hình dáng, số mặt tiếp giáp; nhà: số tầng, thang máy, năm xây)
   // nên để nguyên dạng nhãn→giá trị, trang chi tiết chỉ hiện ô nào có dữ liệu.
   specs: Record<string, string> | null;
@@ -88,7 +88,7 @@ export type Project = {
   status: string;
   priority?: number | null;   // 012: cao lên trước (dự án Nhã Đạt/đối tác)
   is_partner?: boolean | null;
-  // 013: thông số bóc từ nguồn — cặp nhãn/giá trị tuỳ dự án (Tổng diện tích, Ngày bàn giao, Pháp lý…)
+  // 013: thông số bóc từ nguồn - cặp nhãn/giá trị tuỳ dự án (Tổng diện tích, Ngày bàn giao, Pháp lý…)
   specs?: Record<string, string> | null;
   handover?: string | null;          // "2020" / "Quý III/2020"
   source_url?: string | null;        // link trang gốc trên nguồn

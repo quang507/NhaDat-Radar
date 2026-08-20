@@ -9,7 +9,7 @@ import { getFavs, pullDbFavs } from "@/components/FavButton";
 import { fmtPrice, fmtPpm2, PROP } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 
-// Trang tin đã lưu ♥ — id lưu ở localStorage, không cần đăng nhập.
+// Trang tin đã lưu ♥ - id lưu ở localStorage, không cần đăng nhập.
 export default function FavouritesPage() {
   const [items, setItems] = useState<Listing[] | null>(null);
   const [compare, setCompare] = useState(false);

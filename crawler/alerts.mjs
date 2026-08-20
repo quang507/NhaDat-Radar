@@ -48,7 +48,7 @@ for (const s of searches ?? []) {
       from: FROM, to: [s.email],
       subject: `🏠 ${hits.length} tin mới khớp tìm kiếm của bạn (${criteria})`,
       html: `<div style="font-family:sans-serif;max-width:560px">
-        <h2 style="color:#2563eb">NhaDat Radar — tin mới cho bạn</h2>
+        <h2 style="color:#2563eb">NhaDat Radar - tin mới cho bạn</h2>
         <p>Bộ lọc: <b>${criteria}</b></p><ul style="padding-left:18px">${rows}</ul>
         <p><a href="${SITE}/search" style="color:#2563eb">Xem thêm trên NhaDat Radar →</a></p>
         <p style="color:#999;font-size:12px">Bạn nhận mail này vì đã bấm 🔔 trên trang tìm kiếm.</p></div>`,

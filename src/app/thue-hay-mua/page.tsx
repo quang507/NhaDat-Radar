@@ -35,7 +35,7 @@ export default async function RentVsBuyPage() {
     .filter((r) => r.yieldPct != null && r.nBan >= 3 && r.nThue >= 3)
     .sort((a, b) => (b.yieldPct ?? 0) - (a.yieldPct ?? 0));
 
-  const fm = (v: number | null) => (v ? (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k") : "—");
+  const fm = (v: number | null) => (v ? (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k") : "-");
 
   return (
     <div>
@@ -44,7 +44,7 @@ export default async function RentVsBuyPage() {
         <h1 className="prata text-3xl mb-3">Thuê Hay Mua?</h1>
         <p className="text-[var(--ink-soft)] max-w-2xl mx-auto">
           So sánh chi phí thuê với chi phí mua trả góp, và xem tỷ suất cho thuê (rental yield)
-          từng quận — quận yield cao là nơi đầu tư cho thuê hiệu quả.
+          từng quận - quận yield cao là nơi đầu tư cho thuê hiệu quả.
         </p>
       </section>
 

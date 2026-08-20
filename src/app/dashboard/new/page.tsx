@@ -11,7 +11,7 @@ export default async function NewListingPage() {
   if (!user) redirect("/auth?message=" + encodeURIComponent("Đăng nhập để đăng tin"));
 
   // Gợi ý tỉnh/quận từ dữ liệu thật để tên nhập khớp DB (lọt bộ lọc + trang khu vực)
-  // Cây khu vực cache 10' (lib/geo) — audit 16/8: bản cũ select 5.000 dòng mỗi lần mở form
+  // Cây khu vực cache 10' (lib/geo) - audit 16/8: bản cũ select 5.000 dòng mỗi lần mở form
   const areas = await getAreas();
   const geo: Record<string, string[]> = Object.fromEntries(Object.entries(areas.geo).map(([p, ds]) => [p, Object.keys(ds).sort()]));
 

@@ -32,7 +32,7 @@ export default function ImageUpload({
       const ext = (f.name.split(".").pop() || "jpg").toLowerCase();
       const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const { error } = await supabase.storage.from("uploads").upload(path, f, { contentType: f.type });
-      if (error) { console.error("upload:", error.message); setErr(`Không tải được ảnh "${f.name}" — thử ảnh khác hoặc tải lại trang.`); continue; }
+      if (error) { console.error("upload:", error.message); setErr(`Không tải được ảnh "${f.name}" - thử ảnh khác hoặc tải lại trang.`); continue; }
       added.push(supabase.storage.from("uploads").getPublicUrl(path).data.publicUrl);
     }
     setUrls((u) => [...u, ...added]);

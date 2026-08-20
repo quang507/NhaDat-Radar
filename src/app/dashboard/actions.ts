@@ -37,8 +37,8 @@ export async function createListing(
   const title = String(formData.get("title") || "").trim();
   const price = parseVnd(String(formData.get("price") || ""));
   if (!title) return { ok: false, error: "Nhập tiêu đề tin." };
-  if (!price) return { ok: false, error: "Giá chưa đọc được — nhập kiểu \"8,5 tỷ\" hoặc \"12 triệu\"." };
-  if (price < 1e5) return { ok: false, error: "Giá quá nhỏ — bạn có quên đơn vị (tỷ/triệu) không?" };
+  if (!price) return { ok: false, error: "Giá chưa đọc được - nhập kiểu \"8,5 tỷ\" hoặc \"12 triệu\"." };
+  if (price < 1e5) return { ok: false, error: "Giá quá nhỏ - bạn có quên đơn vị (tỷ/triệu) không?" };
   const contactPhone = String(formData.get("contact_phone") || "").replace(/[^\d+]/g, "");
   if (contactPhone && !/^(\+?84|0)\d{9,10}$/.test(contactPhone)) return { ok: false, error: "SĐT không hợp lệ (10 số, bắt đầu bằng 0)." };
   // NĐ13: SĐT chỉ hiển thị công khai khi người đăng đồng ý rõ ràng
@@ -101,7 +101,7 @@ export async function createListing(
 }
 
 // Người bán xác nhận/từ chối, hoặc bên nào cũng hủy được lịch hẹn.
-// RLS (appt_participants) chỉ cho buyer/agent của lịch đó update — an toàn.
+// RLS (appt_participants) chỉ cho buyer/agent của lịch đó update - an toàn.
 export async function setAppointmentStatus(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

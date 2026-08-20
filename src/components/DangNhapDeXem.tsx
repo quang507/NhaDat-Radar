@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 
-// Cổng "đăng nhập để xem SĐT người đăng" — mô hình Homigo nhưng KHÔNG thu tiền:
+// Cổng "đăng nhập để xem SĐT người đăng" - mô hình Homigo nhưng KHÔNG thu tiền:
 // khách vãng lai bấm nút thì mở popup mời đăng nhập/đăng ký, đăng nhập xong thấy số.
 // Mục tiêu là gom tài khoản (email + tên) để nuôi kênh phân phối (email tin mới, retarget),
-// đổi lại khách được xem SĐT che — chi phí bằng 0 với khách, giá trị thu về là danh sách user.
+// đổi lại khách được xem SĐT che - chi phí bằng 0 với khách, giá trị thu về là danh sách user.
 //
-// Chỉ chặn SĐT NGƯỜI ĐĂNG. Hotline tư vấn của Radar (TuVanRadar) vẫn hiện cho mọi khách —
+// Chỉ chặn SĐT NGƯỜI ĐĂNG. Hotline tư vấn của Radar (TuVanRadar) vẫn hiện cho mọi khách -
 // chặn nốt cái đó là tự bóp kênh lead chính.
 //
 // v1: /auth sau đăng nhập đổ về /dashboard chứ chưa quay lại đúng tin đang xem (actions.ts
-// chưa nhận tham số next). Chấp nhận được — sửa luồng quay-lại là việc riêng ở auth/actions.
+// chưa nhận tham số next). Chấp nhận được - sửa luồng quay-lại là việc riêng ở auth/actions.
 export default function DangNhapDeXem() {
   const [mo, setMo] = useState(false);
 
@@ -42,7 +42,7 @@ export default function DangNhapDeXem() {
               Đăng ký miễn phí
             </a>
             <a href="/auth" className="btn w-full text-center block border border-[var(--line)]">
-              Tôi đã có tài khoản — Đăng nhập
+              Tôi đã có tài khoản - Đăng nhập
             </a>
             <button
               onClick={() => setMo(false)}

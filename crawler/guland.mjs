@@ -1,4 +1,4 @@
-// Crawler GULAND.VN — HTML server-render, fetch thẳng được (không Cloudflare, không cần Playwright).
+// Crawler GULAND.VN - HTML server-render, fetch thẳng được (không Cloudflare, không cần Playwright).
 // Thêm 18/8 để dày dữ liệu. Cấu trúc thẻ tin rất sạch:
 //   <h3 class="c-sdb-card__tle"><a href=".../post/...-<id>">Tiêu đề</a></h3>
 //   <span class="sdb-inf-data data-color-1 data-size-xl"><b>480 triệu</b></span>   <- giá
@@ -52,7 +52,7 @@ const sachTinh = (s) => {
 };
 
 // "đất" cần NHIỀU HƠN là biên chữ. Tiếng Việt tách âm tiết bằng khoảng trắng, nên trong
-// "Xã Đất Cuốc" chữ "đất" VẪN là một token độc lập — biên (?<!\p{L})/(?!\p{L}) không cứu được.
+// "Xã Đất Cuốc" chữ "đất" VẪN là một token độc lập - biên (?<!\p{L})/(?!\p{L}) không cứu được.
 // Đo thật trên 175 tiêu đề guland: thêm biên cho kết quả Y HỆT bản không biên (106 dat cả hai).
 // Phải chặn theo NGỮ CẢNH:
 //   1. sau đơn vị hành chính -> là ĐỊA DANH: Xã Đất Cuốc, Huyện Đất Đỏ (BRVT), Xã Đất Mũi (Cà Mau)
@@ -78,14 +78,14 @@ export function parseGuland(html, tinhMacDinh, deal) {
   const out = [];
   // Cắt ở TIÊU ĐỀ (__tle). Đã thử 2 mốc khác hôm 18/8 và đều hỏng: __wrap không bao tiêu đề
   // -> 0 tin; "c-sdb-card" trần khớp cả __cnt/__inf nên tiêu đề và giá rơi vào 2 mảnh -> 0 giá.
-  // Ảnh không nằm trong mảnh này — boSungChiTiet() lấy từ trang chi tiết.
+  // Ảnh không nằm trong mảnh này - boSungChiTiet() lấy từ trang chi tiết.
   const khoi = html.split('class="c-sdb-card__tle"').slice(1);
   for (const k0 of khoi) {
     const k = k0.slice(0, 4000);
     const m = k.match(/<a href="(https:\/\/guland\.vn\/post\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/);
     if (!m) continue;
     const url = m[1];
-    // NFC — review /ultrareview: (?!\p{L}) coi dấu tổ hợp NFD (VD ký tự "ô" tách thành "o"+dấu) là
+    // NFC - review /ultrareview: (?!\p{L}) coi dấu tổ hợp NFD (VD ký tự "ô" tách thành "o"+dấu) là
     // biên chữ, nên regex có biên tự thêm hôm nay có thể bị vô hiệu trên text NFD. Dữ liệu guland
     // đo thật đang là NFC (178/179), giữ vậy để không phụ thuộc vào nguồn không đổi định dạng.
     const title = dec(m[2]).normalize("NFC");
@@ -97,14 +97,14 @@ export function parseGuland(html, tinhMacDinh, deal) {
     const giaTxt = o.find((v) => /tỷ|triệu|thỏa thuận/i.test(v) && !/\/m/.test(v));
     const dtTxt = o.find((v) => /m²|m2/i.test(v) && !/\//.test(v));
     // Diện tích dùng CHUNG quy tắc chấm với parseGia (review /ultrareview: bản cũ để nguyên dấu
-    // chấm nên parseFloat("1.200m²") = 1.2 — mảnh 1.200m² thành 1,2m². Vì price_per_m2 = giá/DT,
+    // chấm nên parseFloat("1.200m²") = 1.2 - mảnh 1.200m² thành 1,2m². Vì price_per_m2 = giá/DT,
     // sai 1000 lần ở đây đẩy đơn giá lệch 1000 lần và làm hỏng cả trung vị của cụm so giá.)
     const dt = dtTxt ? soVN(dtTxt.replace(/[^\d.,]/g, "")) : null;
 
     const diaChi = dec((k.match(/data-type-adr"[^>]*>([\s\S]*?)<\/div>/) || [])[1] || "");
     const phan = diaChi.split(",").map((s) => s.trim()).filter(Boolean);
     const tinh = phan.length ? phan[phan.length - 1] : tinhMacDinh;
-    // Nhận diện theo TIỀN TỐ, không theo vị trí — review 19/8: địa chỉ 2 cấp sau sáp nhập
+    // Nhận diện theo TIỀN TỐ, không theo vị trí - review 19/8: địa chỉ 2 cấp sau sáp nhập
     // ("Đường TC5, Xã Đức Lập, Tây Ninh") từng bị đọc thành quận="Xã Đức Lập",
     // phường="Đường TC5" -> bộ lọc quận/phường ra bucket rác, khoá geocode vô nghĩa.
     const giua = phan.slice(0, -1);
@@ -118,7 +118,7 @@ export function parseGuland(html, tinhMacDinh, deal) {
       id: "gl-" + (id || Math.abs(hash(url)).toString(36)),
       source: "crawl", source_site: "guland.vn", source_url: url, source_post_id: id || null,
       title, description: null,
-      // chuỗi địa chỉ nguyên văn của nguồn ("Đường TC5, Xã Đức Lập, Tây Ninh") — trước đây
+      // chuỗi địa chỉ nguyên văn của nguồn ("Đường TC5, Xã Đức Lập, Tây Ninh") - trước đây
       // tách xong lấy 3 mảnh cuối rồi VỨT, mất luôn tên đường. Giữ lại: vừa hiện cho khách
       // đọc, vừa dùng geocode chính xác hơn tâm quận.
       address: diaChi || null,
@@ -128,7 +128,7 @@ export function parseGuland(html, tinhMacDinh, deal) {
       province: sachTinh(tinh) || tinhMacDinh, district: quan, ward: phuong,
       lat: null, lng: null, amenities: [], images: [],
       poster_role: "khong_ro",
-      // ai_score để null cho heuristicScore() của merge chấm — review 19/8: công thức tự chế
+      // ai_score để null cho heuristicScore() của merge chấm - review 19/8: công thức tự chế
       // ở đây chấm guland trên thang khác hẳn các nguồn còn lại, và mọi tinh chỉnh thang chung
       // không bao giờ tới được guland.
       ai_score: null,
@@ -151,20 +151,20 @@ function tai(url) {
   } catch (e) { console.error("  curl lỗi:", e.message.slice(0, 80)); return ""; }
 }
 
-// Ảnh THẬT chỉ có ở trang chi tiết (/files/...). Chỉ lấy cho tin MỚI — so id với guland.json
-// lượt trước — nên mỗi lượt chỉ vài chục lượt tải thay vì toàn bộ.
-// review 19/8: tên cũ ANH_/GULAND_IMG_* gây lạc lối — hai hằng này giờ điều tiết CẢ lượt lấy
+// Ảnh THẬT chỉ có ở trang chi tiết (/files/...). Chỉ lấy cho tin MỚI - so id với guland.json
+// lượt trước - nên mỗi lượt chỉ vài chục lượt tải thay vì toàn bộ.
+// review 19/8: tên cũ ANH_/GULAND_IMG_* gây lạc lối - hai hằng này giờ điều tiết CẢ lượt lấy
 // chi tiết (ảnh + mô tả + SĐT + thông số), ai chỉnh "giới hạn ảnh" là vô tình bóp luôn phần kia.
 // Trần nâng 120 -> 250: guland.json nằm trong .gitignore nên trên CI mỗi run đều VÔ TRẠNG THÁI,
 // tin ngoài trần sẽ mang images:[] + description:null đi GHI ĐÈ dữ liệu run trước trong DB.
-// 250 phủ trọn ~200 tin/lượt (~5 phút với 1.2s/tin — CI đã nới 60 phút).
+// 250 phủ trọn ~200 tin/lượt (~5 phút với 1.2s/tin - CI đã nới 60 phút).
 const CT_GAP_MS = Number(process.env.GULAND_DETAIL_GAP_MS || process.env.GULAND_IMG_GAP_MS || 1200);
 const CT_MAX = Number(process.env.GULAND_DETAIL_MAX || process.env.GULAND_IMG_MAX || 250);
 // Cùng 1 lượt tải trang chi tiết lấy được CẢ BA: ảnh, mô tả, SĐT. Trang danh sách không
 // có thứ nào trong ba (đo 19/8: 99/99 tin guland trong DB mô tả rỗng, 0% có SĐT).
-// Lấy cho tin MỚI, và cho cả tin cũ còn THIẾU mô tả — để 99 tin đã nằm trong DB được bù.
+// Lấy cho tin MỚI, và cho cả tin cũ còn THIẾU mô tả - để 99 tin đã nằm trong DB được bù.
 async function boSungChiTiet(all, idCu) {
-  // "đã lấy chi tiết" là DẤU MỐC tường minh (chi_tiet_luc), không suy từ dữ liệu — review 19/8:
+  // "đã lấy chi tiết" là DẤU MỐC tường minh (chi_tiet_luc), không suy từ dữ liệu - review 19/8:
   // suy từ "có ảnh && có mô tả" khiến tin mà trang chi tiết vốn không có ảnh bị tải lại VĨNH
   // VIỄN mỗi lượt, chiếm chỗ trong trần CT_MAX của tin mới thật.
   const can = all.filter((x) => x.source_url && !idCu.has(x.id)).slice(0, CT_MAX);
@@ -210,14 +210,14 @@ async function boSungChiTiet(all, idCu) {
         x.amenities = [...am];
       }
 
-      // SĐT: CHỈ lấy từ nút gọi của người đăng (class call-post). KHÔNG quét tel: cả trang —
+      // SĐT: CHỈ lấy từ nút gọi của người đăng (class call-post). KHÔNG quét tel: cả trang -
       // review 19/8: trang còn chứa số của các tin gợi ý bên cạnh (đo: 5 số khác nhau/trang),
       // fallback tel: từng có thể gắn số NGƯỜI KHÁC vào tin -> khách gọi nhầm chủ.
       const p = html.match(/class="[^"]*call-post[^"]*"[\s\S]{0,300}?((?:0|\+84)\d{8,10})/);
       if (p) { x.contact_phone = p[1].replace(/^\+84/, "0"); sdt++; }
     }
     // review /ultrareview: trước đây đóng dấu NGOÀI khối if(html) -> một lần curl hỏng thoáng qua
-    // (403/timeout — đúng chế độ dòng 125-128 mô tả) bị coi là "đã lấy chi tiết", loại tin đó khỏi
+    // (403/timeout - đúng chế độ dòng 125-128 mô tả) bị coi là "đã lấy chi tiết", loại tin đó khỏi
     // mọi lần thử lại VĨNH VIỄN dù chưa từng lấy được gì. Chỉ đóng dấu khi html tải thành công.
     if (html) x.chi_tiet_luc = new Date().toISOString();
     if ((i + 1) % 20 === 0) console.error(`  ...${i + 1}/${can.length} | ảnh ${anh} · mô tả ${mota} · SĐT ${sdt} · thông số ${spec}`);
@@ -268,7 +268,7 @@ async function run() {
   all = all.filter((x) => (seen.has(x.id) ? false : seen.add(x.id)));
   if (!all.length) { console.error("guland: 0 tin -> giữ guland.json cũ"); return; }
 
-  // Mang sang từ lượt trước MỌI thứ chỉ trang chi tiết mới có — review 19/8: bản cũ chỉ mang
+  // Mang sang từ lượt trước MỌI thứ chỉ trang chi tiết mới có - review 19/8: bản cũ chỉ mang
   // description + contact_phone, làm specs/hướng/pháp lý/số tầng/tiện ích thành null ở lượt
   // N+1 rồi upsert nguyên hàng GHI ĐÈ null lên DB: thông số biến mất sau đúng một ngày.
   for (const x of all) {

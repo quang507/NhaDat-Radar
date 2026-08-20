@@ -56,7 +56,7 @@ export default async function Nav() {
           ) : (
             <>
               <Link href="/auth" className="btn whitespace-nowrap">Đăng nhập</Link>
-              {/* mobile: 1 nút là đủ (form /auth có tab Đăng ký) — 2 nút làm tràn nav ở 390px */}
+              {/* mobile: 1 nút là đủ (form /auth có tab Đăng ký) - 2 nút làm tràn nav ở 390px */}
               <Link href="/auth?mode=register" className="btn btn-primary whitespace-nowrap hidden sm:inline-flex">Đăng ký</Link>
             </>
           )}

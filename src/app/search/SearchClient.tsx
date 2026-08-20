@@ -143,9 +143,9 @@ export default function SearchClient({
           <h1 className="prata text-xl md:text-2xl">{pageTitle}</h1>
           <p className="text-xs text-[var(--ink-soft)] mt-0.5">
             {newToday > 0 ? <><b className="text-emerald-600">{newToday.toLocaleString("vi-VN")} tin mới hôm nay</b> · </> : null}
-            Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{(total ?? 0) > listings.length ? ` (đang hiển thị ${listings.length} tin mới nhất — thu hẹp bộ lọc để xem đúng phần bạn cần)` : ""}.
+            Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{(total ?? 0) > listings.length ? ` (đang hiển thị ${listings.length} tin mới nhất - thu hẹp bộ lọc để xem đúng phần bạn cần)` : ""}.
           </p>
-          {/* Nói rõ vì sao lọc "Hồ Chí Minh" lại ra tin ghi Bình Dương — không thì khách tưởng lọc sai */}
+          {/* Nói rõ vì sao lọc "Hồ Chí Minh" lại ra tin ghi Bình Dương - không thì khách tưởng lọc sai */}
           {newAddr && gomThem.length > 0 && (
             <p className="text-xs text-[var(--ink-soft)] mt-1">
               Theo địa giới 2025, kết quả gồm cả tin còn ghi <b>{gomThem.join(", ")}</b> (đã sáp nhập vào {f.province}).
@@ -195,7 +195,7 @@ export default function SearchClient({
 
       <RecentSearches />
 
-      {/* ===== Hàng chip lọc nhanh (cấp CƠ BẢN — người tìm nhà vãng lai) ===== */}
+      {/* ===== Hàng chip lọc nhanh (cấp CƠ BẢN - người tìm nhà vãng lai) ===== */}
       <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
         <button
           className={`btn text-sm ${showFilter ? "!border-brand !text-brand" : ""}`}
@@ -232,7 +232,7 @@ export default function SearchClient({
           role="switch" aria-checked={!!newAddr}
           className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
           onClick={() => push({ ...f, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
-          title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 — chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
+          title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 - chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
         >
           <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
@@ -313,7 +313,7 @@ export default function SearchClient({
               </select>
             </label>
           </div>
-          {/* NN/g #7: cấp NÂNG CAO — môi giới / nhà đầu tư (diện tích, PN, hướng, pháp lý) ẩn mặc định để người vãng lai không rối */}
+          {/* NN/g #7: cấp NÂNG CAO - môi giới / nhà đầu tư (diện tích, PN, hướng, pháp lý) ẩn mặc định để người vãng lai không rối */}
           <button type="button" onClick={() => setShowAdvanced((v) => !v)} className="mt-3 text-sm font-semibold text-brand flex items-center gap-1">
             {showAdvanced ? "▾" : "▸"} Bộ lọc nâng cao <span className="text-xs font-normal text-[var(--ink-soft)]">(diện tích, phòng ngủ, hướng, pháp lý)</span>
           </button>

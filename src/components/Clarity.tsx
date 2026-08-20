@@ -1,6 +1,6 @@
 import Script from "next/script";
 
-// Microsoft Clarity (free): heatmap + session recording + rage click — đo UX thật (bước "đo sau khi live" của UX validation).
+// Microsoft Clarity (free): heatmap + session recording + rage click - đo UX thật (bước "đo sau khi live" của UX validation).
 // Chỉ nạp khi có NEXT_PUBLIC_CLARITY_ID (Vercel env). Lấy ID: clarity.microsoft.com -> New project -> Setup -> "Install manually" -> chuỗi sau "clarity", "script", "XXXX".
 export default function Clarity() {
   const id = process.env.NEXT_PUBLIC_CLARITY_ID;

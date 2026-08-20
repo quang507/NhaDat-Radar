@@ -4,18 +4,18 @@ import { useMemo, useState } from "react";
 
 const VND = new Intl.NumberFormat("vi-VN");
 function money(v: number): string {
-  if (!Number.isFinite(v)) return "—";
+  if (!Number.isFinite(v)) return "-";
   return VND.format(Math.round(v)) + " ₫";
 }
 
 const TIPS: [string, string][] = [
   ["Tỷ lệ vay an toàn", "Ngân hàng thường cho vay tối đa 70-80% giá trị nhà; khoản trả hàng tháng không nên vượt 40% thu nhập."],
-  ["Lãi suất ưu đãi", "Nhiều ngân hàng có lãi ưu đãi 1-2 năm đầu rồi thả nổi — hãy tính theo lãi suất thả nổi để không bị động."],
+  ["Lãi suất ưu đãi", "Nhiều ngân hàng có lãi ưu đãi 1-2 năm đầu rồi thả nổi - hãy tính theo lãi suất thả nổi để không bị động."],
   ["Trả trước hạn", "Hỏi rõ phí trả nợ trước hạn (thường 1-3% số tiền trả trước trong các năm đầu)."],
-  ["So sánh nhiều ngân hàng", "Chênh 0.5%/năm trên khoản vay 2 tỷ trong 20 năm là hàng trăm triệu đồng — luôn so sánh ít nhất 3 ngân hàng."],
+  ["So sánh nhiều ngân hàng", "Chênh 0.5%/năm trên khoản vay 2 tỷ trong 20 năm là hàng trăm triệu đồng - luôn so sánh ít nhất 3 ngân hàng."],
 ];
 
-// Máy tính thế chấp: gốc + lãi trả đều (annuity) — chuẩn cách ngân hàng VN tính "trả góp đều".
+// Máy tính thế chấp: gốc + lãi trả đều (annuity) - chuẩn cách ngân hàng VN tính "trả góp đều".
 export default function MortgagePage() {
   const [price, setPrice] = useState(3_000_000_000);
   const [downPct, setDownPct] = useState(30);

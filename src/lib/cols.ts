@@ -1,10 +1,10 @@
-// Danh sách cột của bảng `listings` dùng cho .select() — MỌI CỘT TRỪ `embedding`.
+// Danh sách cột của bảng `listings` dùng cho .select() - MỌI CỘT TRỪ `embedding`.
 //
 // Sự cố 17/8 (đo trên bản deploy thật): /search có TTFB 176ms nhưng HTML mất 6.376ms mới tải xong.
 // Thủ phạm: các trang dùng .select("*"), mà migration 003 thêm cột `embedding vector(768)` cho tìm
 // kiếm ngữ nghĩa. PostgREST trả vector đó dưới dạng text (~15KB/dòng); /search lấy 200 tin và 51%
 // số tin đã có embedding -> ~1.5MB dữ liệu vô ích kéo từ Supabase (Tokyo) về Vercel mỗi lần tải
-// trang, và sẽ thành ~2.9MB khi embed.mjs chạy xong. KHÔNG trang nào dùng tới cột này — tìm kiếm
+// trang, và sẽ thành ~2.9MB khi embed.mjs chạy xong. KHÔNG trang nào dùng tới cột này - tìm kiếm
 // ngữ nghĩa đi qua RPC match_listings, chỉ trả về id.
 //
 // ⚠ PHẢI viết thành MỘT chuỗi literal liền (không dùng [].join(",") cũng không nối bằng "+"):

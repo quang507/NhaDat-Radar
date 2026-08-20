@@ -21,7 +21,7 @@ export default function ListingRow({ x }: { x: Listing }) {
     <Link href={`/listings/${x.id}`} className="card rounded-xl overflow-hidden flex flex-col sm:flex-row hover:border-[var(--line-strong)] hover:shadow-md transition-all group">
       {/* Media: 1 ảnh lớn + tối đa 3 ảnh nhỏ */}
       {/* UX audit 16/8: dải ảnh cao ~400px/dòng (desktop) và chiếm cả màn hình (mobile) -> 1,5 tin/màn.
-          Cap chiều cao: mobile 176px, desktop 208px — ~3 tin/màn như batdongsan. */}
+          Cap chiều cao: mobile 176px, desktop 208px - ~3 tin/màn như batdongsan. */}
       <div className="sm:w-[300px] shrink-0 relative">
         {imgs.length ? (
           <div className={`grid gap-0.5 h-44 sm:h-52 ${imgs.length > 1 ? "grid-rows-[2fr_1fr]" : ""}`}>
@@ -64,7 +64,7 @@ export default function ListingRow({ x }: { x: Listing }) {
           {x.bedrooms ? <span className="text-sm text-[var(--ink-soft)]">{x.bedrooms} PN</span> : null}
           {x.bathrooms ? <span className="text-sm text-[var(--ink-soft)]">{x.bathrooms} WC</span> : null}
         </div>
-        <div className="text-xs text-[var(--ink-soft)] truncate">{loc || "—"}</div>
+        <div className="text-xs text-[var(--ink-soft)] truncate">{loc || "-"}</div>
         {x.description && (
           <p className="text-xs text-[var(--ink-soft)] line-clamp-2 leading-relaxed break-words min-w-0">{x.description}</p>
         )}

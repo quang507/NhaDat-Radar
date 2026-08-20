@@ -76,7 +76,7 @@ export default function AuthForm({
       {mode === "forgot" && (
         <form action={resetPassword} className="flex flex-col gap-3">
           <p className="text-sm text-[var(--ink-soft)] text-center">
-            Nhập email đã đăng ký — chúng tôi sẽ gửi link đặt lại mật khẩu.
+            Nhập email đã đăng ký - chúng tôi sẽ gửi link đặt lại mật khẩu.
           </p>
           <Field label="Email" name="email" type="email" placeholder="your@email.com" />
           <Turnstile />

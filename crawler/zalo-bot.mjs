@@ -1,5 +1,5 @@
 // ============================================================================
-//  Zalo bot (không cần OA/GPKD) — cầu nối zalo-agent-cli <-> NhaDat Radar.
+//  Zalo bot (không cần OA/GPKD) - cầu nối zalo-agent-cli <-> NhaDat Radar.
 //  Lắng nghe tin nhắn Zalo (acc clone, đăng nhập QR bằng zalo-agent-cli),
 //  phân loại bằng Gemini -> ghi tin (dang_tin) / tra DB trả lời (hoi_tin).
 //
@@ -7,13 +7,13 @@
 //  Cài 1 lần:  npm i -g zalo-agent-cli   (rồi đăng nhập: zalo-agent login  -> quét QR)
 //  Chạy:       node --env-file=.env.local crawler/zalo-bot.mjs
 //
-//  ⚠ Dùng tài khoản Zalo CLONE — API không chính thức có thể bị Zalo khoá.
+//  ⚠ Dùng tài khoản Zalo CLONE - API không chính thức có thể bị Zalo khoá.
 // ============================================================================
 import { spawn, execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
-import { qualityGate } from "./quality-gate.mjs";
+import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 
 // Windows: spawn/execFileSync KHÔNG chạy được shim .cmd của npm (ENOENT/EINVAL)
 // -> tìm file bin thật của zalo-agent-cli trong npm global rồi gọi `node <bin>`.
@@ -49,10 +49,10 @@ const KEYS = [process.env.ZALO_GEMINI_KEY, ..._KEYS_CHUNG.reverse()].filter(Bool
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) { console.error("Thiếu SUPABASE env (.env.local)"); process.exit(1); }
-if (!KEYS.length) { console.error("Thiếu GEMINI_API_KEY* (.env.local) — bot không phân loại được tin"); process.exit(1); } // audit 16/8: trước im lặng chào hỏi mãi
+if (!KEYS.length) { console.error("Thiếu GEMINI_API_KEY* (.env.local) - bot không phân loại được tin"); process.exit(1); } // audit 16/8: trước im lặng chào hỏi mãi
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
-// Link gửi cho khách phải là domain public — .env.local dev hay đặt localhost nên phải lọc
+// Link gửi cho khách phải là domain public - .env.local dev hay đặt localhost nên phải lọc
 const rawSite = process.env.NEXT_PUBLIC_SITE_URL || "";
 const SITE = rawSite && !/localhost|127\.0\.0\.1/.test(rawSite) ? rawSite.replace(/\/$/, "") : "https://nhadatradar.com";
 const PROP = { nha: "Nhà", dat: "Đất nền", can_ho: "Căn hộ", mat_bang: "Mặt bằng", phong_tro: "Phòng trọ", khac: "Nhà đất khác" };
@@ -107,7 +107,7 @@ async function saveListing(L, text, { fromGroup } = {}) {
     province: L.province ?? null, district: L.district ?? null, ward: L.ward ?? null,
     legal_status: L.legal ?? null, amenities: L.amenities || [], contact_phone: L.contact_phone ?? null,
     ai_score: fromGroup ? 70 : 85, poster_role_guess: "khong_ro",
-    status: "published", // 17/8: bỏ duyệt trước — lên thẳng, admin gỡ tin rác ngay trên trang tin
+    status: "published", // 17/8: bỏ duyệt trước - lên thẳng, admin gỡ tin rác ngay trên trang tin
   });
 }
 
@@ -117,8 +117,16 @@ async function harvestGroup(text) {
   const ai = await classify(text);
   if (ai.intent === "dang_tin" && ai.listing) {
     // Cổng chất lượng 17/8 (bỏ duyệt tay): thiếu từ khoá BĐS / SĐT / khu vực -> bỏ, không đăng
-    const why = qualityGate((ai.listing.title || "") + "\n" + text, ai.listing);
-    if (why) { console.log(`  ↷ bỏ (${why})`); return; }
+    // Cong NOI LONG cho tin GROUP (20/8, do tu log pm2: 13 tin truot cong = 8 thieu khu vuc,
+    // 4 thieu SDT, 1 khong phai BDS -> mat ~30% tin that). Nguoi viet trong group viet kieu
+    // chat - khu vuc thuong nam o TEN GROUP chu khong o bai. Van bat buoc "la tin BDS",
+    // nhung chi can MOT trong hai (SDT hoac khu vuc). DM giu cong chat nhu cu vi bot con
+    // nhac duoc nguoi gui bo sung; group thi bot im lang nen loai la mat han.
+    const vanBan = (ai.listing.title || "") + "\n" + text;
+    if (!BDS_KEYWORD.test(vanBan)) { console.log("  - bo (khong phai tin BDS)"); return; }
+    const coSdt = PHONE_RE.test(vanBan);
+    const coKhuVuc = !!(ai.listing.district || ai.listing.province) || AREA_HINT.test(vanBan);
+    if (!coSdt && !coKhuVuc) { console.log("  - bo (thieu ca SDT lan khu vuc)"); return; }
     const { error } = await saveListing(ai.listing, text, { fromGroup: true });
     console.log(error ? "  (lưu lỗi: " + error.message + ")" : "  ✓ bóc được 1 tin BĐS từ group -> đã đăng");
   }
@@ -140,7 +148,7 @@ async function handle(text) {
     }
     const { error } = await saveListing(L, text, { fromGroup: false });
     if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
-    return `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT — nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
+    return `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT - nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
   }
 
   if (ai.intent === "hoi_tin" && ai.query) {
@@ -176,7 +184,7 @@ async function handle(text) {
 }
 
 // ============================================================================
-//  ADAPTER zalo-agent-cli — CHỈNH 2 HÀM NÀY nếu tên lệnh CLI của bạn khác.
+//  ADAPTER zalo-agent-cli - CHỈNH 2 HÀM NÀY nếu tên lệnh CLI của bạn khác.
 //  Xem lệnh thật: `zalo-agent --help`, `zalo-agent message --help`
 // ============================================================================
 
@@ -199,7 +207,7 @@ function startListener() {
   const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message", "-f", "all", "--no-self", "--auto-accept"], { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
   child.on("error", (e) => console.error("spawn zalo-agent lỗi:", e.message)); // CLI thiếu/ENOENT -> không văng uncaught (audit 16/8)
 
-  // Xử lý 1 event (async). Chạy TUẦN TỰ qua hàng đợi promise — handler 'data' cũ là async + await trong vòng lặp
+  // Xử lý 1 event (async). Chạy TUẦN TỰ qua hàng đợi promise - handler 'data' cũ là async + await trong vòng lặp
   // trên biến buf dùng chung -> chunk kế vào giữa chừng làm hỏng/lặp dòng JSON (audit 16/8).
   async function handleEvent(ev) {
     const d = ev.data ?? ev; // CLI có thể bọc event zca-js trong {type/event, data:{...}}
@@ -207,7 +215,7 @@ function startListener() {
     const raw = d.content ?? d.text ?? d.message?.text ?? "";
     const text = (typeof raw === "string" ? raw : raw?.text ?? raw?.title ?? "").toString().trim();
     const isSelf = ev.isSelf ?? d.isSelf ?? d.self ?? false;
-    // zca-js: ThreadType 0=User, 1=Group (số) — kèm các biến thể chuỗi để chắc ăn
+    // zca-js: ThreadType 0=User, 1=Group (số) - kèm các biến thể chuỗi để chắc ăn
     const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
     const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
     if (!fromId || isSelf) return;

@@ -22,7 +22,7 @@ type Result = {
 const CONF: Record<string, [string, string]> = {
   cao: ["Độ tin cậy cao", "text-emerald-600 bg-emerald-500/10 border-emerald-500/30"],
   trung_binh: ["Độ tin cậy trung bình", "text-amber-600 bg-amber-500/10 border-amber-500/30"],
-  thap: ["Độ tin cậy thấp — ít tin so sánh", "text-red-600 bg-red-500/10 border-red-500/30"],
+  thap: ["Độ tin cậy thấp - ít tin so sánh", "text-red-600 bg-red-500/10 border-red-500/30"],
 };
 
 export default function ValuationClient({ geo }: { geo: Record<string, string[]> }) {
@@ -74,7 +74,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
         <div className="kicker mb-2">Định giá bằng AI + dữ liệu thật</div>
         <h1 className="prata text-3xl mb-3">AI Định Giá Bất Động Sản</h1>
         <p className="text-[var(--ink-soft)] max-w-2xl mx-auto">
-          Nhập thông tin tài sản — AI so sánh với các tin đang rao cùng khu vực trong dữ liệu của chúng tôi
+          Nhập thông tin tài sản - AI so sánh với các tin đang rao cùng khu vực trong dữ liệu của chúng tôi
           để đưa ra khoảng giá ước tính và dự phóng tương lai.
         </p>
       </section>

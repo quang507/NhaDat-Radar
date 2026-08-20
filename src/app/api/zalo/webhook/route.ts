@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       contact_phone: L.contact_phone ?? null, // consent: người dùng tự cung cấp
       ai_score: 85,
       poster_role_guess: "chu_nha",
-      status: "published", // 17/8: bỏ duyệt trước — lên thẳng, admin gỡ tin rác ngay trên trang tin
+      status: "published", // 17/8: bỏ duyệt trước - lên thẳng, admin gỡ tin rác ngay trên trang tin
     });
     if (insErr) {
       await sendZaloText(userId, "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏");

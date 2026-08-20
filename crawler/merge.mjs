@@ -26,7 +26,7 @@ const load = (f) => {
     // File THIẾU crawled_at thì cổng chống-file-cũ ở trên không có gì để so -> mọi tin trong đó
     // được nhận vô thời hạn, last_seen_at luôn tươi, và tin đã chết KHÔNG BAO GIỜ chuyển 'gone'.
     // Đã xảy ra thật: nhánh `--test` của batdongsan.mjs ghi summary không kèm crawled_at
-    // (review /ultrareview — nay đã sửa). Kêu to để lần sau còn biết đường lần.
+    // (review /ultrareview - nay đã sửa). Kêu to để lần sau còn biết đường lần.
     if (!at) console.error(f, "-> ⚠ THIẾU crawled_at: không kiểm được tuổi file, tin cũ có thể sống mãi.");
     return j.listings || [];
   } catch { return []; }
@@ -82,7 +82,7 @@ function canonDistrict(raw) {
 function norm(x) {
   const price = x.price_vnd ?? null, area = x.area_m2 ?? null;
   const dc = canonDistrict(x.district);
-  // nguồn nào không có sẵn trường SĐT thì dò trong mô tả — chotot/mogi người đăng hay tự
+  // nguồn nào không có sẵn trường SĐT thì dò trong mô tả - chotot/mogi người đăng hay tự
   // viết số vào bài (đo: 98% tin facebook dò ra được số ngay trong mô tả).
   const sdt = x.phone_masked ? { masked: x.phone_masked, hash: x.phone_hash ?? null }
     : cheSdt(x.contact_phone || (x.description || "").match(PHONE_RE)?.[0]);
@@ -122,7 +122,7 @@ function norm(x) {
   };
 }
 
-// (listings3.json = nhadat.vn đã bỏ 16/8 — domain chết)
+// (listings3.json = nhadat.vn đã bỏ 16/8 - domain chết)
 const sources = ["chotot.json", "batdongsan.json", "mogi.json", "facebook.json", "extra.json", "guland.json"];
 let all = [];
 for (const f of sources) { const rows = load(f).map(norm); all = all.concat(rows); console.error(f, "->", rows.length); }
@@ -133,7 +133,7 @@ all = all.filter((x) => !isJunk(x.title, x.description));
 console.error("junk filter:", beforeJunk, "->", all.length, `(bỏ ${beforeJunk - all.length} tin rác)`);
 
 // Cổng chất lượng (audit 16/8: batdongsantoanquoc 141/144 tin không giá, không DT, không quận -> lọt search dạng
-// "Thoả thuận · —", không lọc/so sánh được gì): tin phải có (giá HOẶC diện tích) VÀ (quận HOẶC tỉnh). Log theo nguồn.
+// "Thoả thuận · -", không lọc/so sánh được gì): tin phải có (giá HOẶC diện tích) VÀ (quận HOẶC tỉnh). Log theo nguồn.
 const beforeGate = all.length, dropped = {};
 all = all.filter((x) => {
   const ok = (x.price_vnd || x.area_m2) && (x.district || x.province);
@@ -147,18 +147,18 @@ const KIND_VI = { nha: "Nhà", dat: "Đất", can_ho: "Căn hộ", mat_bang: "M�
 for (const x of all) {
   if ((x.title || "").trim().length < 15) {
     const extra = [KIND_VI[x.property_type] || "BĐS", x.area_m2 ? `${x.area_m2}m²` : null, x.district || x.province].filter(Boolean).join(" ");
-    x.title = `${(x.title || "").trim()} — ${extra}`.replace(/^— /, "");
+    x.title = `${(x.title || "").trim()} - ${extra}`.replace(/^- /, "");
   }
 }
 
 // ---- Dedupe ----
 // 1) trong-nguồn theo id
-// 2) liên nguồn theo phone (khi có) hoặc theo "vân tay" tiêu đề+giá+DT+quận (không cần phone —
+// 2) liên nguồn theo phone (khi có) hoặc theo "vân tay" tiêu đề+giá+DT+quận (không cần phone -
 //    trước đây key chỉ dựa vào phone_hash mà chỉ nhadat.vn sinh ra -> 0% tin có key -> dedupe liên nguồn chết)
 // 3) fallback (site|title|giá) trong cùng nguồn
 // Tin trùng liên nguồn: GIỮ bản đầy đủ hơn (nhiều ảnh/mô tả dài) và cộng source_count -> UI "xuất hiện trên N nguồn"
 const stripAccent = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
-// Từ marketing chung — không mang thông tin nhận dạng (tránh gộp nhầm các tin cùng "template" tiêu đề)
+// Từ marketing chung - không mang thông tin nhận dạng (tránh gộp nhầm các tin cùng "template" tiêu đề)
 const STOP = new Set(("nha dep gia tot chinh chu can ban gap nhanh hot cho thue dat tai o ngay lh lien he dau tu sinh loi " +
   "sieu re soc uu dai co hoi vang hiem thuong luong tl tang cap ma so mat tien mt view thoang mat sat ke gan " +
   "moi xay tang lau full noi that ngay san sang so hong so do rieng phap ly ro rang xem la thich the").split(" "));

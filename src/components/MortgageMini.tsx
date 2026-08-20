@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 // Ước tính trả góp ngay trên tin (ISO 9241-110 "suitability for the task": quyết định tại chỗ, không rời trang).
-// Mặc định: vay 70%, 8,5%/năm, 20 năm — người dùng kéo được. Công thức annuity chuẩn. Link sang /tinh-lai-vay để tính kỹ.
+// Mặc định: vay 70%, 8,5%/năm, 20 năm - người dùng kéo được. Công thức annuity chuẩn. Link sang /tinh-lai-vay để tính kỹ.
 const fmt = (v: number) => (v >= 1e9 ? (v / 1e9).toFixed(2).replace(/\.?0+$/, "") + " tỷ" : Math.round(v / 1e6).toLocaleString("vi-VN") + " triệu");
 
 export default function MortgageMini({ price }: { price: number }) {
@@ -32,7 +32,7 @@ export default function MortgageMini({ price }: { price: number }) {
         <span className="text-brand">≈ <b>{fmt(monthly)}</b>/tháng</span>
         <span className="text-[var(--ink-faint)]">(tháng đầu lãi {fmt(firstInterest)})</span>
       </div>
-      <p className="text-[0.68rem] text-[var(--ink-faint)] mt-1">Gốc + lãi đều theo dư nợ gốc ban đầu (annuity). Lãi thực tế theo ngân hàng, thường ưu đãi 1–2 năm đầu rồi thả nổi.</p>
+      <p className="text-[0.68rem] text-[var(--ink-faint)] mt-1">Gốc + lãi đều theo dư nợ gốc ban đầu (annuity). Lãi thực tế theo ngân hàng, thường ưu đãi 1-2 năm đầu rồi thả nổi.</p>
     </div>
   );
 }

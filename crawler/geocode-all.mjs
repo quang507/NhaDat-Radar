@@ -6,7 +6,7 @@ import { smartGeocode, usingVietmap, vietmapConSong, LOI } from "./geo.mjs";
 import { docDuong } from "./doc-dia-chi.mjs";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// district trong combined.json đã chuẩn ("Quận 7", "Huyện Củ Chi", "TP. Thủ Đức" — merge.mjs canonDistrictName).
+// district trong combined.json đã chuẩn ("Quận 7", "Huyện Củ Chi", "TP. Thủ Đức" - merge.mjs canonDistrictName).
 // Audit 16/8: bản cũ `^Q\.?\s*` bắt luôn chữ "Q" của "Quận 7" -> "Quận uận 7" -> mọi geocode hỏng, rơi về tâm tỉnh.
 function cleanDistrict(d) {
   return (d || "").replace(/\(.*?\)/g, "").replace(/^TP\.\s*/i, "Thành phố ").replace(/\s+/g, " ").trim();
@@ -16,7 +16,7 @@ const geocode = (q) => smartGeocode(q); // Vietmap -> Nominatim (đều có time
 // Ghim theo PHƯỜNG khi nguồn có phường, không thì mới lùi về QUẬN.
 // Tâm quận cách chỗ thật có khi 5-7km (Củ Chi, Bình Chánh rộng cỡ đó), tâm phường sát hơn
 // nhiều. 55% tin có phường mà trước giờ bỏ không dùng. Đo 19/8: khoá mức phường ra 398 khu
-// vực (~1,5 phút) so với 193 khu vực mức quận (~42s) — vẫn thừa trong ngân sách 5 phút.
+// vực (~1,5 phút) so với 193 khu vực mức quận (~42s) - vẫn thừa trong ngân sách 5 phút.
 const khoaPhuong = (x) => x.ward ? [x.ward, cleanDistrict(x.district), x.province].filter(Boolean).join(", ") : null;
 const khoaQuan = (x) => x.district ? [cleanDistrict(x.district), x.province].filter(Boolean).join(", ") : null;
 
@@ -25,7 +25,7 @@ const khoaQuan = (x) => x.district ? [cleanDistrict(x.district), x.province].fil
 // cột address: bộ đọc chỉ đúng ~1/3 và còn lẫn rác ("738 Linh Lược Nhà Ẩn"). Đọc sai thì
 // geo.mjs bắt kết quả phải khớp tên -> tra không thấy -> tự lùi xuống phường/quận, chứ
 // không bao giờ ghim bậy. Nên nấc này chỉ có được thêm, không mất gì.
-// Sau sáp nhập 2025 nhiều địa chỉ chỉ còn 2 cấp (xã/phường + tỉnh, không có quận) — vẫn
+// Sau sáp nhập 2025 nhiều địa chỉ chỉ còn 2 cấp (xã/phường + tỉnh, không có quận) - vẫn
 // ghim được theo phường, nên điều kiện là "có quận HOẶC có phường"; chỉ khoá mức quận mới
 // đòi quận thật (không thì nó suy biến thành khoá tỉnh trần = ghim giữa tỉnh).
 const khoaDuong = (x) => {
@@ -45,16 +45,16 @@ async function run() {
   const url = new URL("./combined.json", import.meta.url);
   const db = JSON.parse(fs.readFileSync(url));
   // Không có quận thì bỏ hẳn, không ghim: ghim theo tâm TỈNH đặt tin giữa đồng cách chỗ
-  // thật hàng chục km — sai kiểu đó tệ hơn là không có ghim.
+  // thật hàng chục km - sai kiểu đó tệ hơn là không có ghim.
   const need = db.listings.filter((x) => (x.lat == null || x.lng == null) && (x.district || x.ward));
   const boQua = db.listings.filter((x) => (x.lat == null || x.lng == null) && !x.district && !x.ward).length;
-  // phường trước, quận sau — quận vẫn cần vì (a) tin không có phường, (b) phường tra không ra
+  // phường trước, quận sau - quận vẫn cần vì (a) tin không có phường, (b) phường tra không ra
   // Thứ tự TRA: QUẬN -> PHƯỜNG -> ĐƯỜNG. Ngược với thứ tự ƯU TIÊN khi ghim (đường sát nhất).
   // Lý do: khoá quận ít mà phủ mọi tin, khoá đường nhiều gấp mấy lần và mỗi khoá tốn nhiều
   // lượt gọi hơn (thử Vietmap -> Nominatim -> tên tỉnh cũ). Tra đường trước thì hết ngân
   // sách trước khi kịp tra quận -> đo 19/8: chỉ ghim được 63/914 tin, tệ hơn hẳn 877/914.
   // Phủ rộng trước, tinh sau: hết giờ thì mọi tin vẫn có ghim, chỉ là chưa sát nhất.
-  // tính khoá MỘT lần mỗi tin (docDuong chạy cả chục regex trên mô tả dài — review 19/8: bị
+  // tính khoá MỘT lần mỗi tin (docDuong chạy cả chục regex trên mô tả dài - review 19/8: bị
   // gọi lại lần hai trong vòng gán, x2 toàn bộ công quét cho ~900 tin)
   const khoaCua = new Map(need.map((x) => [x, { kd: khoaDuong(x), kp: khoaPhuong(x), kq: khoaQuan(x) }]));
   const keys = [...new Set([...khoaCua.values()].flatMap((k) => [k.kq, k.kp, k.kd]).filter(Boolean))]
@@ -73,7 +73,7 @@ async function run() {
 // và CI đã nới timeout lên 60 phút. Cache bền nên lượt sau gần như không tốn gì.
 const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
   let hong = 0;
-  // Vietmap Trial có TRẦN NGÀY (1.500 lượt geocode) — hết thì trả 429 và mọi truy vấn rơi
+  // Vietmap Trial có TRẦN NGÀY (1.500 lượt geocode) - hết thì trả 429 và mọi truy vấn rơi
   // xuống Nominatim, mà Nominatim bắt chờ 1 giây/lượt. Chạy 220ms trong lúc đó là tự đâm
   // vào tường thứ hai. Dò 1 lượt ở đầu run để chọn nhịp cho đúng.
   const vmSong = usingVietmap ? await vietmapConSong() : false;
@@ -87,13 +87,13 @@ const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
       break;
     }
     // KHÔNG còn fallback "lấy mỗi tên tỉnh": review 19/8 (4 mũi soi độc lập cùng bắt được)
-    // — khoá đường tra hỏng -> tra lại bằng tên tỉnh trần -> TÂM TỈNH bị cache dưới khoá
+    // - khoá đường tra hỏng -> tra lại bằng tên tỉnh trần -> TÂM TỈNH bị cache dưới khoá
     // đường, rồi vòng gán coi đó là toạ độ chính-xác-mức-đường và ghim KHÔNG rải: tin nằm
     // chễm chệ giữa tỉnh, cách chỗ thật hàng chục km, và cache bền giữ cái sai đó mãi.
     // Đúng chính sách đã chốt: không ghim được thì thôi, không ghim bừa.
     const g = await geocode(k + ", Việt Nam");
     // CHỈ cache kết quả thật và "tra xong không có". Hỏi hỏng (429 / timeout) thì bỏ qua,
-    // để lượt sau tra lại — cache null vì bị chặn tần suất là đầu độc cache vĩnh viễn.
+    // để lượt sau tra lại - cache null vì bị chặn tần suất là đầu độc cache vĩnh viễn.
     if (g === LOI) { hong++; await sleep(2000); continue; }
     cache[k] = g;
     // 1100ms là để tôn trọng giới hạn 1 request/giây của Nominatim. Vietmap không có

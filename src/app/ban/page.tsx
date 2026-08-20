@@ -4,12 +4,12 @@ export const metadata = { title: "Đăng bán bất động sản - NhaDat Radar
 
 const WHY = [
   ["💰", "Giá trị tối đa", "Thống kê giá theo khu vực và AI định giá giúp bạn đặt giá tốt nhất cho bất động sản."],
-  ["📣", "Tiếp cận rộng rãi", "Tin của bạn hiển thị cạnh hàng trăm tin đa nguồn — nơi người mua thực sự đang tìm kiếm."],
+  ["📣", "Tiếp cận rộng rãi", "Tin của bạn hiển thị cạnh hàng trăm tin đa nguồn - nơi người mua thực sự đang tìm kiếm."],
   ["🤝", "Hỗ trợ toàn diện", "Từ đăng tin đến nhận liên hệ người mua, mọi thứ trong một trang quản lý đơn giản."],
 ] as const;
 
 const STEPS = [
-  ["Tạo tin đăng", "Điền thông tin bất động sản và dán link ảnh dễ dàng — chỉ mất vài phút."],
+  ["Tạo tin đăng", "Điền thông tin bất động sản và dán link ảnh dễ dàng - chỉ mất vài phút."],
   ["Kết nối người mua", "Nhận liên hệ từ khách hàng tiềm năng qua form liên hệ trên trang chi tiết tin."],
   ["Chốt giao dịch", "Hoàn tất giao dịch; tham khảo Hướng dẫn người bán để đúng pháp lý, tối ưu giá."],
 ] as const;
@@ -21,7 +21,7 @@ export default function SellLandingPage() {
         <h1 className="prata text-3xl mb-3">Đăng bán bất động sản của bạn</h1>
         <p className="opacity-90 max-w-2xl mx-auto mb-6">
           Đăng bán với NhaDat Radar để tiếp cận người mua thật. Nền tảng của chúng tôi giúp việc
-          bán bất động sản trở nên đơn giản và hiệu quả — đăng tin miễn phí.
+          bán bất động sản trở nên đơn giản và hiệu quả - đăng tin miễn phí.
         </p>
         <Link href="/dashboard/new" className="btn !bg-white !text-brand !border-white font-bold inline-block">
           Tạo tin đăng của bạn
@@ -57,7 +57,7 @@ export default function SellLandingPage() {
       <section className="mt-12 card rounded-xl p-10 text-center">
         <h2 className="prata text-2xl mb-2">Bạn đã sẵn sàng bán bất động sản?</h2>
         <p className="text-[var(--ink-soft)] text-sm mb-5">
-          Đăng nhập (Google hoặc email) rồi tạo tin — tin của bạn hiển thị ngay với nhãn “Tự đăng”.
+          Đăng nhập (Google hoặc email) rồi tạo tin - tin của bạn hiển thị ngay với nhãn “Tự đăng”.
         </p>
         <div className="flex gap-3 justify-center flex-wrap">
           <Link href="/dashboard/new" className="btn btn-primary">Tạo tin đăng ngay</Link>

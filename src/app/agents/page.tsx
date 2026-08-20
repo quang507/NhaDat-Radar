@@ -23,7 +23,7 @@ const WHY = [
 export default async function AgentsPage() {
   const supabase = await createClient();
   // Số CCHN chỉ hiện cho người ĐÃ ĐĂNG NHẬP (quyết định 19/8). Cột license_no (và phone) đã bị
-  // thu quyền SELECT khỏi vai anon ở tầng DB (migration profiles_anon_column_grants — sửa lỗi
+  // thu quyền SELECT khỏi vai anon ở tầng DB (migration profiles_anon_column_grants - sửa lỗi
   // gốc của 001: revoke theo cột không trừ được khỏi grant toàn bảng, nên revoke cũ chưa từng
   // có hiệu lực). Khách vãng lai mà cứ select license_no là PostgREST trả 42501 cho CẢ truy vấn
   // -> trang trắng với đúng nhóm khách đông nhất. Nên phải chọn cột theo trạng thái đăng nhập.
@@ -116,7 +116,7 @@ export default async function AgentsPage() {
             <div className="text-4xl mb-3">🧑‍💼</div>
             <h3 className="font-bold text-lg mb-1">Chưa có người bán nào đăng ký</h3>
             <p className="text-[var(--ink-soft)] text-sm mb-4">
-              Hãy là người bán đầu tiên trên NhaDat Radar — đăng ký miễn phí và đăng tin ngay hôm nay.
+              Hãy là người bán đầu tiên trên NhaDat Radar - đăng ký miễn phí và đăng tin ngay hôm nay.
             </p>
             <Link href="/account" className="btn btn-primary inline-block">Đăng ký làm người bán</Link>
           </div>

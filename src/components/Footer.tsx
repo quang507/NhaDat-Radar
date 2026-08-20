@@ -11,7 +11,7 @@ export default function Footer() {
           </div>
           <p className="text-[var(--ink-soft)]">
             Sàn nhà đất bán &amp; cho thuê: tổng hợp tin đa nguồn, AI chuẩn hoá, chấm điểm tin cậy
-            và cảnh báo giá ảo — giúp bạn tìm ngôi nhà mơ ước nhanh hơn.
+            và cảnh báo giá ảo - giúp bạn tìm ngôi nhà mơ ước nhanh hơn.
           </p>
         </div>
         <div>

@@ -8,7 +8,7 @@ export default function PhoneReveal({ phone }: { phone: string }) {
   const masked = phone.length > 6 ? phone.slice(0, 4) + " *** " + phone.slice(-3) : "*** ***";
   return show ? (
     <a href={`tel:${phone}`} className="btn btn-primary w-full text-center block">
-      📞 {phone} — Gọi ngay
+      📞 {phone} - Gọi ngay
     </a>
   ) : (
     <button className="btn w-full" onClick={() => setShow(true)} type="button">

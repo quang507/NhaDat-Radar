@@ -21,7 +21,7 @@ export default function BuyerGuidePage() {
           title: "Chuẩn Bị Tài Chính",
           desc: "Đảm bảo nguồn tiền trước khi bắt đầu tìm kiếm nghiêm túc.",
           items: ["Ước tính khoản vay", "So sánh ngân hàng", "Chuẩn bị hồ sơ", "Xác nhận ngân sách"],
-          legal: "Phê duyệt sơ bộ của ngân hàng không phải là bảo đảm giải ngân cuối cùng — đọc kỹ điều kiện.",
+          legal: "Phê duyệt sơ bộ của ngân hàng không phải là bảo đảm giải ngân cuối cùng - đọc kỹ điều kiện.",
           tip: "Dùng Máy tính lãi vay của chúng tôi (/tinh-lai-vay) để ước tính khoản trả hàng tháng trước khi quyết định.",
         },
         {
@@ -29,13 +29,13 @@ export default function BuyerGuidePage() {
           desc: "Làm việc với người bán / môi giới am hiểu thị trường khu vực.",
           items: ["Chọn người bán", "Chuyên môn thị trường", "Phong cách giao tiếp"],
           legal: "Kiểm tra thông tin người bán, ưu tiên tin có nhãn “chính chủ” và điểm tin cậy AI cao.",
-          tip: "NhaDat Radar tự phân loại tin chính chủ / môi giới và cảnh báo giá ảo — hãy để ý các nhãn trên thẻ tin.",
+          tip: "NhaDat Radar tự phân loại tin chính chủ / môi giới và cảnh báo giá ảo - hãy để ý các nhãn trên thẻ tin.",
         },
         {
           title: "Bắt Đầu Tìm Kiếm",
           desc: "Duyệt bất động sản trên bản đồ và lên lịch xem thực tế.",
           items: ["Nghiên cứu trực tuyến", "Xem nhà thực tế", "Ghi chép so sánh"],
-          legal: "Đừng chỉ dựa vào mô tả và hình ảnh — luôn xem trực tiếp trước khi đặt cọc.",
+          legal: "Đừng chỉ dựa vào mô tả và hình ảnh - luôn xem trực tiếp trước khi đặt cọc.",
           tip: "Ghé thăm khu vực vào các thời điểm khác nhau (sáng/tối, ngày thường/cuối tuần) để cảm nhận thực tế.",
         },
         {
@@ -50,7 +50,7 @@ export default function BuyerGuidePage() {
           desc: "Kiểm tra pháp lý và hoàn tất thủ tục sang tên / hợp đồng thuê.",
           items: ["Kiểm tra sổ đỏ/sổ hồng", "Kiểm tra quy hoạch", "Công chứng hợp đồng", "Nộp thuế & phí"],
           legal: "Nhờ luật sư hoặc công chứng viên xem xét toàn bộ hồ sơ pháp lý trước khi ký và thanh toán.",
-          tip: "Giữ mọi giấy tờ giao dịch có tổ chức — cần cho thuế và tranh chấp (nếu có) sau này.",
+          tip: "Giữ mọi giấy tờ giao dịch có tổ chức - cần cho thuế và tranh chấp (nếu có) sau này.",
         },
         {
           title: "Nhận Nhà & Ổn Định",

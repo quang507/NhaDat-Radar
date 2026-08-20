@@ -2,7 +2,7 @@
 // Lớp nền bản đồ dùng chung cho ListingMap + MapResults (trước đây 2 file copy y hệt nhau).
 //
 // "Vệ tinh" KHÔNG phải ảnh trần: người dùng phản hồi 19/8 là ảnh vệ tinh không có tên
-// đường thì không biết mình đang nhìn đâu — batdongsan cũng hiện kiểu lai (ảnh + nhãn).
+// đường thì không biết mình đang nhìn đâu - batdongsan cũng hiện kiểu lai (ảnh + nhãn).
 // Esri phát miễn phí đúng bộ lớp cho việc này: ảnh (World_Imagery) + đường
 // (World_Transportation) + tên khu vực (World_Boundaries_and_Places), chồng lên nhau.
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
@@ -26,7 +26,7 @@ export function ganLopNen(L: any, map: any) {
   veTinh.addTo(map);
   L.control.layers({ "Vệ tinh": veTinh, "Bản đồ": nen }, {}, { position: "topright" }).addTo(map);
 
-  // Nút PHÓNG TO toàn màn hình — người dùng muốn xem bản đồ lớn như các sàn chuyên map.
+  // Nút PHÓNG TO toàn màn hình - người dùng muốn xem bản đồ lớn như các sàn chuyên map.
   // Tự viết ~10 dòng thay vì cài plugin: requestFullscreen có sẵn ở mọi trình duyệt hiện đại.
   const NutPhongTo = L.Control.extend({
     options: { position: "topleft" },

@@ -82,7 +82,7 @@ export default async function Home({
   const hero = HERO;
   return (
     <div>
-      {/* ===== BANNER QUẢNG CÁO ĐỐI TÁC (public/hero.jpg) — full width, KHÔNG đè chữ của Radar lên
+      {/* ===== BANNER QUẢNG CÁO ĐỐI TÁC (public/hero.jpg) - full width, KHÔNG đè chữ của Radar lên
           (UX audit 16/8: H1 "Tìm nhà đất…" từng nằm đè lên "VILLA NY'AH" -> hai thông điệp chồng nhau).
           Gắn nhãn "Quảng cáo" (minh bạch), bấm được nếu có NEXT_PUBLIC_HERO_LINK. Mobile cắt vừa 200px. ===== */}
       {!hasFilter && hero && (
@@ -197,7 +197,7 @@ export default async function Home({
               <div className="grid gap-4 md:grid-cols-3">
                 {projects.slice(0, 3).map((p) => (
                   <Link key={p.id} href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition group">
-                    {/* Ảnh chiếm ~2/3 card (16:10), mô tả gọn 1 khối — ảnh là thứ bán dự án */}
+                    {/* Ảnh chiếm ~2/3 card (16:10), mô tả gọn 1 khối - ảnh là thứ bán dự án */}
                     <div className="aspect-[16/10] bg-[#16233a] grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -259,7 +259,7 @@ export default async function Home({
             <div className="flex-1 text-center sm:text-left">
               <h2 className="font-bold text-lg">Đừng bỏ lỡ căn nhà ưng ý</h2>
               <p className="text-sm text-[var(--ink-soft)]">
-                Lưu bộ lọc tìm kiếm của bạn — mỗi sáng có tin mới khớp, chúng tôi gửi thẳng vào email.
+                Lưu bộ lọc tìm kiếm của bạn - mỗi sáng có tin mới khớp, chúng tôi gửi thẳng vào email.
               </p>
             </div>
             <Link href="/search" className="btn btn-primary whitespace-nowrap">Tạo thông báo ngay</Link>

@@ -98,7 +98,7 @@ export default function Gallery({ images, title }: { images: string[]; title: st
             <Img
               key={i}
               src={img}
-              alt={i === 0 ? title : `${title} — ảnh ${i + 1}`}
+              alt={i === 0 ? title : `${title} - ảnh ${i + 1}`}
               eager={Math.abs(i - heroIdx) <= 1}
               className="w-full h-full shrink-0 snap-center object-cover cursor-zoom-in"
               onClick={() => openAt(i)}
@@ -106,7 +106,7 @@ export default function Gallery({ images, title }: { images: string[]; title: st
           ))}
         </div>
         <span className="absolute bottom-3 right-3 text-xs font-bold px-2.5 py-1 rounded-lg bg-black/60 text-white pointer-events-none">
-          {heroIdx + 1}/{n} · vuốt để xem — bấm phóng to 🔍
+          {heroIdx + 1}/{n} · vuốt để xem - bấm phóng to 🔍
         </span>
         {n > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none">

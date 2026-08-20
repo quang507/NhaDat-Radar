@@ -81,7 +81,7 @@ export default function RentVsBuyCalc() {
         </div>
       </div>
       <p className="text-[0.68rem] text-[var(--ink-faint)] mt-2">
-        * Mô hình giản lược (thuê tăng 5%/năm, tiền nhàn rỗi gửi 5%/năm, vay 20 năm) — chỉ tham khảo.
+        * Mô hình giản lược (thuê tăng 5%/năm, tiền nhàn rỗi gửi 5%/năm, vay 20 năm) - chỉ tham khảo.
       </p>
     </div>
   );

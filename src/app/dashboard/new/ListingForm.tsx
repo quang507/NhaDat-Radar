@@ -7,10 +7,10 @@ import { parseVnd, fmtVndWords } from "@/lib/vnd";
 import ImageUpload from "@/components/ImageUpload";
 
 const initial: ListingState = { ok: false };
-// "furnished" bỏ khỏi đây vì đã có ô text "Nội thất" (furnishing) mô tả chi tiết hơn — tránh trùng.
+// "furnished" bỏ khỏi đây vì đã có ô text "Nội thất" (furnishing) mô tả chi tiết hơn - tránh trùng.
 const AMEN_KEYS = ["ac", "parking", "security", "elevator", "corner", "near_market", "pet"];
 
-// geo: cây Tỉnh -> [Quận] từ dữ liệu thật (server truyền xuống) để gợi ý — tin tự đăng phải khớp tên trong DB
+// geo: cây Tỉnh -> [Quận] từ dữ liệu thật (server truyền xuống) để gợi ý - tin tự đăng phải khớp tên trong DB
 // thì mới lọt bộ lọc/trang khu vực (UX audit 16/8: "TP.HCM" gõ tay ≠ "Hồ Chí Minh").
 export default function ListingForm({ geo = {} }: { geo?: Record<string, string[]> }) {
   const [state, formAction, pending] = useActionState(createListing, initial);
@@ -57,7 +57,7 @@ export default function ListingForm({ geo = {} }: { geo?: Record<string, string[
           <span className="block text-xs font-semibold text-[var(--ink-soft)] mb-1">Giá *</span>
           <input className="inp" name="price" placeholder={deal === "ban" ? "VD: 8,5 tỷ" : "VD: 12 triệu"} required value={priceRaw} onChange={(e) => setPriceRaw(e.target.value)} inputMode="decimal" />
           <span className={`block text-xs mt-1 ${parsed ? "text-emerald-600" : "text-[var(--ink-faint)]"}`}>
-            {priceRaw ? (parsed ? `= ${fmtVndWords(parsed)}${deal === "cho_thue" ? "/tháng" : ""} (${parsed.toLocaleString("vi-VN")} đ)` : "Chưa đọc được — gõ kèm tỷ / triệu") : "Gõ như nói: 8,5 tỷ · 950 triệu · 12 triệu"}
+            {priceRaw ? (parsed ? `= ${fmtVndWords(parsed)}${deal === "cho_thue" ? "/tháng" : ""} (${parsed.toLocaleString("vi-VN")} đ)` : "Chưa đọc được - gõ kèm tỷ / triệu") : "Gõ như nói: 8,5 tỷ · 950 triệu · 12 triệu"}
           </span>
         </label>
         <Field label="Số tầng" name="floors" type="number" required={false} />

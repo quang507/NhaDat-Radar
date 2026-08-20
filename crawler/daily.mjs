@@ -24,7 +24,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   process.exit(1);
 }
 // `--fb-only`: CHỈ cào Facebook rồi gộp + seed. Dùng cho CHAY.bat ở máy nhà, vì các nguồn web
-// (chotot, mogi, batdongsan, extra-sites) đã được GitHub Actions tự cào 9h/15h — cào lại ở máy
+// (chotot, mogi, batdongsan, extra-sites) đã được GitHub Actions tự cào 9h/15h - cào lại ở máy
 // là làm hai lần cùng một việc. Còn Facebook thì CI không làm được (IP datacenter bị FB chặn).
 const FB_ONLY = process.argv.includes("--fb-only");
 
@@ -62,26 +62,26 @@ if (!SEED_ONLY) {
   step("node chotot.mjs");
   step("node mogi.mjs");
   step("node extra-sites.mjs");
-  step("node guland.mjs");                               // guland.vn — tải bằng curl (Node fetch bị chặn TLS); ảnh lấy ở trang chi tiết, chỉ cho tin mới                          // batdongsantoanquoc + bannhadat123 + sosanhnha
+  step("node guland.mjs");                               // guland.vn - tải bằng curl (Node fetch bị chặn TLS); ảnh lấy ở trang chi tiết, chỉ cho tin mới                          // batdongsantoanquoc + bannhadat123 + sosanhnha
   // Dự án (mogi.vn/du-an) đổi rất chậm mà tốn ~80 lượt tải chi tiết -> chỉ làm mới nếu projects.json
   // đã quá PROJECT_MAX_AGE_H (mặc định 72h). Tự seed thẳng vào bảng projects, KHÔNG qua merge/listings.
-  // Dự án: mogi-projects.mjs giờ CỘNG DỒN — nó hỏi DB xem slug nào đã đủ dữ liệu rồi chỉ tải
+  // Dự án: mogi-projects.mjs giờ CỘNG DỒN - nó hỏi DB xem slug nào đã đủ dữ liệu rồi chỉ tải
   // chi tiết những dự án MỚI (đo thật: 40 gom được, 39 đã có -> chỉ tải 1). Nên chạy mỗi lượt
   // cũng rẻ, không cần né CI nữa. Trước đây tải lại cả 700+ dự án (~30 phút) nên CI hay bị cắt.
   step("node mogi-projects.mjs --seed");
   step("node batdongsan.mjs");                           // Cloudflare -> cần Playwright (devDep + npx playwright install chromium);
                                                          // bị chặn thì giữ file cũ, merge tự bỏ qua file quá 2 ngày
-  // nhadat.vn: domain đã về VNNIC (tên miền hết hạn, cert *.vnnic.vn — kiểm chứng 16/8/2026) -> nguồn CHẾT, bỏ khỏi pipeline.
-  // (crawl.js/geocode.mjs đã xoá 16/8 — cần thì lấy lại từ git history commit e171411)
+  // nhadat.vn: domain đã về VNNIC (tên miền hết hạn, cert *.vnnic.vn - kiểm chứng 16/8/2026) -> nguồn CHẾT, bỏ khỏi pipeline.
+  // (crawl.js/geocode.mjs đã xoá 16/8 - cần thì lấy lại từ git history commit e171411)
  } else {
   console.log("↷ --fb-only: bỏ qua nguồn web (GitHub Actions lo phần đó), chỉ cào Facebook.");
  }
   // FB: IP GitHub Actions bị Facebook chặn (kiểm chứng 14/8: 13 nhóm đều trả trang login,
   // 0 bài, tốn ~9 phút/run) -> CI BỎ QUA FB hẳn. Chạy máy nhà (IP dân cư) vẫn cào bình thường.
   if (process.env.GITHUB_ACTIONS) {
-    console.log("↷ Bỏ qua Facebook trên CI (IP datacenter bị chặn) — chạy crawl-local.bat trên máy nhà để lấy tin FB.");
+    console.log("↷ Bỏ qua Facebook trên CI (IP datacenter bị chặn) - chạy crawl-local.bat trên máy nhà để lấy tin FB.");
   } else if (fs.existsSync(new URL("./fb-cookies.json", import.meta.url)) && process.env.FB_GROUP_URLS) {
-    step("node facebook.mjs --playwright");   // 17/8: bỏ hẳn nhánh Apify (tốn phí) — chỉ còn Playwright miễn phí
+    step("node facebook.mjs --playwright");   // 17/8: bỏ hẳn nhánh Apify (tốn phí) - chỉ còn Playwright miễn phí
   }
 }
 // `--no-merge`: seed thẳng combined.json đang có, KHÔNG dựng lại. Cần khi đã chạy tay merge + geocode-all:
@@ -101,7 +101,7 @@ const comb = JSON.parse(fs.readFileSync(new URL("./combined.json", import.meta.u
 // Vòng đời tin (học Homigo: firstSeenAt/lastSeenAt/crawlCount): KHÔNG xoá-chèn nữa.
 // - Tin đã có (cùng source_site + source_post_id) -> UPDATE theo id: giữ first_seen_at, giữ embedding, crawl_count+1, last_seen_at=now
 // - Tin mới -> INSERT với first_seen_at=now  ("Radar thấy tin X trước" vẫn TRUNG THỰC)
-// - Tin không còn thấy ≥ 36h (≈2 lần cào ngày) -> status 'gone' (ẩn khỏi tìm kiếm, chi tiết vẫn mở kèm nhãn) — không biến mất im lặng
+// - Tin không còn thấy ≥ 36h (≈2 lần cào ngày) -> status 'gone' (ẩn khỏi tìm kiếm, chi tiết vẫn mở kèm nhãn) - không biến mất im lặng
 // PostgREST cắt 1000 dòng/lần -> phải phân trang, không thì tin cũ ngoài 1000 bị coi là mới -> insert đụng
 // unique index uq_listings_source_post (migration 001) và seed thất bại.
 // Lấy thêm các cột DỄ RỖNG để KHÔNG ghi null đè lên giá trị tốt (xem giuNeuTrong bên dưới).
@@ -168,7 +168,7 @@ for (const x of comb.listings) {
     address: giuNeuTrong(x.address ?? null, old?.address),
     lat: giuNeuTrong(x.lat ?? null, old?.lat), lng: giuNeuTrong(x.lng ?? null, old?.lng),
     amenities: giuNeuTrong(x.amenities || [], old?.amenities), images: giuNeuTrong(x.images || [], old?.images),
-    specs: giuNeuTrong(x.specs ?? null, old?.specs),        // bảng thông số nguồn (guland/batdongsan) — web ẩn ô trống
+    specs: giuNeuTrong(x.specs ?? null, old?.specs),        // bảng thông số nguồn (guland/batdongsan) - web ẩn ô trống
     contact_phone: null,                                   // NĐ13: không lưu SĐT thô của tin cào
     phone_masked: giuNeuTrong(x.phone_masked ?? null, old?.phone_masked),  // đã che 4 số -> hiển thị được (giống Homigo)
     ai_score: x.ai_score, poster_role_guess: x.poster_role,
@@ -178,7 +178,7 @@ for (const x of comb.listings) {
     price_flag: x.price_warning || null,
     source_count: x.source_count || 1, source_sites: x.source_sites || [x.source_site],
     posted_at: giuNeuTrong(x.posted_at ?? null, old?.posted_at),   // đăng trên nguồn lúc (nếu nguồn có)
-    // Admin đã ẨN (nút "Ẩn tin" trên trang chi tiết, 17/8) thì giữ ẩn — không để lần cào sau bật lại tin rác.
+    // Admin đã ẨN (nút "Ẩn tin" trên trang chi tiết, 17/8) thì giữ ẩn - không để lần cào sau bật lại tin rác.
     // Chỉ 'gone' (mất rồi thấy lại) mới về published.
     status: old?.status === "hidden" ? "hidden" : "published", crawled_at: now, last_seen_at: now,
     first_seen_at: (old && old.first_seen_at) || now,
@@ -187,7 +187,7 @@ for (const x of comb.listings) {
   // trust_score phải chấm trên hàng ĐÃ HỢP NHẤT, không phải trên x thô: nếu không, một lượt mà
   // trang chi tiết hỏng sẽ hạ điểm tin xuống (mất ảnh/mô tả) dù DB vẫn còn đủ dữ liệu đó.
   // `legal` PHẢI có trong danh sách override: trustScore đọc x.legal (+8 điểm) còn cột đã hợp nhất
-  // tên là legal_status. Thiếu nó thì DB giữ đúng pháp lý nhưng điểm vẫn tụt 8 — đúng lớp hồi quy
+  // tên là legal_status. Thiếu nó thì DB giữ đúng pháp lý nhưng điểm vẫn tụt 8 - đúng lớp hồi quy
   // mà mấy dòng này sinh ra để chặn (review /ultrareview vòng 2).
   const r = rows[rows.length - 1];
   r.trust_score = trustScore({
@@ -221,7 +221,7 @@ const HOME_ONLY = ["facebook.com", "facebook", "batdongsan.com.vn"];
   if (nulls.length) console.log(`(backfill last_seen_at cho ${nulls.length} tin cũ thiếu mốc)`);
 }
 // ---- CHỐT CHẶN NGUỒN SỤT SẢN LƯỢNG (review /ultrareview) ----
-// Mỗi crawler đã có chốt "0 tin thì giữ file cũ", nhưng chốt đó CHỈ bắt đúng mốc 0 — mà bị chặn
+// Mỗi crawler đã có chốt "0 tin thì giữ file cũ", nhưng chốt đó CHỈ bắt đúng mốc 0 - mà bị chặn
 // MỘT PHẦN mới là chuyện hay xảy ra: mogi.mjs log lỗi HTTP rồi đi tiếp, batdongsan fetchSRP trả ""
 // nên trang đó lặng lẽ ra 0 tin. File vẫn được ghi với crawled_at mới tinh nhưng thiếu 80% tin;
 // merge.load() chỉ kiểm TUỔI file chứ không kiểm SỐ LƯỢNG nên nhận -> phần thiếu tụt khỏi
@@ -259,7 +259,7 @@ const { count: purgedN } = await sb.from("listings").delete({ count: "exact" })
 console.log(`✅ ${now.slice(0, 10)}: ${inserts.length} tin mới · ${updates.length} tin còn sống (cập nhật) · ${goneN || 0} tin vừa gỡ (gone) · ${purgedN || 0} gone cũ xoá · ${rows.filter((r) => r.images.length).length} có ảnh · ${rows.filter((r) => r.source_count > 1).length} tin ≥2 nguồn · ${rows.filter((r) => r.price_flag).length} tin cờ giá.`);
 
 // 2b) Dọn tin bóc từ group Zalo quá 1 NĂM (giữ lâu hơn tin crawl vì group không re-seed;
-// tin DM tự đăng (zalo_bot) và tin user coi như tin người dùng — KHÔNG tự xóa)
+// tin DM tự đăng (zalo_bot) và tin user coi như tin người dùng - KHÔNG tự xóa)
 const zaloCutoff = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
 const { count: zaloDeleted, error: zaloErr } = await sb.from("listings")
   .delete({ count: "exact" }).eq("source_site", "zalo_group").lt("created_at", zaloCutoff);
@@ -273,5 +273,5 @@ try { fs.writeFileSync(new URL("./.last-run", import.meta.url), String(Date.now(
 if (!SEED_ONLY) {
   step("node price-history.mjs");
   step("node alerts.mjs");
-  step("node embed.mjs"); // embedding cho tìm kiếm ngữ nghĩa (cần migration 003 + GEMINI key) — giờ upsert nên embedding cũ được giữ, chỉ embed tin mới
+  step("node embed.mjs"); // embedding cho tìm kiếm ngữ nghĩa (cần migration 003 + GEMINI key) - giờ upsert nên embedding cũ được giữ, chỉ embed tin mới
 }

@@ -155,7 +155,7 @@ async function PriceHistoryChart({ city, deal }: { city: string; deal: string })
   if (series.length < 2) {
     return (
       <p className="text-xs text-[var(--ink-faint)] mb-4 rounded-lg bg-[var(--surface-2)] p-2.5">
-        📈 Lịch sử giá đang được tích luỹ mỗi ngày — biểu đồ xu hướng sẽ hiện tại đây sau vài ngày dữ liệu.
+        📈 Lịch sử giá đang được tích luỹ mỗi ngày - biểu đồ xu hướng sẽ hiện tại đây sau vài ngày dữ liệu.
       </p>
     );
   }

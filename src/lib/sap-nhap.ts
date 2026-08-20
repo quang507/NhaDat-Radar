@@ -1,8 +1,8 @@
-// Sáp nhập đơn vị hành chính 2025 — MỘT CHỖ DUY NHẤT giữ bảng ánh xạ tỉnh cũ -> tỉnh mới.
+// Sáp nhập đơn vị hành chính 2025 - MỘT CHỖ DUY NHẤT giữ bảng ánh xạ tỉnh cũ -> tỉnh mới.
 //
 // Vì sao không ghi đè thẳng vào dữ liệu: thị trường vẫn nói "nhà Dĩ An Bình Dương",
 // tin đăng ở nguồn vẫn ghi tỉnh cũ, và khách vẫn gõ "Bình Dương" khi tìm. Đổi hết
-// province thành "Hồ Chí Minh" là làm mất khả năng tìm theo tên cũ — mà tên cũ mới là
+// province thành "Hồ Chí Minh" là làm mất khả năng tìm theo tên cũ - mà tên cũ mới là
 // thứ người ta dùng. Nên: GIỮ NGUYÊN dữ liệu nguồn, chỉ dùng bảng này để gắn nhãn và
 // để gộp khi cần thống kê.
 //

@@ -15,7 +15,7 @@ export default function SellerGuidePage() {
           desc: "Chuẩn bị ngôi nhà của bạn cho thị trường để thu hút người mua tiềm năng.",
           items: ["Định giá bất động sản", "Dọn dẹp & trang trí", "Sửa chữa và cải thiện"],
           legal: "Đảm bảo giấy tờ (sổ đỏ/sổ hồng, hoàn công) được cập nhật và tuân thủ pháp luật.",
-          tip: "Ấn tượng đầu tiên rất quan trọng — đầu tư vào mặt tiền và ánh sáng để thu hút nhiều người mua hơn.",
+          tip: "Ấn tượng đầu tiên rất quan trọng - đầu tư vào mặt tiền và ánh sáng để thu hút nhiều người mua hơn.",
         },
         {
           title: "Chụp Ảnh Chuyên Nghiệp",
@@ -28,7 +28,7 @@ export default function SellerGuidePage() {
           title: "Đặt Giá Phù Hợp",
           desc: "Định giá cạnh tranh để thu hút người mua thật.",
           items: ["Phân tích thị trường", "So giá khu vực", "Định giá chiến lược"],
-          legal: "Khai giá trung thực trong hợp đồng — khai thấp để né thuế là rủi ro pháp lý lớn.",
+          legal: "Khai giá trung thực trong hợp đồng - khai thấp để né thuế là rủi ro pháp lý lớn.",
           tip: "Định giá quá cao khiến tin “ế” lâu và cuối cùng bán thấp hơn. Xem giá/m² khu vực tại trang Thống kê.",
         },
         {
@@ -43,7 +43,7 @@ export default function SellerGuidePage() {
           desc: "Đánh giá đề nghị và đàm phán các điều khoản thuận lợi.",
           items: ["Sàng lọc người mua", "Đàm phán giá & điều khoản", "Thoả thuận đặt cọc"],
           legal: "Mọi thoả thuận (kể cả đặt cọc) phải được lập bằng văn bản.",
-          tip: "Đề nghị cao nhất không phải lúc nào cũng tốt nhất — xem xét khả năng tài chính và tiến độ thanh toán.",
+          tip: "Đề nghị cao nhất không phải lúc nào cũng tốt nhất - xem xét khả năng tài chính và tiến độ thanh toán.",
         },
         {
           title: "Thẩm Định & Công Chứng",
@@ -66,7 +66,7 @@ export default function SellerGuidePage() {
         ["Nghĩa vụ thuế", "Tham khảo chuyên gia thuế về thuế thu nhập cá nhân và lệ phí trước bạ."],
         ["Xem xét hợp đồng", "Mọi thoả thuận mua bán nên được luật sư có chuyên môn xem xét."],
         ["Sổ sách & thế chấp", "Giải chấp và làm rõ quyền sở hữu trước khi niêm yết bán."],
-        ["Trung thực khi tiếp thị", "Thông tin tin đăng phải đúng thực tế — nền tảng sẽ gỡ tin sai phạm."],
+        ["Trung thực khi tiếp thị", "Thông tin tin đăng phải đúng thực tế - nền tảng sẽ gỡ tin sai phạm."],
       ]}
       endTitle="Sẵn Sàng Bán Bất Động Sản?"
     />

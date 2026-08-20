@@ -1,4 +1,4 @@
-// Crawler CHỢ TỐT — dùng API JSON công khai (gateway.chotot.com). KHÔNG cần browser/proxy.
+// Crawler CHỢ TỐT - dùng API JSON công khai (gateway.chotot.com). KHÔNG cần browser/proxy.
 // Có sẵn toạ độ (lat/lng) + phường -> không cần geocode. Chạy: node chotot.mjs
 import fs from "node:fs";
 
@@ -64,7 +64,7 @@ function mapAd(a, city) {
     bedrooms: a.rooms || null,
     bathrooms: a.toilets || null,
     floors: a.floors || null,
-    // direction cũng là MÃ SỐ (1 Đông · 2 Tây · 3 Nam · 4 Bắc · 5 Đông Bắc · 6 Đông Nam · 7 Tây Bắc · 8 Tây Nam) — tra từ API chi tiết 16/8
+    // direction cũng là MÃ SỐ (1 Đông · 2 Tây · 3 Nam · 4 Bắc · 5 Đông Bắc · 6 Đông Nam · 7 Tây Bắc · 8 Tây Nam) - tra từ API chi tiết 16/8
     direction: ({ 1: "Đông", 2: "Tây", 3: "Nam", 4: "Bắc", 5: "Đông Bắc", 6: "Đông Nam", 7: "Tây Bắc", 8: "Tây Nam" })[String(a.direction)] || (typeof a.direction === "string" && !/^\d+$/.test(a.direction) ? a.direction : null),
     // API list chỉ trả MÃ SỐ (property_legal_document), _str hầu như không có -> từng lưu "1"/"6" lên UI (audit 16/8).
     // Nhãn tra từ API chi tiết Chợ Tốt: 1 Đã có sổ · 2 Đang chờ sổ · 3 Không có sổ · 4 Sổ chung/vi bằng · 5 Hợp đồng mua bán · 6 Sổ hồng riêng
