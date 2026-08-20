@@ -23,6 +23,8 @@ import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
 import PhoneReveal from "@/components/PhoneReveal";
 import SourceBadge from "@/components/SourceBadge";
+import TuVanRadar from "@/components/TuVanRadar";
+import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
@@ -358,13 +360,18 @@ export default async function ListingDetail({
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối — số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 — xem bài gốc"}
+                  {(x.contact_phone || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối — số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 — xem bài gốc"}
                 </div>
               </div>
             </div>
-            {x.contact_phone && <div className="mb-3"><PhoneReveal phone={x.contact_phone} /></div>}
-            {!x.contact_phone && x.phone_masked && (
+            {/* SĐT người đăng chỉ hiện sau ĐĂNG NHẬP (mô hình Homigo, miễn phí) — khách vãng lai
+                thấy nút mở popup đăng ký. Hotline Radar bên dưới thì KHÔNG chặn: đó là kênh lead. */}
+            {user && x.contact_phone && <div className="mb-3"><PhoneReveal phone={x.contact_phone} /></div>}
+            {user && !x.contact_phone && x.phone_masked && (
               <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
+            )}
+            {!user && (x.contact_phone || x.phone_masked) && (
+              <div className="mb-3"><DangNhapDeXem /></div>
             )}
             {/* Tin cào: hành động CHÍNH là sang bài gốc để liên hệ người đăng (UX audit: nút "Gửi tin nhắn" to nhất
                 khiến khách tưởng nhắn tới người bán, trong khi lead vào Radar). Form Radar là hành động phụ, ghi rõ. */}
@@ -373,6 +380,7 @@ export default async function ListingDetail({
                 Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} ›
               </a>
             ) : null}
+            <TuVanRadar />
             {x.agent_id && (
               <Link
                 href={`/tin-nhan?listing=${x.id}&agent=${x.agent_id}`}
