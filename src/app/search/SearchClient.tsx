@@ -6,6 +6,7 @@ import Link from "next/link";
 import ListingRow from "@/components/ListingRow";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
+import ChonSapXep from "@/components/ChonSapXep";
 import { PROP, shortPrice } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
@@ -166,13 +167,8 @@ export default function SearchClient({
         </div>
         <div className="ml-auto flex items-center gap-2">
           <SaveSearchButton filters={f} />
-          <select
-            className={`${sel} !w-auto text-sm`}
-            value={sort}
-            onChange={(e) => push({ ...f, sort: e.target.value })}
-          >
-            {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          {/* dropdown tự vẽ thay <select> trần: list option của select do HĐH vẽ, không ăn CSS web */}
+          <ChonSapXep options={SORTS} value={sort} onChange={(v) => push({ ...f, sort: v })} />
         </div>
       </div>
 
