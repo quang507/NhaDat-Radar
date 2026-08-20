@@ -8,6 +8,7 @@ import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { soVN } from "./so-vn.mjs";
+import { hash31 as hash, canonProvince } from "./chung.mjs";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -44,10 +45,8 @@ function parseGia(s) {
 const sachTinh = (s) => {
   const t = (s || "").replace(/\s*\((mới|cũ)\)\s*$/i, "").replace(/^(TP\.?|Thành phố|Tỉnh)\s+/i, "").trim();
   if (!t) return null;
-  // đưa về đúng tên các nguồn khác đang dùng, không thì "TP. Hồ Chí Minh" thành một tỉnh riêng trong bộ lọc
-  if (/hồ chí minh|hcm|sài gòn/i.test(t)) return "Hồ Chí Minh";
-  if (/hà nội/i.test(t)) return "Hà Nội";
-  if (/đà nẵng/i.test(t)) return "Đà Nẵng";
+  // alias ve ten chuan: dung chung canonProvince (chung.mjs) thay vi ban chep tay thu 4
+  return canonProvince(t);
   return t;
 };
 
@@ -136,7 +135,7 @@ export function parseGuland(html, tinhMacDinh, deal) {
   }
   return out;
 }
-function hash(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return h; }
+// hash31 dung chung (chung.mjs) - ID ben trong DB phu thuoc ham nay, xem canh bao o do
 
 // Guland chặn theo DẤU VÂN TAY TLS của Node, không phải header: cùng thời điểm, cùng header thì
 // curl trả 200 (45 tin) còn fetch() của Node trả 403. Đã thử thêm đủ bộ header trình duyệt

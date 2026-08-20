@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import { cleanFbText } from "./fb-clean.mjs";
 import { qualityGate, PHONE_RE } from "./quality-gate.mjs";
+import { hash31 as hash } from "./chung.mjs";
 
 // Xoay nhiều key Gemini (từ nhiều PROJECT/acc) để né 429. Cũng nhận GEMINI_API_KEYS="k1,k2,k3".
 const KEYS = [
@@ -100,7 +101,7 @@ async function toListing(post) {
     freshness_min: 30, images: post.images || [],
   };
 }
-function hash(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return h; }
+// hash31 dung chung (chung.mjs) - ID ben trong DB phu thuoc ham nay, xem canh bao o do
 
 // Chuẩn hoá cookie export (Cookie-Editor / EditThisCookie) -> đúng schema Playwright cần.
 // Cookie-Editor dùng expirationDate + sameSite "no_restriction"/"lax"; Playwright cần expires + "None"/"Lax"/"Strict".

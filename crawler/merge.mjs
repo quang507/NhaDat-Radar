@@ -1,6 +1,7 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
+import { canonProvince } from "./chung.mjs";
 import { PHONE_RE } from "./quality-gate.mjs";
 import { createHash } from "node:crypto";
 
@@ -32,13 +33,8 @@ const load = (f) => {
   } catch { return []; }
 };
 
-function canonProvince(p) {
-  const t = (p || "").toLowerCase();
-  if (/hà nội|ha noi/.test(t)) return "Hà Nội";
-  if (/hồ chí minh|ho chi minh|hcm|sài gòn/.test(t)) return "Hồ Chí Minh";
-  if (/đà nẵng|da nang/.test(t)) return "Đà Nẵng";
-  return p || null;
-}
+// canonProvince dung chung (chung.mjs) - ban cu o day THIEU "tphcm" so voi ban mogi:
+// cung mot tinh chuan hoa khac nhau tuy nguon, bo loc tinh tren web bi tach doi
 // Điểm heuristic khi nguồn không tự chấm (batdongsan/mogi): có phổ 45-95 theo độ đầy đủ
 // dữ liệu thay vì 75 phẳng hàng loạt.
 function heuristicScore(x) {

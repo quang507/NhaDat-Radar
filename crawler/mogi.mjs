@@ -1,5 +1,6 @@
 // Crawler MOGI.VN - HTML SSR (curl/fetch qua được Cloudflare). Có ảnh + giá + diện tích + PN/WC.
 import fs from "node:fs";
+import { hash31 as hash, canonProvince } from "./chung.mjs";
 import { pathToFileURL } from "node:url";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -17,13 +18,7 @@ const SEEDS = [
 ];
 const seedUrls = SEEDS.flatMap(([s, pages]) => Array.from({ length: pages }, (_, i) => (i ? `${s}?cp=${i + 1}` : s)));
 
-function canonProvince(s) {
-  const t = (s || "").toLowerCase();
-  if (/hà nội|ha noi/.test(t)) return "Hà Nội";
-  if (/tphcm|hcm|hồ chí minh|ho chi minh|sài gòn/.test(t)) return "Hồ Chí Minh";
-  if (/đà nẵng|da nang/.test(t)) return "Đà Nẵng";
-  return s || null;
-}
+// canonProvince dung chung (chung.mjs) - ban chep tay cu thieu "sai gon" khong dau
 function propType(url) {
   if (/can-ho|chung-cu/.test(url)) return "can_ho";
   if (/dat-nen|mua-ban-dat|mua-dat|thue-dat|dat-tho-cu|ban-dat|\/dat\//.test(url)) return "dat"; // audit 16/8: /mua-dat-tho-cu/ từng rơi vào "khac"
@@ -78,7 +73,7 @@ export function parseMogi(html) {
   const seen = new Set();
   return out.filter((x) => (seen.has(x.id) ? false : seen.add(x.id)));
 }
-function hash(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return h; }
+// hash31 dung chung (chung.mjs)
 
 async function run() {
   let all = [];

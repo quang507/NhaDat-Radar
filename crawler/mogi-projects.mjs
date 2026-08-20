@@ -6,6 +6,7 @@
 //   node mogi-projects.mjs --seed     : cào -> projects.json -> upsert vào Supabase (theo slug)
 //   node mogi-projects.mjs --seed-only: chỉ upsert từ projects.json có sẵn
 import fs from "node:fs";
+import { canonProvince } from "./chung.mjs";
 import { pathToFileURL } from "node:url";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -78,13 +79,7 @@ export function parseAddrLine(line) {
   return { district: rac ? null : district, province };
 }
 
-function canonProvince(s) {
-  const t = (s || "").toLowerCase();
-  if (/hà nội|ha noi/.test(t)) return "Hà Nội";
-  if (/tphcm|hcm|hồ chí minh|ho chi minh|sài gòn/.test(t)) return "Hồ Chí Minh";
-  if (/đà nẵng|da nang/.test(t)) return "Đà Nẵng";
-  return s || null;
-}
+// canonProvince dung chung (chung.mjs)
 // "Từ 3 tỷ 55 triệu" / "3,5 tỷ" -> VND. Trả null nếu "Thoả thuận"/"Liên hệ".
 function parsePrice(s) {
   if (!s) return null;
