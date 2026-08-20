@@ -95,12 +95,39 @@ const KIND = ["nha", "dat", "can_ho", "mat_bang", "phong_tro", "khac"];
 const photoHintAt = new Map();
 const HINT_GAP_MS = Number(process.env.ZALO_HINT_GAP_MS || 60_000);
 
+// ---- NHỚ ẢNH khách gửi để ghép vào tin đăng (20/8) ----
+// Đo trên DB: 0/45 tin Zalo có ảnh - vì zca-js gửi ảnh thành SỰ KIỆN RIÊNG, không đính kèm
+// tin nhắn chữ, mà code cũ vứt sự kiện ảnh đi (bot còn hứa "em ghép với ảnh" - hứa suông).
+// Cách ghép: nhớ ảnh theo khoá (thread | người gửi) trong TTL ngắn, khi CÙNG người đó gửi
+// dòng chữ mô tả thì lấy ra đính vào tin. Group dùng uidFrom nên KHÔNG ghép nhầm ảnh của
+// người khác đang chat cùng lúc; quá TTL thì ảnh tự hết hạn, không dính sang tin sau.
+const anhCho = new Map();               // key -> { urls: [], luc: ms }
+const ANH_TTL_MS = Number(process.env.ZALO_ANH_TTL_MS || 3 * 60_000);
+const ANH_TOI_DA = 12;
+function nhoAnh(key, url) {
+  const o = anhCho.get(key) || { urls: [], luc: 0 };
+  if (!o.urls.includes(url)) o.urls.push(url);
+  if (o.urls.length > ANH_TOI_DA) o.urls.splice(0, o.urls.length - ANH_TOI_DA);
+  o.luc = Date.now();
+  anhCho.set(key, o);
+  if (anhCho.size > 500) { const c = Date.now(); for (const [k, v] of anhCho) if (c - v.luc > ANH_TTL_MS) anhCho.delete(k); }
+}
+function layAnh(key) {
+  // CHỈ ĐỌC, không xoá: tin nhắn chữ có thể trượt cổng chất lượng (khách phải gửi bổ sung)
+  // - xoá ngay lúc đọc thì lần gửi lại mất sạch ảnh. Xoá bằng xoaAnh() sau khi LƯU thành công.
+  const o = anhCho.get(key);
+  if (!o || Date.now() - o.luc > ANH_TTL_MS) { anhCho.delete(key); return []; }
+  return o.urls;
+}
+const xoaAnh = (key) => anhCho.delete(key);
+
 // Lưu 1 BĐS vào DB (dùng cho cả DM đăng tin lẫn tin bóc từ group)
-async function saveListing(L, text, { fromGroup } = {}) {
+async function saveListing(L, text, { fromGroup, images } = {}) {
   return sb.from("listings").insert({
     source: fromGroup ? "zalo_miniapp" : "zalo_oa",
     source_site: fromGroup ? "zalo_group" : "zalo_bot",
     title: L.title || text.slice(0, 80), description: text,
+    images: (images || []).slice(0, ANH_TOI_DA),   // link CDN Zalo (photo.talk.zdn.vn) - công khai, SafeImg tự ẩn nếu chết
     price_vnd: L.price_vnd ?? null, area_m2: L.area_m2 ?? null, bedrooms: L.bedrooms ?? null,
     deal: L.listing_type === "ban" ? "ban" : "cho_thue",
     kind: KIND.includes(L.property_type || "") ? L.property_type : "khac",
@@ -112,7 +139,7 @@ async function saveListing(L, text, { fromGroup } = {}) {
 }
 
 // ---- Xử lý tin từ GROUP: chỉ bóc data BĐS, KHÔNG trả lời (tránh spam group) ----
-async function harvestGroup(text) {
+async function harvestGroup(text, anh = [], khoaAnh = null) {
   if (text.length < 40) return; // tin ngắn/chat vặt -> bỏ
   const ai = await classify(text);
   if (ai.intent === "dang_tin" && ai.listing) {
@@ -127,13 +154,14 @@ async function harvestGroup(text) {
     const coSdt = PHONE_RE.test(vanBan);
     const coKhuVuc = !!(ai.listing.district || ai.listing.province) || AREA_HINT.test(vanBan);
     if (!coSdt && !coKhuVuc) { console.log("  - bo (thieu ca SDT lan khu vuc)"); return; }
-    const { error } = await saveListing(ai.listing, text, { fromGroup: true });
-    console.log(error ? "  (lưu lỗi: " + error.message + ")" : "  ✓ bóc được 1 tin BĐS từ group -> đã đăng");
+    const { error } = await saveListing(ai.listing, text, { fromGroup: true, images: anh });
+    if (!error && khoaAnh) xoaAnh(khoaAnh);
+    console.log(error ? "  (lưu lỗi: " + error.message + ")" : `  ✓ bóc được 1 tin BĐS từ group${anh.length ? ` (+${anh.length} ảnh)` : ""} -> đã đăng`);
   }
 }
 
 // ---- Xử lý DM (chat 1-1) -> trả về text để gửi lại ----
-async function handle(text) {
+async function handle(text, anh = [], khoaAnh = null) {
   const ai = await classify(text);
 
   if (ai.intent === "dang_tin" && ai.listing) {
@@ -146,9 +174,10 @@ async function handle(text) {
         : "loại BĐS (nhà / đất / căn hộ / mặt bằng…) và giá";
       return `Dạ em chưa đăng được vì tin còn thiếu ${need}. Anh/chị gửi lại đầy đủ 1 tin: loại BĐS + diện tích + giá + khu vực + SĐT (VD: "Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx") em đăng ngay ạ 🙏`;
     }
-    const { error } = await saveListing(L, text, { fromGroup: false });
+    const { error } = await saveListing(L, text, { fromGroup: false, images: anh });
     if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
-    return `✅ Đã ghi nhận tin của anh/chị:\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT - nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
+    if (khoaAnh) xoaAnh(khoaAnh);
+    return `✅ Đã ghi nhận tin của anh/chị:${anh.length ? `\n• Kèm ${anh.length} ảnh` : ""}\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT - nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
   }
 
   if (ai.intent === "hoi_tin" && ai.query) {
@@ -219,10 +248,22 @@ function startListener() {
     const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
     const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
     if (!fromId || isSelf) return;
+    // Khoá ghép ảnh-với-chữ: group phải kèm NGƯỜI GỬI (uidFrom) - không thì ảnh của người A
+    // đang chat cùng lúc bị ghép vào tin của người B. DM thì thread chính là người gửi.
+    const khoaAnh = isGroup ? `${fromId}|${d.uidFrom || ""}` : String(fromId);
     // UX audit 16/8: khách gửi ẢNH nhà / file / sticker mà không kèm chữ -> bot im lặng -> tưởng bot chết.
     // DM: trả lời hướng dẫn 1 lần cho tin không có chữ (ảnh/file), bỏ qua sticker/thiệp; group: bỏ qua.
     const msgType = String(d.msgType ?? ev.msgType ?? "");
     if (!text) {
+      // Sự kiện ẢNH (cả DM lẫn group): zca-js để URL trong content.href/oriUrl/thumb...
+      // Nhớ lại theo khoá để ghép vào tin khi CÙNG người đó gửi dòng chữ mô tả (xem anhCho).
+      if (/photo|image|chat\.photo/i.test(msgType) && raw && typeof raw === "object") {
+        const url = raw.href || raw.oriUrl || raw.hdUrl || raw.normalUrl || raw.thumbUrl || raw.thumb || null;
+        if (url) {
+          nhoAnh(khoaAnh, String(url));
+          console.log(`← [${khoaAnh}] +1 ảnh (đang giữ chờ ghép)`);
+        }
+      }
       if (!isGroup && /photo|image|file|video|chat\.(photo|file|video)/i.test(msgType)) {
         // Sự cố 17/8: album 5 ảnh về thành 5 event riêng -> bot lặp câu hướng dẫn 5 lần liền
         // (khách tưởng bot lỗi, Zalo dễ gắn cờ spam). Nhớ mốc nhắc gần nhất theo fromId,
@@ -238,10 +279,10 @@ function startListener() {
     }
     if (isGroup) {
       console.log(`← (group ${fromId}) ${text.slice(0, 60)}`);
-      await harvestGroup(text); // chỉ bóc data, không trả lời trong group
+      await harvestGroup(text, layAnh(khoaAnh), khoaAnh); // chỉ bóc data, không trả lời trong group
     } else {
       console.log(`← [${fromId}] ${text.slice(0, 60)}`);
-      const reply = await handle(text);
+      const reply = await handle(text, layAnh(khoaAnh), khoaAnh);
       sendReply(fromId, reply);
       console.log(`→ [${fromId}] ${reply.slice(0, 60)}`);
     }
