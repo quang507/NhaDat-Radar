@@ -57,7 +57,7 @@ if errorlevel 1 (
 
 echo.
 echo   ============================================
-echo     XONG. Xem web: https://nha-dat-radar-rkyn.vercel.app
+echo     XONG. Xem web: https://nhadatradar.com
 echo     Bot Zalo van chay nen (dong cua so nay khong tat bot).
 echo   ============================================
 echo.

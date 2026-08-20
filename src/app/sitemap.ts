@@ -6,7 +6,7 @@ import { getAreas } from "@/lib/geo";
 // audit 16/8: bỏ force-dynamic (bot gọi sitemap liên tục -> mỗi lần 3 query); cache 1 giờ là đủ cho crawl 1 lần/ngày
 export const revalidate = 3600;
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nha-dat-radar-rkyn.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const stat: MetadataRoute.Sitemap = [

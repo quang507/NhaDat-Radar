@@ -14,7 +14,7 @@ import ListingRow from "@/components/ListingRow";
 import PriceTrend from "@/components/PriceTrend";
 
 type Deal = "ban" | "cho_thue";
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nha-dat-radar-rkyn.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
 
 /**
  * Tuần tự hoá JSON-LD an toàn để nhúng vào <script>.

@@ -41,7 +41,7 @@ jobs:
       - name: Run tests
         run: npx playwright test
         env:
-          BASE_URL: ${{ github.event.inputs.base_url || 'https://nha-dat-radar-rkyn.vercel.app' }}
+          BASE_URL: ${{ github.event.inputs.base_url || 'https://nhadatradar.com' }}
       - name: Upload báo cáo HTML
         if: always()
         uses: actions/upload-artifact@v4

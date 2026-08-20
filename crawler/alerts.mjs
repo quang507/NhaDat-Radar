@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const RESEND = process.env.RESEND_API_KEY;
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nha-dat-radar-rkyn.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
 const FROM = process.env.ALERT_FROM || "NhaDat Radar <onboarding@resend.dev>";
 
 if (!url || !key) { console.error("alerts: thiếu SUPABASE env"); process.exit(0); }

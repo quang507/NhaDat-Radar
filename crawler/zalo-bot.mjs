@@ -54,7 +54,7 @@ const sb = createClient(url, key, { auth: { persistSession: false } });
 
 // Link gửi cho khách phải là domain public — .env.local dev hay đặt localhost nên phải lọc
 const rawSite = process.env.NEXT_PUBLIC_SITE_URL || "";
-const SITE = rawSite && !/localhost|127\.0\.0\.1/.test(rawSite) ? rawSite.replace(/\/$/, "") : "https://nha-dat-radar-rkyn.vercel.app";
+const SITE = rawSite && !/localhost|127\.0\.0\.1/.test(rawSite) ? rawSite.replace(/\/$/, "") : "https://nhadatradar.com";
 const PROP = { nha: "Nhà", dat: "Đất nền", can_ho: "Căn hộ", mat_bang: "Mặt bằng", phong_tro: "Phòng trọ", khac: "Nhà đất khác" };
 function fmtPrice(v, deal) {
   if (!v) return "Thoả thuận";
