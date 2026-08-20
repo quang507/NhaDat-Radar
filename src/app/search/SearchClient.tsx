@@ -19,6 +19,15 @@ const PRICE_OPTS: [string, string][] = [
   ["", "Tất cả"], ["500000000", "500 triệu"], ["1000000000", "1 tỷ"], ["2000000000", "2 tỷ"],
   ["3000000000", "3 tỷ"], ["5000000000", "5 tỷ"], ["10000000000", "10 tỷ"], ["20000000000", "20 tỷ"],
 ];
+// Giá THUÊ tính theo triệu/tháng - dùng chung thang tỷ của mua bán thì "Dưới 500 triệu" chọn ra
+// toàn bộ tin thuê (vô nghĩa). Mốc theo thực tế: 3-5tr trọ, 10-20tr nhà nguyên căn/căn hộ,
+// 50-100tr mặt bằng kinh doanh.
+const RENT_OPTS: [string, string][] = [
+  ["", "Tất cả"], ["3000000", "3 triệu/tháng"], ["5000000", "5 triệu/tháng"], ["10000000", "10 triệu/tháng"],
+  ["15000000", "15 triệu/tháng"], ["20000000", "20 triệu/tháng"], ["50000000", "50 triệu/tháng"], ["100000000", "100 triệu/tháng"],
+];
+// deal rỗng (xem lẫn cả bán + thuê) thì giữ thang tỷ - đó là thang của phần tin áp đảo
+const bangGia = (deal: string) => (deal === "cho_thue" ? RENT_OPTS : PRICE_OPTS);
 const SORTS: [string, string][] = [
   ["", "Mới nhất"], ["score", "Điểm tin cao xếp trước"],
   ["price_asc", "Giá thấp đến cao"], ["price_desc", "Giá cao đến thấp"],
@@ -117,7 +126,10 @@ export default function SearchClient({
   const sel = "inp appearance-none pr-8 cursor-pointer";
   const set = (k: string) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const v = e.target.value;
-    setF((s) => k === "province" ? { ...s, province: v, district: "", ward: "" } : k === "district" ? { ...s, district: v, ward: "" } : { ...s, [k]: v });
+    // Đổi Bán <-> Cho thuê thì XOÁ mức giá đã chọn: hai chế độ dùng hai thang khác nhau
+    // (tỷ vs triệu/tháng) - giữ "dưới 20 tỷ" khi sang thuê là bộ lọc vô nghĩa, ngược lại
+    // "dưới 10 triệu" khi sang mua bán thì ra 0 tin mà người dùng không hiểu vì sao.
+    setF((s) => k === "province" ? { ...s, province: v, district: "", ward: "" } : k === "district" ? { ...s, district: v, ward: "" } : k === "deal" ? { ...s, deal: v, priceMin: "", priceMax: "" } : { ...s, [k]: v });
   };
 
   // Tiêu đề động kiểu batdongsan: "Mua bán nhà riêng Quận 7, Hồ Chí Minh"
@@ -212,7 +224,7 @@ export default function SearchClient({
         <select className={`${sel} !w-auto`} value={f.priceMax}
           onChange={(e) => { setF((s) => ({ ...s, priceMax: e.target.value })); push({ ...f, priceMax: e.target.value }); }}>
           <option value="">Khoảng giá</option>
-          {PRICE_OPTS.slice(1).map(([v, l]) => <option key={v} value={v}>Dưới {l}</option>)}
+          {bangGia(f.deal).slice(1).map(([v, l]) => <option key={v} value={v}>Dưới {l}</option>)}
         </select>
         <select className={`${sel} !w-auto`} value={f.areaMin}
           onChange={(e) => { setF((s) => ({ ...s, areaMin: e.target.value })); push({ ...f, areaMin: e.target.value }); }}>
@@ -303,13 +315,13 @@ export default function SearchClient({
             <label className="block">
               <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Giá từ</span>
               <select className={sel} value={f.priceMin} onChange={set("priceMin")}>
-                {PRICE_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </label>
             <label className="block">
               <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Giá đến</span>
               <select className={sel} value={f.priceMax} onChange={set("priceMax")}>
-                {PRICE_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </label>
           </div>
