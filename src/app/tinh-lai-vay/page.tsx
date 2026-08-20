@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 const VND = new Intl.NumberFormat("vi-VN");
 function money(v: number): string {
@@ -16,11 +17,23 @@ const TIPS: [string, string][] = [
 ];
 
 // Máy tính thế chấp: gốc + lãi trả đều (annuity) - chuẩn cách ngân hàng VN tính "trả góp đều".
-export default function MortgagePage() {
-  const [price, setPrice] = useState(3_000_000_000);
-  const [downPct, setDownPct] = useState(30);
-  const [rate, setRate] = useState(9.5);
-  const [years, setYears] = useState(20);
+// Nhận tham số từ nút "Tính chi tiết" trên tin: ?price&pct&rate&years. LƯU Ý chiều của pct:
+// widget MortgageMini truyền pct = % VAY, còn trang này nhập theo % TRẢ TRƯỚC nên phải lấy 100 - pct.
+function docSo(v: string | null, macDinh: number, min: number, max: number) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= min && n <= max ? n : macDinh;
+}
+
+function MortgageCalc() {
+  const q = useSearchParams();
+  const [price, setPrice] = useState(() => docSo(q.get("price"), 3_000_000_000, 100_000_000, 1e12));
+  const [downPct, setDownPct] = useState(() => {
+    const vayPct = Number(q.get("pct"));
+    if (q.get("pct") === null || !Number.isFinite(vayPct)) return 30;
+    return Math.min(90, Math.max(10, 100 - vayPct)); // kẹp về khung slider thay vì vứt
+  });
+  const [rate, setRate] = useState(() => docSo(q.get("rate"), 9.5, 0, 30));
+  const [years, setYears] = useState(() => docSo(q.get("years"), 20, 5, 35));
 
   const r = useMemo(() => {
     const loan = Math.max(0, price * (1 - downPct / 100));
@@ -138,5 +151,14 @@ export default function MortgagePage() {
         </p>
       </section>
     </div>
+  );
+}
+
+// Next.js bắt buộc bọc useSearchParams trong Suspense với trang prerender tĩnh.
+export default function MortgagePage() {
+  return (
+    <Suspense>
+      <MortgageCalc />
+    </Suspense>
   );
 }
