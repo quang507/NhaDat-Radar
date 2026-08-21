@@ -146,6 +146,58 @@ function ghepAnhMuon(khoaAnh, url) {
   return true;
 }
 
+// ---- GƯƠNG ẢNH VỀ KHO (21/8) ----
+// Ảnh tin Zalo đang trỏ thẳng link CDN Zalo (photo.talk.zdn.vn) - link đó CÓ HẠN, Zalo thu
+// hồi là tin trắng ảnh hàng loạt. Quét định kỳ: tin zalo nào còn ảnh CDN thì tải về bucket
+// công khai `anh-zalo` trên Supabase Storage rồi thay link trong DB. Chạy NGOÀI luồng trả
+// lời (không bắt khách chờ tải 12 tấm ảnh), lỗi tấm nào giữ link CDN tấm đó chờ lượt sau.
+const KHO_ANH = "anh-zalo";
+const laAnhCDN = (u) => /^https?:\/\//.test(u) && !u.includes("/storage/v1/object/public/");
+let dangGuong = false;
+async function guongAnhVeKho(tatCa = false) {
+  if (dangGuong) return; // lượt trước còn chạy thì thôi, đừng chồng
+  dangGuong = true;
+  try {
+    let q = sb.from("listings").select("id,images").in("source", ["zalo_oa", "zalo_miniapp"])
+      .neq("images", "{}").order("created_at", { ascending: false }).limit(tatCa ? 1000 : 60);
+    if (!tatCa) q = q.gte("created_at", new Date(Date.now() - 2 * 864e5).toISOString());
+    const { data } = await q;
+    for (const tin of data ?? []) {
+      if (!(tin.images || []).some(laAnhCDN)) continue;
+      const moi = [];
+      let doi = false;
+      for (let i = 0; i < tin.images.length; i++) {
+        const u = tin.images[i];
+        if (!laAnhCDN(u)) { moi.push(u); continue; }
+        try {
+          const res = await fetch(u);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const loai = res.headers.get("content-type") || "image/jpeg";
+          const buf = Buffer.from(await res.arrayBuffer());
+          if (buf.length < 1000 || buf.length > 8 * 1024 * 1024) throw new Error("cỡ lạ " + buf.length);
+          const duongDan = `${tin.id}/${i}.${loai.includes("png") ? "png" : "jpg"}`;
+          const { error } = await sb.storage.from(KHO_ANH).upload(duongDan, buf, { contentType: loai, upsert: true });
+          if (error) throw error;
+          moi.push(sb.storage.from(KHO_ANH).getPublicUrl(duongDan).data.publicUrl);
+          doi = true;
+        } catch (e) {
+          moi.push(u); // giữ CDN chờ lượt sau - đừng vứt ảnh chỉ vì 1 lần tải lỗi
+          console.log(`  (gương ảnh lỗi ${tin.id}/${i}: ${e.message})`);
+        }
+      }
+      if (doi) {
+        const { error } = await sb.from("listings").update({ images: moi }).eq("id", tin.id);
+        console.log(error ? `  (ghi link kho lỗi: ${error.message})` : `  ✓ gương ${moi.filter((u) => !laAnhCDN(u)).length}/${moi.length} ảnh về kho cho tin ${tin.id.slice(0, 8)}`);
+      }
+    }
+  } catch (e) { console.error("guongAnhVeKho:", e.message); }
+  finally { dangGuong = false; }
+}
+// khởi động: quét TOÀN BỘ tin zalo cũ một lần (bù ~60 tin đã đăng bằng link CDN),
+// sau đó 5 phút/lượt chỉ quét tin 2 ngày gần nhất (ảnh đến muộn đã ghép xong trước đó)
+setTimeout(() => guongAnhVeKho(true), 15_000);
+setInterval(() => guongAnhVeKho(false), 5 * 60_000);
+
 // Lưu 1 BĐS vào DB (dùng cho cả DM đăng tin lẫn tin bóc từ group)
 async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
   const { data, error } = await sb.from("listings").insert({

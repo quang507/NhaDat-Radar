@@ -57,7 +57,8 @@ for (const s of searches ?? []) {
         <h2 style="color:#2563eb">NhaDat Radar - tin mới cho bạn</h2>
         <p>Bộ lọc: <b>${criteria}</b></p><ul style="padding-left:18px">${rows}</ul>
         <p><a href="${SITE}/search" style="color:#2563eb">Xem thêm trên NhaDat Radar →</a></p>
-        <p style="color:#999;font-size:12px">Bạn nhận mail này vì đã bấm 🔔 trên trang tìm kiếm.</p></div>`,
+        <p style="color:#999;font-size:12px">Bạn nhận mail này vì đã bấm 🔔 trên trang tìm kiếm.
+        · <a href="${SITE}/api/alerts/huy?id=${s.id}&amp;t=${s.unsub_token}" style="color:#999">Hủy đăng ký</a></p></div>`,
     }),
   });
   clearTimeout(timer);
