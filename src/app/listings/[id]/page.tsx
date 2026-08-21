@@ -71,6 +71,19 @@ export default async function ListingDetail({
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
+  // Tin thuộc dự án (gan-du-an.mjs nối theo tên) -> khối "Thông tin dự án" + đếm tin cùng
+  // dự án đang rao, kiểu batdongsan: từ tin bấm ra dự án, từ dự án thấy ai đang bán/cho thuê
+  let duAn: { id: string; name: string; investor: string | null } | null = null;
+  let tinCungDuAn = 0;
+  if (x.project_id) {
+    const [{ data: p }, { count }] = await Promise.all([
+      supabase.from("projects").select("id,name,investor").eq("id", x.project_id).single(),
+      supabase.from("listings").select("id", { count: "exact", head: true }).eq("project_id", x.project_id).eq("status", "published"),
+    ]);
+    duAn = p;
+    tinCungDuAn = count ?? 0;
+  }
+
   // 17/8: bỏ duyệt trước - tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
   const { data: { user } } = await supabase.auth.getUser();
   let isAdmin = false;
@@ -268,6 +281,20 @@ export default async function ListingDetail({
           ) : null}
           {/* Xu hướng giá khu vực từ price_history (snapshot mỗi sáng) - trước đây bảng có mà chi tiết tin không dùng */}
           {x.province ? <PriceTrend province={x.province} district={x.district} kind={x.kind} deal={x.deal} /> : null}
+
+          {/* Tin nằm trong dự án -> lối sang trang dự án xem toàn bộ tin đang rao ở đó */}
+          {duAn && (
+            <div className="card rounded-lg p-4 text-sm flex items-center gap-3 flex-wrap">
+              <div>
+                <div className="text-xs text-[var(--ink-soft)] mb-0.5">Thông tin dự án</div>
+                <div className="font-bold">🏙 {duAn.name}</div>
+                {duAn.investor && <div className="text-xs text-[var(--ink-soft)]">Chủ đầu tư: {duAn.investor}</div>}
+              </div>
+              <Link href={`/projects/${duAn.id}`} className="btn text-sm ml-auto whitespace-nowrap">
+                Xem dự án · {tinCungDuAn} tin đang rao ›
+              </Link>
+            </div>
+          )}
 
           {/* Dấu hiệu chính chủ / môi giới - từ DỮ LIỆU (tần suất tài khoản, nguồn ghi nhận, nội dung), nêu rõ lý do */}
           {roleGuess === "moi_gioi" && (

@@ -271,6 +271,7 @@ try { fs.writeFileSync(new URL("./.last-run", import.meta.url), String(Date.now(
 
 // 3) Hậu xử lý: snapshot lịch sử giá + gửi email báo tin mới (đều tự bỏ qua nếu thiếu env)
 if (!SEED_ONLY) {
+  step("node gan-du-an.mjs"); // nối tin mới vào dự án theo tên (idempotent, chỉ quét tin chưa gán)
   step("node price-history.mjs");
   step("node alerts.mjs");
   step("node embed.mjs"); // embedding cho tìm kiếm ngữ nghĩa (cần migration 003 + GEMINI key) - giờ upsert nên embedding cũ được giữ, chỉ embed tin mới

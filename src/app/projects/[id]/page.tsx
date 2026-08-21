@@ -138,20 +138,48 @@ export default async function ProjectDetail({
             </div>
           ) : null}
 
-          <h3 className="font-bold mt-6 mb-3">
-            {related ? `Bất động sản tại ${p.district || p.province}` : "Bất động sản đang bán trong dự án"}
-          </h3>
-          {listings.length ? (
-            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
-              {listings.map((x) => (
-                <ListingCard key={x.id} x={x} />
-              ))}
-            </div>
-          ) : (
-            <div className="card rounded-lg p-8 text-center text-[var(--ink-soft)]">
-              Chưa có bất động sản nào trong dự án này.
-            </div>
-          )}
+          {/* Tách BÁN / CHO THUÊ (21/8): người tìm mua và người tìm thuê là hai nhu cầu khác
+              hẳn nhau, trộn chung một lưới thì giá 5 tỷ đứng cạnh 12 triệu/tháng rất nhiễu */}
+          {(() => {
+            if (!listings.length) return (
+              <>
+                <h3 className="font-bold mt-6 mb-3">Bất động sản trong dự án</h3>
+                <div className="card rounded-lg p-8 text-center text-[var(--ink-soft)]">
+                  Chưa có bất động sản nào trong dự án này.
+                </div>
+              </>
+            );
+            if (related) return (
+              <>
+                <h3 className="font-bold mt-6 mb-3">Bất động sản tại {p.district || p.province}</h3>
+                <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+                  {listings.map((x) => <ListingCard key={x.id} x={x} />)}
+                </div>
+              </>
+            );
+            const ban = listings.filter((x) => x.deal === "ban");
+            const thue = listings.filter((x) => x.deal === "cho_thue");
+            return (
+              <>
+                {ban.length > 0 && (
+                  <>
+                    <h3 className="font-bold mt-6 mb-3">Đang bán trong dự án ({ban.length})</h3>
+                    <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+                      {ban.map((x) => <ListingCard key={x.id} x={x} />)}
+                    </div>
+                  </>
+                )}
+                {thue.length > 0 && (
+                  <>
+                    <h3 className="font-bold mt-6 mb-3">Đang cho thuê trong dự án ({thue.length})</h3>
+                    <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+                      {thue.map((x) => <ListingCard key={x.id} x={x} />)}
+                    </div>
+                  </>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         <div>

@@ -70,7 +70,14 @@ const PROMPT = `Bạn là trợ lý Zalo của sàn nhà đất. Đọc tin nh�
  "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"direction":string|null,"furnishing":string|null,"amenities":string[],"contact_phone":string|null,"specs":object|null},
  "query":{"listing_type":"ban"|"cho_thue"|null,"property_type":string|null,"province":string|null,"district":string|null,"price_min":number|null,"price_max":number|null,"area_min":number|null}}
 dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM/hỏi. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
-specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, tuỳ loại BĐS, dạng {"nhãn tiếng Việt":"giá trị"} - VD đất: {"Mặt tiền":"10m","Đường vào":"10,5m","Thổ cư":"100m²"}; nhà: {"Kết cấu":"1 trệt 5 lầu","Ngang":"4m"}; căn hộ: {"Tầng":"12","Block":"A"}. CHỈ lấy thứ họ ghi rõ, không có thì null. direction là hướng nhà/đất (Đông, Tây Nam...), furnishing là nội thất.`;
+specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng Việt":"giá trị"}. Nhãn gợi ý THEO LOẠI:
+- nha (thổ cư): Ngang, Dài, DT đất, DT sàn, Kết cấu ("1 trệt 2 lầu"), Đường trước nhà ("hẻm xe hơi 6m"), Thổ cư
+- can_ho: Dự án, Block/Tháp, Tầng, Loại căn (góc/duplex/studio), Hướng ban công, Phí quản lý
+- dat: Mặt tiền, Chiều dài, Đường vào, Thổ cư, Lô/Thửa, Quy hoạch
+- mat_bang: Ngang, Dài, DT sàn, Số tầng, Vị trí (góc 2 mặt tiền), Ngành phù hợp
+- phong_tro: Gác, Máy lạnh, Chỗ để xe, Giờ giấc, Điện, Nước
+- tin CHO THUÊ (mọi loại) thêm: Tiền cọc, Thời hạn hợp đồng, Điện, Nước, Phí quản lý
+CHỈ lấy thứ họ ghi rõ, không có thì null/bỏ nhãn - tuyệt đối không bịa. direction là hướng nhà/đất (Đông, Tây Nam...), furnishing là nội thất, legal là pháp lý (đừng lặp lại 2 thứ này trong specs).`;
 
 async function classify(text) {
   for (const k of KEYS) {
