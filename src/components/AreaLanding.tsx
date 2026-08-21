@@ -153,6 +153,10 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
         {" "}· tổng hợp từ {sources.length} nguồn, cập nhật hằng ngày.
       </p>
 
+      {/* Dải độc quyền là KHỐI ĐẦU TIÊN sau tiêu đề - "vẫn nằm phía trên cùng" (21/8),
+          đứng trên cả tóm tắt thị trường và danh sách quận */}
+      <div className="mt-5"><DaiDocQuyen listings={rows} /></div>
+
       {/* Tóm tắt thị trường (số thật) */}
       {medPrice ? (
         <section className="card rounded-xl p-5 mt-5">
@@ -197,7 +201,6 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
           <h2 className="font-bold">Tin {deal === "ban" ? "bán" : "cho thuê"} mới nhất tại {where}</h2>
           <Link href={searchHref} className="text-sm text-brand font-semibold">Xem tất cả {total.toLocaleString("vi-VN")} tin + bộ lọc ›</Link>
         </div>
-        <DaiDocQuyen listings={rows} />
         {show.length ? (
           <div className="flex flex-col gap-3">{show.map((x) => <ListingRow key={x.id} x={x} />)}</div>
         ) : (

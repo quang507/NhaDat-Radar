@@ -7,6 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen from "@/components/DaiDocQuyen";
+import { laTinDocQuyen } from "@/lib/doc-quyen";
+
+// thứ hạng ưu tiên trong lưới kết quả: tin Zalo (0) -> tin FB (1) -> nguồn web (2)
+const uuTienDocQuyen = (x: Listing) =>
+  !laTinDocQuyen(x) ? 2 : (x.source_site || "").startsWith("zalo") || x.source === "zalo_oa" || x.source === "zalo_miniapp" ? 0 : 1;
 import MapResults, { type MapItem } from "@/components/MapResults";
 import { fmtPrice, PROP, shortPrice } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
@@ -180,7 +185,10 @@ export default async function Home({
           <div className="grid lg:grid-cols-[1fr_400px] gap-4 items-start">
             <div>
               <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
-                {listings.map((x) => <ListingCard key={x.id} x={x} />)}
+                {/* độc quyền luôn trên cùng: Zalo -> FB -> còn lại (trong nhóm giữ thứ tự mới nhất) */}
+                {[...listings]
+                  .sort((a, b) => uuTienDocQuyen(a) - uuTienDocQuyen(b))
+                  .map((x) => <ListingCard key={x.id} x={x} />)}
               </div>
               {!listings.length && (
                 <p className="text-[var(--ink-soft)] py-10 text-center">Không có tin khớp bộ lọc.</p>
