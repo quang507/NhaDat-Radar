@@ -69,7 +69,7 @@ const PROMPT = `Bạn là trợ lý Zalo của sàn nhà đất. Đọc tin nh�
 {"intent":"dang_tin"|"hoi_tin"|"hoi_sau"|"xem_nha"|"sua_tin"|"khac","reply_hint":string,"ref_index":number|null,
  "sua":{"ma_tin":string|null,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"mo_ta_them":string|null},
  "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"direction":string|null,"furnishing":string|null,"amenities":string[],"contact_phone":string|null,"specs":object|null},
- "query":{"listing_type":"ban"|"cho_thue"|null,"property_type":string|null,"province":string|null,"district":string|null,"price_min":number|null,"price_max":number|null,"area_min":number|null}}
+ "query":{"listing_type":"ban"|"cho_thue"|null,"property_type":string|null,"province":string|null,"district":string|null,"ward":string|null,"price_min":number|null,"price_max":number|null,"area_min":number|null}}
 dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM nhà theo tiêu chí (khu vực/giá/loại). hoi_sau: họ hỏi CHI TIẾT về MỘT CĂN CỤ THỂ đã nhắc trong hội thoại hoặc có link/mã - xem sổ đỏ, pháp lý, quy hoạch, xin thêm ảnh, thương lượng giá, "căn số 2 còn không". xem_nha: họ muốn ĐI XEM TRỰC TIẾP / hẹn lịch xem một căn ("cho tôi xem nhà", "cuối tuần qua coi được không") - ưu tiên xem_nha hơn hoi_sau khi họ ngỏ ý đến tận nơi. sua_tin: NGƯỜI ĐĂNG muốn SỬA/BỔ SUNG tin của chính họ đã đăng ("sửa giá 5,5 tỷ", "đổi diện tích 80m2", "bổ sung: có gác lửng, 3PN") - điền vào "sua": ma_tin là mã 8 ký tự nếu họ nhắc, các trường số nếu họ đổi, mo_ta_them là phần bổ sung tự do. ref_index: số thứ tự căn họ nhắc (1-4) nếu họ nói rõ ("căn 2", "cái thứ nhất"), không thì null. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
 specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng Việt":"giá trị"}. Bộ nhãn THEO TỪNG DÒNG BĐS:
 - nha (nhà thổ cư): Ngang, Dài, DT đất, DT sàn, Thổ cư, Kết cấu ("1 trệt 2 lầu 1 tum"), Đường trước nhà ("hẻm xe hơi 6m" / "mặt tiền đường 12m"), Vị trí ("góc 2 mặt tiền", "hẻm cụt"), Năm xây, Hiện trạng ("đang cho thuê 15tr/th", "nhà mới")
@@ -329,6 +329,39 @@ const DAP_TTL_MS = 24 * 60 * 60_000;
 const choXemNha = new Map();  // buyerThread -> { listingId, khungGio, luc } - đang chờ khách cho SĐT để chốt lịch xem
 const XEM_TTL_MS = 10 * 60_000;
 
+// ---- BÁO TIN MỚI QUA ZALO (21/8) ----
+// Khách tìm nhà xong, bot hỏi "muốn nhận tin nhắn khi có tin MỚI khớp không?". Gật (hoặc
+// nhắn kèm Gmail) là lưu saved_searches với zalo_thread; vòng quét 30'/lượt nhắn thẳng vào
+// hội thoại khi có tin mới. Có email thì alerts.mjs trên CI gửi mail song song (nút hủy sẵn).
+const truyVanCuoi = new Map(); // buyerThread -> { q, luc } - bộ lọc lần tìm gần nhất
+const TV_TTL_MS = 30 * 60_000;
+const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]{2,}/;
+async function baoTinMoiZalo() {
+  try {
+    const { data: subs } = await sb.from("saved_searches").select("*").eq("active", true).not("zalo_thread", "is", null).limit(200);
+    for (const s of subs ?? []) {
+      let q = sb.from("listings").select("id,title,price_vnd,area_m2,district,deal").eq("status", "published")
+        .gt("first_seen_at", s.zalo_notified_at || s.created_at)
+        .order("first_seen_at", { ascending: false }).limit(3);
+      if (s.deal) q = q.eq("deal", s.deal);
+      if (s.kind) q = q.eq("kind", s.kind);
+      if (s.province) q = q.ilike("province", `%${s.province}%`);
+      if (s.district) q = q.ilike("district", `%${s.district}%`); // từ Gemini nên chưa chắc canonical -> khớp mềm
+      if (s.ward) q = q.ilike("ward", `%${s.ward}%`);
+      if (s.price_min) q = q.gte("price_vnd", s.price_min);
+      if (s.price_max) q = q.lte("price_vnd", s.price_max);
+      if (s.area_min) q = q.gte("area_m2", s.area_min);
+      const { data: hits } = await q;
+      if (!hits?.length) continue;
+      const lines = hits.map((x) => `• ${(x.title || "").slice(0, 50)} - ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""}\n  ${SITE}/listings/${x.id}`);
+      sendReply(s.zalo_thread, `🔔 Có ${hits.length} tin MỚI khớp tìm kiếm anh/chị quan tâm:\n${lines.join("\n")}\nCần hỏi thêm căn nào cứ nhắn em. Không muốn nhận nữa thì nhắn "ngừng báo tin" ạ.`);
+      await sb.from("saved_searches").update({ zalo_notified_at: new Date().toISOString() }).eq("id", s.id);
+      console.log(`  🔔 báo ${hits.length} tin mới cho thread ${String(s.zalo_thread).slice(0, 8)}...`);
+    }
+  } catch (e) { console.error("baoTinMoiZalo:", e.message); }
+}
+setInterval(baoTinMoiZalo, 30 * 60_000);
+
 // Báo admin qua Zalo: lead mới từ web (form tư vấn, popup SĐT) + câu hỏi cần người thật.
 // ZALO_ADMIN_ID đặt trong .env.local - nhắn thử cho bot rồi xem log "← [id]" để lấy id mình.
 const ADMIN_ID = process.env.ZALO_ADMIN_ID || "";
@@ -389,6 +422,31 @@ async function handle(text, anh = [], khoaAnh = null) {
     return "Dạ em ghi nhận ạ. Anh/chị cho em xin SĐT để Radar gọi chốt lịch xem nhé (VD: 0909xxxxxx) 📞";
   }
   if (cxn) choXemNha.delete(khoaAnh);
+  // 0c. Tắt/bật báo tin mới qua Zalo
+  if (khoaAnh && /(ngừng|ngung|tắt|tat|huỷ|huy)\s*(báo|bao)\s*tin/i.test(text)) {
+    await sb.from("saved_searches").update({ active: false }).eq("zalo_thread", String(khoaAnh)).eq("active", true);
+    return 'Dạ em đã tắt báo tin cho anh/chị ✅ Khi nào cần lại, anh/chị tìm nhà rồi nhắn "CÓ" là bật ngay ạ.';
+  }
+  // Khách vừa được mời nhận báo tin (sau một lượt tìm) -> gật ("CÓ"/"ok") hoặc nhắn Gmail là chốt
+  const tv = khoaAnh ? truyVanCuoi.get(khoaAnh) : null;
+  if (tv && Date.now() - tv.luc <= TV_TTL_MS) {
+    const email = (text.match(EMAIL_RE) || [])[0] || null;
+    const gat = email || (text.trim().length < 40 && /^(có|co|ok|oke|okie|dạ|da|yes|muốn|muon|đồng ý|dong y|bật|bat|ừ|uh)\b/i.test(text.trim()));
+    if (gat) {
+      truyVanCuoi.delete(khoaAnh);
+      const q = tv.q;
+      // mỗi thread giữ MỘT đăng ký Zalo đang bật - đăng ký mới thay bộ lọc cũ, tránh dội tin trùng
+      await sb.from("saved_searches").update({ active: false }).eq("zalo_thread", String(khoaAnh)).eq("active", true);
+      const { error } = await sb.from("saved_searches").insert({
+        zalo_thread: String(khoaAnh), email,
+        deal: q.listing_type || null, kind: q.property_type || null,
+        province: q.province || null, district: q.district || null, ward: q.ward || null,
+        price_min: q.price_min || null, price_max: q.price_max || null, area_min: q.area_min || null,
+      });
+      if (error) { console.error("dang ky bao tin:", error.message); return "Dạ em chưa lưu được đăng ký, anh/chị thử lại sau ít phút nhé 🙏"; }
+      return `✅ Đã bật báo tin mới cho ${[q.ward, q.district, q.province].filter(Boolean).join(", ") || "khu vực anh/chị quan tâm"}. Có tin khớp là em nhắn ngay tại đây${email ? ` và gửi thêm về ${email}` : ""}. Muốn tắt: nhắn "ngừng báo tin" ạ.`;
+    }
+  }
   const nhap = khoaAnh ? nhapDo.get(khoaAnh) : null;
   if (nhap && Date.now() - nhap.luc > NHAP_TTL_MS) nhapDo.delete(khoaAnh);
   else if (nhap && (PHONE_RE.test(text) || (text.length < 120 && AREA_HINT.test(text)))) {
@@ -497,6 +555,7 @@ async function handle(text, anh = [], khoaAnh = null) {
     if (q.listing_type) query = query.eq("deal", q.listing_type);
     if (q.property_type) query = query.eq("kind", q.property_type);
     if (q.district) query = query.ilike("district", `%${q.district}%`);
+    if (q.ward) query = query.ilike("ward", `%${q.ward}%`); // khách hỏi theo PHƯỜNG/XÃ (21/8)
     if (q.province) query = query.ilike("province", `%${q.province}%`);
     if (q.price_max) query = query.lte("price_vnd", q.price_max);
     if (q.price_min) query = query.gte("price_vnd", q.price_min);
@@ -513,17 +572,24 @@ async function handle(text, anh = [], khoaAnh = null) {
     if (q.district) sp.set("district", q.district);
     if (q.price_max) sp.set("priceMax", String(q.price_max));
     if (q.price_min) sp.set("priceMin", String(q.price_min));
+    if (q.ward) sp.set("ward", q.ward);
     if (q.area_min) sp.set("areaMin", String(q.area_min));
     const moreUrl = `${SITE}/search?${sp.toString()}`;
+    // mời nhận báo tin mới (21/8): chỉ mời khi có KHU VỰC thật - lưu bộ lọc 30' chờ khách gật
+    const coKhuVuc = !!(q.province || q.district || q.ward);
+    if (khoaAnh && coKhuVuc) truyVanCuoi.set(khoaAnh, { q, luc: Date.now() });
+    const moiBaoTin = coKhuVuc
+      ? `\n\n🔔 Quý khách muốn nhận TIN NHẮN ngay tại đây mỗi khi có tin MỚI khớp tìm kiếm này không? Nhắn "CÓ" là em bật - muốn nhận thêm qua email thì nhắn kèm Gmail ạ.`
+      : "";
     if (data?.length) {
       // Tin ĐỘC QUYỀN (FB + Zalo - cùng luật với src/lib/doc-quyen.ts): KHÔNG đưa SĐT ra,
       // liên hệ đi qua Cầu Nối - khách cầm số ở bước tìm là hết vai trò trung gian.
       const laDocQuyen = (x) => x.source === "zalo_oa" || x.source === "zalo_miniapp"
         || x.source_site === "facebook" || x.source_site === "zalo_group" || x.source_site === "zalo_bot";
       const lines = data.map((x, i) => `${i + 1}. ${x.title?.slice(0, 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}${laDocQuyen(x) ? `\n   ⭐ Độc quyền Radar - nhắn "căn số ${i + 1}" để hỏi thêm / hẹn xem` : x.contact_phone ? "\n   📞 " + x.contact_phone : ""}\n   🔗 ${SITE}/listings/${x.id}`);
-      return `🔎 ${data.length} tin phù hợp nhất:\n\n${lines.join("\n\n")}\n\n👉 Xem tất cả + bản đồ: ${moreUrl}\nNhắn thêm điều kiện (giá, số phòng, đường…) để em lọc kỹ hơn.`;
+      return `🔎 ${data.length} tin phù hợp nhất:\n\n${lines.join("\n\n")}\n\n👉 Xem tất cả + bản đồ: ${moreUrl}\nNhắn thêm điều kiện (giá, số phòng, đường…) để em lọc kỹ hơn.${moiBaoTin}`;
     }
-    return `Chưa có tin nào khớp đúng yêu cầu. Anh/chị thử nới điều kiện (khu vực rộng hơn / giá cao hơn), hoặc xem danh sách gần nhất: ${moreUrl}\nĐể lại nhu cầu (khu vực + giá + loại), có tin mới khớp em báo ngay ạ 🔔`;
+    return `Chưa có tin nào khớp đúng yêu cầu. Anh/chị thử nới điều kiện (khu vực rộng hơn / giá cao hơn), hoặc xem danh sách gần nhất: ${moreUrl}${moiBaoTin || "\nĐể lại nhu cầu (khu vực + giá + loại), có tin mới khớp em báo ngay ạ 🔔"}`;
   }
 
   return ai.reply_hint ||
