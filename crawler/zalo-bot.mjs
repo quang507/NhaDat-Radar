@@ -79,21 +79,51 @@ specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng 
 - tin CHO THUÊ (mọi loại) thêm: Tiền cọc ("cọc 2 tháng"), Thời hạn HĐ tối thiểu, Phí quản lý, Điện, Nước, Bao gồm ("free wifi + rác")
 CHỈ lấy thứ họ ghi rõ, không có thì null/bỏ nhãn - tuyệt đối không bịa. direction là hướng nhà/đất (Đông, Tây Nam...), furnishing là nội thất, legal là pháp lý, bedrooms/bathrooms/floors là số PN/WC/tầng - các trường riêng này đừng lặp lại trong specs.`;
 
-async function classify(text) {
+// Gọi Gemini trả JSON - dùng chung cho classify + bóc specs từ đáp án Cầu Nối
+async function goiGeminiJSON(prompt) {
   for (const k of KEYS) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 15000);
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${k}`,
         { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
-          body: JSON.stringify({ contents: [{ parts: [{ text: PROMPT + "\n\n--- TIN NHẮN ---\n" + text }] }], generationConfig: { responseMimeType: "application/json", temperature: 0 } }) });
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: 0 } }) });
       if (res.status === 429) continue;
       const j = await res.json();
       return JSON.parse(j?.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
     } catch { /* xoay key */ }
     finally { clearTimeout(timer); }
   }
-  return { intent: "khac" };
+  return null;
+}
+
+async function classify(text) {
+  return (await goiGeminiJSON(PROMPT + "\n\n--- TIN NHẮN ---\n" + text)) ?? { intent: "khac" };
+}
+
+// Đáp án của seller thường chứa ĐẶC ĐIỂM mới ("hướng Đông Nam, sổ hồng riêng, hẻm 6m") -
+// bóc và ĐẮP vào tin: web hiện luôn trong "Chi tiết bất động sản", buyer sau khỏi hỏi lại.
+// Đây là mảnh "AI tự đưa thông tin vào DB" của spec Cầu Nối (F3 - tích luỹ hồ sơ).
+async function dapSpecsTuDapAn(listingId, cauHoi, dapAn) {
+  try {
+    const r = await goiGeminiJSON(`Từ cặp hỏi-đáp về một bất động sản, trả về DUY NHẤT JSON {"specs":{"nhãn tiếng Việt":"giá trị"},"direction":string|null,"legal":string|null}. Chỉ trích thông tin NÓI RÕ trong câu ĐÁP (hướng, pháp lý, mặt tiền, đường vào, phí, tình trạng, tầng...), không suy diễn; không có gì thì specs rỗng.\nHỏi: ${cauHoi.slice(0, 200)}\nĐáp: ${dapAn.slice(0, 500)}`);
+    if (!r) return;
+    const them = {};
+    if (r.specs && typeof r.specs === "object" && !Array.isArray(r.specs))
+      for (const [k, v] of Object.entries(r.specs))
+        if ((typeof v === "string" || typeof v === "number") && String(v).trim()) them[String(k).slice(0, 40)] = String(v).slice(0, 120);
+    const capNhat = {};
+    if (Object.keys(them).length) {
+      const { data: cu } = await sb.from("listings").select("specs").eq("id", listingId).single();
+      capNhat.specs = { ...(cu?.specs || {}), ...them };
+    }
+    if (typeof r.direction === "string" && r.direction.trim()) capNhat.direction = r.direction.slice(0, 30);
+    if (typeof r.legal === "string" && r.legal.trim()) capNhat.legal_status = r.legal.slice(0, 60);
+    if (Object.keys(capNhat).length) {
+      const { error } = await sb.from("listings").update(capNhat).eq("id", listingId);
+      console.log(error ? `  (đắp specs lỗi: ${error.message})` : `  ✓ đắp ${Object.keys(them).length} đặc điểm từ đáp án vào tin ${listingId.slice(0, 8)}`);
+    }
+  } catch (e) { console.error("dapSpecsTuDapAn:", e.message); }
 }
 
 const KIND = ["nha", "dat", "can_ho", "mat_bang", "phong_tro", "khac"];
@@ -319,6 +349,7 @@ async function handle(text, anh = [], khoaAnh = null) {
     if (Date.now() - cho.luc <= DAP_TTL_MS) {
       await sb.from("info_requests").update({ answer: text, status: "answered", answered_at: new Date().toISOString() }).eq("id", cho.reqId);
       await sb.from("listing_facts").insert({ listing_id: cho.listingId, question: cho.question.slice(0, 300), answer: text.slice(0, 1000) });
+      dapSpecsTuDapAn(cho.listingId, cho.question, text); // chạy nền, không bắt hai bên chờ
       sendReply(cho.buyerThread, `Dạ chủ nhà vừa trả lời câu anh/chị hỏi:\n"${cheSoRelay(text).slice(0, 500)}"\nCần hỏi thêm hay muốn hẹn xem nhà thì anh/chị nhắn em ngay nhé 🏠`);
       console.log(`  ✓ cầu nối: chuyển đáp án seller -> buyer (tin ${cho.listingId.slice(0, 8)})`);
       return "Dạ em đã chuyển câu trả lời cho khách rồi ạ. Cảm ơn anh/chị nhiều 🙏";

@@ -3,6 +3,7 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
+import { laTinDocQuyen } from "@/lib/doc-quyen";
 
 // Dòng kết quả kiểu batdongsan.com.vn: ảnh lớn + dải ảnh nhỏ bên trái,
 // giá + giá/m² + diện tích + PN, mô tả 2 dòng, chân tin nguồn + thời gian.
@@ -38,6 +39,9 @@ export default function ListingRow({ x }: { x: Listing }) {
           <div className="h-44 sm:h-52 grid place-items-center text-white text-3xl" style={{ background: t.bg }}>{t.icon}</div>
         )}
         <span className="absolute top-2 left-2 flex items-center gap-1">
+          {laTinDocQuyen(x) && (
+            <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded bg-emerald-600 text-white" title="Tin độc quyền - Radar liên hệ trực tiếp nguồn đăng, SĐT được bảo vệ">✓ XÁC THỰC</span>
+          )}
           <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded bg-black/55 text-white">
             {x.deal === "ban" ? "Để bán" : "Cho thuê"}
           </span>

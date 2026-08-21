@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ListingRow from "@/components/ListingRow";
-import ListingCard from "@/components/ListingCard";
-import { laTinDocQuyen } from "@/lib/doc-quyen";
+import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import ChonSapXep from "@/components/ChonSapXep";
@@ -110,8 +109,9 @@ export default function SearchClient({
 
   // Tin ĐỘC QUYỀN (FB + Zalo, xem lib/doc-quyen) tách lên DẢI RIÊNG đầu kết quả, thẻ to hơn
   // (21/8): nguồn không trang nào khác có = hàng bán được, cho đứng vị trí đẹp nhất.
-  // Lấy tối đa 6 tin đầu theo thứ tự đang sắp; phần độc quyền còn lại nằm chung danh sách.
-  const docQuyen = useMemo(() => display.filter((x) => laTinDocQuyen(x)).slice(0, 6), [display]);
+  // locDocQuyen ưu tiên tin ZALO trước FB - lý do "lúc thấy lúc không" trước đây là FB đông
+  // hơn chiếm hết 6 slot. Phần độc quyền còn lại nằm chung danh sách.
+  const docQuyen = useMemo(() => locDocQuyen(display, 6), [display]);
   const conLai = useMemo(() => {
     const idsTrenDai = new Set(docQuyen.map((x) => x.id));
     return display.filter((x) => !idsTrenDai.has(x.id));
@@ -407,22 +407,7 @@ export default function SearchClient({
         <div className="min-w-0">
           {display.length ? (
             <>
-              {docQuyen.length > 0 && (
-                <div className="mb-5">
-                  <div className="flex items-baseline gap-2 mb-2">
-                    <h2 className="font-bold">⭐ Tin độc quyền Radar</h2>
-                    <span className="text-xs text-[var(--ink-soft)]">không có trên các trang BĐS khác · liên hệ qua Radar</span>
-                  </div>
-                  <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(250px,1fr))]">
-                    {docQuyen.map((x) => (
-                      <div key={x.id} className="relative">
-                        <span className="absolute top-2 left-2 z-10 text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-brand text-white shadow">⭐ Độc quyền</span>
-                        <ListingCard x={x} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <DaiDocQuyen listings={display} />
               <div className="flex flex-col gap-3">
                 {conLai.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((x) => <ListingRow key={x.id} x={x} />)}
               </div>

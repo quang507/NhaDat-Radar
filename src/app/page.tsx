@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
+import DaiDocQuyen from "@/components/DaiDocQuyen";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import { fmtPrice, PROP, shortPrice } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
@@ -194,6 +195,8 @@ export default async function Home({
         </section>
       ) : (
         <>
+          {/* dải độc quyền (FB + Zalo, tin Zalo trước) đứng đầu trang chủ - vị trí đẹp nhất cho hàng bán được */}
+          <DaiDocQuyen listings={listings} />
           {projects.length > 0 && (
             <Section title="Dự án nổi bật" href="/projects">
               <div className="grid gap-4 md:grid-cols-3">

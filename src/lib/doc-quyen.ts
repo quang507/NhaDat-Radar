@@ -7,8 +7,9 @@
 // BẬT/TẮT: muốn đổi nhóm nào giấu/mở thì sửa đúng hàm này - web theo tự động.
 // (bot Zalo lặp lại quy tắc trong zalo-bot.mjs vì .mjs không import được .ts - đổi thì sửa cả hai.)
 export function laTinDocQuyen(x: { source?: string | null; source_site?: string | null }) {
+  // dựa được vào mỗi source_site (vài query không select cột source): facebook + zalo_* phủ đủ
   return x.source === "zalo_oa" || x.source === "zalo_miniapp"
-    || x.source_site === "facebook" || x.source_site === "zalo_group" || x.source_site === "zalo_bot";
+    || x.source_site === "facebook" || (x.source_site || "").startsWith("zalo");
 }
 
 // Che mọi dãy số giống SĐT trong văn bản hiển thị của tin độc quyền - mô tả tin FB thường

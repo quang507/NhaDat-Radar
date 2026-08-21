@@ -3,10 +3,12 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
+import { laTinDocQuyen } from "@/lib/doc-quyen";
 
 export default function ListingCard({ x }: { x: Listing }) {
   const t = thumb(x.kind);
   const isAgent = x.source === "agent";
+  const xacThuc = laTinDocQuyen(x); // tin độc quyền FB/Zalo - Radar nắm nguồn trực tiếp
   // giá/m² cho cả bán lẫn thuê (batdongsan hiện trên mọi card)
   const ppm2 = x.price_per_m2 && x.price_per_m2 > 0 ? fmtPpm2(x.price_per_m2) : null;
   const ageMin = x.first_seen_at ? Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000) : null;
@@ -31,6 +33,10 @@ export default function ListingCard({ x }: { x: Listing }) {
           </span>
         )}
         <span className="absolute top-2 left-2 flex items-center gap-1">
+          {/* tag kiểu batdongsan (21/8): tin độc quyền FB/Zalo - Radar giữ kênh liên hệ trực tiếp với nguồn */}
+          {xacThuc && (
+            <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white" title="Tin độc quyền - Radar liên hệ trực tiếp nguồn đăng, SĐT được bảo vệ">✓ XÁC THỰC</span>
+          )}
           <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded-md bg-black/55 text-white backdrop-blur-sm">
             {x.deal === "ban" ? "Để bán" : "Cho thuê"}
           </span>

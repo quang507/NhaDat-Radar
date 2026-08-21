@@ -87,6 +87,12 @@ export default async function ListingDetail({
     tinCungDuAn = count ?? 0;
   }
 
+  // Hỏi đáp tích luỹ từ Cầu Nối (listing_facts đọc công khai qua RLS facts_read)
+  const { data: hoiDapData } = await supabase.from("listing_facts")
+    .select("id,question,answer").eq("listing_id", id)
+    .order("created_at", { ascending: false }).limit(8);
+  const hoiDap = hoiDapData ?? [];
+
   // 17/8: bỏ duyệt trước - tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
   const { data: { user } } = await supabase.auth.getUser();
   let isAdmin = false;
@@ -347,6 +353,22 @@ export default async function ListingDetail({
               ))}
             </div>
           </div>
+          {/* Hỏi đáp tích luỹ từ Cầu Nối: buyer hỏi qua bot, seller trả lời -> lưu listing_facts,
+              buyer SAU đọc được luôn không phải hỏi lại. Che SĐT khi hiển thị công khai. */}
+          {hoiDap.length > 0 && (
+            <div className="card rounded-lg p-5">
+              <h3 className="font-bold mb-3">Hỏi đáp với người đăng <span className="text-xs font-normal text-[var(--ink-soft)]">(qua Radar)</span></h3>
+              <div className="flex flex-col gap-3 text-sm">
+                {hoiDap.map((f) => (
+                  <div key={f.id}>
+                    <div className="font-semibold">❓ {cheSoVanBan(f.question)}</div>
+                    <div className="text-[var(--ink-soft)] mt-0.5">💬 {cheSoVanBan(f.answer)}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-[var(--ink-faint)] mt-3">Muốn hỏi thêm hoặc hẹn xem: nhắn Zalo Radar ở khung liên hệ.</p>
+            </div>
+          )}
           {x.amenities?.length ? (
             <div className="card rounded-lg p-5">
               <h3 className="font-bold mb-3">Tiện ích</h3>

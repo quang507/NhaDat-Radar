@@ -11,6 +11,7 @@ import { slugify, areaPath, DEAL_WORD } from "@/lib/slug";
 import { getAreas } from "@/lib/geo";
 import type { Listing } from "@/lib/types";
 import ListingRow from "@/components/ListingRow";
+import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import PriceTrend from "@/components/PriceTrend";
 
 type Deal = "ban" | "cho_thue";
@@ -95,7 +96,9 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
   const dealWord = DEAL_WORD[deal];
   const h1 = `${dealWord} nhà đất ${where}`;
   const monthLabel = `tháng ${new Date().getMonth() + 1}/${new Date().getFullYear()}`;
-  const show = rows.slice(0, 20);
+  // tin độc quyền hiện ở dải riêng đầu danh sách -> loại khỏi list thường cho khỏi lặp
+  const idsDocQuyen = new Set(locDocQuyen(rows, 6).map((t) => t.id));
+  const show = rows.filter((r) => !idsDocQuyen.has(r.id)).slice(0, 20);
   const searchHref = `/search?deal=${deal}&province=${encodeURIComponent(province)}${district ? `&district=${encodeURIComponent(district)}` : ""}`;
   const otherDeal: Deal = deal === "ban" ? "cho_thue" : "ban";
   const districts = Object.entries(area.districts).filter(([, c]) => c[deal] > 0).sort((a, b) => b[1][deal] - a[1][deal]);
@@ -194,6 +197,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
           <h2 className="font-bold">Tin {deal === "ban" ? "bán" : "cho thuê"} mới nhất tại {where}</h2>
           <Link href={searchHref} className="text-sm text-brand font-semibold">Xem tất cả {total.toLocaleString("vi-VN")} tin + bộ lọc ›</Link>
         </div>
+        <DaiDocQuyen listings={rows} />
         {show.length ? (
           <div className="flex flex-col gap-3">{show.map((x) => <ListingRow key={x.id} x={x} />)}</div>
         ) : (
