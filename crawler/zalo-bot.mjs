@@ -67,9 +67,10 @@ function fmtPrice(v, deal) {
 // ---- Gemini phân loại (giống lib/ai.ts) ----
 const PROMPT = `Bạn là trợ lý Zalo của sàn nhà đất. Đọc tin nhắn và trả về DUY NHẤT 1 JSON:
 {"intent":"dang_tin"|"hoi_tin"|"khac","reply_hint":string,
- "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"amenities":string[],"contact_phone":string|null},
+ "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"direction":string|null,"furnishing":string|null,"amenities":string[],"contact_phone":string|null,"specs":object|null},
  "query":{"listing_type":"ban"|"cho_thue"|null,"property_type":string|null,"province":string|null,"district":string|null,"price_min":number|null,"price_max":number|null,"area_min":number|null}}
-dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM/hỏi. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.`;
+dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM/hỏi. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
+specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, tuỳ loại BĐS, dạng {"nhãn tiếng Việt":"giá trị"} - VD đất: {"Mặt tiền":"10m","Đường vào":"10,5m","Thổ cư":"100m²"}; nhà: {"Kết cấu":"1 trệt 5 lầu","Ngang":"4m"}; căn hộ: {"Tầng":"12","Block":"A"}. CHỈ lấy thứ họ ghi rõ, không có thì null. direction là hướng nhà/đất (Đông, Tây Nam...), furnishing là nội thất.`;
 
 async function classify(text) {
   for (const k of KEYS) {
@@ -150,6 +151,18 @@ async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
     kind: KIND.includes(L.property_type || "") ? L.property_type : "khac",
     province: L.province ?? null, district: L.district ?? null, ward: L.ward ?? null,
     legal_status: L.legal ?? null, amenities: L.amenities || [], contact_phone: L.contact_phone ?? null,
+    // đặc điểm riêng theo loại BĐS (21/8): cùng các cột tin guland dùng -> trang chi tiết tự
+    // hiện bảng "Đặc điểm bất động sản", có gì hiện nấy, không có thì thôi
+    bathrooms: L.bathrooms ?? null, floors: L.floors ?? null,
+    direction: L.direction ?? null, furnishing: L.furnishing ?? null,
+    // chỉ nhận value chuỗi/số - LLM mà trả object lồng nhau thì React bên trang chi tiết
+    // không render được object con (crash), cắt tối đa 15 dòng cho bảng gọn
+    specs: (() => {
+      if (!L.specs || typeof L.specs !== "object" || Array.isArray(L.specs)) return null;
+      const s = Object.fromEntries(Object.entries(L.specs)
+        .filter(([, v]) => typeof v === "string" || typeof v === "number").slice(0, 15));
+      return Object.keys(s).length ? s : null;
+    })(),
     ai_score: fromGroup ? 70 : 85, poster_role_guess: "khong_ro",
     status: "published", // 17/8: bỏ duyệt trước - lên thẳng, admin gỡ tin rác ngay trên trang tin
     first_seen_at: new Date().toISOString(), // thiếu là tin không vào email alert + rơi cuối sort "Mới nhất"
