@@ -38,12 +38,15 @@ export const AREA_HINT = new RegExp([
 /**
  * @param {string} text  nội dung tin (đã làm sạch)
  * @param {{district?: string|null, province?: string|null}} ai  khu vực AI trích được (nếu có thì khỏi dò text)
+ * @param {{canSdt?: boolean}} [tuyChon]  canSdt=false: KHÔNG bắt buộc SĐT - dùng cho tin FB
+ *   từ 21/8 (hàng độc quyền, liên hệ đi qua Cầu Nối nên số không còn là điều kiện sống còn;
+ *   "CHỦ GẤP BÁN 5,99 tỷ 75m2 HXH" mà vứt chỉ vì thiếu số là phí). DM/group Zalo giữ luật cũ.
  * @returns {null | string}  null = đạt; chuỗi = lý do bị loại
  */
-export function qualityGate(text, ai = {}) {
+export function qualityGate(text, ai = {}, { canSdt = true } = {}) {
   const t = text || "";
   if (!BDS_KEYWORD.test(t)) return "không có từ khoá BĐS";
-  if (!PHONE_RE.test(t)) return "không có SĐT";
+  if (canSdt && !PHONE_RE.test(t)) return "không có SĐT";
   if (!(ai.district || ai.province) && !AREA_HINT.test(t)) return "không có khu vực";
   return null;
 }

@@ -7,7 +7,7 @@
 // máy nhà cho kết quả tốt hơn hẳn mà miễn phí (376 bài thô/lượt, có ảnh) - Apify chỉ còn là chi phí thừa.
 import fs from "node:fs";
 import { cleanFbText } from "./fb-clean.mjs";
-import { qualityGate, PHONE_RE } from "./quality-gate.mjs";
+import { qualityGate, PHONE_RE, BDS_KEYWORD } from "./quality-gate.mjs";
 import { hash31 as hash } from "./chung.mjs";
 
 // Xoay nhiều key Gemini (từ nhiều PROJECT/acc) để né 429. Cũng nhận GEMINI_API_KEYS="k1,k2,k3".
@@ -64,17 +64,23 @@ async function gemini(text) {
 
 // post thô {text, author, url, time} -> listing chuẩn (bỏ nếu không phải BĐS / không qua cổng chất lượng)
 async function toListing(post) {
-  // Loc RE truoc khi goi AI: khong co SDT trong text thi AI cung khong bia ra duoc, ma van
-  // ton 1 lenh trong han muc 500/ngay. Do luot 19/8: 153/515 bai bi loai, da so vi thieu SDT.
-  if (!PHONE_RE.test(post.text || "")) {
-    console.error(`  ↷ loại (không có SĐT, bỏ qua AI): ${(post.text || "").slice(0, 55)}`);
+  // Loc RE truoc khi goi AI de giu han muc 500/ngay. NOI LONG 21/8: tin KHONG SDT van cho
+  // qua neu trong giong tin RAO THAT (tu khoa BDS + tin hieu gia/dien tich) - tu khi co Cau
+  // Noi thi tin FB la hang doc quyen, lien he di qua Radar nen SDT khong con la dieu kien
+  // song con; log 21/8 cho thay "CHU GAP BAN 5,99 TY 75m2 HXH 3PN" bi vut chi vi thieu so.
+  // Rac kieu chao hoi/khoe tien do du an van bi chan vi khong co tin hieu gia/dien tich.
+  const GIA_DT_HINT = /\d[\d.,]*\s*(t[ỷy]\b|tri[ệe]u|tr\b|m2|m²)|\d+\s*x\s*\d+/iu;
+  const vanBanTho = post.text || "";
+  if (!PHONE_RE.test(vanBanTho) && !(BDS_KEYWORD.test(vanBanTho) && GIA_DT_HINT.test(vanBanTho))) {
+    console.error(`  ↷ loại (không giống tin rao, bỏ qua AI): ${vanBanTho.slice(0, 55)}`);
     return null;
   }
   const ai = await gemini(post.text);
   if (!ai.is_property) return null;
-  // Cổng chất lượng 17/8: bỏ duyệt tay -> máy chặn tin thiếu từ khoá BĐS / SĐT / khu vực
+  // Cổng chất lượng 17/8: máy chặn tin thiếu từ khoá BĐS / khu vực. canSdt:false (21/8) -
+  // tin FB không SĐT vẫn đăng được, liên hệ qua Cầu Nối + link bài gốc.
   // Xét cả TIÊU ĐỀ Gemini trích: mô tả FB hay viết tắt/tránh kiểm duyệt ("CC", "s.ổ h.ồng") -> chỉ dò mô tả sẽ loại oan
-  const why = qualityGate((ai.title_clean || "") + "\n" + post.text, { district: ai.district, province: ai.city });
+  const why = qualityGate((ai.title_clean || "") + "\n" + post.text, { district: ai.district, province: ai.city }, { canSdt: false });
   if (why) { console.error(`  ↷ loại (${why}): ${(ai.title_clean || post.text || "").slice(0, 60)}`); return null; }
   return {
     // id ổn định theo LINK bài (innerText có số like/"3 giờ" đổi mỗi ngày -> hash text sinh tin mới giả mỗi lần cào - audit 16/8)
