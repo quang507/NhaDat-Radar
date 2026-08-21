@@ -58,6 +58,9 @@ export default function MoiDienSdt() {
     const { error } = await supabase.from("profiles").update({ phone: so }).eq("id", user.id);
     setDangLuu(false);
     if (error) { setLoi("Chưa lưu được - thử lại sau ít phút."); return; }
+    // đổ vào bảng leads để bot Zalo báo admin gọi lại ngay (fire-and-forget, lỗi cũng kệ -
+    // SĐT đã nằm an toàn trong profiles rồi)
+    void supabase.from("leads").insert({ name: user.email || "Người dùng web", phone: so, message: "Để lại SĐT qua popup sau đăng nhập - gọi tư vấn nhu cầu" });
     setHien(false);
     ghiKho(KHOA_NHAC, String(Date.now()));
   };

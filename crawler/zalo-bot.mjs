@@ -66,10 +66,10 @@ function fmtPrice(v, deal) {
 
 // ---- Gemini phân loại (giống lib/ai.ts) ----
 const PROMPT = `Bạn là trợ lý Zalo của sàn nhà đất. Đọc tin nhắn và trả về DUY NHẤT 1 JSON:
-{"intent":"dang_tin"|"hoi_tin"|"khac","reply_hint":string,
+{"intent":"dang_tin"|"hoi_tin"|"hoi_sau"|"khac","reply_hint":string,"ref_index":number|null,
  "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"direction":string|null,"furnishing":string|null,"amenities":string[],"contact_phone":string|null,"specs":object|null},
  "query":{"listing_type":"ban"|"cho_thue"|null,"property_type":string|null,"province":string|null,"district":string|null,"price_min":number|null,"price_max":number|null,"area_min":number|null}}
-dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM/hỏi. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
+dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM nhà theo tiêu chí (khu vực/giá/loại). hoi_sau: họ hỏi CHI TIẾT về MỘT CĂN CỤ THỂ đã nhắc trong hội thoại hoặc có link/mã - xem sổ đỏ, pháp lý, quy hoạch, xin thêm ảnh, hẹn xem nhà, thương lượng giá, "căn số 2 còn không". ref_index: số thứ tự căn họ nhắc (1-4) nếu họ nói rõ ("căn 2", "cái thứ nhất"), không thì null. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
 specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng Việt":"giá trị"}. Nhãn gợi ý THEO LOẠI:
 - nha (thổ cư): Ngang, Dài, DT đất, DT sàn, Kết cấu ("1 trệt 2 lầu"), Đường trước nhà ("hẻm xe hơi 6m"), Thổ cư
 - can_ho: Dự án, Block/Tháp, Tầng, Loại căn (góc/duplex/studio), Hướng ban công, Phí quản lý
@@ -225,6 +225,9 @@ async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
     ai_score: fromGroup ? 70 : 85, poster_role_guess: "khong_ro",
     status: "published", // 17/8: bỏ duyệt trước - lên thẳng, admin gỡ tin rác ngay trên trang tin
     first_seen_at: new Date().toISOString(), // thiếu là tin không vào email alert + rơi cuối sort "Mới nhất"
+    // thread Zalo của người đăng - "Cầu Nối" cần nó để relay câu hỏi của khách mua sang
+    // (DM là fromId trơn; tin group là "gid|uid" - không DM người lạ được, đi đường admin)
+    zalo_thread: khoaAnh ? String(khoaAnh) : null,
   }).select("id").single();
   // lưu xong: nhả ảnh đang giữ + nhớ id tin để ảnh đến muộn còn đắp vào (xem ghepAnhMuon)
   if (!error && khoaAnh) {
@@ -267,8 +270,54 @@ async function harvestGroup(text, anh = [], khoaAnh = null) {
 const nhapDo = new Map(); // fromId -> { text, luc }
 const NHAP_TTL_MS = 15 * 60_000;
 
+// ---- CẦU NỐI (21/8, học mô hình nhadat.CC "AI mặt tiền - người hậu trường") ----
+// Buyer hỏi sâu về MỘT căn (sổ đỏ, quy hoạch, xem nhà...) -> bot relay sang seller nếu tin
+// đăng qua Zalo (có zalo_thread), seller trả lời là chuyển lại buyer NGAY và câu trả lời
+// TÍCH LUỸ vào listing_facts - buyer sau hỏi lại thì bot tự trả, không phiền seller lần hai.
+// Tin CÀO không có seller trên Zalo -> ghi info_requests status 'admin', bot nhắn admin kèm
+// SĐT gốc của chủ tin để admin gọi rồi trả lời khách bằng chính tài khoản Zalo này.
+const daGioiThieu = new Map(); // buyerThread -> { ids: [listingId...], luc } - 4 căn bot vừa giới thiệu
+const GT_TTL_MS = 30 * 60_000;
+const choDapAn = new Map();   // sellerThread -> { reqId, buyerThread, listingId, question, luc }
+const DAP_TTL_MS = 24 * 60 * 60_000;
+
+// Báo admin qua Zalo: lead mới từ web (form tư vấn, popup SĐT) + câu hỏi cần người thật.
+// ZALO_ADMIN_ID đặt trong .env.local - nhắn thử cho bot rồi xem log "← [id]" để lấy id mình.
+const ADMIN_ID = process.env.ZALO_ADMIN_ID || "";
+if (!ADMIN_ID) console.log("(chưa đặt ZALO_ADMIN_ID trong .env.local - bot sẽ không nhắn báo lead/câu hỏi cho admin)");
+async function baoAdmin() {
+  if (!ADMIN_ID) return;
+  try {
+    const { data: ls } = await sb.from("leads").select("id,name,phone,message,listing_id").is("notified_at", null).order("created_at").limit(10);
+    for (const l of ls ?? []) {
+      sendReply(ADMIN_ID, `🔥 LEAD MỚI\n👤 ${l.name} · 📞 ${l.phone}${l.message ? `\n💬 ${l.message.slice(0, 200)}` : ""}${l.listing_id ? `\n🔗 ${SITE}/listings/${l.listing_id}` : ""}`);
+      await sb.from("leads").update({ notified_at: new Date().toISOString() }).eq("id", l.id);
+    }
+    const { data: rq } = await sb.from("info_requests").select("id,question,listing_id").eq("status", "admin").is("notified_at", null).order("created_at").limit(10);
+    for (const r of rq ?? []) {
+      const { data: t } = await sb.from("listings").select("title,contact_phone,phone_masked").eq("id", r.listing_id).single();
+      sendReply(ADMIN_ID, `❓ KHÁCH HỎI SÂU (tin cào - cần người thật)\n🏠 ${(t?.title || "").slice(0, 60)}\n💬 "${r.question.slice(0, 200)}"\n📞 chủ tin: ${t?.contact_phone || t?.phone_masked || "không có"}\n🔗 ${SITE}/listings/${r.listing_id}\n→ Gọi chủ tin xong, trả lời khách bằng CHÍNH tài khoản Zalo này (hội thoại gần nhất).`);
+      await sb.from("info_requests").update({ notified_at: new Date().toISOString() }).eq("id", r.id);
+    }
+  } catch (e) { console.error("baoAdmin:", e.message); }
+}
+setInterval(baoAdmin, 60_000);
+
 // ---- Xử lý DM (chat 1-1) -> trả về text để gửi lại ----
 async function handle(text, anh = [], khoaAnh = null) {
+  // 0. Seller đang được chờ trả lời câu hỏi của buyer? -> tin nhắn này là ĐÁP ÁN:
+  //    chuyển cho buyer ngay + tích luỹ vào listing_facts (lần sau bot tự trả)
+  const cho = khoaAnh ? choDapAn.get(khoaAnh) : null;
+  if (cho) {
+    choDapAn.delete(khoaAnh);
+    if (Date.now() - cho.luc <= DAP_TTL_MS) {
+      await sb.from("info_requests").update({ answer: text, status: "answered", answered_at: new Date().toISOString() }).eq("id", cho.reqId);
+      await sb.from("listing_facts").insert({ listing_id: cho.listingId, question: cho.question.slice(0, 300), answer: text.slice(0, 1000) });
+      sendReply(cho.buyerThread, `Dạ chủ nhà vừa trả lời câu anh/chị hỏi:\n"${text.slice(0, 500)}"\nCần hỏi thêm hay muốn hẹn xem nhà thì anh/chị nhắn em ngay nhé 🏠`);
+      console.log(`  ✓ cầu nối: chuyển đáp án seller -> buyer (tin ${cho.listingId.slice(0, 8)})`);
+      return "Dạ em đã chuyển câu trả lời cho khách rồi ạ. Cảm ơn anh/chị nhiều 🙏";
+    }
+  }
   const nhap = khoaAnh ? nhapDo.get(khoaAnh) : null;
   if (nhap && Date.now() - nhap.luc > NHAP_TTL_MS) nhapDo.delete(khoaAnh);
   else if (nhap && (PHONE_RE.test(text) || (text.length < 120 && AREA_HINT.test(text)))) {
@@ -294,6 +343,32 @@ async function handle(text, anh = [], khoaAnh = null) {
     return `✅ Đã ghi nhận tin của anh/chị:${anh.length ? `\n• Kèm ${anh.length} ảnh` : ""}\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT - nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
   }
 
+  // Buyer hỏi SÂU về một căn cụ thể -> Cầu Nối: relay sang seller hoặc đẩy cho admin
+  if (ai.intent === "hoi_sau") {
+    const gt = khoaAnh ? daGioiThieu.get(khoaAnh) : null;
+    const ids = gt && Date.now() - gt.luc < GT_TTL_MS ? gt.ids : [];
+    const idTrongText = (text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) || [])[0] || null;
+    const id = idTrongText || (ai.ref_index >= 1 && ids[ai.ref_index - 1]) || (ids.length === 1 ? ids[0] : null) || ids[0] || null;
+    if (!id) return 'Dạ anh/chị đang hỏi về căn nào ạ? Nhắn kèm link tin (hoặc tìm lại trước, VD "thuê phòng trọ Quận 7 dưới 5 triệu") rồi hỏi tiếp giúp em nhé.';
+    const { data: tin } = await sb.from("listings").select("id,title,zalo_thread").eq("id", id).single();
+    if (!tin) return "Dạ căn đó không còn trên hệ thống (có thể đã gỡ). Anh/chị tìm căn khác giúp em nhé.";
+    // đáp án tích luỹ từ các lần hỏi trước - có gì trả trước, đỡ chờ
+    const { data: facts } = await sb.from("listing_facts").select("question,answer").eq("listing_id", id).order("created_at", { ascending: false }).limit(5);
+    const sellerDM = tin.zalo_thread && !tin.zalo_thread.includes("|") ? tin.zalo_thread : null;
+    const { data: req, error } = await sb.from("info_requests").insert({
+      listing_id: id, buyer_thread: String(khoaAnh || ""), seller_thread: sellerDM,
+      question: text.slice(0, 500), status: sellerDM ? "pending" : "admin",
+    }).select("id").single();
+    if (error) { console.error("info_requests:", error.message); return "Dạ em đang bị lỗi hệ thống, anh/chị thử lại sau ít phút nhé 🙏"; }
+    if (sellerDM) {
+      choDapAn.set(sellerDM, { reqId: req.id, buyerThread: String(khoaAnh), listingId: id, question: text, luc: Date.now() });
+      sendReply(sellerDM, `Dạ có khách đang quan tâm tin "${(tin.title || "").slice(0, 60)}" của anh/chị và hỏi:\n"${text.slice(0, 300)}"\nAnh/chị nhắn trả lời ngay tại đây, em chuyển cho khách liền ạ 🙏`);
+      console.log(`  → cầu nối: chuyển câu hỏi buyer -> seller (tin ${id.slice(0, 8)})`);
+    }
+    const daCo = (facts ?? []).map((f) => `• ${f.question.slice(0, 60)}: ${f.answer.slice(0, 150)}`).join("\n");
+    return `${daCo ? `Thông tin chủ nhà đã trả lời trước đây:\n${daCo}\n\n` : ""}Dạ em đã chuyển câu hỏi ${sellerDM ? "cho chủ nhà" : "cho anh phụ trách khu này"}, có trả lời là em báo anh/chị ngay ạ 🔔`;
+  }
+
   if (ai.intent === "hoi_tin" && ai.query) {
     const q = ai.query;
     let query = sb.from("listings").select("id,title,price_vnd,area_m2,district,ward,deal,kind,contact_phone").eq("status", "published");
@@ -305,6 +380,9 @@ async function handle(text, anh = [], khoaAnh = null) {
     if (q.price_min) query = query.gte("price_vnd", q.price_min);
     if (q.area_min) query = query.gte("area_m2", q.area_min);
     const { data } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(4);
+    // nhớ 4 căn vừa giới thiệu theo thread - khách nhắn "căn số 2 xem sổ được không?" là bot
+    // biết đang nói căn nào (Cầu Nối / hoi_sau dùng)
+    if (khoaAnh && data?.length) daGioiThieu.set(khoaAnh, { ids: data.map((x) => x.id), luc: Date.now() });
     // link "xem tất cả" trên web với cùng bộ lọc (UX audit: bot chỉ đưa 4 tin, không có đường đi tiếp)
     const sp = new URLSearchParams();
     if (q.listing_type) sp.set("deal", q.listing_type);
