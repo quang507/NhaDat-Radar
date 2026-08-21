@@ -43,6 +43,15 @@ export async function POST(req: NextRequest) {
   if (!b.province || !b.kind || !area || area <= 0 || area > 100000) {
     return NextResponse.json({ error: "Cần ít nhất: loại BĐS, tỉnh/thành và diện tích hợp lệ" }, { status: 400 });
   }
+  // kind là ENUM trong DB - giá trị lạ ("biet_thu") làm Postgres 22P02, lỗi bị nuốt thành
+  // "chưa đủ dữ liệu so sánh" (sai bản chất). Chặn từ cổng như /api/chat vẫn làm.
+  if (!PROP[b.kind]) {
+    return NextResponse.json({ error: "Loại BĐS không hợp lệ" }, { status: 400 });
+  }
+  // %/_ là wildcard của ilike - không rửa thì province="%" so sánh với cả nước (cùng luật clean của /search)
+  const clean = (s: string) => s.replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
+  b.province = clean(String(b.province));
+  b.district = b.district ? clean(String(b.district)) : b.district;
   const deal = b.deal === "cho_thue" ? "cho_thue" : "ban";
 
   // Lấy tin so sánh (comps) từ DB: cùng loại + khu vực, có giá/m²
@@ -57,9 +66,13 @@ export async function POST(req: NextRequest) {
       .limit(500);
 
   let scope = `${b.district}, ${b.province}`;
-  let { data: comps } = b.district ? await base().ilike("district", `%${b.district}%`) : await base();
+  const r1 = b.district ? await base().ilike("district", `%${b.district}%`) : await base();
+  let comps = r1.data;
+  if (r1.error) console.error("valuation comps:", r1.error.message); // đừng nuốt lỗi DB thành "chưa đủ dữ liệu"
   if (!comps || comps.length < 5) {
-    ({ data: comps } = await base()); // ít tin quá -> nới ra toàn tỉnh
+    const r2 = await base(); // ít tin quá -> nới ra toàn tỉnh
+    comps = r2.data;
+    if (r2.error) console.error("valuation comps (tỉnh):", r2.error.message);
     scope = b.province;
   }
   comps ??= [];

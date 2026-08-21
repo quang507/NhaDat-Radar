@@ -40,8 +40,11 @@ export const getAreas = unstable_cache(
       geo[p][d] ??= [];
       counts[p].districts[d] ??= { ban: 0, cho_thue: 0 };
       counts[p].districts[d][deal] += 1;
-      let w = (r.ward || "").trim();
-      if (!w) { const m = raw.match(/\(\s*(?:P\.|Phường)?\s*([^)]*?)\s*(?:mới)?\s*\)\s*$/i); if (m && m[1]) w = "Phường " + m[1].replace(/^(P\.|Phường)\s*/i, ""); }
+      // CHỈ lấy phường từ cột ward thật. Bản cũ còn "chế" phường từ hậu tố "(P. X mới)" của
+      // district - nhưng merge.mjs đã chuyển hậu tố đó vào ward từ lâu, hàng nào tới đây mà
+      // ward vẫn null thì phường chế ra không khớp cột ward của bất kỳ hàng nào -> dropdown
+      // mọc phường ảo, chọn là "Không tìm thấy bất động sản" (soát 21/8)
+      const w = (r.ward || "").trim();
       if (w && !geo[p][d].includes(w)) geo[p][d].push(w);
     }
     let districtCount = 0;

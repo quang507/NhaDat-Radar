@@ -20,8 +20,13 @@ function canonProvince(p: string): string | null {
 function canonDistrict(d: string): string | null {
   const t = d.trim();
   if (!t) return null;
-  const m = t.match(/^(q\.?|quận)\s*(\d{1,2})$/i); if (m) return `Quận ${m[2]}`;
-  return t.replace(/^q\.\s*/i, "Quận ").replace(/^h\.\s*/i, "Huyện ").replace(/^p\.\s*/i, "Phường ");
+  // cùng luật với crawler/merge.mjs (21/8): bỏ số 0 đầu ("Quận 07" -> "Quận 7"), gộp Thủ Đức
+  // - lệch luật là tin gõ tay rơi vào bucket riêng, lọc "Quận 7"/"TP. Thủ Đức" không thấy
+  const m = t.match(/^(q\.?|quận)\s*0?(\d{1,2})$/i); if (m) return `Quận ${m[2]}`;
+  if (/^(quận |thành phố |tp\.?\s*)?thủ đức$/i.test(t)) return "TP. Thủ Đức";
+  return t
+    .replace(/^q\.\s*/i, "Quận ").replace(/^h\.\s*/i, "Huyện ").replace(/^p\.\s*/i, "Phường ")
+    .replace(/^(thành phố|tp)\s+/i, "TP. ").replace(/^(thị xã|tx\.?)\s+/i, "Thị xã ");
 }
 
 export async function createListing(

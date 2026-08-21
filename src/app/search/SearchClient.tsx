@@ -70,6 +70,17 @@ export default function SearchClient({
   // (hệ 2 cấp, bỏ quận); TẮT = duyệt theo quận cũ như thói quen thị trường.
   const [newAddr, setNewAddr] = useState(params.newAddr === "1");
   const own = params.own === "1"; // chỉ tin chính chủ tự đăng
+  // Bộ lọc ĐÃ ÁP (đúng theo URL = đúng theo kết quả đang hiển thị). Chip/toggle/sort và nút
+  // 🔔 phải xuất phát từ đây chứ KHÔNG phải từ f: f còn chứa những gì đang chọn dở trong
+  // panel chưa bấm "Tìm kiếm" - bản cũ đổi sắp xếp là âm thầm áp luôn bộ lọc gõ dở, và
+  // popup 🔔 mô tả một bộ lọc khác với kết quả trên màn hình.
+  const goc = {
+    q: params.q || "", deal: params.deal || "", kind: params.kind || "",
+    province: params.province || "", district: params.district || "", ward: params.ward || "",
+    priceMin: params.priceMin || "", priceMax: params.priceMax || "",
+    areaMin: params.areaMin || "", bedrooms: params.bedrooms || "",
+    legal: params.legal || "", direction: params.direction || "",
+  };
   // Tỉnh cũ được gộp thêm vào kết quả khi bật "Địa chỉ mới sau sáp nhập" (xem lib/sap-nhap)
   const gomThem = useMemo(() => (f.province ? tinhCuGopVao(f.province) : []), [f.province]);
 
@@ -170,9 +181,9 @@ export default function SearchClient({
           )}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <SaveSearchButton filters={f} />
+          <SaveSearchButton filters={goc} />
           {/* dropdown tự vẽ thay <select> trần: list option của select do HĐH vẽ, không ăn CSS web */}
-          <ChonSapXep options={SORTS} value={sort} onChange={(v) => push({ ...f, sort: v })} />
+          <ChonSapXep options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} />
         </div>
       </div>
 
@@ -216,24 +227,33 @@ export default function SearchClient({
         >
           Lọc{(() => { const n = [f.province, f.district, f.ward, f.kind, f.priceMin, f.priceMax, f.areaMin, f.bedrooms, f.legal, f.direction].filter(Boolean).length; return n ? ` (${n})` : ""; })()}
         </button>
-        <select className={`${sel} !w-auto`} value={f.kind}
-          onChange={(e) => { setF((s) => ({ ...s, kind: e.target.value })); push({ ...f, kind: e.target.value }); }}>
+        {/* chip xuất phát từ goc (bộ đã áp), không phải f (còn lẫn lựa chọn gõ dở trong panel) */}
+        <select className={`${sel} !w-auto`} value={goc.kind}
+          onChange={(e) => push({ ...goc, kind: e.target.value })}>
           <option value="">Loại nhà đất</option>
           {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select className={`${sel} !w-auto`} value={f.priceMax}
-          onChange={(e) => { setF((s) => ({ ...s, priceMax: e.target.value })); push({ ...f, priceMax: e.target.value }); }}>
+        <select className={`${sel} !w-auto`} value={goc.priceMax}
+          onChange={(e) => push({ ...goc, priceMax: e.target.value })}>
           <option value="">Khoảng giá</option>
-          {bangGia(f.deal).slice(1).map(([v, l]) => <option key={v} value={v}>Dưới {l}</option>)}
+          {bangGia(goc.deal).slice(1).map(([v, l]) => <option key={v} value={v}>Dưới {l}</option>)}
+          {/* giá đang áp không nằm trong mốc (gõ tay ở ô nâng cao) -> vẫn phải hiện, không thì chip trống như chưa lọc */}
+          {goc.priceMax && !bangGia(goc.deal).some(([v]) => v === goc.priceMax) && (
+            <option value={goc.priceMax}>Dưới {shortPrice(Number(goc.priceMax))}</option>
+          )}
         </select>
-        <select className={`${sel} !w-auto`} value={f.areaMin}
-          onChange={(e) => { setF((s) => ({ ...s, areaMin: e.target.value })); push({ ...f, areaMin: e.target.value }); }}>
+        <select className={`${sel} !w-auto`} value={goc.areaMin}
+          onChange={(e) => push({ ...goc, areaMin: e.target.value })}>
           {AREA_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          {/* diện tích gõ tay (VD 75) không có trong mốc -> thêm option động cho chip khỏi trống */}
+          {goc.areaMin && !AREA_OPTS.some(([v]) => v === goc.areaMin) && (
+            <option value={goc.areaMin}>≥ {goc.areaMin} m²</option>
+          )}
         </select>
         <button
           role="switch" aria-checked={!!own}
           className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
-          onClick={() => push({ ...f, own: own ? "" : "1" } as Record<string, string>)}
+          onClick={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
         >
           <span className={`w-9 h-5 rounded-full transition relative ${own ? "bg-emerald-500" : "bg-[var(--line-strong)]"}`}>
             <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
@@ -243,7 +263,7 @@ export default function SearchClient({
         <button
           role="switch" aria-checked={!!newAddr}
           className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
-          onClick={() => push({ ...f, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
+          onClick={() => push({ ...goc, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
           title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 - chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
         >
           <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>

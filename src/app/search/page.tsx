@@ -53,7 +53,9 @@ export default async function SearchPage({
     if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
     // bộ lọc nâng cao (NN/g #7): pháp lý & hướng - khớp chuỗi mềm vì nguồn ghi tự do ("Sổ hồng riêng", "Đông Nam")
     if (legal) query = query.ilike("legal_status", `%${clean(legal)}%`);
-    if (direction) query = query.ilike("direction", `%${clean(direction).split(" ")[0]}%`);
+    // cả cụm ("Tây Nam"), không cắt lấy chữ đầu - split(" ")[0] làm "Tây Nam" lọc thành
+    // "Tây" và trả về lẫn cả Tây Bắc, 4 lựa chọn hướng ghép thành vô nghĩa (soát 21/8)
+    if (direction) query = query.ilike("direction", `%${clean(direction)}%`);
     if (q) {
       // Học flow batdongsan: từ khoá khớp cả tiêu đề + địa chỉ/đường + phường + quận
       const safe = clean(q);

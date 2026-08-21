@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
 import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
+import { cleanImages } from "@/lib/img";
+
+// %/_ là wildcard ilike, ",()" phá cú pháp .or() - cùng luật clean của /search (soát 21/8:
+// province/district/keyword từ output Gemini đi thẳng vào ilike không rửa)
+const sach = (s: unknown) => String(s ?? "").replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -64,7 +69,7 @@ async function marketStats(province: string | null) {
     .select("district,province,deal,price_per_m2")
     .eq("status", "published").not("price_per_m2", "is", null).gt("price_per_m2", 0)
     .limit(2000);
-  if (province) q = q.ilike("province", `%${province}%`);
+  if (province && sach(province)) q = q.ilike("province", `%${sach(province)}%`);
   const { data } = await q;
   const byDistrict = new Map<string, { ban: number[]; thue: number[]; province: string }>();
   for (const r of data ?? []) {
@@ -154,12 +159,12 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
     .eq("status", "published");
   if (parsed.deal) q = q.eq("deal", parsed.deal);
   if (parsed.kind && PROP[parsed.kind]) q = q.eq("kind", parsed.kind);
-  if (parsed.province) q = q.ilike("province", `%${parsed.province}%`);
-  if (parsed.district) q = q.ilike("district", `%${parsed.district}%`);
+  if (parsed.province && sach(parsed.province)) q = q.ilike("province", `%${sach(parsed.province)}%`);
+  if (parsed.district && sach(parsed.district)) q = q.ilike("district", `%${sach(parsed.district)}%`);
   if (parsed.price_min) q = q.gte("price_vnd", parsed.price_min);
   if (parsed.price_max) q = q.lte("price_vnd", parsed.price_max);
   if (parsed.bedrooms) q = q.gte("bedrooms", parsed.bedrooms);
-  if (parsed.keyword) q = q.ilike("title", `%${parsed.keyword}%`);
+  if (parsed.keyword && sach(parsed.keyword)) q = q.ilike("title", `%${sach(parsed.keyword)}%`);
   const { data } = await q.order("ai_score", { ascending: false, nullsFirst: false }).limit(5);
   let found = data ?? [];
 
@@ -217,7 +222,8 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
     listings: found.map((x) => ({
       id: x.id, title: x.title, price: fmtPrice(x.price_vnd, x.deal),
       meta: [x.area_m2 ? `${x.area_m2}m²` : null, x.bedrooms ? `${x.bedrooms}PN` : null, [x.district, x.province].filter(Boolean).join(", ")].filter(Boolean).join(" · "),
-      image: x.images?.[0] || null,
+      // cleanImages như mọi surface khác: bỏ link album facebook (không phải file ảnh, thẻ chat hiện ảnh vỡ) + nâng hi-res
+      image: cleanImages(x.images || [])[0] || null,
     })),
   });
 }

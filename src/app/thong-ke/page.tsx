@@ -24,11 +24,14 @@ export default async function ThongKe({
   searchParams: Promise<{ city?: string; deal?: string }>;
 }) {
   const sp = await searchParams;
-  const deal = sp.deal === "ban" ? "ban" : "cho_thue";
+  // mặc định BÁN: phần tin áp đảo, và mọi link tới đây (Nav/Footer/trang chủ/AreaLanding)
+  // đều không truyền deal - bản cũ mặc định cho thuê nên bấm "Thống kê giá" từ ngữ cảnh
+  // mua bán lại ra bảng giá thuê vài trăm nghìn/m² (soát 21/8)
+  const deal = sp.deal === "cho_thue" ? "cho_thue" : "ban";
   const city = CITIES.includes(sp.city || "") ? sp.city! : "Hà Nội";
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("listings")
     .select("id,title,price_vnd,area_m2,price_per_m2,district,lat,lng,kind,deal")
     .eq("status", "published")
@@ -37,6 +40,7 @@ export default async function ThongKe({
     .not("lat", "is", null)
     .not("price_vnd", "is", null)
     .limit(1000);
+  if (error) console.error("thong-ke:", error.message); // đừng để lỗi DB đội lốt "chưa có dữ liệu"
   const listings = (data ?? []) as Listing[];
 
   const m: Record<string, { prices: number[]; lat: number; lng: number; n: number }> = {};
@@ -168,7 +172,8 @@ async function PriceHistoryChart({ city, deal }: { city: string; deal: string })
     const py = PAD + (1 - (s.v - min) / span) * (H - PAD * 2);
     return `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`;
   }).join(" ");
-  const changePct = Math.round(((vs[vs.length - 1] - vs[0]) / vs[0]) * 1000) / 10;
+  // vs[0] = 0 hợp lệ theo schema (bigint not null) - chia thẳng là "↑ Infinity%"
+  const changePct = vs[0] > 0 ? Math.round(((vs[vs.length - 1] - vs[0]) / vs[0]) * 1000) / 10 : 0;
 
   return (
     <div className="mb-4 rounded-xl border border-[var(--line)] p-3">

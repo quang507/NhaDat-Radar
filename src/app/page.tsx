@@ -25,7 +25,9 @@ const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
   { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/?kind=dat&deal=ban" },
   { t: "Căn hộ", f: (x) => x.kind === "can_ho", href: "/?kind=can_ho" },
   { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/?kind=nha&deal=cho_thue" },
-  { t: "Mặt bằng & khác", f: (x) => x.kind === "mat_bang" || x.kind === "khac", href: "/?kind=mat_bang" },
+  // khối và link phải cùng bộ lọc - bản cũ khối gồm cả "khac" nhưng link chỉ mat_bang,
+  // bấm "Xem tất cả" là tin đang hiện biến mất
+  { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/?kind=mat_bang" },
 ];
 const PROVINCES = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng"];
 const PRICE_BUCKETS: [string, string][] = [
@@ -219,8 +221,10 @@ export default async function Home({
             </Section>
           )}
 
+          {/* khối "nổi bật" trộn cả bán + thuê (ưu tiên có ảnh) -> link sang search sort điểm,
+              không phải /?deal=ban (tin thuê đang hiện sẽ biến mất sau khi bấm) */}
           {featured.length > 0 && (
-            <Section title="Bất động sản nổi bật" href="/?deal=ban">
+            <Section title="Bất động sản nổi bật" href="/search?sort=score">
               <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
                 {featured.map((x) => <ListingCard key={x.id} x={x} />)}
               </div>

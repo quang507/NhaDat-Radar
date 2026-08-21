@@ -176,8 +176,12 @@ async function harvestGroup(text, anh = [], khoaAnh = null) {
     const vanBan = (ai.listing.title || "") + "\n" + text;
     if (!BDS_KEYWORD.test(vanBan)) { console.log("  - bo (khong phai tin BDS)"); return; }
     const coSdt = PHONE_RE.test(vanBan);
-    const coKhuVuc = !!(ai.listing.district || ai.listing.province) || AREA_HINT.test(vanBan);
-    if (!coSdt && !coKhuVuc) { console.log("  - bo (thieu ca SDT lan khu vuc)"); return; }
+    // "khu vực" phải là TRƯỜNG THẬT bóc được (district/province) chứ không nhận AREA_HINT
+    // trơ trong văn bản nữa: hint mà AI không bóc ra được trường nào thì tin lưu với
+    // province=null + district=null (+ có khi không SĐT) - lên web không lọc được theo khu
+    // vực, không liên hệ được, đúng loại tin merge.mjs cố tình loại (soát 21/8).
+    const coKhuVuc = !!(ai.listing.district || ai.listing.province);
+    if (!coSdt && !coKhuVuc) { console.log("  - bo (thieu ca SDT lan khu vuc boc duoc)"); return; }
     const { error } = await saveListing(ai.listing, text, { fromGroup: true, images: anh, khoaAnh });
     console.log(error ? "  (lưu lỗi: " + error.message + ")" : `  ✓ bóc được 1 tin BĐS từ group${anh.length ? ` (+${anh.length} ảnh)` : ""} -> đã đăng`);
   }
@@ -281,13 +285,15 @@ function startListener() {
     if (!fromId || isSelf) return;
     // Khoá ghép ảnh-với-chữ: group phải kèm NGƯỜI GỬI (uidFrom) - không thì ảnh của người A
     // đang chat cùng lúc bị ghép vào tin của người B. DM thì thread chính là người gửi.
-    const khoaAnh = isGroup ? `${fromId}|${d.uidFrom || ""}` : String(fromId);
+    // group mà CLI không đưa uidFrom thì thà không ghép ảnh còn hơn cả group dùng chung một
+    // khoá "groupId|" - ảnh người A dính vào tin người B
+    const khoaAnh = isGroup ? (d.uidFrom ? `${fromId}|${d.uidFrom}` : null) : String(fromId);
     // UX audit 16/8: khách gửi ẢNH nhà / file / sticker mà không kèm chữ -> bot im lặng -> tưởng bot chết.
     // DM: trả lời hướng dẫn 1 lần cho tin không có chữ (ảnh/file), bỏ qua sticker/thiệp; group: bỏ qua.
     const msgType = msgType0;
     // Sự kiện ẢNH: nhớ lại BẤT KỂ có chú thích hay không (bản cũ chỉ nhớ khi không có chữ).
     // Nếu là ảnh về MUỘN của tin vừa lưu (Zalo gửi chữ trước, album sau) thì đắp thẳng vào tin.
-    if (laAnh) {
+    if (laAnh && khoaAnh) {
       const url = raw.href || raw.oriUrl || raw.hdUrl || raw.normalUrl || raw.thumbUrl || raw.thumb || null;
       if (url && !ghepAnhMuon(khoaAnh, String(url))) {
         nhoAnh(khoaAnh, String(url));

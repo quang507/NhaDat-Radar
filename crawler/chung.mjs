@@ -12,6 +12,20 @@
 // signed/unsigned, đổi sẽ xê dịch toạ độ rải của toàn bộ tin đã ghim.)
 export function hash31(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return h; }
 
+// Sửa chuỗi Unicode hỏng từ Gemini (soát 21/8): chỗ vá JSON lỗi trong facebook.mjs giữ
+// nguyên văn bản đã hỏng, nên DB dính tỉnh ma ("\u01ồng Nai" tách khỏi "Đồng Nai") và
+// "Thủ Đức" vỡ thành 6 bucket (ƌ/Ǝ/Ɓ thay cho Đ) - lọc theo khu vực là mất tin.
+// 3 lớp vá: escape \uXXXX hợp lệ còn sót dạng chữ -> decode; escape cụt -> bỏ;
+// các ký tự Phi châu Gemini hay băm chữ Đ/ư thành -> đổi lại. KHÔNG đụng nguyên âm có
+// dấu ("Quựn" vs "Quận") - đoán kiểu đó dễ sửa sai chữ đúng.
+export function suaChuHong(s) {
+  if (typeof s !== "string" || !s) return s;
+  return s
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\u[0-9a-fA-F]{0,3}(?![0-9a-fA-F])/g, "")
+    .replace(/[ƉƊƎƁ]/g, "Đ").replace(/ƌ/g, "Đ").replace(/Ű/g, "ư").replace(/ű/g, "ư");
+}
+
 // Chuẩn hoá tên tỉnh về đúng một dạng viết - hợp NHẤT của cả 4 bản copy cũ (lấy superset
 // các alias: bản merge thiếu "tphcm", các bản mogi thiếu "sai gon" không dấu).
 export function canonProvince(p) {

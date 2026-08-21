@@ -198,7 +198,10 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                     <span className="font-semibold text-right">{money(r.comps.p25_ppm2)} - {money(r.comps.p75_ppm2)}/m²</span></>
                   )}
                 </div>
-                <Link href={`/search?deal=${r.deal}&province=${encodeURIComponent(f.province)}${f.district ? `&district=${encodeURIComponent(f.district)}` : ""}`}
+                {/* link phải khớp đúng tập comps API đã dùng: cùng kind, và chỉ kèm district khi
+                    API KHÔNG nới scope lên toàn tỉnh (quận < 5 tin) - không thì con số "N tin so
+                    sánh" và danh sách sau khi bấm không bao giờ khớp nhau */}
+                <Link href={`/search?deal=${r.deal}&kind=${encodeURIComponent(f.kind)}&province=${encodeURIComponent(f.province)}${f.district && r.comps.scope !== f.province ? `&district=${encodeURIComponent(f.district)}` : ""}`}
                   className="btn w-full mt-3 text-sm text-center block">
                   Xem các tin so sánh ›
                 </Link>

@@ -219,7 +219,8 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
       <section className="mt-6 text-sm flex flex-wrap gap-x-4 gap-y-1">
         <Link href={areaPath(otherDeal, province, district)} className="text-brand">{DEAL_WORD[otherDeal]} nhà đất {where} ›</Link>
         {district ? <Link href={areaPath(deal, province)} className="text-brand">Toàn {province} ›</Link> : null}
-        <Link href="/thong-ke" className="text-brand">Thống kê giá ›</Link>
+        {/* mang theo ngữ cảnh bán/thuê + tỉnh - link trần từng nhảy về mặc định sai chiều */}
+        <Link href={`/thong-ke?deal=${deal}&city=${encodeURIComponent(province)}`} className="text-brand">Thống kê giá ›</Link>
         <Link href="/dinh-gia" className="text-brand">Định giá nhanh ›</Link>
       </section>
     </div>

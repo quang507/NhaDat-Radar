@@ -16,7 +16,9 @@ export default function FavouritesPage() {
 
   useEffect(() => {
     const load = async () => {
-      const ids = getFavs();
+      // lọc id hỏng TRƯỚC khi query: 1 giá trị không phải UUID trong localStorage làm
+      // Postgres 22P02 cho CẢ câu .in() -> trang hiện "Chưa có tin nào" dù đã lưu 20 tin
+      const ids = getFavs().filter((id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
       if (!ids.length) return setItems([]);
       const supabase = createClient();
       const { data } = await supabase

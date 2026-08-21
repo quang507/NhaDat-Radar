@@ -1,7 +1,7 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
-import { canonProvince } from "./chung.mjs";
+import { canonProvince, suaChuHong } from "./chung.mjs";
 import { PHONE_RE } from "./quality-gate.mjs";
 import { createHash } from "node:crypto";
 
@@ -61,7 +61,8 @@ function canonDistrictName(d) {
        .replace(/^(h\.\s*|h\s+)/i, "Huyện ").replace(/^huyện\s+/i, "Huyện ")   // "H. Hóc Môn", "H.Nhà Bè"
        .replace(/^(tp\.?|thành phố|thanh pho)\s+/i, "TP. ")
        .replace(/^(tx\.?|thị xã|thi xa)\s+/i, "Thị xã ");
-  if (/^Quận Thủ Đức$/i.test(s)) s = "TP. Thủ Đức";           // Thủ Đức đã lên TP (2021)
+  if (/^(Quận )?Thủ Đức$/i.test(s)) s = "TP. Thủ Đức";        // Thủ Đức đã lên TP (2021) - "Thủ Đức" trần cũng gộp (21/8: DB tách 53 tin bucket riêng)
+  if (/^Thủ Dầu Một$/i.test(s)) s = "TP. Thủ Dầu Một";
   s = s.replace(/^Quận\s+0?(\d{1,2})$/, "Quận $1");             // "Quận 07" -> "Quận 7"
   return s;
 }
@@ -76,6 +77,11 @@ function canonDistrict(raw) {
 }
 
 function norm(x) {
+  // sửa Unicode hỏng TRƯỚC khi chuẩn hoá - không thì "Thủ ƌức" đi qua canonDistrict
+  // thành bucket riêng và "\u01ồng Nai" thành tỉnh ma (xem suaChuHong trong chung.mjs)
+  x = { ...x, title: suaChuHong(x.title), description: suaChuHong(x.description),
+    province: suaChuHong(x.province), district: suaChuHong(x.district),
+    ward: suaChuHong(x.ward), address: suaChuHong(x.address) };
   const price = x.price_vnd ?? null, area = x.area_m2 ?? null;
   const dc = canonDistrict(x.district);
   // nguồn nào không có sẵn trường SĐT thì dò trong mô tả - chotot/mogi người đăng hay tự

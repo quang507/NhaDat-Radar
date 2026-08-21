@@ -61,7 +61,11 @@ export default async function ListingDetail({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("listings").select(LISTING_COLS).eq("id", id).single();
+  const { data, error } = await supabase.from("listings").select(LISTING_COLS).eq("id", id).single();
+  // 42703 (cột trong LISTING_COLS chưa có migration - đã xảy ra, xem 015) mà nuốt im lặng thì
+  // MỌI tin ra 404, SEO de-index, không dấu vết. Log để còn thấy trong Vercel Logs; PGRST116
+  // (không có hàng) mới là 404 thật.
+  if (error && error.code !== "PGRST116") console.error("listing detail:", id, error.code, error.message);
   if (!data) notFound();
   const x = data as Listing;
   const t = thumb(x.kind);

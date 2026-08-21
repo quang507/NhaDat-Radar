@@ -32,6 +32,21 @@ const rows = [...groups.entries()]
     return { day, province, district, kind, deal, median_ppm2: median(v), n: v.length };
   });
 
+// Nấc trung gian (quận, kind='all'): PriceTrend hỏi đúng tổ hợp này khi nhóm (quận, kind)
+// chưa đủ dữ liệu, nhưng trước 21/8 KHÔNG ai ghi nó -> mọi trang khu vực cấp quận vĩnh viễn
+// rơi thẳng về đường giá toàn tỉnh kèm dòng "(chưa đủ dữ liệu riêng cho Quận X)".
+const distGroups = new Map();
+for (const r of data ?? []) {
+  if (!r.province || !r.district) continue;
+  const k = [r.province, r.district, r.deal].join("|");
+  (distGroups.get(k) ?? distGroups.set(k, []).get(k)).push(Number(r.price_per_m2));
+}
+for (const [k, v] of distGroups) {
+  if (v.length < 3) continue;
+  const [province, district, deal] = k.split("|");
+  rows.push({ day, province, district, kind: "all", deal, median_ppm2: median(v), n: v.length });
+}
+
 // Thêm dòng tổng hợp toàn tỉnh (district='', kind='all') cho biểu đồ xu hướng ở /thong-ke
 const provGroups = new Map();
 for (const r of data ?? []) {
