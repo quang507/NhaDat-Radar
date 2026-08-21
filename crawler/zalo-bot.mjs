@@ -375,7 +375,7 @@ async function handle(text, anh = [], khoaAnh = null) {
 
   if (ai.intent === "hoi_tin" && ai.query) {
     const q = ai.query;
-    let query = sb.from("listings").select("id,title,price_vnd,area_m2,district,ward,deal,kind,contact_phone").eq("status", "published");
+    let query = sb.from("listings").select("id,title,price_vnd,area_m2,district,ward,deal,kind,contact_phone,source,source_site").eq("status", "published");
     if (q.listing_type) query = query.eq("deal", q.listing_type);
     if (q.property_type) query = query.eq("kind", q.property_type);
     if (q.district) query = query.ilike("district", `%${q.district}%`);
@@ -398,7 +398,11 @@ async function handle(text, anh = [], khoaAnh = null) {
     if (q.area_min) sp.set("areaMin", String(q.area_min));
     const moreUrl = `${SITE}/search?${sp.toString()}`;
     if (data?.length) {
-      const lines = data.map((x, i) => `${i + 1}. ${x.title?.slice(0, 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}${x.contact_phone ? "\n   📞 " + x.contact_phone : ""}\n   🔗 ${SITE}/listings/${x.id}`);
+      // Tin ĐỘC QUYỀN (FB + Zalo - cùng luật với src/lib/doc-quyen.ts): KHÔNG đưa SĐT ra,
+      // liên hệ đi qua Cầu Nối - khách cầm số ở bước tìm là hết vai trò trung gian.
+      const laDocQuyen = (x) => x.source === "zalo_oa" || x.source === "zalo_miniapp"
+        || x.source_site === "facebook" || x.source_site === "zalo_group" || x.source_site === "zalo_bot";
+      const lines = data.map((x, i) => `${i + 1}. ${x.title?.slice(0, 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}${laDocQuyen(x) ? `\n   ⭐ Độc quyền Radar - nhắn "căn số ${i + 1}" để hỏi thêm / hẹn xem` : x.contact_phone ? "\n   📞 " + x.contact_phone : ""}\n   🔗 ${SITE}/listings/${x.id}`);
       return `🔎 ${data.length} tin phù hợp nhất:\n\n${lines.join("\n\n")}\n\n👉 Xem tất cả + bản đồ: ${moreUrl}\nNhắn thêm điều kiện (giá, số phòng, đường…) để em lọc kỹ hơn.`;
     }
     return `Chưa có tin nào khớp đúng yêu cầu. Anh/chị thử nới điều kiện (khu vực rộng hơn / giá cao hơn), hoặc xem danh sách gần nhất: ${moreUrl}\nĐể lại nhu cầu (khu vực + giá + loại), có tin mới khớp em báo ngay ạ 🔔`;

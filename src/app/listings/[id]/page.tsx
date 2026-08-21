@@ -26,6 +26,7 @@ import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
+import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
@@ -68,6 +69,8 @@ export default async function ListingDetail({
   if (error && error.code !== "PGRST116") console.error("listing detail:", id, error.code, error.message);
   if (!data) notFound();
   const x = data as Listing;
+  // FB + Zalo = tin ĐỘC QUYỀN (21/8): giấu SĐT mọi nơi, liên hệ qua Cầu Nối - xem lib/doc-quyen
+  const docQuyen = laTinDocQuyen(x);
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
@@ -329,7 +332,7 @@ export default async function ListingDetail({
             <h3 className="font-bold mb-3">Mô tả</h3>
             {/* 17/8: trước dùng whitespace-pre-line -> tin dài (nhất là bài FB) thành khối chữ liền.
                 RichText tách đoạn, và bài nào có "- " thì thành gạch đầu dòng cho dễ quét. */}
-            <RichText text={x.description || ""} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
+            <RichText text={docQuyen ? cheSoVanBan(x.description) : x.description || ""} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
           </div>
           {/* Công cụ ra quyết định tại chỗ (ISO 9241-110): trả góp cho tin bán */}
           {x.deal === "ban" && x.price_vnd && x.price_vnd >= 3e8 ? <MortgageMini price={x.price_vnd} /> : null}
@@ -391,27 +394,46 @@ export default async function ListingDetail({
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {(x.contact_phone || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
+                  {docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (x.contact_phone || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
                 </div>
               </div>
             </div>
-            {/* SĐT người đăng chỉ hiện sau ĐĂNG NHẬP (mô hình Homigo, miễn phí) - khách vãng lai
-                thấy nút mở popup đăng ký. Hotline Radar bên dưới thì KHÔNG chặn: đó là kênh lead. */}
-            {user && x.contact_phone && <div className="mb-3"><PhoneReveal phone={x.contact_phone} /></div>}
-            {user && !x.contact_phone && x.phone_masked && (
-              <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
+            {/* TIN ĐỘC QUYỀN (FB + Zalo): không hiện SĐT cho bất kỳ ai - Radar là đường liên hệ
+                duy nhất (Cầu Nối), đây là nhóm tin thu phí được. Nguồn web thì giữ luật cũ:
+                SĐT hiện sau đăng nhập (mô hình Homigo), hotline Radar không chặn ai. */}
+            {docQuyen ? (
+              <div className="mb-3 rounded-lg border border-brand/40 bg-brand/5 p-3 text-sm">
+                <div className="font-bold mb-1">⭐ Tin độc quyền Radar</div>
+                <p className="text-xs text-[var(--ink-soft)]">
+                  Tin này không có trên các trang BĐS khác. Radar kết nối trực tiếp với người đăng:
+                  gọi/Zalo bên dưới, hoặc hỏi chi tiết và hẹn xem nhà - miễn phí cho người mua.
+                </p>
+              </div>
+            ) : (
+              <>
+                {user && x.contact_phone && <div className="mb-3"><PhoneReveal phone={x.contact_phone} /></div>}
+                {user && !x.contact_phone && x.phone_masked && (
+                  <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
+                )}
+                {!user && (x.contact_phone || x.phone_masked) && (
+                  <div className="mb-3"><DangNhapDeXem /></div>
+                )}
+              </>
             )}
-            {!user && (x.contact_phone || x.phone_masked) && (
-              <div className="mb-3"><DangNhapDeXem /></div>
-            )}
-            {/* Tin cào: hành động CHÍNH là sang bài gốc để liên hệ người đăng (UX audit: nút "Gửi tin nhắn" to nhất
-                khiến khách tưởng nhắn tới người bán, trong khi lead vào Radar). Form Radar là hành động phụ, ghi rõ. */}
-            {isCrawl && x.source_url && x.source_url !== "#" ? (
+            {/* Tin cào nguồn web: hành động CHÍNH là sang bài gốc để liên hệ người đăng. Tin độc
+                quyền thì bài gốc hạ xuống dòng chữ nhỏ cuối khối (vẫn giữ ghi nguồn). */}
+            {isCrawl && !docQuyen && x.source_url && x.source_url !== "#" ? (
               <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary w-full text-center block mb-3">
                 Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} ›
               </a>
             ) : null}
             <TuVanRadar />
+            {/* độc quyền: vẫn ghi nguồn nhưng chỉ là chữ nhỏ, không phải CTA */}
+            {docQuyen && x.source_url && x.source_url !== "#" && (
+              <p className="text-[0.68rem] text-[var(--ink-faint)] mb-3">
+                Nguồn tin: <a href={x.source_url} target="_blank" rel="noopener nofollow" className="underline">{x.source_site || "bài gốc"}</a>
+              </p>
+            )}
             {x.agent_id && (
               <Link
                 href={`/tin-nhan?listing=${x.id}&agent=${x.agent_id}`}
