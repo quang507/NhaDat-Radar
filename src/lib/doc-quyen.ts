@@ -16,3 +16,11 @@ export function laTinDocQuyen(x: { source?: string | null; source_site?: string 
 export function cheSoVanBan(s: string | null | undefined) {
   return String(s || "").replace(/(\+?84|0)[\s.\-]?(\d[\s.\-]?){7,10}/g, (m) => m.slice(0, 4) + "*** (liên hệ qua Radar)");
 }
+
+// Che SỐ NHÀ của tin độc quyền, giữ tên đường (quyết định 21/8: "để tên đường thôi, số nhà
+// giấu kiểu *** cho đồng bộ" - địa chỉ chính xác chỉ mở khi chốt lịch xem nhà, như spec Cầu
+// Nối). Địa chỉ VN số nhà luôn đứng ĐẦU ("123/45A Lê Văn Sỹ...") nên chỉ che token đầu nếu
+// nó bắt đầu bằng chữ số - "Đường Số 7", "Quốc lộ 1A", "Đường 3/2" không bị đụng.
+export function cheSoNha(s: string | null | undefined) {
+  return String(s || "").trim().replace(/^\d[\d/\-a-zA-Z]*\s+/, "*** ");
+}

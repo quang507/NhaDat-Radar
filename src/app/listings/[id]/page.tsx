@@ -26,7 +26,7 @@ import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
-import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
+import { laTinDocQuyen, cheSoVanBan, cheSoNha } from "@/lib/doc-quyen";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
@@ -211,7 +211,7 @@ export default async function ListingDetail({
         <div className="min-w-0">
           <h1 className="prata text-xl md:text-3xl leading-tight">{x.title}</h1>
           <div className="text-[var(--ink-soft)] text-sm mt-1">
-            📍 {diaChiDayDu(x.address, x.district, x.province)}
+            📍 {diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}
           </div>
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
           <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
@@ -362,7 +362,7 @@ export default async function ListingDetail({
           <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-2">Vị trí</h3>
             <div className="text-sm text-[var(--ink-soft)] mb-3">
-              📍 {diaChiDayDu(x.address, x.district, x.province)}
+              📍 {diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}
             </div>
             {x.lat != null && x.lng != null ? (
               <>

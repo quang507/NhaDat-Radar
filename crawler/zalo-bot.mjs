@@ -66,18 +66,18 @@ function fmtPrice(v, deal) {
 
 // ---- Gemini phân loại (giống lib/ai.ts) ----
 const PROMPT = `Bạn là trợ lý Zalo của sàn nhà đất. Đọc tin nhắn và trả về DUY NHẤT 1 JSON:
-{"intent":"dang_tin"|"hoi_tin"|"hoi_sau"|"khac","reply_hint":string,"ref_index":number|null,
+{"intent":"dang_tin"|"hoi_tin"|"hoi_sau"|"xem_nha"|"khac","reply_hint":string,"ref_index":number|null,
  "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"direction":string|null,"furnishing":string|null,"amenities":string[],"contact_phone":string|null,"specs":object|null},
  "query":{"listing_type":"ban"|"cho_thue"|null,"property_type":string|null,"province":string|null,"district":string|null,"price_min":number|null,"price_max":number|null,"area_min":number|null}}
-dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM nhà theo tiêu chí (khu vực/giá/loại). hoi_sau: họ hỏi CHI TIẾT về MỘT CĂN CỤ THỂ đã nhắc trong hội thoại hoặc có link/mã - xem sổ đỏ, pháp lý, quy hoạch, xin thêm ảnh, hẹn xem nhà, thương lượng giá, "căn số 2 còn không". ref_index: số thứ tự căn họ nhắc (1-4) nếu họ nói rõ ("căn 2", "cái thứ nhất"), không thì null. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
-specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng Việt":"giá trị"}. Nhãn gợi ý THEO LOẠI:
-- nha (thổ cư): Ngang, Dài, DT đất, DT sàn, Kết cấu ("1 trệt 2 lầu"), Đường trước nhà ("hẻm xe hơi 6m"), Thổ cư
-- can_ho: Dự án, Block/Tháp, Tầng, Loại căn (góc/duplex/studio), Hướng ban công, Phí quản lý
-- dat: Mặt tiền, Chiều dài, Đường vào, Thổ cư, Lô/Thửa, Quy hoạch
-- mat_bang: Ngang, Dài, DT sàn, Số tầng, Vị trí (góc 2 mặt tiền), Ngành phù hợp
-- phong_tro: Gác, Máy lạnh, Chỗ để xe, Giờ giấc, Điện, Nước
-- tin CHO THUÊ (mọi loại) thêm: Tiền cọc, Thời hạn hợp đồng, Điện, Nước, Phí quản lý
-CHỈ lấy thứ họ ghi rõ, không có thì null/bỏ nhãn - tuyệt đối không bịa. direction là hướng nhà/đất (Đông, Tây Nam...), furnishing là nội thất, legal là pháp lý (đừng lặp lại 2 thứ này trong specs).`;
+dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM nhà theo tiêu chí (khu vực/giá/loại). hoi_sau: họ hỏi CHI TIẾT về MỘT CĂN CỤ THỂ đã nhắc trong hội thoại hoặc có link/mã - xem sổ đỏ, pháp lý, quy hoạch, xin thêm ảnh, thương lượng giá, "căn số 2 còn không". xem_nha: họ muốn ĐI XEM TRỰC TIẾP / hẹn lịch xem một căn ("cho tôi xem nhà", "cuối tuần qua coi được không") - ưu tiên xem_nha hơn hoi_sau khi họ ngỏ ý đến tận nơi. ref_index: số thứ tự căn họ nhắc (1-4) nếu họ nói rõ ("căn 2", "cái thứ nhất"), không thì null. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
+specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng Việt":"giá trị"}. Bộ nhãn THEO TỪNG DÒNG BĐS:
+- nha (nhà thổ cư): Ngang, Dài, DT đất, DT sàn, Thổ cư, Kết cấu ("1 trệt 2 lầu 1 tum"), Đường trước nhà ("hẻm xe hơi 6m" / "mặt tiền đường 12m"), Vị trí ("góc 2 mặt tiền", "hẻm cụt"), Năm xây, Hiện trạng ("đang cho thuê 15tr/th", "nhà mới")
+- can_ho: Dự án, Block/Tháp, Tầng, Mã căn, Loại căn (studio/1PN+1/duplex/penthouse/officetel), DT tim tường, DT thông thuỷ, Hướng cửa, Hướng ban công, View ("view sông", "view nội khu"), Phí quản lý, Năm bàn giao, Sổ (sổ hồng / HĐMB / chờ sổ)
+- dat (đất nền): Mặt tiền, Chiều dài, Thổ cư (m²), Loại đất (ONT/ODT/CLN/SKC/lúa), Đường vào (rộng mấy mét, nhựa hay đá), Lô/Thửa/Tờ bản đồ, Quy hoạch, Hiện trạng ("đã san lấp", "có nhà cấp 4", "trồng cây")
+- mat_bang: Ngang, Dài, DT sàn, Số tầng, Vị trí ("góc 2 mặt tiền", "gần chợ/trường"), Ngành phù hợp ("F&B, thời trang"), Hiện trạng ("đang trống", "sang lại nội thất"), Giá sang nhượng
+- phong_tro: DT phòng, Gác lửng, Máy lạnh, WC riêng/chung, Cửa sổ, Giữ xe, Giờ giấc ("tự do", "khoá 23h"), Ở ghép, Điện (đ/kWh), Nước (đ/người hoặc đ/m³), Wifi/rác
+- tin CHO THUÊ (mọi loại) thêm: Tiền cọc ("cọc 2 tháng"), Thời hạn HĐ tối thiểu, Phí quản lý, Điện, Nước, Bao gồm ("free wifi + rác")
+CHỈ lấy thứ họ ghi rõ, không có thì null/bỏ nhãn - tuyệt đối không bịa. direction là hướng nhà/đất (Đông, Tây Nam...), furnishing là nội thất, legal là pháp lý, bedrooms/bathrooms/floors là số PN/WC/tầng - các trường riêng này đừng lặp lại trong specs.`;
 
 async function classify(text) {
   for (const k of KEYS) {
@@ -284,6 +284,8 @@ const daGioiThieu = new Map(); // buyerThread -> { ids: [listingId...], luc } - 
 const GT_TTL_MS = 30 * 60_000;
 const choDapAn = new Map();   // sellerThread -> { reqId, buyerThread, listingId, question, luc }
 const DAP_TTL_MS = 24 * 60 * 60_000;
+const choXemNha = new Map();  // buyerThread -> { listingId, khungGio, luc } - đang chờ khách cho SĐT để chốt lịch xem
+const XEM_TTL_MS = 10 * 60_000;
 
 // Báo admin qua Zalo: lead mới từ web (form tư vấn, popup SĐT) + câu hỏi cần người thật.
 // ZALO_ADMIN_ID đặt trong .env.local - nhắn thử cho bot rồi xem log "← [id]" để lấy id mình.
@@ -322,6 +324,28 @@ async function handle(text, anh = [], khoaAnh = null) {
       return "Dạ em đã chuyển câu trả lời cho khách rồi ạ. Cảm ơn anh/chị nhiều 🙏";
     }
   }
+  // 0b. Buyer đang được hỏi SĐT để chốt lịch xem nhà? (F4 - spec Cầu Nối, bản thủ công:
+  //     đủ SĐT là ghi lead HẸN XEM, admin nhận báo qua Zalo rồi tự sắp lịch gọi hai bên)
+  const cxn = khoaAnh ? choXemNha.get(khoaAnh) : null;
+  if (cxn && Date.now() - cxn.luc <= XEM_TTL_MS) {
+    if (/thôi|khỏi|không cần|huỷ|hủy|để sau/i.test(text)) {
+      choXemNha.delete(khoaAnh);
+      return "Dạ vâng ạ, khi nào anh/chị muốn xem thì nhắn em bất cứ lúc nào nhé 🏠";
+    }
+    const soKhach = (text.match(/(\+?84|0)\d{8,10}/) || [])[0];
+    if (soKhach) {
+      choXemNha.delete(khoaAnh);
+      await sb.from("leads").insert({
+        listing_id: cxn.listingId, name: "Khách Zalo hẹn xem nhà", phone: soKhach.replace(/^\+?84/, "0"),
+        message: `🏠 HẸN XEM NHÀ${cxn.khungGio ? ` - khung giờ khách muốn: ${cxn.khungGio}` : ""} - khách nhắn: "${text.slice(0, 200)}"`,
+      });
+      return "Dạ em đã ghi lịch ✅ Radar sẽ gọi/Zalo anh/chị trong ít phút để chốt giờ và điểm hẹn cụ thể. Cảm ơn anh/chị 🙏";
+    }
+    cxn.khungGio = `${cxn.khungGio || ""} ${text}`.trim().slice(0, 150);
+    cxn.luc = Date.now();
+    return "Dạ em ghi nhận ạ. Anh/chị cho em xin SĐT để Radar gọi chốt lịch xem nhé (VD: 0909xxxxxx) 📞";
+  }
+  if (cxn) choXemNha.delete(khoaAnh);
   const nhap = khoaAnh ? nhapDo.get(khoaAnh) : null;
   if (nhap && Date.now() - nhap.luc > NHAP_TTL_MS) nhapDo.delete(khoaAnh);
   else if (nhap && (PHONE_RE.test(text) || (text.length < 120 && AREA_HINT.test(text)))) {
@@ -344,7 +368,30 @@ async function handle(text, anh = [], khoaAnh = null) {
     const { error } = await saveListing(L, text, { fromGroup: false, images: anh, khoaAnh });
     if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
     if (khoaAnh) nhapDo.delete(khoaAnh);
-    return `✅ Đã ghi nhận tin của anh/chị:${anh.length ? `\n• Kèm ${anh.length} ảnh` : ""}\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT - nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
+    // Văn "gửi vàng" (21/8): biến việc CHE SĐT - thứ seller dễ khó chịu nhất - thành điểm
+    // bán. Điểm đau thật của chính chủ là vừa đăng số lên là môi giới lạ gọi dội bom.
+    return `✅ Tin của anh/chị đã lên sàn:${anh.length ? `\n📷 Kèm ${anh.length} ảnh` : ""}\n🏠 ${L.title || "BĐS"}\n💰 ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}\n\n🛡️ SĐT của anh/chị được Radar GIỮ KÍN - không hiện công khai nên không lo môi giới lạ gọi dội bom. Khách quan tâm thật sẽ liên hệ qua Radar, em chuyển tận tay anh/chị.\n\n🤝 Từ giờ anh/chị cứ để căn này Radar lo: tin đứng khu ĐỘC QUYỀN ngay đầu trang tìm kiếm, khách hỏi gì em chuyển liền, khách muốn xem nhà em sắp lịch rồi báo trước. Bán được mới tính phí giới thiệu, không bán không mất đồng nào.\n\n🔗 ${SITE}\nCần sửa giá, thêm ảnh hay báo đã bán - anh/chị nhắn ngay tại đây nhé 🏠`;
+  }
+
+  // Buyer muốn XEM NHÀ (F4): xác định căn -> xin SĐT + khung giờ -> ghi lead HẸN XEM,
+  // admin nhận báo Zalo (kèm link tin, trong đó có địa chỉ đầy đủ) rồi sắp lịch, gọi 2 bên.
+  // Danh tính + địa chỉ chính xác chỉ mở ở bước này, và do NGƯỜI quyết chứ không phải bot.
+  if (ai.intent === "xem_nha") {
+    const gt0 = khoaAnh ? daGioiThieu.get(khoaAnh) : null;
+    const ids0 = gt0 && Date.now() - gt0.luc < GT_TTL_MS ? gt0.ids : [];
+    const idText0 = (text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) || [])[0] || null;
+    const idXem = idText0 || (ai.ref_index >= 1 && ids0[ai.ref_index - 1]) || ids0[0] || null;
+    if (!idXem) return 'Dạ anh/chị muốn xem căn nào ạ? Nhắn kèm link tin hoặc tìm trước (VD "nhà Quận 7 dưới 6 tỷ") rồi chọn căn giúp em nhé.';
+    const soKhach = (text.match(/(\+?84|0)\d{8,10}/) || [])[0];
+    if (soKhach) {
+      await sb.from("leads").insert({
+        listing_id: idXem, name: "Khách Zalo hẹn xem nhà", phone: soKhach.replace(/^\+?84/, "0"),
+        message: `🏠 HẸN XEM NHÀ - khách nhắn: "${text.slice(0, 200)}"`,
+      });
+      return "Dạ em đã ghi lịch ✅ Radar sẽ gọi/Zalo anh/chị trong ít phút để chốt giờ và điểm hẹn cụ thể. Cảm ơn anh/chị 🙏";
+    }
+    choXemNha.set(khoaAnh, { listingId: idXem, khungGio: "", luc: Date.now() });
+    return "Dạ được ạ 🏠 Anh/chị cho em xin SĐT và khung giờ rảnh (VD: \"0909xxxxxx, chiều thứ 7\") - Radar sẽ gọi chốt lịch và dẫn anh/chị xem tận nơi, hoàn toàn miễn phí.";
   }
 
   // Buyer hỏi SÂU về một căn cụ thể -> Cầu Nối: relay sang seller hoặc đẩy cho admin
