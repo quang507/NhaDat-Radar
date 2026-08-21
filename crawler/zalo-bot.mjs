@@ -187,8 +187,22 @@ async function harvestGroup(text, anh = [], khoaAnh = null) {
   }
 }
 
+// TRÍ NHỚ PHIÊN DM (21/8): khách hay đăng tin THIẾU SĐT rồi bổ sung ở tin nhắn sau
+// ("chưa có số điện thoại mà. số là 034...") - bot không nhớ gì nên chỉ cảm ơn suông và tin
+// không bao giờ được đăng (đo thật trên DM 11:04 21/8). Nhớ bản nháp trượt cổng theo người
+// gửi trong 15 phút; tin nhắn kế trông giống phần BỔ SUNG (có SĐT, hoặc ngắn + có khu vực)
+// thì ghép vào nháp rồi phân loại lại cả cụm. Tin dài tự đứng được thì xử lý như tin mới.
+const nhapDo = new Map(); // fromId -> { text, luc }
+const NHAP_TTL_MS = 15 * 60_000;
+
 // ---- Xử lý DM (chat 1-1) -> trả về text để gửi lại ----
 async function handle(text, anh = [], khoaAnh = null) {
+  const nhap = khoaAnh ? nhapDo.get(khoaAnh) : null;
+  if (nhap && Date.now() - nhap.luc > NHAP_TTL_MS) nhapDo.delete(khoaAnh);
+  else if (nhap && (PHONE_RE.test(text) || (text.length < 120 && AREA_HINT.test(text)))) {
+    text = nhap.text + "\n" + text;
+    console.log("  (ghép phần bổ sung vào tin nháp 15' của cùng người gửi)");
+  }
   const ai = await classify(text);
 
   if (ai.intent === "dang_tin" && ai.listing) {
@@ -196,13 +210,15 @@ async function handle(text, anh = [], khoaAnh = null) {
     // Cổng chất lượng 17/8: DM thì NÓI RÕ thiếu gì để khách gửi bổ sung (không im lặng bỏ như group)
     const why = qualityGate((L.title || "") + "\n" + text, L);
     if (why) {
+      if (khoaAnh) nhapDo.set(khoaAnh, { text, luc: Date.now() }); // giữ nháp - khách gửi nốt phần thiếu là ghép được
       const need = why === "không có SĐT" ? "số điện thoại liên hệ"
         : why === "không có khu vực" ? "khu vực (quận/huyện, phường/xã)"
         : "loại BĐS (nhà / đất / căn hộ / mặt bằng…) và giá";
-      return `Dạ em chưa đăng được vì tin còn thiếu ${need}. Anh/chị gửi lại đầy đủ 1 tin: loại BĐS + diện tích + giá + khu vực + SĐT (VD: "Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx") em đăng ngay ạ 🙏`;
+      return `Dạ em chưa đăng được vì tin còn thiếu ${need}. Anh/chị nhắn bổ sung ${need} là em ghép với tin vừa gửi và đăng ngay ạ 🙏`;
     }
     const { error } = await saveListing(L, text, { fromGroup: false, images: anh, khoaAnh });
     if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
+    if (khoaAnh) nhapDo.delete(khoaAnh);
     return `✅ Đã ghi nhận tin của anh/chị:${anh.length ? `\n• Kèm ${anh.length} ảnh` : ""}\n• ${L.title || "BĐS"}\n• ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${L.contact_phone ? "\n• Liên hệ: " + L.contact_phone : "\n• (Chưa có SĐT - nhắn thêm SĐT để khách liên hệ được)"}\n\nTin đã lên ${SITE} rồi ạ. Cần sửa gì anh/chị nhắn lại nhé 🏠`;
   }
 
@@ -272,12 +288,14 @@ function startListener() {
     const raw = d.content ?? d.text ?? d.message?.text ?? "";
     const msgType0 = String(d.msgType ?? ev.msgType ?? "");
     const laAnh = /photo|image|chat\.photo/i.test(msgType0) && raw && typeof raw === "object";
-    // Chú thích ảnh Zalo nằm ở content.DESCRIPTION (zca-js sendMessage gửi caption qua "desc"),
-    // không phải .text/.title - đọc thiếu là vứt luôn dòng "Bán nhà 4x15 Q7 5,2 tỷ 0909..."
-    // khách viết kèm ảnh, rồi bot còn nhắn ngược "anh/chị gửi kèm 1 dòng mô tả" (sự cố 21/8).
+    // Chú thích ảnh Zalo: zca-js gửi caption qua field "desc" (sendMessage.js:263) - tin ĐẾN
+    // gần như chắc chắn cũng mang "desc". Đo thật 21/8 11:45: description/title đều rỗng mà
+    // khách có viết caption -> thử đủ các tên field, và log keys khi vẫn trượt để lần sau
+    // biết chính xác (đừng đoán thêm lần thứ ba).
     const text = (typeof raw === "string" ? raw
-      : laAnh ? raw?.description ?? raw?.title ?? ""
+      : laAnh ? raw?.desc ?? raw?.description ?? raw?.caption ?? raw?.title ?? ""
       : raw?.text ?? raw?.title ?? "").toString().trim();
+    if (laAnh && !text) console.log(`  (chat.photo không thấy caption - fields: ${Object.keys(raw).join(",")})`);
     const isSelf = ev.isSelf ?? d.isSelf ?? d.self ?? false;
     // zca-js: ThreadType 0=User, 1=Group (số) - kèm các biến thể chuỗi để chắc ăn
     const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
