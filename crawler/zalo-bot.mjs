@@ -276,6 +276,10 @@ const NHAP_TTL_MS = 15 * 60_000;
 // TÍCH LUỸ vào listing_facts - buyer sau hỏi lại thì bot tự trả, không phiền seller lần hai.
 // Tin CÀO không có seller trên Zalo -> ghi info_requests status 'admin', bot nhắn admin kèm
 // SĐT gốc của chủ tin để admin gọi rồi trả lời khách bằng chính tài khoản Zalo này.
+// Che SĐT trong nội dung RELAY hai chiều: hai bên mà trao đổi được số qua bot là họ tự nói
+// chuyện riêng, mất luôn vai trung gian (đúng nỗi lo "seller gặp buyer trực tiếp thì mình
+// không thu được gì"). Danh tính chỉ mở khi chốt lịch xem nhà - do admin quyết.
+const cheSoRelay = (s) => String(s || "").replace(/(\+?84|0)[\s.\-]?(\d[\s.\-]?){7,10}/g, (m) => m.slice(0, 4) + "*** (số đã ẩn - liên hệ qua Radar)");
 const daGioiThieu = new Map(); // buyerThread -> { ids: [listingId...], luc } - 4 căn bot vừa giới thiệu
 const GT_TTL_MS = 30 * 60_000;
 const choDapAn = new Map();   // sellerThread -> { reqId, buyerThread, listingId, question, luc }
@@ -313,7 +317,7 @@ async function handle(text, anh = [], khoaAnh = null) {
     if (Date.now() - cho.luc <= DAP_TTL_MS) {
       await sb.from("info_requests").update({ answer: text, status: "answered", answered_at: new Date().toISOString() }).eq("id", cho.reqId);
       await sb.from("listing_facts").insert({ listing_id: cho.listingId, question: cho.question.slice(0, 300), answer: text.slice(0, 1000) });
-      sendReply(cho.buyerThread, `Dạ chủ nhà vừa trả lời câu anh/chị hỏi:\n"${text.slice(0, 500)}"\nCần hỏi thêm hay muốn hẹn xem nhà thì anh/chị nhắn em ngay nhé 🏠`);
+      sendReply(cho.buyerThread, `Dạ chủ nhà vừa trả lời câu anh/chị hỏi:\n"${cheSoRelay(text).slice(0, 500)}"\nCần hỏi thêm hay muốn hẹn xem nhà thì anh/chị nhắn em ngay nhé 🏠`);
       console.log(`  ✓ cầu nối: chuyển đáp án seller -> buyer (tin ${cho.listingId.slice(0, 8)})`);
       return "Dạ em đã chuyển câu trả lời cho khách rồi ạ. Cảm ơn anh/chị nhiều 🙏";
     }
@@ -362,7 +366,7 @@ async function handle(text, anh = [], khoaAnh = null) {
     if (error) { console.error("info_requests:", error.message); return "Dạ em đang bị lỗi hệ thống, anh/chị thử lại sau ít phút nhé 🙏"; }
     if (sellerDM) {
       choDapAn.set(sellerDM, { reqId: req.id, buyerThread: String(khoaAnh), listingId: id, question: text, luc: Date.now() });
-      sendReply(sellerDM, `Dạ có khách đang quan tâm tin "${(tin.title || "").slice(0, 60)}" của anh/chị và hỏi:\n"${text.slice(0, 300)}"\nAnh/chị nhắn trả lời ngay tại đây, em chuyển cho khách liền ạ 🙏`);
+      sendReply(sellerDM, `Dạ có khách đang quan tâm tin "${(tin.title || "").slice(0, 60)}" của anh/chị và hỏi:\n"${cheSoRelay(text).slice(0, 300)}"\nAnh/chị nhắn trả lời ngay tại đây, em chuyển cho khách liền ạ 🙏`);
       console.log(`  → cầu nối: chuyển câu hỏi buyer -> seller (tin ${id.slice(0, 8)})`);
     }
     const daCo = (facts ?? []).map((f) => `• ${f.question.slice(0, 60)}: ${f.answer.slice(0, 150)}`).join("\n");
