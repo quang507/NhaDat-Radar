@@ -70,6 +70,8 @@ jobs:
           FB_POSTS: ${{ vars.FB_POSTS }}
           # Email báo tin mới (tùy chọn): key từ resend.com (free 100 mail/ngày)
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          # Gửi từ domain riêng (đã xác minh trên Resend 21/8 - DKIM/SPF nằm ở DNS iNET)
+          ALERT_FROM: "NhaDat Radar <thongbao@nhadatradar.com>"
           NEXT_PUBLIC_SITE_URL: https://nhadatradar.com
           # Vietmap geocode (tùy chọn - chính xác VN hơn Nominatim; free trial 60k request)
           VIETMAP_API_KEY: ${{ secrets.VIETMAP_API_KEY }}
