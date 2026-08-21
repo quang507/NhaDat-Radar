@@ -66,10 +66,11 @@ function fmtPrice(v, deal) {
 
 // ---- Gemini phân loại (giống lib/ai.ts) ----
 const PROMPT = `Bạn là trợ lý Zalo của sàn nhà đất. Đọc tin nhắn và trả về DUY NHẤT 1 JSON:
-{"intent":"dang_tin"|"hoi_tin"|"hoi_sau"|"xem_nha"|"khac","reply_hint":string,"ref_index":number|null,
+{"intent":"dang_tin"|"hoi_tin"|"hoi_sau"|"xem_nha"|"sua_tin"|"khac","reply_hint":string,"ref_index":number|null,
+ "sua":{"ma_tin":string|null,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"mo_ta_them":string|null},
  "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"direction":string|null,"furnishing":string|null,"amenities":string[],"contact_phone":string|null,"specs":object|null},
  "query":{"listing_type":"ban"|"cho_thue"|null,"property_type":string|null,"province":string|null,"district":string|null,"price_min":number|null,"price_max":number|null,"area_min":number|null}}
-dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM nhà theo tiêu chí (khu vực/giá/loại). hoi_sau: họ hỏi CHI TIẾT về MỘT CĂN CỤ THỂ đã nhắc trong hội thoại hoặc có link/mã - xem sổ đỏ, pháp lý, quy hoạch, xin thêm ảnh, thương lượng giá, "căn số 2 còn không". xem_nha: họ muốn ĐI XEM TRỰC TIẾP / hẹn lịch xem một căn ("cho tôi xem nhà", "cuối tuần qua coi được không") - ưu tiên xem_nha hơn hoi_sau khi họ ngỏ ý đến tận nơi. ref_index: số thứ tự căn họ nhắc (1-4) nếu họ nói rõ ("căn 2", "cái thứ nhất"), không thì null. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
+dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM nhà theo tiêu chí (khu vực/giá/loại). hoi_sau: họ hỏi CHI TIẾT về MỘT CĂN CỤ THỂ đã nhắc trong hội thoại hoặc có link/mã - xem sổ đỏ, pháp lý, quy hoạch, xin thêm ảnh, thương lượng giá, "căn số 2 còn không". xem_nha: họ muốn ĐI XEM TRỰC TIẾP / hẹn lịch xem một căn ("cho tôi xem nhà", "cuối tuần qua coi được không") - ưu tiên xem_nha hơn hoi_sau khi họ ngỏ ý đến tận nơi. sua_tin: NGƯỜI ĐĂNG muốn SỬA/BỔ SUNG tin của chính họ đã đăng ("sửa giá 5,5 tỷ", "đổi diện tích 80m2", "bổ sung: có gác lửng, 3PN") - điền vào "sua": ma_tin là mã 8 ký tự nếu họ nhắc, các trường số nếu họ đổi, mo_ta_them là phần bổ sung tự do. ref_index: số thứ tự căn họ nhắc (1-4) nếu họ nói rõ ("căn 2", "cái thứ nhất"), không thì null. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
 specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng Việt":"giá trị"}. Bộ nhãn THEO TỪNG DÒNG BĐS:
 - nha (nhà thổ cư): Ngang, Dài, DT đất, DT sàn, Thổ cư, Kết cấu ("1 trệt 2 lầu 1 tum"), Đường trước nhà ("hẻm xe hơi 6m" / "mặt tiền đường 12m"), Vị trí ("góc 2 mặt tiền", "hẻm cụt"), Năm xây, Hiện trạng ("đang cho thuê 15tr/th", "nhà mới")
 - can_ho: Dự án, Block/Tháp, Tầng, Mã căn, Loại căn (studio/1PN+1/duplex/penthouse/officetel), DT tim tường, DT thông thuỷ, Hướng cửa, Hướng ban công, View ("view sông", "view nội khu"), Phí quản lý, Năm bàn giao, Sổ (sổ hồng / HĐMB / chờ sổ)
@@ -106,10 +107,9 @@ async function classify(text) {
 // Đây là mảnh "AI tự đưa thông tin vào DB" của spec Cầu Nối (F3 - tích luỹ hồ sơ).
 async function dapSpecsTuDapAn(listingId, cauHoi, dapAn) {
   try {
-    const r = await goiGeminiJSON(`Từ cặp hỏi-đáp về một bất động sản, trả về DUY NHẤT JSON {"specs":{"nhãn tiếng Việt":"giá trị"},"direction":string|null,"legal":string|null}. Chỉ trích thông tin NÓI RÕ trong câu ĐÁP (hướng, pháp lý, mặt tiền, đường vào, phí, tình trạng, tầng...), không suy diễn; không có gì thì specs rỗng.\nHỏi: ${cauHoi.slice(0, 200)}\nĐáp: ${dapAn.slice(0, 500)}`);
-    if (!r) return;
+    const r = await goiGeminiJSON(`Từ cặp hỏi-đáp về một bất động sản, trả về DUY NHẤT JSON {"specs":{"nhãn tiếng Việt":"giá trị"},"direction":string|null,"legal":string|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null}. Chỉ trích thông tin NÓI RÕ trong câu ĐÁP (hướng, pháp lý, số phòng ngủ/WC/tầng, mặt tiền, đường vào, phí, tình trạng...), không suy diễn; không có gì thì specs rỗng và các trường null.\nHỏi: ${cauHoi.slice(0, 200)}\nĐáp: ${dapAn.slice(0, 500)}`);
     const them = {};
-    if (r.specs && typeof r.specs === "object" && !Array.isArray(r.specs))
+    if (r?.specs && typeof r.specs === "object" && !Array.isArray(r.specs))
       for (const [k, v] of Object.entries(r.specs))
         if ((typeof v === "string" || typeof v === "number") && String(v).trim()) them[String(k).slice(0, 40)] = String(v).slice(0, 120);
     const capNhat = {};
@@ -117,11 +117,23 @@ async function dapSpecsTuDapAn(listingId, cauHoi, dapAn) {
       const { data: cu } = await sb.from("listings").select("specs").eq("id", listingId).single();
       capNhat.specs = { ...(cu?.specs || {}), ...them };
     }
-    if (typeof r.direction === "string" && r.direction.trim()) capNhat.direction = r.direction.slice(0, 30);
-    if (typeof r.legal === "string" && r.legal.trim()) capNhat.legal_status = r.legal.slice(0, 60);
+    if (typeof r?.direction === "string" && r.direction.trim()) capNhat.direction = r.direction.slice(0, 30);
+    if (typeof r?.legal === "string" && r.legal.trim()) capNhat.legal_status = r.legal.slice(0, 60);
+    // các cột số có ô riêng trong bảng "Chi tiết BĐS" (VD buyer hỏi "mấy phòng ngủ?" và
+    // seller trả lời "3 phòng" -> cột bedrooms phải nhận 3, không chỉ nằm trong hỏi đáp)
+    for (const k of ["bedrooms", "bathrooms", "floors"])
+      if (typeof r?.[k] === "number" && r[k] > 0 && r[k] < 100) capNhat[k] = r[k];
     if (Object.keys(capNhat).length) {
       const { error } = await sb.from("listings").update(capNhat).eq("id", listingId);
-      console.log(error ? `  (đắp specs lỗi: ${error.message})` : `  ✓ đắp ${Object.keys(them).length} đặc điểm từ đáp án vào tin ${listingId.slice(0, 8)}`);
+      console.log(error ? `  (đắp specs lỗi: ${error.message})` : `  ✓ đắp ${Object.keys(capNhat).length} trường từ đáp án vào tin ${listingId.slice(0, 8)}`);
+    } else {
+      // không bóc được trường nào -> đắp nguyên cặp hỏi-đáp vào MÔ TẢ (quyết định 21/8:
+      // "không bóc được thì ghi thêm vào mô tả là xong") - thông tin không bao giờ rơi rớt
+      const { data: cu } = await sb.from("listings").select("description").eq("id", listingId).single();
+      await sb.from("listings").update({
+        description: `${cu?.description || ""}\n\n[Chủ nhà trả lời qua Radar] ${cauHoi.slice(0, 150)} -> ${dapAn.slice(0, 400)}`,
+      }).eq("id", listingId);
+      console.log(`  ✓ đắp hỏi-đáp vào mô tả tin ${listingId.slice(0, 8)} (không bóc được trường riêng)`);
     }
   } catch (e) { console.error("dapSpecsTuDapAn:", e.message); }
 }
@@ -264,7 +276,7 @@ async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
     xoaAnh(khoaAnh);
     tinVua.set(khoaAnh, { id: data.id, luc: Date.now(), urls: (images || []).slice(0, ANH_TOI_DA) });
   }
-  return { error };
+  return { error, id: data?.id ?? null };
 }
 
 // ---- Xử lý tin từ GROUP: chỉ bóc data BĐS, KHÔNG trả lời (tránh spam group) ----
@@ -396,12 +408,40 @@ async function handle(text, anh = [], khoaAnh = null) {
         : "loại BĐS (nhà / đất / căn hộ / mặt bằng…) và giá";
       return `Dạ em chưa đăng được vì tin còn thiếu ${need}. Anh/chị nhắn bổ sung ${need} là em ghép với tin vừa gửi và đăng ngay ạ 🙏`;
     }
-    const { error } = await saveListing(L, text, { fromGroup: false, images: anh, khoaAnh });
+    const { error, id: idMoi } = await saveListing(L, text, { fromGroup: false, images: anh, khoaAnh });
     if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
     if (khoaAnh) nhapDo.delete(khoaAnh);
     // Văn "gửi vàng" (21/8): biến việc CHE SĐT - thứ seller dễ khó chịu nhất - thành điểm
     // bán. Điểm đau thật của chính chủ là vừa đăng số lên là môi giới lạ gọi dội bom.
-    return `✅ Tin của anh/chị đã lên sàn:${anh.length ? `\n📷 Kèm ${anh.length} ảnh` : ""}\n🏠 ${L.title || "BĐS"}\n💰 ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}\n\n🛡️ SĐT của anh/chị được Radar GIỮ KÍN - không hiện công khai nên không lo môi giới lạ gọi dội bom. Khách quan tâm thật sẽ liên hệ qua Radar, em chuyển tận tay anh/chị.\n\n🤝 Từ giờ anh/chị cứ để căn này Radar lo: tin đứng khu ĐỘC QUYỀN ngay đầu trang tìm kiếm, khách hỏi gì em chuyển liền, khách muốn xem nhà em sắp lịch rồi báo trước. Bán được mới tính phí giới thiệu, không bán không mất đồng nào.\n\n🔗 ${SITE}\nCần sửa giá, thêm ảnh hay báo đã bán - anh/chị nhắn ngay tại đây nhé 🏠`;
+    return `✅ Tin của anh/chị đã lên sàn:${anh.length ? `\n📷 Kèm ${anh.length} ảnh` : ""}\n🏠 ${L.title || "BĐS"}\n💰 ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${idMoi ? `\n🆔 Mã tin: ${idMoi.slice(0, 8)}\n🔗 ${SITE}/listings/${idMoi}` : ""}\n\n🛡️ SĐT của anh/chị được Radar GIỮ KÍN - không hiện công khai nên không lo môi giới lạ gọi dội bom. Khách quan tâm thật sẽ liên hệ qua Radar, em chuyển tận tay anh/chị.\n\n🤝 Từ giờ anh/chị cứ để căn này Radar lo: tin đứng khu ĐỘC QUYỀN ngay đầu trang tìm kiếm, khách hỏi gì em chuyển liền, khách muốn xem nhà em sắp lịch rồi báo trước. Bán được mới tính phí giới thiệu, không bán không mất đồng nào.\n\n✏️ Muốn sửa: nhắn "sửa giá 5,5 tỷ" hay "bổ sung: có gác lửng" ngay tại đây - em cập nhật liền. Báo đã bán cũng nhắn em nhé 🏠`;
+  }
+
+  // SELLER sửa tin đã đăng qua Zalo này (21/8: "nhắn tin trong Zalo để sửa"). Tìm tin theo
+  // zalo_thread trong DB (bền qua restart) - mã tin trong tin nhắn thì đúng căn đó, không
+  // thì lấy căn mới đăng gần nhất. Chỉ sửa được tin CHÍNH CHỦ thread này đăng.
+  if (ai.intent === "sua_tin" && khoaAnh) {
+    const s = ai.sua || {};
+    const { data: cuaToi } = await sb.from("listings")
+      .select("id,title,description,price_vnd,area_m2").eq("zalo_thread", String(khoaAnh))
+      .order("created_at", { ascending: false }).limit(5);
+    if (!cuaToi?.length) return "Dạ em chưa thấy tin nào anh/chị đăng qua Zalo này (tin đăng từ 21/8 trở đi mới sửa qua chat được). Anh/chị nhắn nội dung tin mới là em đăng liền ạ.";
+    const maTin = (s.ma_tin || (text.match(/\b[0-9a-f]{8}\b/i) || [])[0] || "").toLowerCase();
+    const tin = (maTin && cuaToi.find((t) => t.id.startsWith(maTin))) || cuaToi[0];
+    const upd = {};
+    for (const k of ["price_vnd", "area_m2", "bedrooms", "bathrooms", "floors"])
+      if (typeof s[k] === "number" && s[k] > 0) upd[k] = s[k];
+    // giá/diện tích đổi thì tính lại giá/m² cho khớp
+    const giaMoi = upd.price_vnd ?? tin.price_vnd, dtMoi = upd.area_m2 ?? tin.area_m2;
+    if ((upd.price_vnd || upd.area_m2) && giaMoi && dtMoi) upd.price_per_m2 = Math.round(giaMoi / dtMoi);
+    if (s.mo_ta_them && String(s.mo_ta_them).trim())
+      upd.description = `${tin.description || ""}\n\n[Chủ nhà bổ sung] ${String(s.mo_ta_them).trim().slice(0, 500)}`;
+    if (!Object.keys(upd).length)
+      upd.description = `${tin.description || ""}\n\n[Chủ nhà bổ sung] ${text.slice(0, 500)}`; // không bóc được trường nào -> đắp nguyên văn vào mô tả
+    const { error } = await sb.from("listings").update(upd).eq("id", tin.id);
+    if (error) { console.error("sua_tin:", error.message); return "Dạ em chưa sửa được, anh/chị thử lại sau ít phút nhé 🙏"; }
+    if (s.mo_ta_them) dapSpecsTuDapAn(tin.id, "chủ nhà bổ sung", s.mo_ta_them); // thử bóc đặc điểm từ phần bổ sung
+    const daDoi = Object.keys(upd).filter((k) => k !== "description" && k !== "price_per_m2");
+    return `✅ Đã cập nhật tin "${(tin.title || "").slice(0, 50)}" (mã ${tin.id.slice(0, 8)}):${daDoi.length ? `\n${daDoi.map((k) => `• ${k === "price_vnd" ? "Giá: " + fmtPrice(upd.price_vnd, "ban") : k === "area_m2" ? "Diện tích: " + upd.area_m2 + "m²" : k === "bedrooms" ? "Phòng ngủ: " + upd.bedrooms : k === "bathrooms" ? "WC: " + upd.bathrooms : "Số tầng: " + upd.floors}`).join("\n")}` : ""}${upd.description ? "\n• Đã thêm phần bổ sung vào mô tả" : ""}\n🔗 ${SITE}/listings/${tin.id}`;
   }
 
   // Buyer muốn XEM NHÀ (F4): xác định căn -> xin SĐT + khung giờ -> ghi lead HẸN XEM,
