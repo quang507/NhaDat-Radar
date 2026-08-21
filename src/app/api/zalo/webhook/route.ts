@@ -72,6 +72,7 @@ export async function POST(req: Request) {
       ai_score: 85,
       poster_role_guess: "chu_nha",
       status: "published", // 17/8: bỏ duyệt trước - lên thẳng, admin gỡ tin rác ngay trên trang tin
+      first_seen_at: new Date().toISOString(), // thiếu là tin không vào email alert + rơi cuối sort "Mới nhất"
     });
     if (insErr) {
       await sendZaloText(userId, "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏");

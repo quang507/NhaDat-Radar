@@ -101,10 +101,18 @@ Quy tắc: estimate_vnd phải nằm gần khoảng thống kê (lệch tối đ
     estimate_vnd: Math.round(estimate),
     low_vnd: Math.round(ai?.low_vnd ? clamp(ai.low_vnd, statLow * 0.6, estimate) : statLow),
     high_vnd: Math.round(ai?.high_vnd ? clamp(ai.high_vnd, estimate, statHigh * 1.4) : statHigh),
-    confidence: ai?.confidence || (comps.length >= 20 ? "trung_binh" : "thap"),
+    // output LLM là dữ liệu KHÔNG TIN ĐƯỢC: "trung bình"/"Cao"/"medium" thay vì đúng enum là
+    // client tra CONF[x] ra undefined -> crash trắng trang dù số liệu đã tính đúng
+    confidence: ai?.confidence === "cao" || ai?.confidence === "trung_binh" || ai?.confidence === "thap"
+      ? ai.confidence : comps.length >= 20 ? "trung_binh" : "thap",
     reasoning: ai?.reasoning ||
       `Ước tính theo giá/m² trung vị của ${comps.length} tin ${deal === "ban" ? "bán" : "cho thuê"} cùng loại tại ${scope}.`,
-    forecast_pct: ai?.forecast_pct || { y1: 5, y3: 16, y5: 30 },
+    // từng key một: LLM trả thiếu y3/y5 thì object truthy vẫn qua "||" rồi client in "+undefined%"
+    forecast_pct: {
+      y1: Number.isFinite(ai?.forecast_pct?.y1) ? ai!.forecast_pct!.y1 : 5,
+      y3: Number.isFinite(ai?.forecast_pct?.y3) ? ai!.forecast_pct!.y3 : 16,
+      y5: Number.isFinite(ai?.forecast_pct?.y5) ? ai!.forecast_pct!.y5 : 30,
+    },
     comps: { count: comps.length, scope, median_ppm2: med, p25_ppm2: p25, p75_ppm2: p75 },
     deal,
   });

@@ -30,7 +30,12 @@ const khoaQuan = (x) => x.district ? [cleanDistrict(x.district), x.province].fil
 // đòi quận thật (không thì nó suy biến thành khoá tỉnh trần = ghim giữa tỉnh).
 const khoaDuong = (x) => {
   if (!x.district && !x.ward) return null;
-  const duong = x.address || docDuong(x.description || x.title || "");
+  // address của guland là ĐỊA CHỈ ĐẦY ĐỦ ("Đường X , Xã Y , TP. HCM (Mới)") - lấy nguyên chuỗi
+  // làm khoá thì tỉnh bị lặp 2-3 lần kèm "(Mới)", geo.mjs không bao giờ khớp được và 45% khoá
+  // chỉ tổ đốt ngân sách 8 phút (soát 21/8). Chỉ lấy KHÚC ĐẦU và chỉ khi nó là tên đường thật.
+  const dau = String(x.address || "").split(",")[0].trim();
+  const duong = (/^(đường|duong|phố|pho|ngõ|ngo|hẻm|hem|quốc lộ|ql|tỉnh lộ|đt|dt)\b/i.test(dau) ? dau : "")
+    || docDuong(x.description || x.title || "");
   return duong ? [duong, x.ward, cleanDistrict(x.district), x.province].filter(Boolean).join(", ") : null;
 };
 
@@ -46,8 +51,10 @@ async function run() {
   const db = JSON.parse(fs.readFileSync(url));
   // Không có quận thì bỏ hẳn, không ghim: ghim theo tâm TỈNH đặt tin giữa đồng cách chỗ
   // thật hàng chục km - sai kiểu đó tệ hơn là không có ghim.
-  const need = db.listings.filter((x) => (x.lat == null || x.lng == null) && (x.district || x.ward));
-  const boQua = db.listings.filter((x) => (x.lat == null || x.lng == null) && !x.district && !x.ward).length;
+  // Bắt buộc có TỈNH: khoá thiếu tỉnh ("Hóc Môn" trần) làm hàng rào khopTinh của geo.mjs tự
+  // vô hiệu - "Bình Tân" ăn nhầm Huyện Bình Tân, Vĩnh Long (lệch 130km) rồi cache bền giữ mãi.
+  const need = db.listings.filter((x) => (x.lat == null || x.lng == null) && x.province && (x.district || x.ward));
+  const boQua = db.listings.filter((x) => (x.lat == null || x.lng == null) && !(x.province && (x.district || x.ward))).length;
   // phường trước, quận sau - quận vẫn cần vì (a) tin không có phường, (b) phường tra không ra
   // Thứ tự TRA: QUẬN -> PHƯỜNG -> ĐƯỜNG. Ngược với thứ tự ƯU TIÊN khi ghim (đường sát nhất).
   // Lý do: khoá quận ít mà phủ mọi tin, khoá đường nhiều gấp mấy lần và mỗi khoá tốn nhiều
@@ -57,9 +64,14 @@ async function run() {
   // tính khoá MỘT lần mỗi tin (docDuong chạy cả chục regex trên mô tả dài - review 19/8: bị
   // gọi lại lần hai trong vòng gán, x2 toàn bộ công quét cho ~900 tin)
   const khoaCua = new Map(need.map((x) => [x, { kd: khoaDuong(x), kp: khoaPhuong(x), kq: khoaQuan(x) }]));
-  const keys = [...new Set([...khoaCua.values()].flatMap((k) => [k.kq, k.kp, k.kd]).filter(Boolean))]
+  // PHẢI gom theo TẦNG (toàn bộ quận -> toàn bộ phường -> toàn bộ đường), không phải theo tin:
+  // flatMap theo tin đan xen 3 tầng, khoá quận cuối cùng rơi xuống vị trí ~99% danh sách,
+  // ngân sách 8 phút đứt giữa chừng là phần đuôi tin trắng ghim - đúng thảm hoạ 63/914 mà
+  // chú thích phía trên cảnh báo (regression từ bản vá memo 20/8, soát 21/8 bắt được).
+  const tang = [...khoaCua.values()];
+  const keys = [...new Set([...tang.map((k) => k.kq), ...tang.map((k) => k.kp), ...tang.map((k) => k.kd)].filter(Boolean))]
     .filter((k) => k.length > 3);
-  if (boQua) console.error(`  bỏ qua ${boQua} tin không có cả quận lẫn phường (không ghim còn hơn ghim sai giữa tỉnh)`);
+  if (boQua) console.error(`  bỏ qua ${boQua} tin thiếu tỉnh hoặc thiếu cả quận lẫn phường (không ghim còn hơn ghim sai)`);
   console.error("Cần geocode", need.length, "tin,", keys.length, "khu vực unique... (nguồn:", usingVietmap ? "Vietmap" : "Nominatim", ")");
   // CACHE BỀN qua các lượt chạy: toạ độ một phường/quận không đổi, tra lại mỗi lượt là phí.
   // Trước đây cache chỉ sống trong 1 lần chạy nên lượt nào cũng tra lại ~590 khu vực rồi

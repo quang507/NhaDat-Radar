@@ -89,6 +89,10 @@ export async function createListing(
     })(),
     poster_role_guess: "agent",
     status: "published",
+    // Không có first_seen_at là tin KHÔNG vào email alert (alerts.mjs so sánh cột này),
+    // rơi xuống cuối sort "Mới nhất" và không được đếm "tin mới hôm nay" - tin tự đăng
+    // trên chính sàn mình mà thành công dân hạng hai so với tin cào.
+    first_seen_at: new Date().toISOString(),
   });
 
   if (error) {

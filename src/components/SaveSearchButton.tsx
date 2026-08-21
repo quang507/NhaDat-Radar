@@ -35,8 +35,15 @@ export default function SaveSearchButton({ filters }: { filters: Filters }) {
     filters.areaMin ? `≥ ${filters.areaMin} m²` : null,
   ].filter(Boolean);
 
-  // không có lấy một tiêu chí thu hẹp nào -> đăng ký là nhận mọi tin cả nước, chặn lại
-  const quaRong = !filters.province && !filters.district && !filters.kind && !filters.priceMax && !filters.deal;
+  // 21/8: điều kiện AND cũ chỉ cần MỘT tiêu chí là qua - "cho thuê" trơ hay "dưới 3 tỷ" trơ
+  // vẫn là gần cả kho tin. Bắt buộc có KHU VỰC (tỉnh) mới cho đăng ký; và có khoảng giá thì
+  // phải chọn Bán/Cho thuê trước - deal null thì "dưới 3 tỷ" nuốt luôn mọi tin thuê (tin thuê
+  // nào cũng dưới 3 tỷ) rồi email trả về toàn nhà cho thuê cho người đang tìm mua.
+  const loiChan = !filters.province
+    ? "Bộ lọc chưa có khu vực - đăng ký bây giờ là nhận email về tin trên cả nước, hộp thư sẽ ngập rất nhanh. Chọn Tỉnh/Thành trước đã nhé."
+    : (filters.priceMin || filters.priceMax) && filters.deal !== "ban" && filters.deal !== "cho_thue"
+      ? "Bạn đang lọc theo khoảng giá nhưng chưa chọn Bán hay Cho thuê - hai bên dùng hai thang giá khác nhau (tỷ vs triệu/tháng) nên email sẽ trộn lẫn tin. Chọn Bán hoặc Cho thuê trước đã nhé."
+      : null;
 
   async function dangKy() {
     setState("busy");
@@ -78,12 +85,9 @@ export default function SaveSearchButton({ filters }: { filters: Filters }) {
           <div className="bg-[var(--bg,#fff)] rounded-xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="text-lg font-bold mb-1">Nhận email tin mới</div>
 
-            {quaRong ? (
+            {loiChan ? (
               <>
-                <p className="text-sm text-[var(--ink-soft)] mb-4">
-                  Bộ lọc đang <b>trống</b> - đăng ký bây giờ là nhận email về <b>mọi tin trên cả nước</b>,
-                  hộp thư sẽ ngập rất nhanh. Chọn ít nhất khu vực hoặc loại nhà đất trước đã nhé.
-                </p>
+                <p className="text-sm text-[var(--ink-soft)] mb-4">{loiChan}</p>
                 <button className="btn w-full text-center border border-[var(--line)]" onClick={() => setState("idle")}>
                   Đóng để chọn bộ lọc
                 </button>

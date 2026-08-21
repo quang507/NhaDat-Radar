@@ -170,8 +170,9 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                   <span>{money(r.low_vnd, r.deal === "cho_thue")}</span>
                   <span>{money(r.high_vnd, r.deal === "cho_thue")}</span>
                 </div>
-                <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${CONF[r.confidence][1]}`}>
-                  {CONF[r.confidence][0]}
+                {/* fallback "thap": confidence lạ (API cũ cache, LLM trả sai enum) không được crash cả trang kết quả */}
+                <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full border ${(CONF[r.confidence] ?? CONF.thap)[1]}`}>
+                  {(CONF[r.confidence] ?? CONF.thap)[0]}
                 </span>
                 <p className="text-sm text-[var(--ink-soft)] mt-3">{r.reasoning}</p>
               </div>

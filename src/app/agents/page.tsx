@@ -106,7 +106,8 @@ export default async function AgentsPage() {
                     <div className="text-[0.65rem] text-[var(--ink-faint)] mt-1">CCHN: {a.license_no}</div>
                   )}
                   <div className="text-xs text-[var(--ink-soft)] mt-2">{counts.get(a.id) || 0} bất động sản</div>
-                  <Link href={`/search?q=${encodeURIComponent(name)}`} className="btn mt-3 w-full text-sm">Xem tin đăng</Link>
+                  {/* lọc theo agent_id thật - link cũ ?q=<tên> chỉ tìm trong tiêu đề/địa chỉ nên luôn 0 kết quả */}
+                  <Link href={`/search?agent=${a.id}`} className="btn mt-3 w-full text-sm">Xem tin đăng</Link>
                 </div>
               );
             })}

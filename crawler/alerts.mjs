@@ -23,7 +23,11 @@ for (const s of searches ?? []) {
   if (s.deal) q = q.eq("deal", s.deal);
   if (s.kind) q = q.eq("kind", s.kind);
   if (s.province) q = q.ilike("province", `%${s.province}%`);
-  if (s.district) q = q.ilike("district", `%${s.district}%`);
+  // district so KHỚP CHÍNH XÁC như trang /search (DB đã chuẩn hoá qua canonDistrict):
+  // substring thì "Quận 1" ăn cả Quận 10/11/12 - email trả tin mà vào web cùng bộ lọc lại
+  // không thấy, hai bên tự mâu thuẫn. ward thì DB ghi tự do nên vẫn khớp mềm, cùng /search.
+  if (s.district) q = q.eq("district", s.district);
+  if (s.ward) q = q.ilike("ward", `%${s.ward}%`);
   if (s.price_min) q = q.gte("price_vnd", s.price_min);
   if (s.price_max) q = q.lte("price_vnd", s.price_max);
   if (s.area_min) q = q.gte("area_m2", s.area_min);
@@ -36,7 +40,9 @@ for (const s of searches ?? []) {
     `<li style="margin-bottom:8px"><a href="${SITE}/listings/${h.id}" style="color:#2563eb;font-weight:600">${esc(h.title)}</a><br>
      <span style="color:#555;font-size:13px">${fmtPrice(h.price_vnd)}${h.deal === "cho_thue" ? "/tháng" : ""}${h.area_m2 ? ` · ${h.area_m2}m²` : ""} · ${esc([h.district, h.province].filter(Boolean).join(", "))}</span></li>`
   ).join("");
-  const criteria = [s.kind, s.deal === "ban" ? "bán" : s.deal === "cho_thue" ? "cho thuê" : null, s.district, s.province].filter(Boolean).join(" · ") || "tất cả";
+  // nhãn tiếng Việt như popup đăng ký, không phơi mã enum "can_ho" ra subject email
+  const KIND_VN = { nha: "Nhà", dat: "Đất", can_ho: "Căn hộ", mat_bang: "Mặt bằng", phong_tro: "Phòng trọ", khac: "BĐS khác" };
+  const criteria = [s.kind ? KIND_VN[s.kind] || s.kind : null, s.deal === "ban" ? "bán" : s.deal === "cho_thue" ? "cho thuê" : null, s.ward, s.district, s.province].filter(Boolean).join(" · ") || "tất cả";
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15000);

@@ -16,7 +16,10 @@ export default async function SearchPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const { deal, kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own, legal, direction, newAddr } = sp;
+  const { kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own, legal, direction, newAddr, agent } = sp;
+  // URL có lọc giá mà không có deal (dán tay / link cũ): hiểu theo thang tỷ như UI đang hiện
+  // (SearchClient.push cũng ép vậy) - không thì mọi tin thuê đều lọt lưới "dưới X tỷ".
+  const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : priceMin || priceMax ? "ban" : undefined;
   const supabase = await createClient();
 
   // Làm sạch input trước khi đưa vào ilike/or của PostgREST: %/_ là wildcard, ",()" phá cú pháp .or() (audit 16/8: province/district/ward từng đưa thẳng)
@@ -26,6 +29,9 @@ export default async function SearchPage({
   const applyFilters = <T extends { eq: any; ilike: any; gte: any; lte: any; or: any }>(query: T): T => {
     if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
     if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
+    // ?agent=<uuid> từ nút "Xem tin đăng" trang /agents - trước đây link đó truyền ?q=<tên
+    // người bán> mà q chỉ tìm trong tiêu đề/địa chỉ nên luôn 0 kết quả
+    if (agent && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agent)) query = query.eq("agent_id", agent);
     if (kind) query = query.eq("kind", kind);
     // Công tắc "Địa chỉ mới sau sáp nhập" BẬT -> lọc theo địa giới 2025: chọn "Hồ Chí Minh"
     // thì trả về CẢ tin còn ghi "Bình Dương" / "Bà Rịa - Vũng Tàu", vì nguồn vẫn dùng tên tỉnh cũ.
@@ -86,5 +92,5 @@ export default async function SearchPage({
   const geo = areas.geo;
 
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL
-  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={sp} newToday={newToday ?? 0} total={totalCount ?? listings.length} />;
+  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday ?? 0} total={totalCount ?? listings.length} />;
 }

@@ -110,6 +110,10 @@ export default function SearchClient({
   );
 
   function push(next: Record<string, string>) {
+    // Chưa chọn Bán/Thuê thì UI khoảng giá đang hiển thị thang TỶ (bán) nhưng truy vấn lại
+    // gộp cả hai loại -> "Dưới 500 triệu" kéo nguyên kho tin thuê 3-100tr/tháng vào kết quả.
+    // Lọc giá ở trạng thái đó nghĩa là đang tìm MUA -> ép deal=ban cho khớp thang đã hiện.
+    if ((next.priceMin || next.priceMax) && !next.deal) next = { ...next, deal: "ban" };
     const usp = new URLSearchParams();
     for (const [k, v] of Object.entries(next)) if (v) usp.set(k, v);
     if (newAddr && !("newAddr" in next)) usp.set("newAddr", "1");
