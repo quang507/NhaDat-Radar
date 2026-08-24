@@ -197,9 +197,12 @@ for (const x of comb.listings) {
   });
 }
 const updates = rows.filter((r) => r.id), inserts = rows.filter((r) => !r.id);
-const CHUNK = 200;
-for (let i = 0; i < updates.length; i += CHUNK) {
-  const { error } = await sb.from("listings").upsert(updates.slice(i, i + CHUNK), { onConflict: "id" });
+// UPDATE đi nhịp NHỎ hơn insert: upsert phải dò từng id + ghi lại index, hàng listings nặng
+// (mô tả + specs + mảng ảnh) - 23/8 CI chết statement timeout ở đúng chỗ này khi DB chạm
+// 13k tin với nhịp 200. Kèm migration 021 nới trần cho service_role lên 120s.
+const CHUNK = 200, CHUNK_UPDATE = 50;
+for (let i = 0; i < updates.length; i += CHUNK_UPDATE) {
+  const { error } = await sb.from("listings").upsert(updates.slice(i, i + CHUNK_UPDATE), { onConflict: "id" });
   if (error) { console.error("Seed (update) lỗi:", error.message); process.exit(1); }
 }
 for (let i = 0; i < inserts.length; i += CHUNK) {
