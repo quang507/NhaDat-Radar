@@ -52,6 +52,9 @@ for (const s of searches ?? []) {
     headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: FROM, to: [s.email],
+      // khách bấm "Trả lời" là về thẳng Gmail admin - thay cho email forwarding (OnePortal
+      // iNET chỉ còn OneMail trả phí, tiện ích forward miễn phí không thấy trên giao diện mới)
+      reply_to: process.env.ALERT_REPLY_TO || "quanggooner1996@gmail.com",
       subject: `🏠 ${hits.length} tin mới khớp tìm kiếm của bạn (${criteria})`,
       html: `<div style="font-family:sans-serif;max-width:560px">
         <h2 style="color:#2563eb">NhaDat Radar - tin mới cho bạn</h2>
