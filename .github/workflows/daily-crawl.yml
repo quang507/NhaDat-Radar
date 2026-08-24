@@ -73,8 +73,10 @@ jobs:
           # Gửi từ domain riêng (đã xác minh trên Resend 21/8 - DKIM/SPF nằm ở DNS iNET)
           ALERT_FROM: "NhaDat Radar <thongbao@nhadatradar.com>"
           NEXT_PUBLIC_SITE_URL: https://nhadatradar.com
-          # Vietmap geocode (tùy chọn - chính xác VN hơn Nominatim; free trial 60k request)
-          VIETMAP_API_KEY: ${{ secrets.VIETMAP_API_KEY }}
+          # Geocode: đã bỏ Vietmap (hết hạn mức trial 24/8) -> chỉ dùng Nominatim (OSM, miễn phí,
+          # tự phanh 1,1s/lượt). Cache geo-cache.json tích luỹ qua các lượt nên vẫn phủ dần.
+          # Muốn bật lại Vietmap: thêm secret VIETMAP_API_KEY rồi bỏ comment dòng dưới.
+          # VIETMAP_API_KEY: ${{ secrets.VIETMAP_API_KEY }}
           # Dự án mogi.vn/du-an: số trang list (10 dự án/trang) và tuổi tối đa của projects.json trước khi cào lại
           MOGI_PROJECT_PAGES: ${{ vars.MOGI_PROJECT_PAGES || 8 }}
           PROJECT_MAX_AGE_H: ${{ vars.PROJECT_MAX_AGE_H || 72 }}
