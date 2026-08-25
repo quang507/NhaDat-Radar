@@ -422,6 +422,23 @@ async function handle(text, anh = [], khoaAnh = null) {
     return "Dạ em ghi nhận ạ. Anh/chị cho em xin SĐT để Radar gọi chốt lịch xem nhé (VD: 0909xxxxxx) 📞";
   }
   if (cxn) choXemNha.delete(khoaAnh);
+  // 0b2. SELLER báo tin ĐÃ BÁN / ĐÃ CHO THUÊ -> gỡ tin của thread này khỏi sàn (status gone:
+  // ngừng hiển thị + ngừng matching). Bot đã hứa "báo đã bán cũng nhắn em" nên phải làm thật.
+  // Gate: tin nhắn NGẮN (< 50 ký tự) + có từ xác nhận (rồi/xong/chốt) để không bắt nhầm tin
+  // ĐĂNG mới bắt đầu bằng "Bán nhà...". Có mã tin thì gỡ đúng căn, không thì gỡ căn mới nhất.
+  if (khoaAnh && text.trim().length < 50 &&
+      /(đã|da)\s*(bán|ban|cho\s*thuê|cho\s*thue|sang)|(bán|ban|cho\s*thuê|cho\s*thue|ch[ốo]t|sang)\s*(r[ồo]i|xong)/i.test(text)) {
+    const { data: cuaToi } = await sb.from("listings").select("id,title,deal")
+      .eq("zalo_thread", String(khoaAnh)).eq("status", "published")
+      .order("created_at", { ascending: false }).limit(10);
+    if (cuaToi?.length) {
+      const maTin = (text.match(/\b[0-9a-f]{8}\b/i) || [])[0]?.toLowerCase();
+      const tin = (maTin && cuaToi.find((t) => t.id.startsWith(maTin))) || cuaToi[0];
+      await sb.from("listings").update({ status: "gone", last_seen_at: new Date().toISOString() }).eq("id", tin.id);
+      return `✅ Đã gỡ tin "${(tin.title || "").slice(0, 50)}" (mã ${tin.id.slice(0, 8)}) khỏi sàn - đánh dấu đã ${tin.deal === "cho_thue" ? "cho thuê" : "bán"}. Cảm ơn anh/chị đã tin tưởng Radar 🙏 Có căn mới cứ nhắn em đăng nhé 🏠`;
+    }
+    // không có tin nào của thread này -> rơi xuống xử lý bình thường
+  }
   // 0c. Tắt/bật báo tin mới qua Zalo
   if (khoaAnh && /(ngừng|ngung|tắt|tat|huỷ|huy)\s*(báo|bao)\s*tin/i.test(text)) {
     await sb.from("saved_searches").update({ active: false }).eq("zalo_thread", String(khoaAnh)).eq("active", true);
