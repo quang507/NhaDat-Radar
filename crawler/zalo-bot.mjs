@@ -362,6 +362,41 @@ async function baoTinMoiZalo() {
 }
 setInterval(baoTinMoiZalo, 30 * 60_000);
 
+// ---- F2: HỎI LẠI "CÒN BÁN KHÔNG" + ESCALATE VIỆC TỒN ĐỌNG (25/8) ----
+// Tin đăng QUA ZALO quá 7 ngày chưa chốt lại -> bot PM người bán hỏi còn bán không (lọc tin
+// ma). Người bán "còn" -> giữ; "đã bán" -> gỡ (handler sold đã có). Kèm: câu hỏi Cầu Nối
+// chuyển seller mà quá 48h không trả lời -> đẩy status 'admin' để baoAdmin nhắn Zalo chính
+// của mày vào xử tay (đúng ý "hứa suông thì cứ hứa, nhưng đẩy về Zalo tao").
+const choXacNhan = new Map(); // sellerThread -> { listingId, luc }
+async function quanLyTonDong() {
+  try {
+    // 1. F2 - hỏi lại tin Zalo cũ quá 7 ngày
+    const nguong7 = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
+    const { data: canHoi } = await sb.from("listings")
+      .select("id,title,deal,zalo_thread")
+      .in("source", ["zalo_oa", "zalo_miniapp"]).eq("status", "published")
+      .not("zalo_thread", "is", null)
+      .or(`last_confirmed_at.is.null,last_confirmed_at.lt.${nguong7}`)
+      .limit(15);
+    for (const tin of canHoi ?? []) {
+      const dm = tin.zalo_thread && !tin.zalo_thread.includes("|") ? tin.zalo_thread : null;
+      if (!dm) continue;
+      // đóng dấu ĐÃ hỏi (đặt last_confirmed_at = now) -> không hỏi lại trong 7 ngày dù seller
+      // chưa trả lời; nếu vẫn im, 7 ngày sau hỏi tiếp
+      await sb.from("listings").update({ last_confirmed_at: new Date().toISOString() }).eq("id", tin.id);
+      choXacNhan.set(dm, { listingId: tin.id, luc: Date.now() });
+      sendReply(dm, `Dạ căn "${(tin.title || "").slice(0, 50)}" của anh/chị còn ${tin.deal === "cho_thue" ? "cho thuê" : "bán"} không ạ? Nhắn "còn" để em giữ tin trên sàn, hoặc "đã bán / cho thuê rồi" để em gỡ giúp 🙏`);
+      console.log(`  🔄 F2: hỏi lại còn bán không - tin ${tin.id.slice(0, 8)}`);
+    }
+    // 2. Escalate câu hỏi Cầu Nối treo quá 48h (seller không trả lời) -> đẩy admin
+    const nguong48 = new Date(Date.now() - 48 * 3600_000).toISOString();
+    const { data: treo } = await sb.from("info_requests")
+      .update({ status: "admin", notified_at: null }).eq("status", "pending").lt("created_at", nguong48).select("id");
+    if (treo?.length) console.log(`  ⏫ escalate ${treo.length} câu hỏi treo >48h -> Zalo admin`);
+  } catch (e) { console.error("quanLyTonDong:", e.message); }
+}
+setInterval(quanLyTonDong, 6 * 60 * 60_000);
+
 // Báo admin qua Zalo: lead mới từ web (form tư vấn, popup SĐT) + câu hỏi cần người thật.
 // ZALO_ADMIN_ID đặt trong .env.local - nhắn thử cho bot rồi xem log "← [id]" để lấy id mình.
 const ADMIN_ID = process.env.ZALO_ADMIN_ID || "";
@@ -422,6 +457,15 @@ async function handle(text, anh = [], khoaAnh = null) {
     return "Dạ em ghi nhận ạ. Anh/chị cho em xin SĐT để Radar gọi chốt lịch xem nhé (VD: 0909xxxxxx) 📞";
   }
   if (cxn) choXemNha.delete(khoaAnh);
+  // 0b1. SELLER trả lời F2 "còn bán không" bằng "còn" -> giữ tin, chốt lại mốc 7 ngày.
+  // ("đã bán" thì rơi xuống handler sold ngay dưới, không cần bắt ở đây)
+  const cxn2 = khoaAnh ? choXacNhan.get(khoaAnh) : null;
+  if (cxn2 && Date.now() - cxn2.luc < 48 * 3600_000 && text.trim().length < 30 &&
+      /^(còn|con|vẫn còn|van con|còn ạ|con a|vẫn|van|ok|oke|giữ|giu)\b/i.test(text.trim())) {
+    choXacNhan.delete(khoaAnh);
+    await sb.from("listings").update({ last_confirmed_at: new Date().toISOString() }).eq("id", cxn2.listingId);
+    return "Dạ vâng, em giữ tin trên sàn cho anh/chị ạ. Cảm ơn anh/chị 🙏";
+  }
   // 0b2. SELLER báo tin ĐÃ BÁN / ĐÃ CHO THUÊ -> gỡ tin của thread này khỏi sàn (status gone:
   // ngừng hiển thị + ngừng matching). Bot đã hứa "báo đã bán cũng nhắn em" nên phải làm thật.
   // Gate: tin nhắn NGẮN (< 50 ký tự) + có từ xác nhận (rồi/xong/chốt) để không bắt nhầm tin
