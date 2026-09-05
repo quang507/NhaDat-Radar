@@ -2,7 +2,7 @@
 
 **Sàn bất động sản bán & cho thuê chạy thật** — tự động cào tin đa nguồn mỗi ngày, dùng AI Gemini chuẩn hoá & chấm điểm, hiển thị theo tin + bản đồ. Kết hợp mô hình **aggregator** (gom tin từ nhiều nguồn) với **marketplace** (người bán tự đăng tin, quản lý lead, nhắn tin).
 
-> 🌐 Web live: https://nha-dat-radar-rkyn.vercel.app
+> 🌐 Web live: https://nhadatradar.com
 > 📊 ~450 tin thật từ 5 nguồn (Chợ Tốt · Batdongsan · Mogi · nhadat · Facebook) · 30 dự án thật · crawl tự động 2 lần/ngày qua GitHub Actions.
 
 ---
