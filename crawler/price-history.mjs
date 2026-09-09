@@ -13,7 +13,7 @@ for (let from = 0; ; from += 1000) {
     .select("province,district,kind,deal,price_per_m2")
     .eq("status", "published").not("price_per_m2", "is", null).gt("price_per_m2", 0).order("id").range(from, from + 999);
   data.push(...(page ?? []));
-  if (!page || page.length < 1000 || data.length >= 20000) break;
+  if (!page || page.length < 1000) break;
 }
 
 const groups = new Map();
@@ -65,3 +65,8 @@ if (rows.length) {
   if (error) console.error("price-history lỗi:", error.message);
   else console.log(`price-history: lưu ${rows.length} nhóm khu vực cho ${day}.`);
 } else console.log("price-history: chưa đủ dữ liệu.");
+
+// Dọn snapshot giá quá 180 ngày để giữ bảng gọn nhẹ
+const oldHistoryDay = new Date(Date.now() - 180 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+const { count: phDeleted } = await sb.from("price_history").delete({ count: "exact" }).lt("day", oldHistoryDay);
+if (phDeleted) console.log(`🧹 Dọn ${phDeleted} dòng price_history quá 180 ngày.`);

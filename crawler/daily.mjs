@@ -223,26 +223,34 @@ const HOME_ONLY = ["facebook.com", "facebook", "batdongsan.com.vn"];
     await Promise.all(nulls.slice(i, i + 20).map((r) => sb.from("listings").update({ last_seen_at: r.crawled_at || r.first_seen_at || r.created_at }).eq("id", r.id)));
   if (nulls.length) console.log(`(backfill last_seen_at cho ${nulls.length} tin cũ thiếu mốc)`);
 }
-// ---- CHỐT CHẶN NGUỒN SỤT SẢN LƯỢNG (review /ultrareview) ----
-// Mỗi crawler đã có chốt "0 tin thì giữ file cũ", nhưng chốt đó CHỈ bắt đúng mốc 0 - mà bị chặn
-// MỘT PHẦN mới là chuyện hay xảy ra: mogi.mjs log lỗi HTTP rồi đi tiếp, batdongsan fetchSRP trả ""
-// nên trang đó lặng lẽ ra 0 tin. File vẫn được ghi với crawled_at mới tinh nhưng thiếu 80% tin;
-// merge.load() chỉ kiểm TUỔI file chứ không kiểm SỐ LƯỢNG nên nhận -> phần thiếu tụt khỏi
-// combined.json -> last_seen_at đứng yên -> 36h sau thành 'gone', 30 ngày sau bị XOÁ HẲN.
-// Không thể so với lượt trước bằng file trạng thái (mọi file .json đều .gitignore nên CI luôn
-// trắng). So với chính DB thì bền và dùng được ở cả CI lẫn máy nhà.
-const NGUONG_SUT = Number(process.env.SOURCE_DROP_FLOOR || 0.6);   // còn < 60% so với DB = nghi bị chặn
+// ---- CHỐT CHẶN NGUỒN SỤT SẢN LƯỢNG ----
+// Sàn sản lượng tối thiểu kỳ vọng cho 1 lượt cào (nếu cào được ít hơn ngưỡng này -> nghi crawler bị lỗi/chặn)
+const MIN_SAN_LUONG = {
+  "chotot": 30,
+  "mogi.vn": 15,
+  "batdongsan.com.vn": 20,
+  "guland.vn": 10,
+  "bannhadat123.vn": 5,
+  "batdongsantoanquoc.com": 5,
+  "sosanhnha.com": 5,
+  "facebook": 10,
+};
 const demLuot = {}, demDB = {};
 for (const r of rows) demLuot[r.source_site] = (demLuot[r.source_site] || 0) + 1;
 for (const r of oldRows) if (r.status === "published") demDB[r.source_site] = (demDB[r.source_site] || 0) + 1;
-const nguonSut = Object.keys(demDB).filter((s) => demDB[s] >= 20 && (demLuot[s] || 0) < demDB[s] * NGUONG_SUT);
+// Nguồn nghi bị chặn: nguồn web có >= 20 tin trong DB nhưng lượt này cào được ít hơn sàn tối thiểu
+const nguonSut = Object.keys(demDB).filter((s) => !HOME_ONLY.includes(s) && demDB[s] >= 20 && (demLuot[s] || 0) < (MIN_SAN_LUONG[s] || 5));
 for (const s of nguonSut) {
-  console.error(`⚠ NGUỒN SỤT: ${s} chỉ có ${demLuot[s] || 0} tin lượt này so với ${demDB[s]} trong DB `
-    + `(< ${Math.round(NGUONG_SUT * 100)}%) -> NGHI BỊ CHẶN, tạm không đánh dấu 'gone' cho nguồn này.`);
+  console.error(`⚠ NGUỒN SỤT: ${s} chỉ có ${demLuot[s] || 0} tin lượt này (< ngưỡng sàn ${MIN_SAN_LUONG[s] || 5}) -> NGHI BỊ CHẶN, tạm không đánh dấu 'gone' cho nguồn này.`);
 }
 
-const goneCutoff = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
-const goneCutoffHome = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+// Chu kỳ lưu trữ (Retention Policy):
+// - Tin web: không thấy lại sau 5 ngày (120h) -> chuyển 'gone' (giữ thông tin tươi)
+// - Tin nguồn máy nhà (FB, batdongsan PW): 10 ngày (vì máy nhà không chạy thường xuyên hàng ngày)
+// - Tin đã 'gone' quá 7 ngày -> xoá vĩnh viễn (thay vì 30 ngày, giải phóng dung lượng DB)
+// - Chốt chặn an toàn: Bất kỳ tin crawl nào có last_seen_at quá 21 ngày (bất kể status) -> xoá cứng
+const goneCutoff = new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString();
+const goneCutoffHome = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString();
 // Nguồn đang nghi bị chặn thì HOÃN hạ 'gone': thà giữ vài tin đã gỡ thêm một lượt còn hơn chôn
 // hàng loạt tin còn sống chỉ vì crawler bị 403 nửa chừng.
 const boQuaGone = [...new Set([...HOME_ONLY, ...nguonSut])];
@@ -256,10 +264,18 @@ const { count: goneN2 } = homeConLai.length
       .eq("source", "crawl").eq("status", "published").in("source_site", homeConLai).lt("last_seen_at", goneCutoffHome)
   : { count: 0 };
 const goneN = (goneN1 || 0) + (goneN2 || 0);
-const purgeCutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+
+// Xoá tin gone quá 7 ngày
+const purgeCutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
 const { count: purgedN } = await sb.from("listings").delete({ count: "exact" })
   .eq("source", "crawl").eq("status", "gone").lt("last_seen_at", purgeCutoff);
-console.log(`✅ ${now.slice(0, 10)}: ${inserts.length} tin mới · ${updates.length} tin còn sống (cập nhật) · ${goneN || 0} tin vừa gỡ (gone) · ${purgedN || 0} gone cũ xoá · ${rows.filter((r) => r.images.length).length} có ảnh · ${rows.filter((r) => r.source_count > 1).length} tin ≥2 nguồn · ${rows.filter((r) => r.price_flag).length} tin cờ giá.`);
+
+// Chốt dọn dẹp cứng: xoá mọi tin crawl cũ hơn 21 ngày không thấy lại (chống phình DB vĩnh viễn)
+const hardPurgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
+const { count: hardPurgedN } = await sb.from("listings").delete({ count: "exact" })
+  .eq("source", "crawl").lt("last_seen_at", hardPurgeCutoff);
+
+console.log(`✅ ${now.slice(0, 10)}: ${inserts.length} tin mới · ${updates.length} tin còn sống (cập nhật) · ${goneN || 0} tin vừa gỡ (gone) · ${(purgedN || 0) + (hardPurgedN || 0)} tin cũ xoá sạch · ${rows.filter((r) => r.images.length).length} có ảnh · ${rows.filter((r) => r.source_count > 1).length} tin ≥2 nguồn · ${rows.filter((r) => r.price_flag).length} tin cờ giá.`);
 
 // 2b) Dọn tin bóc từ group Zalo quá 1 NĂM (giữ lâu hơn tin crawl vì group không re-seed;
 // tin DM tự đăng (zalo_bot) và tin user coi như tin người dùng - KHÔNG tự xóa)

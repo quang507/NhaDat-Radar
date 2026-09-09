@@ -29,11 +29,15 @@ const ung = (projs ?? [])
   .sort((a, b) => b.key.length - a.key.length);
 console.log(`gan-du-an: ${ung.length}/${projs?.length ?? 0} dự án đủ điều kiện tên để dò.`);
 
+const ALL = process.argv.includes("--all");
+const RECENT_CUTOFF = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+
 let quet = 0, gan = 0;
 for (let from = 0; ; from += 1000) {
-  const { data: page, error } = await sb.from("listings")
-    .select("id,title,address,province").eq("status", "published").is("project_id", null)
-    .order("id").range(from, from + 999);
+  let q = sb.from("listings")
+    .select("id,title,address,province").eq("status", "published").is("project_id", null);
+  if (!ALL) q = q.gte("crawled_at", RECENT_CUTOFF);
+  const { data: page, error } = await q.order("id").range(from, from + 999);
   if (error) { console.error("gan-du-an:", error.message); break; }
   for (const x of page ?? []) {
     quet++;

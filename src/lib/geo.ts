@@ -19,11 +19,17 @@ export type AreaTree = {
 export const getAreas = unstable_cache(
   async (): Promise<AreaTree> => {
     const sb = createAdminClient(); // chỉ đọc published, không phụ thuộc user -> cache chung an toàn
+    // Đếm tổng số tin chính xác 100% bằng count exact (head: true không truyền dữ liệu dòng, chạy tức thì trong vài ms)
+    const { count: exactTotal } = await sb
+      .from("listings")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "published");
+
     const rows: { province: string | null; district: string | null; ward: string | null; deal: string; source: string; source_site: string | null }[] = [];
     for (let from = 0; ; from += 1000) {
       const { data } = await sb.from("listings").select("province,district,ward,deal,source,source_site").eq("status", "published").order("id").range(from, from + 999);
       rows.push(...(data ?? []));
-      if (!data || data.length < 1000 || rows.length >= 20000) break;
+      if (!data || data.length < 1000) break;
     }
     const geo: AreaTree["geo"] = {};
     const counts: AreaTree["counts"] = {};
@@ -49,8 +55,8 @@ export const getAreas = unstable_cache(
     }
     let districtCount = 0;
     for (const p of Object.keys(geo)) for (const d of Object.keys(geo[p])) { geo[p][d].sort(); districtCount++; }
-    return { geo, counts, total: rows.length, sources: sources.size, districtCount };
+    return { geo, counts, total: exactTotal ?? rows.length, sources: sources.size, districtCount };
   },
-  ["areas-v1"],
+  ["areas-v2"],
   { revalidate: 600, tags: ["areas"] },
 );
