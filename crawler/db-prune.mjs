@@ -15,12 +15,22 @@ const { count: pubBefore } = await sb.from("listings").select("*", { count: "exa
 const { count: goneBefore } = await sb.from("listings").select("*", { count: "exact", head: true }).eq("status", "gone");
 console.log(`Hiện trạng trước dọn: Tổng ${totalBefore} tin (Published: ${pubBefore}, Gone: ${goneBefore})`);
 
-// 2. Chuyển sang 'gone' các tin crawl không thấy lại > 7 ngày (168 giờ)
+// 2. Chuyển sang 'gone' các tin crawl không thấy lại > 7 ngày (chia batch 1.000 để né statement timeout)
 const goneCutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-const { count: markGone, error: e1 } = await sb.from("listings").update({ status: "gone" }, { count: "exact" })
-  .eq("source", "crawl").eq("status", "published").lt("last_seen_at", goneCutoff);
-if (e1) console.error("Lỗi chuyển gone:", e1.message);
-else console.log(`✓ Đã chuyển sang 'gone': ${markGone || 0} tin`);
+let markGone = 0;
+while (true) {
+  const { data: batch, error: bErr } = await sb.from("listings")
+    .select("id")
+    .eq("source", "crawl").eq("status", "published").lt("last_seen_at", goneCutoff)
+    .limit(1000);
+  if (bErr) { console.error("Lỗi đọc batch gone:", bErr.message); break; }
+  if (!batch || !batch.length) break;
+  const ids = batch.map((r) => r.id);
+  const { error: uErr } = await sb.from("listings").update({ status: "gone" }).in("id", ids);
+  if (uErr) { console.error("Lỗi update batch gone:", uErr.message); break; }
+  markGone += ids.length;
+}
+console.log(`✓ Đã chuyển sang 'gone': ${markGone} tin`);
 
 // 3. Xoá cứng các tin crawl cũ hơn 21 ngày không thấy lại
 const hardCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
@@ -37,10 +47,20 @@ if (e3) console.error("Lỗi xoá tin gone >7 ngày:", e3.message);
 else console.log(`✓ Đã xoá vĩnh viễn tin gone quá 7 ngày: ${purgedGone || 0} tin`);
 
 // 5. Giải phóng embedding vector(768) cho các tin đã 'gone' còn lại (giảm tải HNSW / RAM)
-const { count: nullEmbedding, error: e4 } = await sb.from("listings").update({ embedding: null }, { count: "exact" })
-  .eq("status", "gone").not("embedding", "is", null);
-if (e4) console.error("Lỗi xoá embedding:", e4.message);
-else console.log(`✓ Đã giải phóng embedding vector cho tin gone: ${nullEmbedding || 0} tin`);
+let nullEmbedding = 0;
+while (true) {
+  const { data: batch, error: bErr } = await sb.from("listings")
+    .select("id")
+    .eq("status", "gone").not("embedding", "is", null)
+    .limit(1000);
+  if (bErr) { console.error("Lỗi đọc batch embedding:", bErr.message); break; }
+  if (!batch || !batch.length) break;
+  const ids = batch.map((r) => r.id);
+  const { error: uErr } = await sb.from("listings").update({ embedding: null }).in("id", ids);
+  if (uErr) { console.error("Lỗi update batch embedding:", uErr.message); break; }
+  nullEmbedding += ids.length;
+}
+console.log(`✓ Đã giải phóng embedding vector cho tin gone: ${nullEmbedding} tin`);
 
 // 6. Dọn lịch sử giá cũ hơn 180 ngày
 const oldPriceDay = new Date(Date.now() - 180 * 24 * 3600 * 1000).toISOString().slice(0, 10);
