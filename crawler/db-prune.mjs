@@ -15,14 +15,14 @@ const { count: pubBefore } = await sb.from("listings").select("*", { count: "exa
 const { count: goneBefore } = await sb.from("listings").select("*", { count: "exact", head: true }).eq("status", "gone");
 console.log(`Hiện trạng trước dọn: Tổng ${totalBefore} tin (Published: ${pubBefore}, Gone: ${goneBefore})`);
 
-// 2. Chuyển sang 'gone' các tin crawl không thấy lại > 7 ngày (chia batch 1.000 để né statement timeout)
+// 2. Chuyển sang 'gone' các tin crawl không thấy lại > 7 ngày (chia batch 100 để né URL length limit)
 const goneCutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
 let markGone = 0;
 while (true) {
   const { data: batch, error: bErr } = await sb.from("listings")
     .select("id")
     .eq("source", "crawl").eq("status", "published").lt("last_seen_at", goneCutoff)
-    .limit(1000);
+    .limit(100);
   if (bErr) { console.error("Lỗi đọc batch gone:", bErr.message); break; }
   if (!batch || !batch.length) break;
   const ids = batch.map((r) => r.id);
@@ -52,7 +52,7 @@ while (true) {
   const { data: batch, error: bErr } = await sb.from("listings")
     .select("id")
     .eq("status", "gone").not("embedding", "is", null)
-    .limit(1000);
+    .limit(100);
   if (bErr) { console.error("Lỗi đọc batch embedding:", bErr.message); break; }
   if (!batch || !batch.length) break;
   const ids = batch.map((r) => r.id);
