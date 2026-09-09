@@ -275,6 +275,27 @@ async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
   if (!error && khoaAnh) {
     xoaAnh(khoaAnh);
     tinVua.set(khoaAnh, { id: data.id, luc: Date.now(), urls: (images || []).slice(0, ANH_TOI_DA) });
+    // Đồng bộ CRM: Seller, Deal lead, và Reminder follow-up
+    if (!fromGroup) {
+      crmUpsertSeller({
+        zaloId: khoaAnh,
+        phone: L.contact_phone || null,
+        name: "Chủ nhà Zalo",
+        listingId: data.id,
+        sellerType: "ccrb",
+      }).then((sellerId) => {
+        if (sellerId) {
+          sb.from("listings").update({ seller_id: sellerId }).eq("id", data.id);
+          crmCreateDeal({ listingId: data.id, stage: "lead", priceVnd: L.price_vnd ?? null });
+          crmCreateReminder({
+            kind: "follow_up",
+            sellerId,
+            listingId: data.id,
+            note: `Hỏi thăm tình trạng tin mới đăng "${(L.title || "").slice(0, 50)}"`,
+          });
+        }
+      }).catch(() => {});
+    }
   }
   return { error, id: data?.id ?? null };
 }
@@ -327,7 +348,135 @@ const GT_TTL_MS = 30 * 60_000;
 const choDapAn = new Map();   // sellerThread -> { reqId, buyerThread, listingId, question, luc }
 const DAP_TTL_MS = 24 * 60 * 60_000;
 const choXemNha = new Map();  // buyerThread -> { listingId, khungGio, luc } - đang chờ khách cho SĐT để chốt lịch xem
-const XEM_TTL_MS = 10 * 60_000;
+// ---- CRM SYNC (Tự động đồng bộ khách hàng, lịch xem, deals vào CRM) ----
+async function crmUpsertBuyer({ zaloId, phone = null, name = null, preferences = null, notes = null }) {
+  try {
+    if (!zaloId && !phone) return null;
+    let b = null;
+    if (zaloId) {
+      const { data } = await sb.from("buyers").select("id,preferences").eq("zalo_user_id", String(zaloId)).maybeSingle();
+      b = data;
+    }
+    if (!b && phone) {
+      const { data } = await sb.from("buyers").select("id,preferences").eq("phone", phone).maybeSingle();
+      b = data;
+    }
+    const now = new Date().toISOString();
+    if (b) {
+      const upd = { last_contact_at: now };
+      if (phone) upd.phone = phone;
+      if (name && name !== "Khách Zalo") upd.name = name;
+      if (notes) upd.notes = notes;
+      if (preferences) upd.preferences = { ...(b.preferences || {}), ...preferences };
+      await sb.from("buyers").update(upd).eq("id", b.id);
+      return b.id;
+    }
+    const { data: created } = await sb.from("buyers").insert({
+      name: name || "Khách Zalo",
+      phone: phone || null,
+      zalo_user_id: zaloId ? String(zaloId) : null,
+      preferences: preferences || {},
+      notes: notes || null,
+      last_contact_at: now,
+    }).select("id").single();
+    return created?.id ?? null;
+  } catch (err) {
+    console.error("crmUpsertBuyer err:", err.message);
+    return null;
+  }
+}
+
+async function crmUpsertSeller({ zaloId, phone = null, name = null, listingId = null, sellerType = "ccrb" }) {
+  try {
+    if (!zaloId && !phone) return null;
+    let s = null;
+    if (zaloId) {
+      const { data } = await sb.from("sellers").select("id").eq("zalo_user_id", String(zaloId)).maybeSingle();
+      s = data;
+    }
+    if (!s && phone) {
+      const { data } = await sb.from("sellers").select("id").eq("phone", phone).maybeSingle();
+      s = data;
+    }
+    if (s) {
+      const upd = {};
+      if (phone) upd.phone = phone;
+      if (name && name !== "Chủ nhà Zalo") upd.name = name;
+      if (listingId) upd.active_listing_id = listingId;
+      await sb.from("sellers").update(upd).eq("id", s.id);
+      return s.id;
+    }
+    const { data: created } = await sb.from("sellers").insert({
+      name: name || "Chủ nhà Zalo",
+      phone: phone || null,
+      zalo_user_id: zaloId ? String(zaloId) : null,
+      seller_type: ["ccrb", "nmg"].includes(sellerType) ? sellerType : "unknown",
+      active_listing_id: listingId || null,
+    }).select("id").single();
+    return created?.id ?? null;
+  } catch (err) {
+    console.error("crmUpsertSeller err:", err.message);
+    return null;
+  }
+}
+
+async function crmAddInterest(buyerId, listingId) {
+  try {
+    if (!buyerId || !listingId) return;
+    await sb.from("interests").upsert({ buyer_id: buyerId, listing_id: listingId }, { onConflict: "buyer_id,listing_id" });
+  } catch (err) {
+    console.error("crmAddInterest err:", err.message);
+  }
+}
+
+async function crmCreateViewing({ listingId, buyerId = null, phone = null, timeText = null, note = null }) {
+  try {
+    const { data } = await sb.from("viewings").insert({
+      listing_id: listingId,
+      buyer_id: buyerId,
+      phone,
+      time_text: timeText,
+      note,
+      status: "proposed",
+      source: "zalo_bot",
+    }).select("id").single();
+    return data?.id ?? null;
+  } catch (err) {
+    console.error("crmCreateViewing err:", err.message);
+    return null;
+  }
+}
+
+async function crmCreateDeal({ listingId, buyerId = null, stage = "lead", priceVnd = null }) {
+  try {
+    if (!listingId) return;
+    await sb.from("deals").insert({
+      listing_id: listingId,
+      buyer_id: buyerId,
+      stage,
+      price_vnd: priceVnd,
+    });
+  } catch (err) {
+    console.error("crmCreateDeal err:", err.message);
+  }
+}
+
+async function crmCreateReminder({ kind = "follow_up", buyerId = null, sellerId = null, listingId = null, note, dueAt = null }) {
+  try {
+    if (!note) return;
+    await sb.from("reminders").insert({
+      kind,
+      buyer_id: buyerId,
+      seller_id: sellerId,
+      listing_id: listingId,
+      note,
+      due_at: dueAt || new Date().toISOString(),
+      status: "pending",
+    });
+  } catch (err) {
+    console.error("crmCreateReminder err:", err.message);
+  }
+}
 
 // ---- BÁO TIN MỚI QUA ZALO (21/8) ----
 // Khách tìm nhà xong, bot hỏi "muốn nhận tin nhắn khi có tin MỚI khớp không?". Gật (hoặc
@@ -446,10 +595,33 @@ async function handle(text, anh = [], khoaAnh = null) {
     const soKhach = (text.match(/(\+?84|0)\d{8,10}/) || [])[0];
     if (soKhach) {
       choXemNha.delete(khoaAnh);
+      const phoneNorm = soKhach.replace(/^\+?84/, "0");
       await sb.from("leads").insert({
-        listing_id: cxn.listingId, name: "Khách Zalo hẹn xem nhà", phone: soKhach.replace(/^\+?84/, "0"),
+        listing_id: cxn.listingId, name: "Khách Zalo hẹn xem nhà", phone: phoneNorm,
         message: `🏠 HẸN XEM NHÀ${cxn.khungGio ? ` - khung giờ khách muốn: ${cxn.khungGio}` : ""} - khách nhắn: "${text.slice(0, 200)}"`,
       });
+      // Đồng bộ CRM: Buyer, Viewing, Interest, Deal, Reminder
+      crmUpsertBuyer({ zaloId: khoaAnh, phone: phoneNorm, name: "Khách hẹn xem Zalo" }).then((buyerId) => {
+        if (buyerId) {
+          crmCreateViewing({
+            listingId: cxn.listingId,
+            buyerId,
+            phone: phoneNorm,
+            timeText: cxn.khungGio || null,
+            note: text.slice(0, 200),
+          });
+          if (cxn.listingId) {
+            crmAddInterest(buyerId, cxn.listingId);
+            crmCreateDeal({ listingId: cxn.listingId, buyerId, stage: "viewing" });
+            crmCreateReminder({
+              kind: "viewing",
+              buyerId,
+              listingId: cxn.listingId,
+              note: `Lịch hẹn xem nhà: ${cxn.khungGio || "Chờ chốt giờ"} (SĐT: ${phoneNorm})`,
+            });
+          }
+        }
+      }).catch(() => {});
       return "Dạ em đã ghi lịch ✅ Radar sẽ gọi/Zalo anh/chị trong ít phút để chốt giờ và điểm hẹn cụ thể. Cảm ơn anh/chị 🙏";
     }
     cxn.khungGio = `${cxn.khungGio || ""} ${text}`.trim().slice(0, 150);
@@ -574,10 +746,20 @@ async function handle(text, anh = [], khoaAnh = null) {
     if (!idXem) return 'Dạ anh/chị muốn xem căn nào ạ? Nhắn kèm link tin hoặc tìm trước (VD "nhà Quận 7 dưới 6 tỷ") rồi chọn căn giúp em nhé.';
     const soKhach = (text.match(/(\+?84|0)\d{8,10}/) || [])[0];
     if (soKhach) {
+      const phoneNorm = soKhach.replace(/^\+?84/, "0");
       await sb.from("leads").insert({
-        listing_id: idXem, name: "Khách Zalo hẹn xem nhà", phone: soKhach.replace(/^\+?84/, "0"),
+        listing_id: idXem, name: "Khách Zalo hẹn xem nhà", phone: phoneNorm,
         message: `🏠 HẸN XEM NHÀ - khách nhắn: "${text.slice(0, 200)}"`,
       });
+      // Đồng bộ CRM
+      crmUpsertBuyer({ zaloId: khoaAnh, phone: phoneNorm, name: "Khách hẹn xem Zalo" }).then((buyerId) => {
+        if (buyerId) {
+          crmCreateViewing({ listingId: idXem, buyerId, phone: phoneNorm, note: text.slice(0, 200) });
+          crmAddInterest(buyerId, idXem);
+          crmCreateDeal({ listingId: idXem, buyerId, stage: "viewing" });
+          crmCreateReminder({ kind: "viewing", buyerId, listingId: idXem, note: `Hẹn xem nhà căn ${idXem.slice(0, 8)} (SĐT: ${phoneNorm})` });
+        }
+      }).catch(() => {});
       return "Dạ em đã ghi lịch ✅ Radar sẽ gọi/Zalo anh/chị trong ít phút để chốt giờ và điểm hẹn cụ thể. Cảm ơn anh/chị 🙏";
     }
     choXemNha.set(khoaAnh, { listingId: idXem, khungGio: "", luc: Date.now() });
@@ -601,6 +783,12 @@ async function handle(text, anh = [], khoaAnh = null) {
       question: text.slice(0, 500), status: sellerDM ? "pending" : "admin",
     }).select("id").single();
     if (error) { console.error("info_requests:", error.message); return "Dạ em đang bị lỗi hệ thống, anh/chị thử lại sau ít phút nhé 🙏"; }
+    // Đồng bộ CRM Interest
+    if (khoaAnh && id) {
+      crmUpsertBuyer({ zaloId: khoaAnh }).then((bId) => {
+        if (bId) crmAddInterest(bId, id);
+      }).catch(() => {});
+    }
     if (sellerDM) {
       choDapAn.set(sellerDM, { reqId: req.id, buyerThread: String(khoaAnh), listingId: id, question: text, luc: Date.now() });
       sendReply(sellerDM, `Dạ có khách đang quan tâm tin "${(tin.title || "").slice(0, 60)}" của anh/chị và hỏi:\n"${cheSoRelay(text).slice(0, 300)}"\nAnh/chị nhắn trả lời ngay tại đây, em chuyển cho khách liền ạ 🙏`);
@@ -639,6 +827,21 @@ async function handle(text, anh = [], khoaAnh = null) {
     // mời nhận báo tin mới (21/8): chỉ mời khi có KHU VỰC thật - lưu bộ lọc 30' chờ khách gật
     const coKhuVuc = !!(q.province || q.district || q.ward);
     if (khoaAnh && coKhuVuc) truyVanCuoi.set(khoaAnh, { q, luc: Date.now() });
+    // Đồng bộ CRM Buyer preferences
+    if (khoaAnh) {
+      crmUpsertBuyer({
+        zaloId: khoaAnh,
+        preferences: {
+          district: q.district || null,
+          ward: q.ward || null,
+          property_type: q.property_type || null,
+          deal: q.listing_type || null,
+          price_min: q.price_min || null,
+          price_max: q.price_max || null,
+          area_min: q.area_min || null,
+        },
+      }).catch(() => {});
+    }
     const moiBaoTin = coKhuVuc
       ? `\n\n🔔 Quý khách muốn nhận TIN NHẮN ngay tại đây mỗi khi có tin MỚI khớp tìm kiếm này không? Nhắn "CÓ" là em bật - muốn nhận thêm qua email thì nhắn kèm Gmail ạ.`
       : "";
