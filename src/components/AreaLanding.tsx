@@ -13,6 +13,7 @@ import type { Listing } from "@/lib/types";
 import ListingRow from "@/components/ListingRow";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import PriceTrend from "@/components/PriceTrend";
+import { cheTinDocQuyen } from "@/lib/doc-quyen";
 
 type Deal = "ban" | "cho_thue";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
@@ -72,7 +73,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
     q.order("first_seen_at", { ascending: false }).limit(300),
     (() => { let c = supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN()); if (district) c = c.eq("district", district); return c; })(),
   ]);
-  const rows = (data ?? []) as Listing[];
+  const rows = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
   // tổng THẬT từ cây đếm (cache) - audit: bản cũ dùng rows.length bị cap 300 cho cấp quận
   const total = district ? (area.districts[district]?.[deal] ?? rows.length) : (area[deal] || rows.length);
 

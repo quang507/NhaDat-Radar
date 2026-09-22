@@ -5,11 +5,19 @@ import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 
 const here = import.meta.dirname;
+// Bước hỏng trước đây chỉ in "✗ lỗi" rồi trôi qua -> job CI vẫn xanh dù nguồn chết nhiều ngày.
+// Giờ gom lại: in annotation ::warning:: (hiện ngay trên trang run GitHub) + tóm tắt cuối lượt.
+const buocLoi = [];
 function step(cmd) {
   // windowsHide: pm2 chạy không có console -> mỗi bước con bật 1 cửa sổ CMD nảy lên màn hình; người dùng
   // đóng cửa sổ = giết tiến trình con giữa chừng (sự cố 17/8: facebook.mjs + embed.mjs bị ^C theo cách này).
   try { console.log("▶", cmd); execSync(cmd, { stdio: "inherit", cwd: here, windowsHide: true }); return true; }
-  catch (e) { console.error("✗ lỗi:", cmd, e.message); return false; }
+  catch (e) {
+    console.error("✗ lỗi:", cmd, e.message);
+    buocLoi.push(cmd);
+    if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Bước crawl lỗi::${cmd}`);
+    return false;
+  }
 }
 
 // 1) Crawl các nguồn headless (Chợ Tốt API + nhadat HTTP + Mogi HTML)
@@ -87,7 +95,13 @@ if (!SEED_ONLY) {
 // `--no-merge`: seed thẳng combined.json đang có, KHÔNG dựng lại. Cần khi đã chạy tay merge + geocode-all:
 // merge dựng combined.json từ file nguồn mà chỉ chotot.json có sẵn lat -> merge lại sau geocode sẽ xoá toạ độ
 // vừa bù, rồi seed ghi lat=null đè lên DB (mất pin bản đồ của ~2/3 số tin).
-if (!process.argv.includes("--no-merge")) step("node merge.mjs"); // gộp tất cả nguồn -> combined.json
+// merge hỏng thì combined.json còn lại là bản CŨ -> seed nó sẽ làm mới last_seen_at cho tin có thể đã
+// gỡ khỏi nguồn (tin chết "sống lại"). Dừng hẳn thay vì seed dữ liệu cũ.
+if (!process.argv.includes("--no-merge") && !step("node merge.mjs")) {
+  console.error("merge.mjs lỗi -> KHÔNG seed combined.json cũ. Dừng lượt này.");
+  boKhoa();
+  process.exit(1);
+}
 if (!SEED_ONLY) step("node geocode-all.mjs");           // bù toạ độ cho MỌI tin thiếu (để tin nào cũng có map)
 
 // 2) Seed vào Supabase (thay data crawl cũ)
@@ -148,7 +162,12 @@ function trustScore(x) {
 
 const seenKey = new Set();
 const rows = [];
+// --fb-only (máy nhà): combined.json vẫn gộp cả file nguồn web còn nằm trên máy (merge chỉ bỏ file
+// quá 2 ngày). Seed chúng sẽ đè bản CI mới hơn và kéo dài last_seen_at của tin web có thể đã gỡ.
+// -> Lượt --fb-only chỉ ghi tin Facebook.
+const NGUON_FB = ["facebook.com", "facebook"];
 for (const x of comb.listings) {
+  if (FB_ONLY && !NGUON_FB.includes(x.source_site)) continue;
   const key = x.source_site + "|" + (x.source_post_id || x.id);
   if (seenKey.has(key)) continue; seenKey.add(key);
   const old = oldMap.get(key);
@@ -180,7 +199,7 @@ for (const x of comb.listings) {
     posted_at: giuNeuTrong(x.posted_at ?? null, old?.posted_at),   // đăng trên nguồn lúc (nếu nguồn có)
     // Admin đã ẨN (nút "Ẩn tin" trên trang chi tiết, 17/8) thì giữ ẩn - không để lần cào sau bật lại tin rác.
     // Chỉ 'gone' (mất rồi thấy lại) mới về published.
-    status: old?.status === "hidden" ? "hidden" : "published", crawled_at: now, last_seen_at: now,
+    status: old?.status === "hidden" || old?.status === "rejected" ? old.status : "published", crawled_at: now, last_seen_at: now,
     first_seen_at: (old && old.first_seen_at) || now,
     crawl_count: old ? (old.crawl_count || 1) + 1 : 1,
   });
@@ -239,7 +258,8 @@ const demLuot = {}, demDB = {};
 for (const r of rows) demLuot[r.source_site] = (demLuot[r.source_site] || 0) + 1;
 for (const r of oldRows) if (r.status === "published") demDB[r.source_site] = (demDB[r.source_site] || 0) + 1;
 // Nguồn nghi bị chặn: nguồn web có >= 20 tin trong DB nhưng lượt này cào được ít hơn sàn tối thiểu
-const nguonSut = Object.keys(demDB).filter((s) => !HOME_ONLY.includes(s) && demDB[s] >= 20 && (demLuot[s] || 0) < (MIN_SAN_LUONG[s] || 5));
+// Lượt --fb-only không cào nguồn web nên không có gì để đo sụt -> bỏ qua (khỏi báo động giả).
+const nguonSut = FB_ONLY ? [] : Object.keys(demDB).filter((s) => !HOME_ONLY.includes(s) && demDB[s] >= 20 && (demLuot[s] || 0) < (MIN_SAN_LUONG[s] || 5));
 for (const s of nguonSut) {
   console.error(`⚠ NGUỒN SỤT: ${s} chỉ có ${demLuot[s] || 0} tin lượt này (< ngưỡng sàn ${MIN_SAN_LUONG[s] || 5}) -> NGHI BỊ CHẶN, tạm không đánh dấu 'gone' cho nguồn này.`);
 }
@@ -255,7 +275,8 @@ const goneCutoffHome = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(
 // hàng loạt tin còn sống chỉ vì crawler bị 403 nửa chừng.
 const boQuaGone = [...new Set([...HOME_ONLY, ...nguonSut])];
 // NOT IN bỏ sót source_site NULL (NULL NOT IN … = NULL) -> thêm nhánh is.null (audit 16/8)
-const { count: goneN1 } = await sb.from("listings").update({ status: "gone" }, { count: "exact" })
+// Lượt --fb-only không thấy nguồn web -> không được hạ 'gone' cho nguồn web.
+const { count: goneN1 } = FB_ONLY ? { count: 0 } : await sb.from("listings").update({ status: "gone" }, { count: "exact" })
   .eq("source", "crawl").eq("status", "published")
   .or(`source_site.is.null,source_site.not.in.(${boQuaGone.map((s) => `"${s}"`).join(",")})`).lt("last_seen_at", goneCutoff);
 const homeConLai = HOME_ONLY.filter((s) => !nguonSut.includes(s));
@@ -294,4 +315,11 @@ if (!SEED_ONLY) {
   step("node price-history.mjs");
   step("node alerts.mjs");
   step("node embed.mjs"); // embedding cho tìm kiếm ngữ nghĩa (cần migration 003 + GEMINI key) - giờ upsert nên embedding cũ được giữ, chỉ embed tin mới
+}
+
+if (buocLoi.length) {
+  console.error(`⚠ ${buocLoi.length} bước lỗi trong lượt này: ${buocLoi.join(" | ")}`);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    try { fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### ⚠ Bước crawl lỗi\n${buocLoi.map((c) => `- \`${c}\``).join("\n")}\n`); } catch { /* không quan trọng */ }
+  }
 }

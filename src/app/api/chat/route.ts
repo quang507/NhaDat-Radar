@@ -107,7 +107,12 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ reply: "Yêu cầu không hợp lệ." }, { status: 400 });
   }
-  const messages = (body.messages || []).slice(-8);
+  // chỉ nhận mảng {role,text:string}; mỗi lượt cắt 1000 ký tự (trước: messages không phải mảng -> 500,
+  // lịch sử không giới hạn độ dài -> đốt token Gemini)
+  const messages: ChatMsg[] = (Array.isArray(body?.messages) ? body.messages : [])
+    .filter((m) => !!m && typeof m === "object" && typeof m.text === "string")
+    .map((m): ChatMsg => ({ role: m.role === "user" ? "user" : "bot", text: m.text.slice(0, 1000) }))
+    .slice(-8);
   const last = messages.filter((m) => m.role === "user").pop()?.text?.slice(0, 1000);
   if (!last) return NextResponse.json({ reply: "Bạn muốn tìm nhà đất như thế nào ạ?" });
 

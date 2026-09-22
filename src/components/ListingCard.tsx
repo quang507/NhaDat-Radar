@@ -3,7 +3,7 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
-import { laTinDocQuyen } from "@/lib/doc-quyen";
+import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 
 export default function ListingCard({ x }: { x: Listing }) {
   const t = thumb(x.kind);
@@ -25,7 +25,7 @@ export default function ListingCard({ x }: { x: Listing }) {
         style={{ background: t.bg }}
       >
         {x.images?.[0] ? (
-          <SafeImg src={x.images[0]} alt={x.title} className="lc-img w-full h-full object-cover" />
+          <SafeImg src={x.images[0]} alt={laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title} className="lc-img w-full h-full object-cover" />
         ) : (
           <span className="flex flex-col items-center gap-1.5 opacity-95">
             <span className="w-12 h-12 rounded-full bg-white/20 grid place-items-center text-2xl backdrop-blur-sm">{t.icon}</span>
@@ -63,7 +63,7 @@ export default function ListingCard({ x }: { x: Listing }) {
           {ppm2 && <span className="text-[0.7rem] text-[var(--ink-faint)] font-semibold">{ppm2}</span>}
         </div>
         <h3 className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-brand transition-colors">
-          {x.title}
+          {laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title}
         </h3>
         <div className="text-xs text-[var(--ink-soft)] truncate">
           {[x.district, x.province].filter(Boolean).join(", ") || "-"}

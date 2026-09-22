@@ -3,6 +3,8 @@
 --  Gộp 3 nguồn về 1 bảng `listings`: crawl (Lớp A) + agent tự đăng (Lớp B) + Zalo (Lớp C)
 --  RLS bật cho MỌI bảng (homigo.vn để lộ bảng users vì thiếu RLS — không lặp lại).
 --  Chạy trong Supabase SQL Editor, hoặc: psql "$DATABASE_URL" -f schema.sql
+--  CHỈ dùng cho DB MỚI TINH, sau đó chạy lần lượt supabase/migrations/*.sql. KHÔNG chạy lại trên DB
+--  đang có dữ liệu (create policy không có drop-if-exists -> hỏng giữa chừng; và ghi đè các bản vá).
 -- ============================================================================
 
 create extension if not exists "postgis";      -- tìm theo bán kính / bản đồ
@@ -282,9 +284,10 @@ on conflict (slug) do nothing;
 create or replace function handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
+  -- LUÔN 'user': raw_user_meta_data do client gửi lúc signUp -> đọc role từ đó = ai cũng tự đăng ký làm admin
+  -- (đã vá ở migration 001; bản ở đây từng còn lỗ này - chạy lại schema.sql là mở lại lỗ hổng).
   insert into public.profiles (id, full_name, role)
-  values (new.id, coalesce(new.raw_user_meta_data->>'full_name',''),
-          coalesce((new.raw_user_meta_data->>'role')::user_role, 'user'));
+  values (new.id, coalesce(new.raw_user_meta_data->>'full_name',''), 'user');
   return new;
 end $$;
 drop trigger if exists on_auth_user_created on auth.users;

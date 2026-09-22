@@ -16,6 +16,7 @@ import MapResults, { type MapItem } from "@/components/MapResults";
 import { fmtPrice, PROP, shortPrice } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
 import type { Listing, Project } from "@/lib/types";
+import { cheTinDocQuyen } from "@/lib/doc-quyen";
 
 // Ảnh hero thương hiệu: đặt file tại public/hero.jpg (hoặc .png/.webp) là tự dùng.
 // Tính 1 lần lúc module load (audit 16/8: bản cũ existsSync 3 lần mỗi request).
@@ -58,7 +59,7 @@ export default async function Home({
   if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
   if (q) query = query.ilike("title", `%${q}%`);
   const { data } = await query.order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150);
-  const listings = (data ?? []) as Listing[];
+  const listings = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
 
   // count exact: bộ đếm "dự án" phải là tổng toàn DB, không phải độ dài danh sách limit(6) (bug 17/8: hero hiện "6 dự án" trong khi DB có 30)
   const { data: projData, count: projectCount } = await supabase

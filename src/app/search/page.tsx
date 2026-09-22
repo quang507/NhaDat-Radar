@@ -7,6 +7,7 @@ import { getAreas } from "@/lib/geo";
 import { LISTING_CARD_COLS } from "@/lib/cols";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
 import SearchClient from "./SearchClient";
+import { cheTinDocQuyen } from "@/lib/doc-quyen";
 
 export const metadata = { title: "Tìm kiếm bất động sản - NhaDat Radar" };
 
@@ -90,7 +91,7 @@ export default async function SearchPage({
     newTodayQuery,
     totalQuery,
   ]);
-  const listings = (data ?? []) as Listing[];
+  const listings = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
   const geo = areas.geo;
 
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL

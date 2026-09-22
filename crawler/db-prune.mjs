@@ -15,20 +15,29 @@ const { count: pubBefore } = await sb.from("listings").select("*", { count: "exa
 const { count: goneBefore } = await sb.from("listings").select("*", { count: "exact", head: true }).eq("status", "gone");
 console.log(`Hiện trạng trước dọn: Tổng ${totalBefore} tin (Published: ${pubBefore}, Gone: ${goneBefore})`);
 
-// 2. Chuyển sang 'gone' các tin crawl không thấy lại > 7 ngày (chia batch 100 để né URL length limit)
-const goneCutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+// 2. Chuyển sang 'gone' — CÙNG luật với crawler/daily.mjs. Trước đây 7 ngày cho MỌI nguồn, lệch luật
+//    5 ngày (web) / 10 ngày (nguồn máy nhà) của daily.mjs -> tin FB/batdongsan còn sống bị hạ sớm.
+//    Chia batch 100 để né URL length limit.
+const HOME_ONLY = ["facebook.com", "facebook", "batdongsan.com.vn"];
+const goneCutoff = new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString();
+const goneCutoffHome = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString();
+const nhomGone = [
+  (q) => q.or(`source_site.is.null,source_site.not.in.(${HOME_ONLY.map((s) => `"${s}"`).join(",")})`).lt("last_seen_at", goneCutoff),
+  (q) => q.in("source_site", HOME_ONLY).lt("last_seen_at", goneCutoffHome),
+];
 let markGone = 0;
-while (true) {
-  const { data: batch, error: bErr } = await sb.from("listings")
-    .select("id")
-    .eq("source", "crawl").eq("status", "published").lt("last_seen_at", goneCutoff)
-    .limit(100);
-  if (bErr) { console.error("Lỗi đọc batch gone:", bErr.message); break; }
-  if (!batch || !batch.length) break;
-  const ids = batch.map((r) => r.id);
-  const { error: uErr } = await sb.from("listings").update({ status: "gone" }).in("id", ids);
-  if (uErr) { console.error("Lỗi update batch gone:", uErr.message); break; }
-  markGone += ids.length;
+for (const locNhom of nhomGone) {
+  while (true) {
+    const { data: batch, error: bErr } = await locNhom(
+      sb.from("listings").select("id").eq("source", "crawl").eq("status", "published"),
+    ).limit(100);
+    if (bErr) { console.error("Lỗi đọc batch gone:", bErr.message); break; }
+    if (!batch || !batch.length) break;
+    const ids = batch.map((r) => r.id);
+    const { error: uErr } = await sb.from("listings").update({ status: "gone" }).in("id", ids);
+    if (uErr) { console.error("Lỗi update batch gone:", uErr.message); break; }
+    markGone += ids.length;
+  }
 }
 console.log(`✓ Đã chuyển sang 'gone': ${markGone} tin`);
 
