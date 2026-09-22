@@ -42,10 +42,18 @@ const TU_MO_TA = "xe hơi|ô tô|oto|rộng|lớn|nhỏ|cụt|nhựa|bê tông|t
   + "|chính chủ|sổ hồng|sổ đỏ|giá|dt|diện tích|nhà|đất|căn|lô|nền|bán|cho thuê|cần|liên hệ|lh|chủ|em|anh|chị";
 const LOAI = new RegExp(`^(?:${TU_MO_TA})(?:\\s+(?:${TU_MO_TA}))*$`, "iu");
 
-const don = (s) => (s || "")
-  .replace(/[.,;:!?)\]]+$/, "")
-  .replace(/\s+/g, " ")
-  .trim();
+// Từ NỐI dính vào đuôi ứng viên: "đường Tô Ngọc Vân Gần chợ" -> khoá "Tô Ngọc Vân Gần" (audit 22/9;
+// khoá kiểu này tra không ra rồi bị cache là "không có"). Cắt đuôi tới khi hết từ nối.
+const TU_NOI_DUOI = /\s+(?:G[ầa]n|C[áa]ch|Đ[ốo]i|Ngay|Khu|Sát|Trước|Sau|Thu[ộo]c|V[ềe]|Ra|Vào|C[óo]|Đ[ãa])$/iu;
+const don = (s) => {
+  let r = (s || "")
+    .replace(/[.,;:!?)\]]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  let truoc;
+  do { truoc = r; r = r.replace(TU_NOI_DUOI, "").trim(); } while (r !== truoc);
+  return r;
+};
 
 /** Trả về tên đường đọc được, hoặc null. */
 export function docDuong(text) {

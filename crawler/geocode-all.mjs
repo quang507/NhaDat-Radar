@@ -11,7 +11,45 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function cleanDistrict(d) {
   return (d || "").replace(/\(.*?\)/g, "").replace(/^TP\.\s*/i, "Thành phố ").replace(/\s+/g, " ").trim();
 }
-const geocode = (q) => smartGeocode(q); // Vietmap -> Nominatim (đều có timeout 8s)
+
+// BIẾN THỂ TRUY VẤN (audit 22/9): "Thành phố Thủ Đức, Hồ Chí Minh" -> Nominatim KHÔNG có (đo thật),
+// nhưng "Thủ Đức, Hồ Chí Minh" -> 10.8506,106.7585. Cache cũ ghi null cho khoá đầu và giữ VĨNH VIỄN
+// -> mọi tin Thủ Đức không bao giờ có toạ độ. Đơn vị hành chính đổi tên/giải thể (NQ 1685/2025) còn
+// gặp nhiều nữa -> thử thêm biến thể bỏ tiền tố cấp hành chính trước khi kết luận "không có".
+// KHÔNG bỏ tiền tố của quận ĐÁNH SỐ ("Quận 7" -> "7" là vô nghĩa).
+const BO_TIEN_TO = /^(thành phố|tp\.?|thị xã|tx\.?|quận|huyện|phường|xã)\s+(?=\p{L})/iu;
+export function bienTheKhoa(key) {
+  const ra = [key];
+  const phan = key.split(",").map((s) => s.trim());
+  const bo = phan.map((p) => p.replace(BO_TIEN_TO, "").trim());
+  const gon = bo.join(", ");
+  if (gon !== key && bo.every(Boolean)) ra.push(gon);
+  // bỏ tiền tố chỉ ở thành phần ĐẦU (tên phường/quận) - giữ nguyên phần tỉnh phía sau
+  if (phan.length > 1) {
+    const dau = [phan[0].replace(BO_TIEN_TO, "").trim(), ...phan.slice(1)].join(", ");
+    if (dau !== key && !ra.includes(dau)) ra.splice(1, 0, dau);
+  }
+  return ra;
+}
+
+// Tra 1 khoá: thử lần lượt các biến thể, trả về kết quả đầu tiên tìm thấy.
+// LOI ở BẤT KỲ biến thể nào -> trả LOI (không cache "không có" khi mạng/hạn mức đang hỏng).
+async function geocode(key, nhip) {
+  let hong = false;
+  for (const q of bienTheKhoa(key)) {
+    const g = await smartGeocode(q + ", Việt Nam");
+    if (g === LOI) { hong = true; continue; }
+    if (g) return q === key ? g : { ...g, bien_the: q };
+    if (nhip) await sleep(nhip);
+  }
+  return hong ? LOI : null;
+}
+
+// Cache "không tìm thấy": có HẠN (mặc định 14 ngày) thay vì vĩnh viễn. Địa danh mới lập / đổi tên
+// sẽ được OSM bổ sung dần; 22/9 đo thấy 96/170 khoá trong cache là null vĩnh viễn.
+const NEG_TTL_MS = Number(process.env.GEOCODE_NEG_TTL_MS || 14 * 24 * 3600 * 1000);
+const laKhongCo = (v) => v === null || (v && v.khong === true);
+const conHanKhongCo = (v) => v && v.khong === true && Date.now() - (v.luc || 0) < NEG_TTL_MS;
 
 // Ghim theo PHƯỜNG khi nguồn có phường, không thì mới lùi về QUẬN.
 // Tâm quận cách chỗ thật có khi 5-7km (Củ Chi, Bình Chánh rộng cỡ đó), tâm phường sát hơn
@@ -84,15 +122,17 @@ async function run() {
   // Trần thời gian -> không bao giờ treo pipeline. Nới 5 -> 8 phút vì nay có thêm nấc đường,
 // và CI đã nới timeout lên 60 phút. Cache bền nên lượt sau gần như không tốn gì.
 const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
-  let hong = 0;
+  let hong = 0, bienTheDung = 0;
   // Vietmap Trial có TRẦN NGÀY (1.500 lượt geocode) - hết thì trả 429 và mọi truy vấn rơi
   // xuống Nominatim, mà Nominatim bắt chờ 1 giây/lượt. Chạy 220ms trong lúc đó là tự đâm
   // vào tường thứ hai. Dò 1 lượt ở đầu run để chọn nhịp cho đúng.
   const vmSong = usingVietmap ? await vietmapConSong() : false;
   const NHIP = vmSong ? 220 : 1100;
   if (usingVietmap && !vmSong) console.error("  ⚠ Vietmap đang 429 (hết hạn mức ngày) -> chạy bằng Nominatim, nhịp 1.1s/lượt");
-  const canTra = keys.filter((k) => !(k in cache));
-  console.error(`  cache đã có ${daBiet} khu vực -> chỉ tra thêm ${canTra.length}`);
+  // "không tìm thấy" đã hết hạn -> tra lại (xem NEG_TTL_MS); có toạ độ rồi thì không bao giờ tra lại.
+  const canTra = keys.filter((k) => !(k in cache) || (laKhongCo(cache[k]) && !conHanKhongCo(cache[k])));
+  const traLaiKhongCo = canTra.filter((k) => k in cache).length;
+  console.error(`  cache đã có ${daBiet} khu vực -> tra thêm ${canTra.length}` + (traLaiKhongCo ? ` (trong đó ${traLaiKhongCo} khoá "không tìm thấy" đã hết hạn, tra lại)` : ""));
   for (const k of canTra) {
     if (Date.now() - started > BUDGET_MS) {
       console.error("⚠ geocode: vượt ngân sách thời gian, bỏ qua các khu vực còn lại.");
@@ -103,11 +143,12 @@ const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
     // đường, rồi vòng gán coi đó là toạ độ chính-xác-mức-đường và ghim KHÔNG rải: tin nằm
     // chễm chệ giữa tỉnh, cách chỗ thật hàng chục km, và cache bền giữ cái sai đó mãi.
     // Đúng chính sách đã chốt: không ghim được thì thôi, không ghim bừa.
-    const g = await geocode(k + ", Việt Nam");
+    const g = await geocode(k, NHIP);
     // CHỈ cache kết quả thật và "tra xong không có". Hỏi hỏng (429 / timeout) thì bỏ qua,
     // để lượt sau tra lại - cache null vì bị chặn tần suất là đầu độc cache vĩnh viễn.
     if (g === LOI) { hong++; await sleep(2000); continue; }
-    cache[k] = g;
+    if (g && g.bien_the) { bienTheDung++; console.error(`  ↺ "${k}" không có -> dùng biến thể "${g.bien_the}"`); }
+    cache[k] = g || { khong: true, luc: Date.now() };   // "không có" ghi kèm mốc thời gian để còn hết hạn
     // 1100ms là để tôn trọng giới hạn 1 request/giây của Nominatim. Vietmap không có
     // ràng buộc đó -> nhanh hơn 5 lần, nên trong cùng 5 phút bù được nhiều khu vực hơn hẳn.
     await sleep(NHIP);
@@ -120,8 +161,10 @@ const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
     if (x.lat != null && x.lng != null) return;
     const kk = khoaCua.get(x);
     if (!kk) return;
-    const gd = kk.kd && cache[kk.kd], gp = kk.kp && cache[kk.kp];
-    const g = gd || gp || (kk.kq && cache[kk.kq]);
+    // cache giờ có 2 dạng giá trị: {lat,lng,src} = có, {khong:true,luc} = tra rồi không thấy (có hạn)
+    const coToaDo = (v) => (v && v.lat != null ? v : null);
+    const gd = kk.kd && coToaDo(cache[kk.kd]), gp = kk.kp && coToaDo(cache[kk.kp]);
+    const g = gd || gp || (kk.kq && coToaDo(cache[kk.kq]));
     if (!g) return;
     // ghim theo đường thì để NGUYÊN toạ độ (đã đúng chỗ, rải ra là phá);
     // theo phường rải hẹp ~±170m; theo quận rải rộng ~±900m cho tin khỏi chồng nhau
@@ -136,6 +179,9 @@ const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
   });
   fs.writeFileSync(url, JSON.stringify(db, null, 0));
   if (hong) console.error(`  ⚠ ${hong} khu vực hỏi hỏng (429/timeout) -> KHÔNG cache, lượt sau tra lại`);
+  if (bienTheDung) console.error(`  ↺ ${bienTheDung} khu vực chỉ tra được bằng biến thể bỏ tiền tố (VD "Thành phố Thủ Đức" -> "Thủ Đức")`);
+  const khongCo = Object.values(cache).filter((v) => laKhongCo(v)).length;
+  console.error(`  cache: ${Object.keys(cache).length} khoá (${khongCo} khoá "không tìm thấy", hết hạn sau ${Math.round(NEG_TTL_MS / 864e5)} ngày)`);
   console.error("  ghim theo:", JSON.stringify(muc));
   console.error(`Đã bù toạ độ ${hit}/${need.length} tin. Tổng có toạ độ:`, db.listings.filter((x) => x.lat != null).length, "/", db.listings.length);
 }

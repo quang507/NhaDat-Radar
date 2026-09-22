@@ -1,7 +1,7 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
-import { gopTrung } from "./gop.mjs";
+import { gopTrung, nguongGiaLech, coLech, CUM_TOI_THIEU, NGUOI_DANG_TOI_THIEU, LECH_TOI_THIEU } from "./gop.mjs";
 import { canonProvince, suaChuHong, boSurrogateLe, soNguyen, soThuc } from "./chung.mjs";
 import { PHONE_RE } from "./quality-gate.mjs";
 import { createHash } from "node:crypto";
@@ -73,7 +73,10 @@ function canonDistrict(raw) {
   const m = s.match(/\(\s*(?:P\.|Phường)?\s*([^)]*?)\s*(?:mới)?\s*\)\s*$/i);
   const base = s.replace(/\s*\([^)]*\)\s*$/, "").trim();
   const district = base ? canonDistrictName(base) : null;
-  const wardHint = m && m[1] ? "Phường " + m[1].replace(/^(P\.|Phường)\s*/i, "") : null;
+  // Ngoặc KHÔNG phải lúc nào cũng là phường: batdongsan ghi "Quận 9 (TP. Thủ Đức mới)" -> bản cũ đẻ ra
+  // "Phường TP. Thủ Đức" rồi đem đi geocode (audit 22/9). Có tiền tố cấp quận/TP -> không phải phường.
+  const hintTho = m && m[1] ? m[1].replace(/^(P\.|Phường)\s*/i, "").trim() : null;
+  const wardHint = hintTho && !/^(tp\.?|thành phố|quận|huyện|thị xã|tx\.?|q\.)\s*/i.test(hintTho) ? "Phường " + hintTho : null;
   return { district, wardHint };
 }
 
@@ -245,7 +248,8 @@ all = kept;
 
 // ---- Cảnh báo giá lệch (price_flag) trên TOÀN BỘ dữ liệu ----
 // Trước đây chỉ crawl.js (nhadat.vn) sinh price_warning -> nguồn đó 0 tin -> 0% tin có cờ.
-// Cụm = tỉnh|quận|loại|bán-thuê; so theo giá/m² (thuê không có DT thì so theo giá). Cần >=5 tin & >=2 người đăng khác nhau.
+// Cụm = tỉnh|quận|loại|bán-thuê; so theo giá/m² (thuê không có DT thì so theo giá).
+// 22/9: ngưỡng cứng ±28% gắn cờ 22% số tin -> đổi sang hàng rào IQR của chính cụm (xem gop.mjs).
 const median = (arr) => { const s = [...arr].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const clusters = new Map();
 for (const x of all) {
@@ -259,21 +263,20 @@ for (const x of all) {
 let flagged = 0;
 for (const rows of clusters.values()) {
   const posters = new Set(rows.map((r) => r.poster));
-  if (rows.length < 5 || posters.size < 2) continue;
-  const med = median(rows.map((r) => r.v));
-  if (!med) continue;
+  if (rows.length < CUM_TOI_THIEU || posters.size < NGUOI_DANG_TOI_THIEU) continue;
+  const ng = nguongGiaLech(rows.map((r) => r.v));
+  if (!ng || !ng.p50) continue;
   for (const { x, v } of rows) {
-    const dev = (v - med) / med;
-    if (Math.abs(dev) >= 0.28) {
-      x.price_warning = { reason: dev > 0 ? "cao_hon" : "thap_hon", deviation_pct: Math.round(dev * 100),
-        cluster_size: rows.length, distinct_posters: posters.size, median_vnd: Math.round(med), basis: x.price_per_m2 ? "m2" : "gia" };
-      flagged++;
-    }
+    const lech = coLech(v, ng);
+    if (!lech) continue;
+    x.price_warning = { ...lech, cluster_size: rows.length, distinct_posters: posters.size,
+      median_vnd: Math.round(ng.p50), nguong_vnd: [Math.round(ng.thap), Math.round(ng.cao)], basis: x.price_per_m2 ? "m2" : "gia" };
+    flagged++;
   }
 }
 // điểm heuristic phải phản ánh cờ giá vừa tính (nguồn tự chấm giữ nguyên, chỉ trừ thêm khi có cờ)
 for (const x of all) if (x.price_warning && x.ai_score) x.ai_score = Math.max(35, x.ai_score - 12);
-console.error("price_flag:", flagged, "tin lệch ≥28% so với trung vị cụm (", clusters.size, "cụm )");
+console.error(`price_flag: ${flagged} tin ngoài hàng rào IQR của cụm (và lệch ≥${Math.round(LECH_TOI_THIEU * 100)}% so với trung vị), ${clusters.size} cụm`);
 
 // ---- Lý do dấu hiệu môi giới/chính chủ (cho nguồn chưa tự sinh) ----
 for (const x of all) {

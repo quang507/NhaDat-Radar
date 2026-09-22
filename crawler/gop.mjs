@@ -48,3 +48,37 @@ export function chonToaDo(moi, cu) {
     ? { lat: moi.lat, lng: moi.lng, geo_precision: moi.geo_precision ?? null }
     : { lat: cu.lat, lng: cu.lng, geo_precision: cu.geo_precision ?? null };
 }
+
+// ---- Cờ giá lệch (merge.mjs) ----
+// Bản cũ: ngưỡng CỨNG ±28% quanh trung vị cụm (tỉnh|quận|loại|bán/thuê). Đo trên 515 tin thật
+// (22/9): 22% tổng số tin bị gắn cờ, riêng bán nhà phố 30% (trung vị độ lệch 48%) - giá nhà phố
+// vốn tản rộng theo vị trí/diện tích đất nên "lệch 28%" là chuyện thường -> cảnh báo mất giá trị
+// và còn trừ 12 điểm ai_score.
+// Bản mới: hàng rào IQR của CHÍNH cụm đó (Tukey) + vẫn phải lệch ≥35% so với trung vị, cụm phải
+// đủ lớn. Cụm càng tản thì hàng rào càng rộng -> chỉ còn giá thực sự dị thường bị gắn cờ.
+export const CUM_TOI_THIEU = 8, NGUOI_DANG_TOI_THIEU = 3, LECH_TOI_THIEU = 0.35;
+export function phanVi(vals, p) {
+  const s = [...vals].sort((a, b) => a - b);
+  if (!s.length) return null;
+  const i = (s.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (i - lo);
+}
+// Hàng rào tính trên THANG LOG: giá BĐS lệch phải (log-normal), làm trên thang thường thì hàng rào
+// dưới ra số ÂM -> không bao giờ gắn cờ được tin "rẻ bất thường" (đúng loại tin cần cảnh báo nhất:
+// giá mồi, ghi thiếu số 0). Trên thang log, hàng rào thành hệ số nhân đối xứng quanh trung vị.
+export function nguongGiaLech(vals) {
+  const duong = vals.filter((v) => v > 0);
+  if (duong.length < CUM_TOI_THIEU) return null;
+  const ln = duong.map(Math.log);
+  const q25 = phanVi(ln, 0.25), q50 = phanVi(ln, 0.5), q75 = phanVi(ln, 0.75);
+  const iqr = q75 - q25;
+  return { p25: Math.exp(q25), p50: Math.exp(q50), p75: Math.exp(q75), thap: Math.exp(q25 - 1.5 * iqr), cao: Math.exp(q75 + 1.5 * iqr) };
+}
+// null = không gắn cờ; {reason, deviation_pct} = có cờ
+export function coLech(v, ng) {
+  if (!ng || !ng.p50) return null;
+  const dev = (v - ng.p50) / ng.p50;
+  if (Math.abs(dev) < LECH_TOI_THIEU) return null;
+  if (v >= ng.thap && v <= ng.cao) return null;   // vẫn nằm trong hàng rào IQR của cụm
+  return { reason: dev > 0 ? "cao_hon" : "thap_hon", deviation_pct: Math.round(dev * 100) };
+}
