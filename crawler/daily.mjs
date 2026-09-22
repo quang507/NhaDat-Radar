@@ -220,13 +220,36 @@ const updates = rows.filter((r) => r.id), inserts = rows.filter((r) => !r.id);
 // (mô tả + specs + mảng ảnh) - 23/8 CI chết statement timeout ở đúng chỗ này khi DB chạm
 // 13k tin với nhịp 200. Kèm migration 021 nới trần cho service_role lên 120s.
 const CHUNK = 200, CHUNK_UPDATE = 50;
-for (let i = 0; i < updates.length; i += CHUNK_UPDATE) {
-  const { error } = await sb.from("listings").upsert(updates.slice(i, i + CHUNK_UPDATE), { onConflict: "id" });
-  if (error) { console.error("Seed (update) lỗi:", error.message); process.exit(1); }
+// Một dòng hỏng từng giết CẢ lượt: lô 200 tin lỗi -> process.exit(1) -> bỏ luôn gone/alerts/embed
+// (CI 19/9: nửa emoji; audit 22/9: giá "5.99" từ model). Giờ lô lỗi thì ghi LẺ từng dòng, bỏ riêng
+// dòng hỏng (có log). Lỗi hệ thống (DB sập, sai key, timeout) thì 5 dòng lẻ đầu cũng lỗi -> dừng như cũ.
+const dongLoi = [];
+async function ghiLo(ten, lo, ghi) {
+  const { error } = await ghi(lo);
+  if (!error) return lo.length;
+  console.error(`Seed (${ten}) lỗi cả lô ${lo.length} dòng: ${error.message} -> ghi lẻ từng dòng`);
+  let ok = 0, loiLienTiep = 0;
+  for (const r of lo) {
+    const { error: e } = await ghi([r]);
+    if (!e) { ok++; loiLienTiep = 0; continue; }
+    dongLoi.push({ ten, key: `${r.source_site}|${r.source_post_id}`, msg: e.message });
+    if (++loiLienTiep >= 5 && ok === 0) {
+      console.error(`Seed (${ten}) lỗi: 5 dòng lẻ đầu tiên đều hỏng (${e.message}) -> lỗi hệ thống, dừng.`);
+      process.exit(1);
+    }
+  }
+  return ok;
 }
-for (let i = 0; i < inserts.length; i += CHUNK) {
-  const { error } = await sb.from("listings").insert(inserts.slice(i, i + CHUNK));
-  if (error) { console.error("Seed (insert) lỗi:", error.message); process.exit(1); }
+let daGhiUpdate = 0, daGhiInsert = 0;
+for (let i = 0; i < updates.length; i += CHUNK_UPDATE)
+  daGhiUpdate += await ghiLo("update", updates.slice(i, i + CHUNK_UPDATE), (lo) => sb.from("listings").upsert(lo, { onConflict: "id" }));
+for (let i = 0; i < inserts.length; i += CHUNK)
+  daGhiInsert += await ghiLo("insert", inserts.slice(i, i + CHUNK), (lo) => sb.from("listings").insert(lo));
+if (dongLoi.length) {
+  console.error(`⚠ Seed bỏ ${dongLoi.length} dòng hỏng (đã ghi ${daGhiUpdate}/${updates.length} update, ${daGhiInsert}/${inserts.length} insert):`);
+  for (const d of dongLoi.slice(0, 20)) console.error(`   - [${d.ten}] ${d.key}: ${d.msg}`);
+  buocLoi.push(`seed: bỏ ${dongLoi.length} dòng hỏng`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Seed bỏ dòng hỏng::${dongLoi.length} dòng - xem log`);
 }
 // Tin crawl không thấy lại ≥36h -> gone; nguồn chỉ cào được ở máy nhà (FB, batdongsan qua Playwright) cho 7 ngày
 // vì máy nhà không chạy mỗi ngày; gone quá 30 ngày -> xoá hẳn (giữ DB gọn)
@@ -296,7 +319,7 @@ const hardPurgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString
 const { count: hardPurgedN } = await sb.from("listings").delete({ count: "exact" })
   .eq("source", "crawl").lt("last_seen_at", hardPurgeCutoff);
 
-console.log(`✅ ${now.slice(0, 10)}: ${inserts.length} tin mới · ${updates.length} tin còn sống (cập nhật) · ${goneN || 0} tin vừa gỡ (gone) · ${(purgedN || 0) + (hardPurgedN || 0)} tin cũ xoá sạch · ${rows.filter((r) => r.images.length).length} có ảnh · ${rows.filter((r) => r.source_count > 1).length} tin ≥2 nguồn · ${rows.filter((r) => r.price_flag).length} tin cờ giá.`);
+console.log(`✅ ${now.slice(0, 10)}: ${daGhiInsert} tin mới · ${daGhiUpdate} tin còn sống (cập nhật) · ${goneN || 0} tin vừa gỡ (gone) · ${(purgedN || 0) + (hardPurgedN || 0)} tin cũ xoá sạch · ${rows.filter((r) => r.images.length).length} có ảnh · ${rows.filter((r) => r.source_count > 1).length} tin ≥2 nguồn · ${rows.filter((r) => r.price_flag).length} tin cờ giá.`);
 
 // 2b) Dọn tin bóc từ group Zalo quá 1 NĂM (giữ lâu hơn tin crawl vì group không re-seed;
 // tin DM tự đăng (zalo_bot) và tin user coi như tin người dùng - KHÔNG tự xóa)

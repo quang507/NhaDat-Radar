@@ -8,7 +8,7 @@
 import fs from "node:fs";
 import { cleanFbText } from "./fb-clean.mjs";
 import { qualityGate, PHONE_RE, BDS_KEYWORD } from "./quality-gate.mjs";
-import { hash31 as hash } from "./chung.mjs";
+import { hash31 as hash, catChuoi, soNguyen, soThuc } from "./chung.mjs";
 
 // Xoay nhiều key Gemini (từ nhiều PROJECT/acc) để né 429. Cũng nhận GEMINI_API_KEYS="k1,k2,k3".
 const KEYS = [
@@ -82,15 +82,20 @@ async function toListing(post) {
   // Xét cả TIÊU ĐỀ Gemini trích: mô tả FB hay viết tắt/tránh kiểm duyệt ("CC", "s.ổ h.ồng") -> chỉ dò mô tả sẽ loại oan
   const why = qualityGate((ai.title_clean || "") + "\n" + post.text, { district: ai.district, province: ai.city }, { canSdt: false });
   if (why) { console.error(`  ↷ loại (${why}): ${(ai.title_clean || post.text || "").slice(0, 60)}`); return null; }
+  // Số do model trả KHÔNG được tin: "5.99" (quên nhân 1e9) từng lọt qua cổng và làm seed chết với
+  // "invalid input syntax for type bigint" (audit 22/9). Giá < 1 triệu coi như model sai đơn vị -> bỏ giá.
+  const giaAi = soNguyen(ai.price_vnd, { min: 1_000_000 });
+  const dtAi = soThuc(ai.area_m2, { max: 1_000_000 });
+  if (ai.price_vnd != null && giaAi == null) console.error(`  ⚠ giá model trả không hợp lệ (${ai.price_vnd}) -> bỏ giá: ${(ai.title_clean || "").slice(0, 50)}`);
   return {
     // id ổn định theo LINK bài (innerText có số like/"3 giờ" đổi mỗi ngày -> hash text sinh tin mới giả mỗi lần cào - audit 16/8)
     id: "fb-" + (post.id || (post.url && post.url !== "#" ? Math.abs(hash(post.url.replace(/[?#].*$/, ""))).toString(36) : Math.abs(hash((post.text || "").replace(/\d+\s*(giờ|phút|ngày|lượt|bình luận|thích|chia sẻ)/gi, "").slice(0, 300))).toString(36))),
     source: "crawl", source_site: "facebook", source_url: post.url || "#", source_post_id: post.id || null,
     title: ai.title_clean || (post.text || "").slice(0, 80),
-    description: (post.text || "").slice(0, 1100),
-    price_vnd: ai.price_vnd ?? null, area_m2: ai.area_m2 ?? null,
-    price_per_m2: ai.price_vnd && ai.area_m2 ? Math.round(ai.price_vnd / ai.area_m2) : null,
-    bedrooms: ai.bedrooms ?? null, bathrooms: null, floors: null,
+    description: catChuoi(post.text || "", 1100), // theo code point, không cắt đôi emoji
+    price_vnd: giaAi, area_m2: dtAi,
+    price_per_m2: giaAi && dtAi ? Math.round(giaAi / dtAi) : null,
+    bedrooms: soNguyen(ai.bedrooms, { min: 1, max: 50 }), bathrooms: null, floors: null,
     direction: null, legal: ai.legal ?? null, furnishing: null,
     listing_type: ai.listing_type || (/cho thuê|thuê|cần thuê/i.test(post.text || "") ? "cho_thue" : "ban"), // audit: mặc định cứng "cho_thue" từng gắn sai tin bán
     property_type: ai.property_type || "khac",

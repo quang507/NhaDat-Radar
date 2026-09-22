@@ -1,7 +1,7 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
-import { canonProvince, suaChuHong } from "./chung.mjs";
+import { canonProvince, suaChuHong, boSurrogateLe, soNguyen, soThuc } from "./chung.mjs";
 import { PHONE_RE } from "./quality-gate.mjs";
 import { createHash } from "node:crypto";
 
@@ -76,13 +76,37 @@ function canonDistrict(raw) {
   return { district, wardHint };
 }
 
+const DEALS = new Set(["ban", "cho_thue"]);
+const KINDS = new Set(["phong_tro", "can_ho", "nha", "dat", "mat_bang", "khac"]);
+const giaBoDi = {};   // đếm theo nguồn: giá không hợp lệ bị đặt null
+let daoToaDo = 0, boToaDo = 0;
+// Toạ độ phải nằm trong khung Việt Nam. Nguồn ghi đảo lat/lng (lat=106) -> đảo lại; ngoài khung
+// cả hai chiều -> null để geocode bù, thay vì lưu điểm ma (trigger geo để NULL, web vẫn đọc lat/lng).
+function toaDoVN(lat, lng) {
+  const trongVN = (a, b) => a >= 8 && a <= 23.6 && b >= 102 && b <= 110;
+  const a = soThuc(lat, { min: -91, max: 90 }), b = soThuc(lng, { min: -181, max: 180 });
+  if (lat == null || lng == null) return { lat: null, lng: null };
+  if (a != null && b != null && trongVN(a, b)) return { lat: a, lng: b };
+  const a2 = Number(lng), b2 = Number(lat);
+  if (Number.isFinite(a2) && Number.isFinite(b2) && trongVN(a2, b2)) { daoToaDo++; return { lat: a2, lng: b2 }; }
+  boToaDo++;
+  return { lat: null, lng: null };
+}
+
 function norm(x) {
   // sửa Unicode hỏng TRƯỚC khi chuẩn hoá - không thì "Thủ ƌức" đi qua canonDistrict
   // thành bucket riêng và "\u01ồng Nai" thành tỉnh ma (xem suaChuHong trong chung.mjs)
-  x = { ...x, title: suaChuHong(x.title), description: suaChuHong(x.description),
-    province: suaChuHong(x.province), district: suaChuHong(x.district),
-    ward: suaChuHong(x.ward), address: suaChuHong(x.address) };
-  const price = x.price_vnd ?? null, area = x.area_m2 ?? null;
+  // boSurrogateLe: nửa emoji còn sót ở BẤT KỲ nguồn nào làm PostgREST từ chối cả lô insert
+  // (audit 22/9) -> chặn ở đây, điểm hẹp duy nhất mọi nguồn đi qua.
+  const sach = (s) => boSurrogateLe(suaChuHong(s));
+  x = { ...x, title: sach(x.title), description: sach(x.description),
+    province: sach(x.province), district: sach(x.district),
+    ward: sach(x.ward), address: sach(x.address) };
+  // Số phải đúng kiểu cột (price_vnd bigint, bedrooms int...): "5.99", NaN, âm, 390đ ("390 nghìn/m²"
+  // của batdongsan) -> null thay vì lọt vào DB hoặc làm seed chết. Giá < 1 triệu không phải giá BĐS.
+  const price = soNguyen(x.price_vnd, { min: 1_000_000 }), area = soThuc(x.area_m2, { max: 1_000_000 });
+  if (x.price_vnd != null && price == null) giaBoDi[x.source_site] = (giaBoDi[x.source_site] || 0) + 1;
+  const toaDo = toaDoVN(x.lat, x.lng);
   const dc = canonDistrict(x.district);
   // nguồn nào không có sẵn trường SĐT thì dò trong mô tả - chotot/mogi người đăng hay tự
   // viết số vào bài (đo: 98% tin facebook dò ra được số ngay trong mô tả).
@@ -100,13 +124,16 @@ function norm(x) {
     title: x.title || "",
     description: x.description || "",
     price_vnd: price, area_m2: area,
-    price_per_m2: x.price_per_m2 ?? (price && area ? Math.round(price / area) : null),
-    bedrooms: x.bedrooms ?? null, bathrooms: x.bathrooms ?? null, floors: x.floors ?? null,
+    price_per_m2: price && area ? Math.round(price / area) : null,
+    bedrooms: soNguyen(x.bedrooms, { max: 200 }), bathrooms: soNguyen(x.bathrooms, { max: 200 }), floors: soNguyen(x.floors, { max: 200 }),
     direction: x.direction ?? null, legal: x.legal ?? x.legal_status ?? null, furnishing: x.furnishing ?? null,
-    listing_type: x.listing_type, property_type: x.property_type,
+    // enum trong DB (listing_deal NOT NULL / property_kind NOT NULL): deal sai -> bản ghi bị loại ở
+    // bước lọc ngay sau norm (1 tin thiếu deal từng làm cả lô 200 tin insert lỗi); kind lạ -> "khac"
+    listing_type: DEALS.has(x.listing_type) ? x.listing_type : null,
+    property_type: KINDS.has(x.property_type) ? x.property_type : "khac",
     province: canonProvince(x.province), district: dc.district, ward: x.ward ?? dc.wardHint ?? null,
     address: x.address ?? null,                      // chuỗi địa chỉ nguyên văn của nguồn (có tên đường)
-    lat: x.lat ?? null, lng: x.lng ?? null,
+    lat: toaDo.lat, lng: toaDo.lng,
     amenities: x.amenities || [],
     specs: x.specs && Object.keys(x.specs).length ? x.specs : null,   // bảng thông số riêng của nguồn
     poster_role: x.poster_role || "khong_ro", poster_listing_count: x.poster_listing_count || 1,
@@ -129,9 +156,17 @@ const sources = ["chotot.json", "batdongsan.json", "mogi.json", "facebook.json",
 let all = [];
 for (const f of sources) { const rows = load(f).map(norm); all = all.concat(rows); console.error(f, "->", rows.length); }
 
+// Bản ghi không có loại tin hợp lệ (ban/cho_thue) thì không có chỗ trong DB (listing_deal NOT NULL)
+// -> loại ở đây, có đếm, thay vì để nó làm hỏng cả lô insert ở seed (audit 22/9).
+const saiLoai = {};
+all = all.filter((x) => { if (x.listing_type) return true; saiLoai[x.source_site] = (saiLoai[x.source_site] || 0) + 1; return false; });
+if (Object.keys(saiLoai).length) console.error("loại vì thiếu/sai listing_type:", JSON.stringify(saiLoai));
+if (Object.keys(giaBoDi).length) console.error("giá không hợp lệ -> null (< 1 triệu / không phải số):", JSON.stringify(giaBoDi));
+if (daoToaDo || boToaDo) console.error(`toạ độ: đảo lại lat/lng ${daoToaDo} tin, bỏ ${boToaDo} tin ngoài khung Việt Nam`);
+
 // Lọc tin rác (dịch vụ, tuyển dụng, vay vốn, hàng tiêu dùng...) trước khi dedupe
 const beforeJunk = all.length;
-all = all.filter((x) => !isJunk(x.title, x.description));
+all = all.filter((x) => !isJunk(x.title, x.description, x.property_type));
 console.error("junk filter:", beforeJunk, "->", all.length, `(bỏ ${beforeJunk - all.length} tin rác)`);
 
 // Cổng chất lượng (audit 16/8: batdongsantoanquoc 141/144 tin không giá, không DT, không quận -> lọt search dạng
