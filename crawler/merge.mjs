@@ -1,6 +1,7 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
+import { gopTrung } from "./gop.mjs";
 import { canonProvince, suaChuHong, boSurrogateLe, soNguyen, soThuc } from "./chung.mjs";
 import { PHONE_RE } from "./quality-gate.mjs";
 import { createHash } from "node:crypto";
@@ -134,6 +135,7 @@ function norm(x) {
     province: canonProvince(x.province), district: dc.district, ward: x.ward ?? dc.wardHint ?? null,
     address: x.address ?? null,                      // chuỗi địa chỉ nguyên văn của nguồn (có tên đường)
     lat: toaDo.lat, lng: toaDo.lng,
+    geo_precision: toaDo.lat != null ? "nguon" : null,   // toạ độ có sẵn lúc merge = do trang nguồn cung cấp
     amenities: x.amenities || [],
     specs: x.specs && Object.keys(x.specs).length ? x.specs : null,   // bảng thông số riêng của nguồn
     poster_role: x.poster_role || "khong_ro", poster_listing_count: x.poster_listing_count || 1,
@@ -210,7 +212,7 @@ function titleFingerprint(x) {
   const ab = x.area_m2 ? Math.round(x.area_m2) : "-";
   return [words.join(" "), pb, ab, stripAccent((x.district || "").toLowerCase())].join("|");
 }
-const richness = (x) => (x.images || []).length * 10 + Math.min(500, (x.description || "").length) / 50 + (x.lat ? 3 : 0);
+// gộp bản trùng theo từng trường: crawler/gop.mjs (tách riêng để unit test được)
 
 const seenId = new Set(), byKey = new Map(), seenTitle = new Set();
 const kept = [];
@@ -231,12 +233,7 @@ for (const x of all) {
       dup.source_count += 1;
       dup.source_sites = [...new Set([...(dup.source_sites || [dup.source_site]), x.source_site])];
     }
-    // giữ bản giàu dữ liệu hơn nhưng bảo toàn danh tính (id/source_post_id/first-seen) của bản đầu
-    if (richness(x) > richness(dup)) {
-      const keepIdent = { id: dup.id, source: dup.source, source_site: dup.source_site, url: dup.url, source_post_id: dup.source_post_id,
-        source_count: dup.source_count, source_sites: dup.source_sites, posted_at: dup.posted_at ?? x.posted_at };
-      Object.assign(dup, x, keepIdent);
-    }
+    gopTrung(dup, x);   // gộp theo từng trường - xem chú thích ở gopTrung
     for (const k of keys) if (!byKey.has(k)) byKey.set(k, dup); // key của x cũng trỏ về dup (audit: tin thứ 3 trùng x lọt lưới)
     continue;
   }

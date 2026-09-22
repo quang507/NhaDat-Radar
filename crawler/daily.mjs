@@ -3,6 +3,7 @@
 import { execSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
+import { chonToaDo } from "./gop.mjs";
 
 const here = import.meta.dirname;
 // Bước hỏng trước đây chỉ in "✗ lỗi" rồi trôi qua -> job CI vẫn xanh dù nguồn chết nhiều ngày.
@@ -119,7 +120,13 @@ const comb = JSON.parse(fs.readFileSync(new URL("./combined.json", import.meta.u
 // PostgREST cắt 1000 dòng/lần -> phải phân trang, không thì tin cũ ngoài 1000 bị coi là mới -> insert đụng
 // unique index uq_listings_source_post (migration 001) và seed thất bại.
 // Lấy thêm các cột DỄ RỖNG để KHÔNG ghi null đè lên giá trị tốt (xem giuNeuTrong bên dưới).
-const COT_DE_RONG = "lat,lng,images,description,specs,phone_masked,poster_key,address,posted_at,direction,legal_status,furnishing,floors,bedrooms,bathrooms,amenities";
+// geo_precision (migration 029): DB chưa có cột thì PostgREST trả 42703 cho CẢ truy vấn -> dò trước,
+// thiếu thì chạy như cũ (không ghi mức chính xác, giữ quy tắc "khác rỗng là đè") thay vì chết.
+const { error: loiCotGeo } = await sb.from("listings").select("geo_precision").limit(1);
+const CO_GEO_PRECISION = !loiCotGeo;
+if (!CO_GEO_PRECISION) console.error("⚠ DB chưa có cột listings.geo_precision (migration 029) -> toạ độ vẫn ghi theo quy tắc cũ:", loiCotGeo.message);
+const COT_DE_RONG = "lat,lng,images,description,specs,phone_masked,poster_key,address,posted_at,direction,legal_status,furnishing,floors,bedrooms,bathrooms,amenities"
+  + (CO_GEO_PRECISION ? ",geo_precision" : "");
 const oldRows = [];
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb.from("listings")
@@ -166,6 +173,17 @@ const rows = [];
 // quá 2 ngày). Seed chúng sẽ đè bản CI mới hơn và kéo dài last_seen_at của tin web có thể đã gỡ.
 // -> Lượt --fb-only chỉ ghi tin Facebook.
 const NGUON_FB = ["facebook.com", "facebook"];
+// Toạ độ: trước đây giuNeuTrong -> cứ khác rỗng là đè, nên toạ độ thật (trang chi tiết batdongsan chỉ
+// lấy ở lượt đầu) bị điểm geocode rải theo phường/quận ghi đè ở lượt sau (đo 22/9: lệch 1-5 km).
+// Giờ so mức chính xác (crawler/gop.mjs chonToaDo). DB chưa có cột geo_precision -> quy tắc cũ.
+let giuToaDoCu = 0;
+const toaDoGhi = (x, old) => {
+  if (!CO_GEO_PRECISION) return { lat: giuNeuTrong(x.lat ?? null, old?.lat), lng: giuNeuTrong(x.lng ?? null, old?.lng) };
+  const moi = { lat: x.lat ?? null, lng: x.lng ?? null, geo_precision: x.geo_precision ?? null };
+  const kq = chonToaDo(moi, old ? { lat: old.lat, lng: old.lng, geo_precision: old.geo_precision } : null);
+  if (old && moi.lat != null && kq.lat === old.lat && kq.lng === old.lng && (moi.lat !== old.lat || moi.lng !== old.lng)) giuToaDoCu++;
+  return kq;
+};
 for (const x of comb.listings) {
   if (FB_ONLY && !NGUON_FB.includes(x.source_site)) continue;
   const key = x.source_site + "|" + (x.source_post_id || x.id);
@@ -185,7 +203,7 @@ for (const x of comb.listings) {
     direction: giuNeuTrong(x.direction, old?.direction), legal_status: giuNeuTrong(x.legal, old?.legal_status),
     furnishing: giuNeuTrong(x.furnishing, old?.furnishing),
     address: giuNeuTrong(x.address ?? null, old?.address),
-    lat: giuNeuTrong(x.lat ?? null, old?.lat), lng: giuNeuTrong(x.lng ?? null, old?.lng),
+    ...toaDoGhi(x, old),                                   // lat/lng (+ geo_precision): chính xác hơn mới được đè
     amenities: giuNeuTrong(x.amenities || [], old?.amenities), images: giuNeuTrong(x.images || [], old?.images),
     specs: giuNeuTrong(x.specs ?? null, old?.specs),        // bảng thông số nguồn (guland/batdongsan) - web ẩn ô trống
     contact_phone: null,                                   // NĐ13: không lưu SĐT thô của tin cào
@@ -215,6 +233,7 @@ for (const x of comb.listings) {
     phone_hash: r.poster_key, price_warning: r.price_flag,
   });
 }
+if (giuToaDoCu) console.error(`(giữ toạ độ cũ chính xác hơn cho ${giuToaDoCu} tin - không đè bằng điểm geocode kém chính xác)`);
 const updates = rows.filter((r) => r.id), inserts = rows.filter((r) => !r.id);
 // UPDATE đi nhịp NHỎ hơn insert: upsert phải dò từng id + ghi lại index, hàng listings nặng
 // (mô tả + specs + mảng ảnh) - 23/8 CI chết statement timeout ở đúng chỗ này khi DB chạm

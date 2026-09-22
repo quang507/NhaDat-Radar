@@ -127,6 +127,9 @@ const BUDGET_MS = Number(process.env.GEOCODE_BUDGET_MS || 8 * 60 * 1000);
     // theo phường rải hẹp ~±170m; theo quận rải rộng ~±900m cho tin khỏi chồng nhau
     if (gd) { x.lat = g.lat; x.lng = g.lng; }
     else { x.lat = jitter(x.id, g.lat, !!gp); x.lng = jitter(x.id + "b", g.lng, !!gp); }
+    // mức chính xác đi kèm toạ độ (listings.geo_precision) - seed dựa vào đây để KHÔNG đè toạ độ
+    // thật đã lưu bằng điểm rải theo phường/quận (audit 22/9)
+    x.geo_precision = gd ? "duong" : gp ? "phuong" : "quan";
     hit++;
     const tang = gd ? "đường" : gp ? "phường" : "quận";
     muc[tang] = (muc[tang] || 0) + 1;
