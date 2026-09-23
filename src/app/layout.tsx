@@ -5,6 +5,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
 import Clarity from "@/components/Clarity";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import MoiDienSdt from "@/components/MoiDienSdt";
 
 // Body: Inter · Display: Lora (self-host qua next/font, không gọi link ngoài)
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <ChatWidget />
         <Clarity />
+        <GoogleAnalytics />
         {/* mời người đã đăng nhập để lại SĐT (không OTP, bỏ qua được) - hiện lại sau 7 ngày */}
         <MoiDienSdt />
       </body>
