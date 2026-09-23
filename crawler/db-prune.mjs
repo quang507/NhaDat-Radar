@@ -41,19 +41,19 @@ for (const locNhom of nhomGone) {
 }
 console.log(`✓ Đã chuyển sang 'gone': ${markGone} tin`);
 
-// 3. Xoá cứng các tin crawl cũ hơn 21 ngày không thấy lại
-const hardCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
+// 3. Xoá cứng các tin crawl cũ hơn 45 ngày không thấy lại
+const hardCutoff = new Date(Date.now() - 45 * 24 * 3600 * 1000).toISOString();   // 23/9: nới 21 -> 45 ngày (cùng luật daily.mjs)
 const { count: purgedHard, error: e2 } = await sb.from("listings").delete({ count: "exact" })
   .eq("source", "crawl").lt("last_seen_at", hardCutoff);
-if (e2) console.error("Lỗi xoá cứng >21 ngày:", e2.message);
-else console.log(`✓ Đã xoá vĩnh viễn tin quá 21 ngày: ${purgedHard || 0} tin`);
+if (e2) console.error("Lỗi xoá cứng >45 ngày:", e2.message);
+else console.log(`✓ Đã xoá vĩnh viễn tin quá 45 ngày: ${purgedHard || 0} tin`);
 
-// 4. Xoá các tin đã 'gone' quá 7 ngày
-const gonePurgeCutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+// 4. Xoá các tin đã 'gone' quá 21 ngày
+const gonePurgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();   // 23/9: nới 7 -> 21 ngày
 const { count: purgedGone, error: e3 } = await sb.from("listings").delete({ count: "exact" })
   .eq("source", "crawl").eq("status", "gone").lt("last_seen_at", gonePurgeCutoff);
-if (e3) console.error("Lỗi xoá tin gone >7 ngày:", e3.message);
-else console.log(`✓ Đã xoá vĩnh viễn tin gone quá 7 ngày: ${purgedGone || 0} tin`);
+if (e3) console.error("Lỗi xoá tin gone >21 ngày:", e3.message);
+else console.log(`✓ Đã xoá vĩnh viễn tin gone quá 21 ngày: ${purgedGone || 0} tin`);
 
 // 5. Giải phóng embedding vector(768) cho các tin đã 'gone' còn lại (giảm tải HNSW / RAM)
 let nullEmbedding = 0;

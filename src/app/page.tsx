@@ -18,6 +18,21 @@ import { getAreas } from "@/lib/geo";
 import type { Listing, Project } from "@/lib/types";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
 
+// Title/description có SỐ THẬT (số tin, số tỉnh) thay vì câu quảng cáo chung chung - dữ liệu lấy từ
+// cây khu vực đã cache 10 phút nên không thêm truy vấn (23/9).
+export async function generateMetadata() {
+  try {
+    const { total, districtCount, sources } = await getAreas();
+    return {
+      title: `NhaDat Radar - ${total.toLocaleString("vi-VN")} tin nhà đất bán & cho thuê, giá thật theo khu vực`,
+      description: `${total.toLocaleString("vi-VN")} tin nhà đất từ ${sources} nguồn, phủ ${districtCount} quận/huyện: giá trung vị theo m², xu hướng giá, cảnh báo giá lệch và dấu hiệu môi giới/chính chủ. Cập nhật hằng ngày.`,
+      alternates: { canonical: "/" },
+    };
+  } catch {
+    return { alternates: { canonical: "/" } };
+  }
+}
+
 // Ảnh hero thương hiệu: đặt file tại public/hero.jpg (hoặc .png/.webp) là tự dùng.
 // Tính 1 lần lúc module load (audit 16/8: bản cũ existsSync 3 lần mỗi request).
 const HERO: string | null = (() => {

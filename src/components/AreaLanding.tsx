@@ -7,13 +7,14 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { fmtPrice, fmtPpm2, PROP, startOfDayVN } from "@/lib/format";
 import { median, percentile } from "@/lib/gemini";
-import { slugify, areaPath, DEAL_WORD } from "@/lib/slug";
+import { slugify, areaPath, DEAL_WORD, KIND_SLUG, kindFromSlug } from "@/lib/slug";
 import { getAreas } from "@/lib/geo";
 import type { Listing } from "@/lib/types";
 import ListingRow from "@/components/ListingRow";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import PriceTrend from "@/components/PriceTrend";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { ldJson } from "@/lib/ld";
 
 type Deal = "ban" | "cho_thue";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
@@ -31,15 +32,10 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
  * nên đọc được phiên Supabase trong localStorage.
  * Escape sang \\u00XX: vẫn là JSON hợp lệ, trình duyệt vẫn parse đúng, mà không thoát được thẻ.
  */
-function ldJson(o: unknown): string {
-  return JSON.stringify(o)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
-}
+// (thân hàm chuyển sang src/lib/ld.ts 23/9 để trang chi tiết tin dùng chung - import ở đầu file)
 
 /** slug -> tên thật, dựa trên cây khu vực CACHE (lib/geo) - audit 16/8: bản cũ select 5.000 dòng x2 mỗi request (metadata + page) */
-export type AreaInfo = { province: string; ban: number; cho_thue: number; districts: Record<string, { ban: number; cho_thue: number }> };
+export type AreaInfo = { province: string; ban: number; cho_thue: number; kinds: Record<string, { ban: number; cho_thue: number }>; districts: Record<string, { ban: number; cho_thue: number; kinds: Record<string, { ban: number; cho_thue: number }> }> };
 export async function resolveArea(provinceSlug: string, districtSlug?: string): Promise<{ province: string; district: string | null; area: AreaInfo } | null> {
   const { counts } = await getAreas();
   const provName = Object.keys(counts).find((p) => slugify(p) === provinceSlug);
@@ -51,31 +47,64 @@ export async function resolveArea(provinceSlug: string, districtSlug?: string): 
   return { province: provName, district: dist, area };
 }
 
-export function areaTitle(deal: Deal, province: string, district: string | null, n: number) {
+export function areaTitle(deal: Deal, province: string, district: string | null, n: number, kind?: string | null) {
   const where = district ? `${district}, ${province}` : province;
-  return `${DEAL_WORD[deal]} nhà đất ${where} - ${n.toLocaleString("vi-VN")} tin mới nhất T${new Date().getMonth() + 1}/${new Date().getFullYear()} | NhaDat Radar`;
+  const what = kind ? (PROP[kind] || kind) : "nhà đất";
+  return `${DEAL_WORD[deal]} ${what} ${where} - ${n.toLocaleString("vi-VN")} tin mới nhất T${new Date().getMonth() + 1}/${new Date().getFullYear()} | NhaDat Radar`;
+}
+
+/** Số tin của một khu vực (có thể lọc theo loại BĐS) - dùng cho metadata + sitemap */
+export function areaCount(area: AreaInfo, deal: Deal, district?: string | null, kind?: string | null): number {
+  const node = district ? area.districts[district] : area;
+  if (!node) return 0;
+  return kind ? (node.kinds?.[kind]?.[deal] ?? 0) : node[deal];
+}
+
+/**
+ * Metadata dùng chung cho 6 route khu vực (bán/thuê x tỉnh/quận/loại) - trước đây mỗi file tự viết
+ * tay title + description + canonical nên dễ trôi khỏi nhau.
+ * kindSlug không hợp lệ -> trả null để route tự notFound.
+ */
+export async function areaMeta(deal: Deal, provinceSlug: string, districtSlug?: string, kindSlug?: string) {
+  const kind = kindFromSlug(kindSlug);
+  if (kindSlug && !kind) return { title: "Không tìm thấy khu vực - NhaDat Radar" };
+  const r = await resolveArea(provinceSlug, districtSlug);
+  if (!r || (districtSlug && !r.district)) return { title: "Không tìm thấy khu vực - NhaDat Radar" };
+  const n = areaCount(r.area, deal, r.district, kind);
+  const where = r.district ? `${r.district}, ${r.province}` : r.province;
+  const what = kind ? (PROP[kind] || kind).toLowerCase() : "nhà đất";
+  const hanhDong = deal === "ban" ? "bán" : "cho thuê";
+  return {
+    title: areaTitle(deal, r.province, r.district, n, kind),
+    description: `${n.toLocaleString("vi-VN")} tin ${hanhDong} ${what} tại ${where}: giá phổ biến và trung vị theo m², xu hướng giá, cảnh báo giá lệch, dấu hiệu môi giới/chính chủ và nguồn của từng tin. Cập nhật hằng ngày trên NhaDat Radar.`,
+    alternates: { canonical: areaPath(deal, r.province, r.district, kind) },
+  };
 }
 
 const fmtP = (v: number, deal: Deal) => fmtPrice(v, deal);
 // cột thật sự dùng (ListingRow + số liệu) thay vì select("*")
 const COLS = "id,source,source_site,source_url,deal,kind,title,description,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,province,district,ward,images,ai_score,poster_role_guess,price_flag,first_seen_at,source_count,source_sites,status";
 
-export default async function AreaLanding({ deal, provinceSlug, districtSlug }: { deal: Deal; provinceSlug: string; districtSlug?: string }) {
+export default async function AreaLanding({ deal, provinceSlug, districtSlug, kind }: { deal: Deal; provinceSlug: string; districtSlug?: string; kind?: string | null }) {
   const r = await resolveArea(provinceSlug, districtSlug);
   if (!r) notFound();
   const { province, district, area } = r;
+  // trang theo loại BĐS chỉ tồn tại khi khu vực đó thực sự có tin loại đó (tránh đẻ URL rỗng)
+  if (kind && areaCount(area, deal, district, kind) < 1) notFound();
+  const kindWord = kind ? (PROP[kind] || kind) : null;
   const supabase = await createClient();
 
   // Tin trong khu vực (đến 300 tin mới nhất để tính số liệu; hiển thị 20). district trong DB đã chuẩn -> eq chính xác
   let q = supabase.from("listings").select(COLS).eq("status", "published").eq("deal", deal).eq("province", province);
   if (district) q = q.eq("district", district);
+  if (kind) q = q.eq("kind", kind);
   const [{ data }, { count: newToday }] = await Promise.all([
     q.order("first_seen_at", { ascending: false }).limit(300),
-    (() => { let c = supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN()); if (district) c = c.eq("district", district); return c; })(),
+    (() => { let c = supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN()); if (district) c = c.eq("district", district); if (kind) c = c.eq("kind", kind); return c; })(),
   ]);
   const rows = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
   // tổng THẬT từ cây đếm (cache) - audit: bản cũ dùng rows.length bị cap 300 cho cấp quận
-  const total = district ? (area.districts[district]?.[deal] ?? rows.length) : (area[deal] || rows.length);
+  const total = areaCount(area, deal, district, kind) || rows.length;
 
   // ---- Số liệu thị trường (thật) ----
   const prices = rows.map((x) => x.price_vnd).filter((v): v is number => !!v && v > 0);
@@ -95,14 +124,19 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
 
   const where = district ? `${district}, ${province}` : province;
   const dealWord = DEAL_WORD[deal];
-  const h1 = `${dealWord} nhà đất ${where}`;
+  const h1 = `${dealWord} ${kindWord || "nhà đất"} ${where}`;
   const monthLabel = `tháng ${new Date().getMonth() + 1}/${new Date().getFullYear()}`;
   // tin độc quyền hiện ở dải riêng đầu danh sách -> loại khỏi list thường cho khỏi lặp
   const idsDocQuyen = new Set(locDocQuyen(rows, 6).map((t) => t.id));
   const show = rows.filter((r) => !idsDocQuyen.has(r.id)).slice(0, 20);
-  const searchHref = `/search?deal=${deal}&province=${encodeURIComponent(province)}${district ? `&district=${encodeURIComponent(district)}` : ""}`;
+  const searchHref = `/search?deal=${deal}&province=${encodeURIComponent(province)}${district ? `&district=${encodeURIComponent(district)}` : ""}${kind ? `&kind=${kind}` : ""}`;
   const otherDeal: Deal = deal === "ban" ? "cho_thue" : "ban";
   const districts = Object.entries(area.districts).filter(([, c]) => c[deal] > 0).sort((a, b) => b[1][deal] - a[1][deal]);
+  // Loại BĐS có thật trong khu vực này -> chip dẫn sang /nha-dat-ban/[tinh]/[quan]/[loai]
+  const kindsHere = Object.entries((district ? area.districts[district]?.kinds : area.kinds) || {})
+    .filter(([k, c]) => c[deal] >= 3 && KIND_SLUG[k]).sort((a, b) => b[1][deal] - a[1][deal]);
+  // Quận lân cận (chỉ hiện ở trang cấp quận) - trước đây trang quận không link sang quận nào khác
+  const quanKhac = district ? districts.filter(([d]) => d !== district).slice(0, 12) : [];
 
   // ---- FAQ sinh từ dữ liệu (chỉ hỏi câu có số liệu để trả lời) ----
   const faq: { q: string; a: string }[] = [];
@@ -124,13 +158,14 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
   });
 
   // ---- JSON-LD ----
-  const url = SITE + areaPath(deal, province, district);
+  const url = SITE + areaPath(deal, province, district, kind);
   const ld = [
     { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
       { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE },
       { "@type": "ListItem", position: 2, name: `${dealWord} nhà đất`, item: SITE + (deal === "ban" ? "/nha-dat-ban" : "/nha-dat-cho-thue") },
       { "@type": "ListItem", position: 3, name: province, item: SITE + areaPath(deal, province) },
-      ...(district ? [{ "@type": "ListItem", position: 4, name: district, item: url }] : []),
+      ...(district ? [{ "@type": "ListItem", position: 4, name: district, item: SITE + areaPath(deal, province, district) }] : []),
+      ...(kindWord ? [{ "@type": "ListItem", position: district ? 5 : 4, name: kindWord, item: url }] : []),
     ] },
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) },
     { "@context": "https://schema.org", "@type": "ItemList", name: h1, numberOfItems: show.length, itemListElement: show.map((x, i) => ({
@@ -144,7 +179,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
       <nav className="text-xs text-[var(--ink-soft)] mb-3 flex flex-wrap gap-1">
         <Link href="/" className="hover:text-brand">Trang chủ</Link><span>/</span>
         <Link href={deal === "ban" ? "/nha-dat-ban" : "/nha-dat-cho-thue"} className="hover:text-brand">{dealWord} nhà đất</Link><span>/</span>
-        {district ? <><Link href={areaPath(deal, province)} className="hover:text-brand">{province}</Link><span>/</span><span className="text-[var(--ink)]">{district}</span></> : <span className="text-[var(--ink)]">{province}</span>}
+        {district ? <><Link href={areaPath(deal, province)} className="hover:text-brand">{province}</Link><span>/</span>{kindWord ? <><Link href={areaPath(deal, province, district)} className="hover:text-brand">{district}</Link><span>/</span><span className="text-[var(--ink)]">{kindWord}</span></> : <span className="text-[var(--ink)]">{district}</span>}</> : (kindWord ? <><Link href={areaPath(deal, province)} className="hover:text-brand">{province}</Link><span>/</span><span className="text-[var(--ink)]">{kindWord}</span></> : <span className="text-[var(--ink)]">{province}</span>)}
       </nav>
 
       <h1 className="prata text-2xl md:text-3xl">{h1}</h1>
@@ -179,6 +214,38 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
           ) : null}
           <p className="text-[0.7rem] text-[var(--ink-faint)] mt-2">Tính từ {prices.length} tin đang hiển thị (đến 300 tin mới nhất). Tham khảo, không phải định giá chính thức.</p>
           <div className="mt-3"><PriceTrend province={province} district={district} kind="all" deal={deal} compact /></div>
+        </section>
+      ) : null}
+
+      {/* Loại BĐS trong khu vực (trang SEO theo loại) */}
+      {kindsHere.length ? (
+        <section className="mt-6">
+          <h2 className="font-bold text-sm mb-2">{dealWord} theo loại BĐS tại {where}</h2>
+          <div className="flex flex-wrap gap-2">
+            {kind ? (
+              <Link href={areaPath(deal, province, district)} className="text-xs px-2.5 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition">Tất cả loại</Link>
+            ) : null}
+            {kindsHere.map(([k, c]) => (
+              <Link key={k} href={areaPath(deal, province, district, k)}
+                className={`text-xs px-2.5 py-1.5 rounded-lg border transition ${k === kind ? "border-brand text-brand font-semibold" : "border-[var(--line)] hover:border-brand hover:text-brand"}`}>
+                {PROP[k] || k} <span className="text-[var(--ink-faint)]">({c[deal]})</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Quận lân cận (trang cấp quận) */}
+      {quanKhac.length ? (
+        <section className="mt-6">
+          <h2 className="font-bold text-sm mb-2">{dealWord} {kindWord || "nhà đất"} ở khu vực lân cận</h2>
+          <div className="flex flex-wrap gap-2">
+            {quanKhac.map(([d, c]) => (
+              <Link key={d} href={areaPath(deal, province, d, kind)} className="text-xs px-2.5 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition">
+                {d} <span className="text-[var(--ink-faint)]">({c[deal]})</span>
+              </Link>
+            ))}
+          </div>
         </section>
       ) : null}
 
@@ -225,8 +292,9 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug }: 
 
       {/* Liên kết chéo */}
       <section className="mt-6 text-sm flex flex-wrap gap-x-4 gap-y-1">
-        <Link href={areaPath(otherDeal, province, district)} className="text-brand">{DEAL_WORD[otherDeal]} nhà đất {where} ›</Link>
-        {district ? <Link href={areaPath(deal, province)} className="text-brand">Toàn {province} ›</Link> : null}
+        <Link href={areaPath(otherDeal, province, district, kind)} className="text-brand">{DEAL_WORD[otherDeal]} {kindWord || "nhà đất"} {where} ›</Link>
+        {district ? <Link href={areaPath(deal, province, null, kind)} className="text-brand">Toàn {province} ›</Link> : null}
+        {kind ? <Link href={areaPath(deal, province, district)} className="text-brand">Tất cả loại BĐS tại {where} ›</Link> : null}
         {/* mang theo ngữ cảnh bán/thuê + tỉnh - link trần từng nhảy về mặc định sai chiều */}
         <Link href={`/thong-ke?deal=${deal}&city=${encodeURIComponent(province)}`} className="text-brand">Thống kê giá ›</Link>
         <Link href="/dinh-gia" className="text-brand">Định giá nhanh ›</Link>

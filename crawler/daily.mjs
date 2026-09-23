@@ -328,13 +328,14 @@ const { count: goneN2 } = homeConLai.length
   : { count: 0 };
 const goneN = (goneN1 || 0) + (goneN2 || 0);
 
-// Xoá tin gone quá 7 ngày
-const purgeCutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+// Xoá tin gone quá 21 ngày (23/9: nới từ 7 -> 21 ngày. Lý do: kho tin đứng ~8k dù mỗi ngày vào
+// 600-1.000 tin mới; URL tin chỉ sống ~3 tuần nên Google chưa kịp index đã 404.)
+const purgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
 const { count: purgedN } = await sb.from("listings").delete({ count: "exact" })
   .eq("source", "crawl").eq("status", "gone").lt("last_seen_at", purgeCutoff);
 
 // Chốt dọn dẹp cứng: xoá mọi tin crawl cũ hơn 21 ngày không thấy lại (chống phình DB vĩnh viễn)
-const hardPurgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
+const hardPurgeCutoff = new Date(Date.now() - 45 * 24 * 3600 * 1000).toISOString();   // 23/9: nới 21 -> 45 ngày
 const { count: hardPurgedN } = await sb.from("listings").delete({ count: "exact" })
   .eq("source", "crawl").lt("last_seen_at", hardPurgeCutoff);
 

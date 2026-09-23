@@ -12,7 +12,8 @@ import { posterReasonText, type Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
 import ReportButton from "./ReportButton";
 import PriceTrend from "@/components/PriceTrend";
-import { areaPath } from "@/lib/slug";
+import { areaPath, DEAL_WORD } from "@/lib/slug";
+import { ldJson, SITE_URL } from "@/lib/ld";
 import { nhanTinh } from "@/lib/sap-nhap";
 import ScoreInfo from "@/components/ScoreInfo";
 import LegalHint from "@/components/LegalHint";
@@ -41,7 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const supabase = await createClient();
   const { data } = await supabase
-    .from("listings").select("title,price_vnd,deal,district,province,images,description,source,source_site")
+    .from("listings").select("title,price_vnd,deal,district,province,images,description,source,source_site,status")
     .eq("id", id).single();
   if (!data) return { title: "Không tìm thấy tin - NhaDat Radar" };
   // Tin độc quyền: thân trang đã che SĐT trong mô tả (cheSoVanBan) nhưng thẻ meta/OG trước đây lấy mô tả
@@ -55,7 +56,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title,
     description,
-    openGraph: { title, description, ...(img ? { images: [{ url: img }] } : {}) },
+    // canonical: trang tin trước đây không khai báo -> mọi biến thể URL (tham số utm, tracking) đều
+    // được coi là trang riêng. Tin đã gỡ thì noindex,follow: URL còn mở cho người đang giữ link,
+    // nhưng không nên nằm trong kết quả tìm kiếm (23/9).
+    alternates: { canonical: `/listings/${id}` },
+    ...(data.status === "gone" ? { robots: { index: false, follow: true } } : {}),
+    openGraph: { type: "article", url: `${SITE_URL}/listings/${id}`, title, description, ...(img ? { images: [{ url: img }] } : {}) },
   };
 }
 
@@ -191,8 +197,39 @@ export default async function ListingDetail({
     ["Mã tin", x.id.slice(0, 8)],
   ];
 
+  // ---- JSON-LD (23/9): trước đây chỉ trang khu vực có, trang tin không có gì. Chỉ khai báo dữ liệu
+  // ĐÃ hiển thị trên trang (giá, diện tích, phòng, khu vực) - không bịa thêm thuộc tính.
+  const ldTin: Record<string, unknown>[] = [
+    {
+      "@context": "https://schema.org", "@type": "RealEstateListing",
+      name: x.title, url: `${SITE_URL}/listings/${x.id}`,
+      ...(x.description ? { description: x.description.slice(0, 500) } : {}),
+      ...(images.length ? { image: images.slice(0, 5) } : {}),
+      ...(x.first_seen_at ? { datePosted: x.first_seen_at } : {}),
+      ...(x.price_vnd ? { offers: { "@type": "Offer", price: x.price_vnd, priceCurrency: "VND",
+        availability: isGone ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+        ...(x.deal === "cho_thue" ? { priceSpecification: { "@type": "UnitPriceSpecification", price: x.price_vnd, priceCurrency: "VND", unitText: "THÁNG" } } : {}) } } : {}),
+      ...(x.province ? { address: { "@type": "PostalAddress", addressCountry: "VN", addressRegion: x.province,
+        ...(x.district ? { addressLocality: x.district } : {}), ...(x.ward ? { addressSubLocality: x.ward } : {}) } } : {}),
+      ...(x.lat && x.lng ? { geo: { "@type": "GeoCoordinates", latitude: x.lat, longitude: x.lng } } : {}),
+      ...(x.area_m2 ? { floorSize: { "@type": "QuantitativeValue", value: x.area_m2, unitCode: "MTK" } } : {}),
+      ...(x.bedrooms ? { numberOfBedrooms: x.bedrooms } : {}),
+      ...(x.bathrooms ? { numberOfBathroomsTotal: x.bathrooms } : {}),
+    },
+    {
+      "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: `${DEAL_WORD[x.deal === "cho_thue" ? "cho_thue" : "ban"]} nhà đất`, item: SITE_URL + (x.deal === "cho_thue" ? "/nha-dat-cho-thue" : "/nha-dat-ban") },
+        ...(x.province ? [{ "@type": "ListItem", position: 3, name: x.province, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province) }] : []),
+        ...(x.province && x.district ? [{ "@type": "ListItem", position: 4, name: x.district, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province, x.district) }] : []),
+        { "@type": "ListItem", position: x.district ? 5 : 4, name: x.title, item: `${SITE_URL}/listings/${x.id}` },
+      ],
+    },
+  ];
+
   return (
     <div>
+      {ldTin.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(o) }} />)}
       <div className="flex items-center gap-3">
         <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Quay lại</Link>
         <span className="ml-auto"><FavButton id={x.id} /></span>

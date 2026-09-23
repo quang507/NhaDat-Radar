@@ -1,20 +1,20 @@
-// /nha-dat-ban/[tinh]/[quan] - trang SEO cấp quận/huyện
+// /nha-dat-ban/[tinh]/[quan] - trang SEO cấp quận/huyện.
+// Nấc 2 cũng nhận SLUG LOẠI BĐS ("/ho-chi-minh/can-ho" = cả tỉnh, lọc căn hộ) - tên quận không bao
+// giờ trùng slug loại (can-ho/nha/dat/mat-bang/phong-tro) nên không nhập nhằng.
 export const dynamic = "force-dynamic";
-import AreaLanding, { resolveArea, areaTitle } from "@/components/AreaLanding";
+import AreaLanding, { areaMeta } from "@/components/AreaLanding";
+import { kindFromSlug } from "@/lib/slug";
 
 export async function generateMetadata({ params }: { params: Promise<{ province: string; district: string }> }) {
   const { province, district } = await params;
-  const r = await resolveArea(province, district);
-  if (!r || !r.district) return { title: "Không tìm thấy khu vực - NhaDat Radar" };
-  const n = r.area.districts[r.district]?.ban ?? 0;
-  return {
-    title: areaTitle("ban", r.province, r.district, n),
-    description: `${n.toLocaleString("vi-VN")} tin bán nhà đất tại ${r.district}, ${r.province}: giá phổ biến, trung vị theo loại hình, cảnh báo giá lệch, nguồn từng tin. Cập nhật hằng ngày trên NhaDat Radar.`,
-    alternates: { canonical: `/nha-dat-ban/${province}/${district}` },
-  };
+  const kind = kindFromSlug(district);
+  return kind ? areaMeta("ban", province, undefined, district) : areaMeta("ban", province, district);
 }
 
 export default async function Page({ params }: { params: Promise<{ province: string; district: string }> }) {
   const { province, district } = await params;
-  return <AreaLanding deal="ban" provinceSlug={province} districtSlug={district} />;
+  const kind = kindFromSlug(district);
+  return kind
+    ? <AreaLanding deal="ban" provinceSlug={province} kind={kind} />
+    : <AreaLanding deal="ban" provinceSlug={province} districtSlug={district} />;
 }

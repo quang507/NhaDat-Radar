@@ -9,7 +9,19 @@ import { tinhCuGopVao } from "@/lib/sap-nhap";
 import SearchClient from "./SearchClient";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
 
-export const metadata = { title: "Tìm kiếm bất động sản - NhaDat Radar" };
+// /search KHÔNG tham số là trang có ích (điểm vào bộ lọc) -> để index.
+// /search?... là vô số tổ hợp nội dung mỏng/trùng với trang khu vực -> noindex, follow (23/9).
+// Trang khu vực (/nha-dat-ban/[tinh]/[quan]/[loai]) mới là bản để Google lập chỉ mục.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const sp = await searchParams;
+  const coLoc = Object.entries(sp).some(([k, v]) => v && k !== "page");
+  return {
+    title: "Tìm kiếm bất động sản - NhaDat Radar",
+    description: "Lọc tin nhà đất bán và cho thuê theo khu vực, mức giá, diện tích, số phòng; xem giá trung vị khu vực và cảnh báo giá lệch.",
+    alternates: { canonical: "/search" },
+    robots: coLoc ? { index: false, follow: true } : { index: true, follow: true },
+  };
+}
 
 export default async function SearchPage({
   searchParams,
