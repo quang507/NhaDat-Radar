@@ -1,21 +1,16 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { signOut } from "@/app/auth/actions";
 import NavFav from "./NavFav";
-import NavMsg from "./NavMsg";
+import NavAuth from "./NavAuth";
 import MobileMenu from "./MobileMenu";
 
-export default async function Nav() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const initial = (user?.email || "?").charAt(0).toUpperCase();
+// Nav KHÔNG đọc cookie nữa (23/9): nó nằm trong layout gốc nên mỗi lần gọi auth.getUser() là ép
+// toàn bộ site render động, không trang nào được cache. Trạng thái đăng nhập do NavAuth (client) lo.
+export default function Nav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]">
       <div className="relative max-w-6xl mx-auto px-5 py-3 flex items-center gap-3">
-        <MobileMenu loggedIn={!!user} />
+        <MobileMenu />
         {/* logo KHÔNG được co (từng bị min-w-0 -> chữ hiệu tràn đè lên menu khi đã đăng nhập, 16/8) */}
         <Link href="/" className="flex items-center gap-2 font-extrabold tracking-tight whitespace-nowrap shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -35,31 +30,7 @@ export default async function Nav() {
         </nav>
         <div className="ml-auto flex items-center gap-2 shrink-0">
           <NavFav />
-          {user ? (
-            <>
-              <NavMsg />
-              <Link
-                href="/account"
-                title={user.email || ""}
-                className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold bg-brand shrink-0"
-              >
-                {initial}
-              </Link>
-              <Link href="/dashboard/new" className="btn btn-primary whitespace-nowrap">
-                + Đăng tin
-              </Link>
-              {/* mobile: Đăng xuất nằm trong menu ☰ / trang tài khoản, tránh tràn thanh nav */}
-              <form action={signOut} className="hidden lg:block">
-                <button className="btn" type="submit">Đăng xuất</button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Link href="/auth" className="btn whitespace-nowrap">Đăng nhập</Link>
-              {/* mobile: 1 nút là đủ (form /auth có tab Đăng ký) - 2 nút làm tràn nav ở 390px */}
-              <Link href="/auth?mode=register" className="btn btn-primary whitespace-nowrap hidden sm:inline-flex">Đăng ký</Link>
-            </>
-          )}
+          <NavAuth />
         </div>
       </div>
     </header>

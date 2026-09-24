@@ -4,7 +4,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
+import { unstable_cache } from "next/cache";
 import { fmtPrice, fmtPpm2, PROP, startOfDayVN } from "@/lib/format";
 import { median, percentile } from "@/lib/gemini";
 import { slugify, areaPath, DEAL_WORD, KIND_SLUG, kindFromSlug } from "@/lib/slug";
@@ -85,6 +86,29 @@ const fmtP = (v: number, deal: Deal) => fmtPrice(v, deal);
 // cột thật sự dùng (ListingRow + số liệu) thay vì select("*")
 const COLS = "id,source,source_site,source_url,deal,kind,title,description,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,province,district,ward,images,ai_score,poster_role_guess,price_flag,first_seen_at,source_count,source_sites,status";
 
+/**
+ * Truy vấn tin của một khu vực, CÓ CACHE 10 phút (unstable_cache).
+ * Next 15 không cache fetch mặc định nữa -> mỗi lượt xem trang khu vực là 2 truy vấn Supabase, và
+ * route bị coi là động nên không bao giờ được cache (đo 23/9: mọi phản hồi "no-store", TTFB 0,4-0,6s).
+ * Dữ liệu chỉ đổi mỗi lượt crawl (4 tiếng) nên cache 10 phút là quá đủ.
+ */
+const layTinKhuVuc = unstable_cache(
+  async (deal: Deal, province: string, district: string | null, kind: string | null) => {
+    const supabase = createAnonClient();
+    let q = supabase.from("listings").select(COLS).eq("status", "published").eq("deal", deal).eq("province", province);
+    if (district) q = q.eq("district", district);
+    if (kind) q = q.eq("kind", kind);
+    let c = supabase.from("listings").select("id", { count: "exact", head: true })
+      .eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN());
+    if (district) c = c.eq("district", district);
+    if (kind) c = c.eq("kind", kind);
+    const [{ data }, { count }] = await Promise.all([q.order("first_seen_at", { ascending: false }).limit(300), c]);
+    return { data: data ?? [], newToday: count ?? 0 };
+  },
+  ["area-listings-v1"],
+  { revalidate: 600, tags: ["listings"] },
+);
+
 export default async function AreaLanding({ deal, provinceSlug, districtSlug, kind }: { deal: Deal; provinceSlug: string; districtSlug?: string; kind?: string | null }) {
   const r = await resolveArea(provinceSlug, districtSlug);
   if (!r) notFound();
@@ -92,16 +116,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
   // trang theo loại BĐS chỉ tồn tại khi khu vực đó thực sự có tin loại đó (tránh đẻ URL rỗng)
   if (kind && areaCount(area, deal, district, kind) < 1) notFound();
   const kindWord = kind ? (PROP[kind] || kind) : null;
-  const supabase = await createClient();
-
-  // Tin trong khu vực (đến 300 tin mới nhất để tính số liệu; hiển thị 20). district trong DB đã chuẩn -> eq chính xác
-  let q = supabase.from("listings").select(COLS).eq("status", "published").eq("deal", deal).eq("province", province);
-  if (district) q = q.eq("district", district);
-  if (kind) q = q.eq("kind", kind);
-  const [{ data }, { count: newToday }] = await Promise.all([
-    q.order("first_seen_at", { ascending: false }).limit(300),
-    (() => { let c = supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN()); if (district) c = c.eq("district", district); if (kind) c = c.eq("kind", kind); return c; })(),
-  ]);
+  const { data, newToday } = await layTinKhuVuc(deal, province, district, kind ?? null);
   const rows = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
   // tổng THẬT từ cây đếm (cache) - audit: bản cũ dùng rows.length bị cap 300 cho cấp quận
   const total = areaCount(area, deal, district, kind) || rows.length;
