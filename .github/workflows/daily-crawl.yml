@@ -9,6 +9,12 @@ on:
     - cron: "0 1,5,9,13,17,21 * * *"
   workflow_dispatch: {}      # bấm chạy tay ở tab Actions
 
+# Hai lượt chồng nhau (cron trễ + bấm tay) cùng seed -> đụng unique index uq_listings_source_post.
+# Khoá .running trong daily.mjs chỉ có tác dụng trên MỘT máy, runner CI mỗi lượt là máy mới.
+concurrency:
+  group: daily-crawl
+  cancel-in-progress: false
+
 jobs:
   crawl:
     runs-on: ubuntu-latest
@@ -77,9 +83,11 @@ jobs:
           # tự phanh 1,1s/lượt). Cache geo-cache.json tích luỹ qua các lượt nên vẫn phủ dần.
           # Muốn bật lại Vietmap: thêm secret VIETMAP_API_KEY rồi bỏ comment dòng dưới.
           # VIETMAP_API_KEY: ${{ secrets.VIETMAP_API_KEY }}
-          # Dự án mogi.vn/du-an: số trang list (10 dự án/trang) và tuổi tối đa của projects.json trước khi cào lại
-          MOGI_PROJECT_PAGES: ${{ vars.MOGI_PROJECT_PAGES || 8 }}
-          PROJECT_MAX_AGE_H: ${{ vars.PROJECT_MAX_AGE_H || 72 }}
+          # Dự án mogi.vn/du-an: số trang list mỗi vùng (10 dự án/trang). mogi-projects.mjs đọc đúng 2 tên
+          # này (MOGI_PROJECT_PAGES / PROJECT_MAX_AGE_H trước đây không ai đọc - đã bỏ 22/9).
+          # Để trống = mặc định trong code (HCM 60, toàn quốc 40).
+          MOGI_HCM_PAGES: ${{ vars.MOGI_HCM_PAGES }}
+          MOGI_ALL_PAGES: ${{ vars.MOGI_ALL_PAGES }}
 
       # Lưu cache geocode kể cả khi bước cào hỏng giữa chừng — phần khoá đã tra được vẫn quý.
       - name: Lưu cache geocode

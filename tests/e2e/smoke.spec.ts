@@ -32,12 +32,35 @@ for (const { path, mustSee } of PAGES) {
   });
 }
 
-test("SEO: sitemap.xml và robots.txt tồn tại", async ({ request }) => {
+test("SEO: sitemap index + các sitemap con + robots.txt", async ({ request }) => {
+  // 23/9: /sitemap.xml đổi từ MỘT file (cắt cứng 1.000 tin) sang sitemap INDEX trỏ tới các file con,
+  // nhờ đó khai báo được toàn bộ tin thay vì 15% như trước.
+  // Job E2E chạy trên PRODUCTION (xem e2e.yml), nên trước khi PR được deploy thì /sitemap.xml vẫn là
+  // bản CŨ (một <urlset>). Chấp nhận cả hai kiểu: cũ -> chỉ kiểm có URL; mới -> kiểm cả file con.
   const sm = await request.get("/sitemap.xml");
   expect(sm.status()).toBe(200);
-  expect(await sm.text()).toContain("<urlset");
+  const xml = await sm.text();
+  const loc = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+
+  if (xml.includes("<sitemapindex")) {
+    expect(loc.length).toBeGreaterThanOrEqual(2);          // index chỉ liệt kê các file con
+    expect(loc.some((u) => u.includes("sitemap-khu-vuc"))).toBe(true);
+    expect(loc.some((u) => u.includes("sitemap-tin/"))).toBe(true);
+    for (const u of [loc.find((x) => x.includes("sitemap-khu-vuc"))!, loc.find((x) => x.includes("sitemap-tin/"))!]) {
+      const r = await request.get(new URL(u).pathname);
+      expect(r.status(), u).toBe(200);
+      const t = await r.text();
+      expect(t, u).toContain("<urlset");
+      expect((t.match(/<loc>/g) || []).length, u).toBeGreaterThan(50);
+    }
+  } else {
+    expect(xml).toContain("<urlset");
+    expect(loc.length).toBeGreaterThan(10);
+  }
+
   const rb = await request.get("/robots.txt");
   expect(rb.status()).toBe(200);
+  expect(await rb.text()).toContain("/sitemap.xml");
 });
 
 test("trang 404: id tin không tồn tại không được sập server", async ({ page }) => {

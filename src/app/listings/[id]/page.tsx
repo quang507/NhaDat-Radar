@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
+import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
@@ -12,7 +12,8 @@ import { posterReasonText, type Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
 import ReportButton from "./ReportButton";
 import PriceTrend from "@/components/PriceTrend";
-import { areaPath } from "@/lib/slug";
+import { areaPath, DEAL_WORD } from "@/lib/slug";
+import { ldJson, SITE_URL } from "@/lib/ld";
 import { nhanTinh } from "@/lib/sap-nhap";
 import ScoreInfo from "@/components/ScoreInfo";
 import LegalHint from "@/components/LegalHint";
@@ -26,7 +27,7 @@ import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
-import { laTinDocQuyen, cheSoVanBan, cheSoNha } from "@/lib/doc-quyen";
+import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
@@ -41,17 +42,26 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const supabase = await createClient();
   const { data } = await supabase
-    .from("listings").select("title,price_vnd,deal,district,province,images,description")
+    .from("listings").select("title,price_vnd,deal,district,province,images,description,source,source_site,status")
     .eq("id", id).single();
   if (!data) return { title: "Không tìm thấy tin - NhaDat Radar" };
-  const title = `${data.title} - ${fmtPrice(data.price_vnd, data.deal)}`;
-  const description = (data.description || "").slice(0, 160) ||
+  // Tin độc quyền: thân trang đã che SĐT trong mô tả (cheSoVanBan) nhưng thẻ meta/OG trước đây lấy mô tả
+  // THÔ -> số lộ qua <meta name=description>, og:description, ảnh xem trước khi share (audit 22/9).
+  const docQuyen = laTinDocQuyen(data);
+  const title = `${docQuyen ? cheSoVanBan(data.title) : data.title} - ${fmtPrice(data.price_vnd, data.deal)}`;
+  const moTa = docQuyen ? cheSoVanBan(data.description) : data.description || "";
+  const description = moTa.slice(0, 160) ||
     `${[data.district, data.province].filter(Boolean).join(", ")} · NhaDat Radar`;
   const img = cleanImages(data.images || [])[0];
   return {
     title,
     description,
-    openGraph: { title, description, ...(img ? { images: [{ url: img }] } : {}) },
+    // canonical: trang tin trước đây không khai báo -> mọi biến thể URL (tham số utm, tracking) đều
+    // được coi là trang riêng. Tin đã gỡ thì noindex,follow: URL còn mở cho người đang giữ link,
+    // nhưng không nên nằm trong kết quả tìm kiếm (23/9).
+    alternates: { canonical: `/listings/${id}` },
+    ...(data.status === "gone" ? { robots: { index: false, follow: true } } : {}),
+    openGraph: { type: "article", url: `${SITE_URL}/listings/${id}`, title, description, ...(img ? { images: [{ url: img }] } : {}) },
   };
 }
 
@@ -62,15 +72,18 @@ export default async function ListingDetail({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("listings").select(LISTING_COLS).eq("id", id).single();
-  // 42703 (cột trong LISTING_COLS chưa có migration - đã xảy ra, xem 015) mà nuốt im lặng thì
+  const { data, error } = await supabase.from("listings").select(LISTING_PUBLIC_COLS).eq("id", id).single();
+  // 42703 (cột trong LISTING_PUBLIC_COLS chưa có migration - đã xảy ra, xem 015) mà nuốt im lặng thì
   // MỌI tin ra 404, SEO de-index, không dấu vết. Log để còn thấy trong Vercel Logs; PGRST116
   // (không có hàng) mới là 404 thật.
   if (error && error.code !== "PGRST116") console.error("listing detail:", id, error.code, error.message);
   if (!data) notFound();
-  const x = data as Listing;
+  // contact_phone không có trong LISTING_PUBLIC_COLS -> gán sau (chỉ khi đã đăng nhập)
+  const x = { ...data, contact_phone: null } as Listing;
   // FB + Zalo = tin ĐỘC QUYỀN (21/8): giấu SĐT mọi nơi, liên hệ qua Cầu Nối - xem lib/doc-quyen
   const docQuyen = laTinDocQuyen(x);
+  // tiêu đề tin FB/Zalo cũng hay chứa số ("Bán nhà Q7 LH 09...") -> che luôn, như mô tả
+  if (docQuyen) Object.assign(x, cheTinDocQuyen(x));
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
@@ -100,6 +113,17 @@ export default async function ListingDetail({
     const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).single();
     isAdmin = prof?.role === "admin";
   }
+  // SĐT thật: chỉ tải khi đã đăng nhập. Khách vãng lai chỉ cần biết "có SĐT" để hiện nút đăng nhập
+  // (has_contact_phone - cột sinh ở migration 026; chưa có cột thì coi như không biết, không làm hỏng trang).
+  let coSdt = false;
+  if (user) {
+    const { data: ph } = await supabase.from("listings").select("contact_phone").eq("id", id).maybeSingle();
+    x.contact_phone = ph?.contact_phone ?? null;
+    coSdt = !!x.contact_phone;
+  } else {
+    const { data: co } = await supabase.from("listings").select("has_contact_phone").eq("id", id).maybeSingle();
+    coSdt = !!(co as { has_contact_phone?: boolean } | null)?.has_contact_phone;
+  }
 
   // So sánh giá + tin liên quan (cùng loại + cùng quận) + tin khác của cùng người đăng (song song)
   const [{ data: compRows }, { data: relRows }, { data: posterRows, count: posterCount }] = await Promise.all([
@@ -123,7 +147,7 @@ export default async function ListingDetail({
           .order("first_seen_at", { ascending: false }).limit(6)
       : Promise.resolve({ data: [] as Listing[], count: 0 }),
   ]);
-  const posterOthers = ((posterRows ?? []) as Listing[]);
+  const posterOthers = ((posterRows ?? []) as Listing[]).map(cheTinDocQuyen);
 
   const ppm2s = (compRows ?? []).map((r) => Number(r.price_per_m2)).filter((v) => v > 0);
   // UX audit 16/8: từng hiện "Cao hơn mặt bằng ~35%" dựa trên 1 tin -> vô nghĩa & gây hiểu lầm.
@@ -134,7 +158,7 @@ export default async function ListingDetail({
   const myPpm2 = x.price_per_m2 ? Number(x.price_per_m2) : null;
   const diffPct = med && myPpm2 ? Math.round(((myPpm2 - med) / med) * 100) : null;
 
-  const related = ((relRows ?? []) as Listing[]).filter((r) => r.images?.length).slice(0, 6);
+  const related = ((relRows ?? []) as Listing[]).map(cheTinDocQuyen).filter((r) => r.images?.length).slice(0, 6);
 
   const roleGuess = x.poster_role_guess;
   const seen = agoMin(x.first_seen_at);
@@ -173,8 +197,39 @@ export default async function ListingDetail({
     ["Mã tin", x.id.slice(0, 8)],
   ];
 
+  // ---- JSON-LD (23/9): trước đây chỉ trang khu vực có, trang tin không có gì. Chỉ khai báo dữ liệu
+  // ĐÃ hiển thị trên trang (giá, diện tích, phòng, khu vực) - không bịa thêm thuộc tính.
+  const ldTin: Record<string, unknown>[] = [
+    {
+      "@context": "https://schema.org", "@type": "RealEstateListing",
+      name: x.title, url: `${SITE_URL}/listings/${x.id}`,
+      ...(x.description ? { description: x.description.slice(0, 500) } : {}),
+      ...(images.length ? { image: images.slice(0, 5) } : {}),
+      ...(x.first_seen_at ? { datePosted: x.first_seen_at } : {}),
+      ...(x.price_vnd ? { offers: { "@type": "Offer", price: x.price_vnd, priceCurrency: "VND",
+        availability: isGone ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+        ...(x.deal === "cho_thue" ? { priceSpecification: { "@type": "UnitPriceSpecification", price: x.price_vnd, priceCurrency: "VND", unitText: "THÁNG" } } : {}) } } : {}),
+      ...(x.province ? { address: { "@type": "PostalAddress", addressCountry: "VN", addressRegion: x.province,
+        ...(x.district ? { addressLocality: x.district } : {}), ...(x.ward ? { addressSubLocality: x.ward } : {}) } } : {}),
+      ...(x.lat && x.lng ? { geo: { "@type": "GeoCoordinates", latitude: x.lat, longitude: x.lng } } : {}),
+      ...(x.area_m2 ? { floorSize: { "@type": "QuantitativeValue", value: x.area_m2, unitCode: "MTK" } } : {}),
+      ...(x.bedrooms ? { numberOfBedrooms: x.bedrooms } : {}),
+      ...(x.bathrooms ? { numberOfBathroomsTotal: x.bathrooms } : {}),
+    },
+    {
+      "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: `${DEAL_WORD[x.deal === "cho_thue" ? "cho_thue" : "ban"]} nhà đất`, item: SITE_URL + (x.deal === "cho_thue" ? "/nha-dat-cho-thue" : "/nha-dat-ban") },
+        ...(x.province ? [{ "@type": "ListItem", position: 3, name: x.province, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province) }] : []),
+        ...(x.province && x.district ? [{ "@type": "ListItem", position: 4, name: x.district, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province, x.district) }] : []),
+        { "@type": "ListItem", position: x.district ? 5 : 4, name: x.title, item: `${SITE_URL}/listings/${x.id}` },
+      ],
+    },
+  ];
+
   return (
     <div>
+      {ldTin.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(o) }} />)}
       <div className="flex items-center gap-3">
         <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Quay lại</Link>
         <span className="ml-auto"><FavButton id={x.id} /></span>
@@ -416,7 +471,7 @@ export default async function ListingDetail({
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (x.contact_phone || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
+                  {docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (coSdt || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
                 </div>
               </div>
             </div>
@@ -437,7 +492,7 @@ export default async function ListingDetail({
                 {user && !x.contact_phone && x.phone_masked && (
                   <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
                 )}
-                {!user && (x.contact_phone || x.phone_masked) && (
+                {!user && (coSdt || x.phone_masked) && (
                   <div className="mb-3"><DangNhapDeXem /></div>
                 )}
               </>

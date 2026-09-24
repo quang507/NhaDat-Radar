@@ -38,7 +38,7 @@ export function RecentSearches() {
       {items.map((s) => (
         <Link key={s.href} href={s.href} className="px-2.5 py-1 rounded-full border border-[var(--line)] hover:border-brand hover:text-brand transition">🕘 {s.label}</Link>
       ))}
-      <button className="text-[var(--ink-faint)] underline-offset-2 hover:underline" onClick={() => { localStorage.removeItem(KEY_Q); setItems([]); }}>xoá</button>
+      <button className="text-[var(--ink-faint)] underline-offset-2 hover:underline" onClick={() => { try { localStorage.removeItem(KEY_Q); } catch { /* ignore */ } setItems([]); }}>xoá</button>
     </div>
   );
 }
@@ -51,7 +51,7 @@ export default function RecentlyViewed({ excludeId }: { excludeId?: string } = {
     <section className="mt-8">
       <div className="flex items-baseline justify-between mb-2">
         <h2 className="font-bold text-sm">Đã xem gần đây</h2>
-        <button className="text-xs text-[var(--ink-faint)] hover:underline" onClick={() => { localStorage.removeItem(KEY); setItems([]); }}>xoá lịch sử</button>
+        <button className="text-xs text-[var(--ink-faint)] hover:underline" onClick={() => { try { localStorage.removeItem(KEY); } catch { /* ignore */ } setItems([]); }}>xoá lịch sử</button>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
         {items.map((r) => (

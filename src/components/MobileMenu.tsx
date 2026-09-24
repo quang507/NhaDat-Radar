@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 
@@ -17,7 +18,16 @@ const LINKS: [string, string][] = [
 ];
 
 // Menu ☰ cho mobile (nav ngang bị ẩn dưới md)
-export default function MobileMenu({ loggedIn = false }: { loggedIn?: boolean }) {
+export default function MobileMenu() {
+  // trước đây nhận prop loggedIn từ Nav (server, đọc cookie) -> ép cả site thành động (23/9)
+  const [loggedIn, setLoggedIn] = useState(false);
+  useEffect(() => {
+    const supabase = createClient();
+    let huy = false;
+    supabase.auth.getUser().then(({ data }) => { if (!huy) setLoggedIn(!!data.user); });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setLoggedIn(!!s?.user));
+    return () => { huy = true; sub.subscription.unsubscribe(); };
+  }, []);
   const [open, setOpen] = useState(false);
   return (
     <div className="lg:hidden">

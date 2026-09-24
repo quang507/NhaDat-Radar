@@ -58,7 +58,7 @@ for (const s of searches ?? []) {
       subject: `🏠 ${hits.length} tin mới khớp tìm kiếm của bạn (${criteria})`,
       html: `<div style="font-family:sans-serif;max-width:560px">
         <h2 style="color:#2563eb">NhaDat Radar - tin mới cho bạn</h2>
-        <p>Bộ lọc: <b>${criteria}</b></p><ul style="padding-left:18px">${rows}</ul>
+        <p>Bộ lọc: <b>${esc(criteria)}</b></p><ul style="padding-left:18px">${rows}</ul>
         <p><a href="${SITE}/search" style="color:#2563eb">Xem thêm trên NhaDat Radar →</a></p>
         <p style="color:#999;font-size:12px">Bạn nhận mail này vì đã bấm 🔔 trên trang tìm kiếm.
         · <a href="${SITE}/api/alerts/huy?id=${s.id}&amp;t=${s.unsub_token}" style="color:#999">Hủy đăng ký</a></p></div>`,
@@ -69,7 +69,9 @@ for (const s of searches ?? []) {
     sent++;
     await sb.from("saved_searches").update({ last_notified_at: new Date().toISOString() }).eq("id", s.id);
   } else {
-    console.error("alerts: gửi lỗi", s.email, res.status, await res.text().catch(() => ""));
+    // không in nguyên email khách ra log CI (repo public -> log Actions ai cũng xem được)
+    const emailChe = String(s.email).replace(/^(.{2}).*(@.*)$/, "$1***$2");
+    console.error("alerts: gửi lỗi", emailChe, res.status, await res.text().catch(() => ""));
   }
 }
 console.log(`alerts: đã gửi ${sent}/${searches?.length ?? 0} email.`);

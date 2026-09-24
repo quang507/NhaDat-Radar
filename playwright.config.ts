@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // BASE_URL: mặc định chạy trên bản production; CI/PR có thể trỏ sang preview Vercel.
-const BASE_URL = process.env.BASE_URL || "https://nha-dat-radar-rkyn.vercel.app";
+// (22/9: domain cũ nha-dat-radar-rkyn.vercel.app đã trả 404 -> mặc định về domain thật)
+const BASE_URL = process.env.BASE_URL || "https://nhadatradar.com";
 
 export default defineConfig({
   testDir: "tests",

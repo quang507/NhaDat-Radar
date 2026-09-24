@@ -1063,7 +1063,7 @@ export default async function AdminPage({
                             </Link>
 
                             <div className="mt-1 text-xs font-semibold text-emerald-600">
-                              {fmtPrice(d.price_vnd || d.listings?.price_vnd, d.listings?.deal || "ban")}
+                              {fmtPrice(d.price_vnd || d.listings?.price_vnd || null, d.listings?.deal || "ban")}
                             </div>
 
                             {d.buyers && (

@@ -3,7 +3,7 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
-import { laTinDocQuyen } from "@/lib/doc-quyen";
+import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 
 // Dòng kết quả kiểu batdongsan.com.vn: ảnh lớn + dải ảnh nhỏ bên trái,
 // giá + giá/m² + diện tích + PN, mô tả 2 dòng, chân tin nguồn + thời gian.
@@ -26,7 +26,7 @@ export default function ListingRow({ x }: { x: Listing }) {
       <div className="sm:w-[300px] shrink-0 relative">
         {imgs.length ? (
           <div className={`grid gap-0.5 h-44 sm:h-52 ${imgs.length > 1 ? "grid-rows-[2fr_1fr]" : ""}`}>
-            <SafeImg src={imgs[0]} alt={x.title} className="w-full h-full object-cover" />
+            <SafeImg src={imgs[0]} alt={laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title} className="w-full h-full object-cover" />
             {imgs.length > 1 && (
               <div className={`grid gap-0.5 ${imgs.length >= 4 ? "grid-cols-3" : imgs.length === 3 ? "grid-cols-2" : "grid-cols-1"}`}>
                 {imgs.slice(1).map((u, i) => (
@@ -58,7 +58,7 @@ export default function ListingRow({ x }: { x: Listing }) {
       {/* Nội dung */}
       <div className="flex-1 p-4 flex flex-col gap-1.5 min-w-0">
         <h3 className="font-semibold leading-snug line-clamp-2 group-hover:text-brand transition-colors uppercase text-[0.92rem]">
-          {x.title}
+          {laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title}
         </h3>
         {/* Gerhardt-Powals: cùng lưới số (tabular) để quét & so sánh giữa các dòng */}
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 tabular-nums">
@@ -70,7 +70,7 @@ export default function ListingRow({ x }: { x: Listing }) {
         </div>
         <div className="text-xs text-[var(--ink-soft)] truncate">{loc || "-"}</div>
         {x.description && (
-          <p className="text-xs text-[var(--ink-soft)] line-clamp-2 leading-relaxed break-words min-w-0">{x.description}</p>
+          <p className="text-xs text-[var(--ink-soft)] line-clamp-2 leading-relaxed break-words min-w-0">{laTinDocQuyen(x) ? cheSoVanBan(x.description) : x.description}</p>
         )}
         <div className="mt-auto pt-2 border-t border-[var(--line)] flex items-center gap-2 text-[0.7rem]">
           <span className={`font-bold px-1.5 py-0.5 rounded ${x.source === "agent" ? "text-emerald-600 bg-emerald-500/10" : "text-[var(--ink-soft)] bg-[var(--surface-2)]"}`}>

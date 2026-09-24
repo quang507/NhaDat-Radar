@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
+import { escHtml } from "@/lib/format";
 import { ganLopNen } from "@/lib/map-layers";
 
 // Bản đồ 1 tin (Leaflet + OSM miễn phí, hoặc Mapbox nếu có token)
@@ -20,7 +21,7 @@ export default function ListingMap({ lat, lng, title }: { lat: number; lng: numb
       mapRef.current = map;
       ganLopNen(L, map);
       const icon = L.divIcon({ className: "price-pin", html: `<div class="pp">📍</div>`, iconSize: [1, 1] });
-      L.marker([lat, lng], { icon }).addTo(map).bindPopup(title).openPopup();
+      L.marker([lat, lng], { icon }).addTo(map).bindPopup(escHtml(title)).openPopup();
     })();
     return () => { cancelled = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, [lat, lng, title]);

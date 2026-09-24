@@ -11,6 +11,7 @@ import Gallery from "@/components/Gallery";
 import ProjectContact from "./ProjectContact";
 import RichText from "@/components/RichText";
 import type { Project, Listing } from "@/lib/types";
+import { cheTinDocQuyen } from "@/lib/doc-quyen";
 
 export default async function ProjectDetail({
   params,
@@ -30,7 +31,7 @@ export default async function ProjectDetail({
     .eq("status", "published")
     .order("first_seen_at", { ascending: false })
     .limit(24);
-  let listings = (ls ?? []) as Listing[];
+  let listings = ((ls ?? []) as Listing[]).map(cheTinDocQuyen);
 
   // Chưa có tin gắn trực tiếp dự án -> hiện tin cùng khu vực (quận/tỉnh) làm gợi ý
   let related = false;
@@ -40,7 +41,7 @@ export default async function ProjectDetail({
       .ilike(p.district ? "district" : "province", `%${p.district || p.province}%`)
       .not("images", "eq", "{}")
       .order("ai_score", { ascending: false, nullsFirst: false }).limit(8);
-    listings = (near ?? []) as Listing[];
+    listings = ((near ?? []) as Listing[]).map(cheTinDocQuyen);
     related = listings.length > 0;
   }
 

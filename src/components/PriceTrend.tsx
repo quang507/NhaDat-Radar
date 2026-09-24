@@ -1,6 +1,20 @@
 // Biểu đồ xu hướng giá/m² trung vị theo ngày từ bảng price_history (crawler/price-history.mjs snapshot mỗi sáng).
 // Ưu tiên đúng quận + loại hình; thiếu thì lùi về quận (mọi loại) -> toàn tỉnh. Dữ liệu thật, <2 điểm thì nói thẳng "đang tích luỹ".
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
+import { unstable_cache } from "next/cache";
+
+// price_history chỉ đổi 1 lần/ngày (snapshot sáng) -> cache 1 giờ, thay vì truy vấn mỗi lượt xem (23/9)
+const layChuoiGia = unstable_cache(
+  async (province: string, deal: string, district: string, kind: string) => {
+    const { data } = await createAnonClient().from("price_history").select("day,median_ppm2,n")
+      .eq("province", province).eq("deal", deal).eq("district", district).eq("kind", kind)
+      .order("day", { ascending: true }).limit(120)
+      .then((r) => r, () => ({ data: null }));
+    return (data ?? []) as { day: string; median_ppm2: number; n: number }[];
+  },
+  ["price-trend-v1"],
+  { revalidate: 3600, tags: ["price-history"] },
+);
 import { canonDistrict, fmtPpm2 } from "@/lib/format";
 
 type Row = { day: string; median_ppm2: number; n: number };
@@ -8,7 +22,6 @@ type Row = { day: string; median_ppm2: number; n: number };
 export default async function PriceTrend({ province, district, kind, deal, compact = false }: {
   province: string; district?: string | null; kind?: string | null; deal: string; compact?: boolean;
 }) {
-  const supabase = await createClient();
   const d = district ? canonDistrict(district) : "";
   // các mức thử theo thứ tự cụ thể -> rộng
   // (audit 16/8: kind === "all" từng tạo 2 lần thử giống hệt nhau)
@@ -19,10 +32,7 @@ export default async function PriceTrend({ province, district, kind, deal, compa
 
   let series: { day: string; v: number; n: number }[] = [], scope = "";
   for (const t of tries) {
-    const { data } = await supabase.from("price_history").select("day,median_ppm2,n")
-      .eq("province", province).eq("deal", deal).eq("district", t.district).eq("kind", t.kind)
-      .order("day", { ascending: true }).limit(120)
-      .then((r) => r, () => ({ data: null as Row[] | null }));
+    const data = await layChuoiGia(province, deal, t.district, t.kind);
     if (data && data.length >= 2) { series = data.map((r) => ({ day: r.day, v: Number(r.median_ppm2), n: r.n })); scope = t.label; break; }
   }
   if (series.length < 2) {

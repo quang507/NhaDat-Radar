@@ -11,6 +11,9 @@ create table if not exists listing_reports (
 create index if not exists idx_reports_listing on listing_reports(listing_id, status);
 create index if not exists idx_reports_status  on listing_reports(status, created_at desc);
 alter table listing_reports enable row level security;
+-- drop-if-exists (audit 22/9): schema.sql đã tạo sẵn 2 policy này -> dựng DB sạch (schema.sql rồi migrations) chết ở đây
+drop policy if exists "reports_insert_anyone" on listing_reports;
+drop policy if exists "reports_read_admin" on listing_reports;
 create policy "reports_insert_anyone" on listing_reports for insert with check (true);
 create policy "reports_read_admin" on listing_reports for select using (
   exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin')

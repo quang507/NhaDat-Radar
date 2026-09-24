@@ -12,6 +12,7 @@ async function tooMany(bucket: string, max: number): Promise<boolean> {
   return !rateLimit(`${bucket}:${ip}`, max, 10 * 60 * 1000);
 }
 const PHONE_RE = /^(\+84|0)\d{8,10}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type LeadState = { ok: boolean; error?: string };
 
@@ -26,6 +27,9 @@ export async function createLead(
   const phone = String(formData.get("phone") || "").trim();
   const message = String(formData.get("message") || "").trim();
   if (!name || !phone) return { ok: false, error: "Nhập tên và số điện thoại." };
+  // id rác -> lỗi Postgres 22P02 lúc insert (khách chỉ thấy "không gửi được"); chặn sớm, báo rõ
+  if ((listing_id && !UUID_RE.test(listing_id)) || (project_id && !UUID_RE.test(project_id))) return { ok: false, error: "Tin đăng không hợp lệ." };
+  if (name.length > 120 || message.length > 2000) return { ok: false, error: "Tên tối đa 120 ký tự, lời nhắn tối đa 2000 ký tự." };
   if (!PHONE_RE.test(phone.replace(/[\s.-]/g, ""))) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
   if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút." };
 
@@ -46,7 +50,7 @@ export async function reportListing(_prev: LeadState, formData: FormData): Promi
   const listing_id = String(formData.get("listing_id") || "");
   const reason = String(formData.get("reason") || "");
   const detail = String(formData.get("detail") || "").trim().slice(0, 500);
-  if (!listing_id || !REPORT_REASONS[reason]) return { ok: false, error: "Chọn lý do báo cáo." };
+  if (!UUID_RE.test(listing_id) || !REPORT_REASONS[reason]) return { ok: false, error: "Chọn lý do báo cáo." };
   if (reason === "khac" && detail.length < 10) return { ok: false, error: "Mô tả thêm giúp Radar xử lý đúng (≥10 ký tự)." };
   if (await tooMany("report", 10)) return { ok: false, error: "Bạn báo cáo hơi nhanh - thử lại sau ít phút." };
   const supabase = await createClient();

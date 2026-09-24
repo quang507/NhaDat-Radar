@@ -1,9 +1,9 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 300;   // 23/9: trang chủ cache 5 phút (dữ liệu chỉ đổi mỗi lượt crawl)
 
 import fs from "node:fs";
 import path from "node:path";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
 import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen from "@/components/DaiDocQuyen";
@@ -16,6 +16,46 @@ import MapResults, { type MapItem } from "@/components/MapResults";
 import { fmtPrice, PROP, shortPrice } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
 import type { Listing, Project } from "@/lib/types";
+import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { unstable_cache } from "next/cache";
+
+// Trang chủ là trang bị bot gọi nhiều nhất. Next 15 không cache fetch mặc định -> mỗi lượt là 2 truy
+// vấn Supabase. Cache 5 phút theo BỘ LỌC trên URL (dữ liệu chỉ đổi mỗi lượt crawl 4 tiếng) - 23/9.
+const layTinTrangChu = unstable_cache(
+  async (deal?: string, kind?: string, province?: string, bedrooms?: string, priceMax?: string, q?: string) => {
+    const supabase = createAnonClient();
+    let query = supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published");
+    if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
+    if (kind) query = query.eq("kind", kind);
+    if (province) query = query.ilike("province", `%${province}%`);
+    if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
+    if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
+    if (q) query = query.ilike("title", `%${q}%`);
+    const [{ data }, { data: projData, count: projectCount }] = await Promise.all([
+      query.order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150),
+      supabase.from("projects").select("*", { count: "exact" }).eq("status", "published")
+        .order("priority", { ascending: false }).order("name").limit(6),
+    ]);
+    return { data: data ?? [], projData: projData ?? [], projectCount: projectCount ?? 0 };
+  },
+  ["home-listings-v1"],
+  { revalidate: 300, tags: ["listings"] },
+);
+
+// Title/description có SỐ THẬT (số tin, số tỉnh) thay vì câu quảng cáo chung chung - dữ liệu lấy từ
+// cây khu vực đã cache 10 phút nên không thêm truy vấn (23/9).
+export async function generateMetadata() {
+  try {
+    const { total, districtCount, sources } = await getAreas();
+    return {
+      title: `NhaDat Radar - ${total.toLocaleString("vi-VN")} tin nhà đất bán & cho thuê, giá thật theo khu vực`,
+      description: `${total.toLocaleString("vi-VN")} tin nhà đất từ ${sources} nguồn, phủ ${districtCount} quận/huyện: giá trung vị theo m², xu hướng giá, cảnh báo giá lệch và dấu hiệu môi giới/chính chủ. Cập nhật hằng ngày.`,
+      alternates: { canonical: "/" },
+    };
+  } catch {
+    return { alternates: { canonical: "/" } };
+  }
+}
 
 // Ảnh hero thương hiệu: đặt file tại public/hero.jpg (hoặc .png/.webp) là tự dùng.
 // Tính 1 lần lúc module load (audit 16/8: bản cũ existsSync 3 lần mỗi request).
@@ -48,22 +88,10 @@ export default async function Home({
 }) {
   const sp = await searchParams;
   const { deal, kind, province, bedrooms, priceMax, q } = sp;
-  const supabase = await createClient();
-
-  let query = supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published");
-  if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
-  if (kind) query = query.eq("kind", kind);
-  if (province) query = query.ilike("province", `%${province}%`);
-  if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
-  if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
-  if (q) query = query.ilike("title", `%${q}%`);
-  const { data } = await query.order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150);
-  const listings = (data ?? []) as Listing[];
+  const { data, projData, projectCount } = await layTinTrangChu(deal, kind, province, bedrooms, priceMax, q);
+  const listings = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
 
   // count exact: bộ đếm "dự án" phải là tổng toàn DB, không phải độ dài danh sách limit(6) (bug 17/8: hero hiện "6 dự án" trong khi DB có 30)
-  const { data: projData, count: projectCount } = await supabase
-    .from("projects").select("*", { count: "exact" }).eq("status", "published")
-    .order("priority", { ascending: false }).order("name").limit(6);
   const projects = (projData ?? []) as Project[];
 
   // Số liệu "tin đang rao / quận / nguồn" phải THẬT trên toàn DB (UX audit 16/8: trước đây đếm trên 150 tin

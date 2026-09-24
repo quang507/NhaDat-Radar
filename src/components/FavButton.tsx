@@ -46,7 +46,7 @@ export function getFavs(): string[] {
 }
 
 function setFavs(ids: string[]) {
-  localStorage.setItem(KEY, JSON.stringify(ids));
+  try { localStorage.setItem(KEY, JSON.stringify(ids)); } catch { /* Safari private mode / hết quota */ }
   window.dispatchEvent(new CustomEvent("ndr:favs"));
 }
 

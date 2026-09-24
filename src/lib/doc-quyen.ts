@@ -25,3 +25,15 @@ export function cheSoVanBan(s: string | null | undefined) {
 export function cheSoNha(s: string | null | undefined) {
   return String(s || "").trim().replace(/^\d[\d/\-a-zA-Z]*\s+/, "*** ");
 }
+
+// Bản đã che SĐT (tiêu đề + mô tả) của một tin độc quyền; tin thường trả nguyên. Dùng NGAY SAU truy
+// vấn ở server trước khi đưa danh sách xuống client component - dữ liệu truyền xuống (RSC payload)
+// nằm trong HTML, che ở chỗ hiển thị thôi là số vẫn lộ trong mã trang (audit 22/9).
+export function cheTinDocQuyen<T extends { source?: string | null; source_site?: string | null; title?: string | null; description?: string | null }>(x: T): T {
+  if (!laTinDocQuyen(x)) return x;
+  return {
+    ...x,
+    ...(x.title != null ? { title: cheSoVanBan(x.title) } : {}),
+    ...(x.description != null ? { description: cheSoVanBan(x.description) } : {}),
+  };
+}
