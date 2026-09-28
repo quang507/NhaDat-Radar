@@ -8,10 +8,11 @@ import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen from "@/components/DaiDocQuyen";
 import { laTinDocQuyen } from "@/lib/doc-quyen";
+import { tronRoHang, laRoHang } from "@/lib/ro-hang";
 
-// thứ hạng ưu tiên trong lưới kết quả: tin Zalo (0) -> tin FB (1) -> nguồn web (2)
+// thứ hạng ưu tiên trong lưới kết quả: tin Zalo (0) -> rổ hàng Radar (1) -> tin FB (2) -> nguồn web (3)
 const uuTienDocQuyen = (x: Listing) =>
-  !laTinDocQuyen(x) ? 2 : (x.source_site || "").startsWith("zalo") || x.source === "zalo_oa" || x.source === "zalo_miniapp" ? 0 : 1;
+  !laTinDocQuyen(x) ? 3 : (x.source_site || "").startsWith("zalo") || x.source === "zalo_oa" || x.source === "zalo_miniapp" ? 0 : laRoHang(x) ? 1 : 2;
 import MapResults, { type MapItem } from "@/components/MapResults";
 import { fmtPrice, PROP, shortPrice } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
@@ -24,21 +25,28 @@ import { unstable_cache } from "next/cache";
 const layTinTrangChu = unstable_cache(
   async (deal?: string, kind?: string, province?: string, bedrooms?: string, priceMax?: string, q?: string) => {
     const supabase = createAnonClient();
-    let query = supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published");
-    if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
-    if (kind) query = query.eq("kind", kind);
-    if (province) query = query.ilike("province", `%${province}%`);
-    if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
-    if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
-    if (q) query = query.ilike("title", `%${q}%`);
-    const [{ data }, { data: projData, count: projectCount }] = await Promise.all([
-      query.order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150),
+    // builder của supabase-js bị MUTATE khi gọi filter -> mỗi truy vấn phải dựng mới từ hàm này
+    const taoQuery = () => {
+      let query = supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published");
+      if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
+      if (kind) query = query.eq("kind", kind);
+      if (province) query = query.ilike("province", `%${province}%`);
+      if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
+      if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
+      if (q) query = query.ilike("title", `%${q}%`);
+      return query;
+    };
+    // 28/9: rổ hàng Radar truy vấn riêng rồi trộn 2:1 với tin còn lại (lib/ro-hang) - không thì
+    // 1.400 phòng EvoHome nhập cùng lúc chiếm trọn 150 chỗ "mới nhất", hoặc ngược lại bị crawl đè.
+    const [{ data: rhData }, { data }, { data: projData, count: projectCount }] = await Promise.all([
+      taoQuery().eq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(100),
+      taoQuery().neq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150),
       supabase.from("projects").select("*", { count: "exact" }).eq("status", "published")
         .order("priority", { ascending: false }).order("name").limit(6),
     ]);
-    return { data: data ?? [], projData: projData ?? [], projectCount: projectCount ?? 0 };
+    return { data: tronRoHang((rhData ?? []) as { id: string }[], (data ?? []) as { id: string }[]), projData: projData ?? [], projectCount: projectCount ?? 0 };
   },
-  ["home-listings-v1"],
+  ["home-listings-v2"],
   { revalidate: 300, tags: ["listings"] },
 );
 

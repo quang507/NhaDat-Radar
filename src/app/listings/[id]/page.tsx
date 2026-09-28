@@ -28,6 +28,8 @@ import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
+import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong } from "@/lib/ro-hang";
+import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
@@ -165,6 +167,9 @@ export default async function ListingDetail({
   const lastSeen = agoMin(x.last_seen_at ?? null);
   const isGone = x.status === "gone";
   const isCrawl = x.source === "crawl";
+  // RỔ HÀNG RADAR (28/9): hàng mình nắm - không link gốc, không tên đối tác, CTA chỉ về Radar (lib/ro-hang)
+  const roHang = laRoHang(x);
+  const giuPhong = tagGiuPhong(x);
   const reasons = (x.poster_reasons || []).map(posterReasonText);
   const fmtDT = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "-";
@@ -264,7 +269,7 @@ export default async function ListingDetail({
       </nav>
       {isGone && (
         <div className="rounded-lg p-3 my-3 border border-amber-500/40 bg-amber-500/10 text-sm">
-          <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {x.source_site || "nguồn"} từ{" "}
+          <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {roHang ? "rổ hàng" : x.source_site || "nguồn"} từ{" "}
           {lastSeen != null ? fresh(lastSeen) : "một thời gian"}. Tin đã ẩn khỏi kết quả tìm kiếm; giữ lại để tham khảo giá.
         </div>
       )}
@@ -275,7 +280,14 @@ export default async function ListingDetail({
             📍 {diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}
           </div>
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
-          <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
+          {roHang ? (
+            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
+              <span className="font-semibold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-full">★ Rổ hàng Radar · phòng trống đã xác thực</span>
+              {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded-full">{giuPhong}</span>}
+            </div>
+          ) : (
+            <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
+          )}
         </div>
         <div className="text-right shrink-0">
           <div className="prata text-2xl text-brand">{fmtPrice(x.price_vnd, x.deal)}</div>
@@ -463,7 +475,7 @@ export default async function ListingDetail({
 
         <div className="flex flex-col gap-4">
           <div className="card rounded-lg p-5" id="lien-he">
-            <h3 className="font-bold mb-3">{isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
+            <h3 className="font-bold mb-3">{roHang ? "Liên hệ xem phòng" : isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#16233a] text-xs">
                 {x.source === "agent" ? "BÁN" : "TIN"}
@@ -478,7 +490,16 @@ export default async function ListingDetail({
             {/* TIN ĐỘC QUYỀN (FB + Zalo): không hiện SĐT cho bất kỳ ai - Radar là đường liên hệ
                 duy nhất (Cầu Nối), đây là nhóm tin thu phí được. Nguồn web thì giữ luật cũ:
                 SĐT hiện sau đăng nhập (mô hình Homigo), hotline Radar không chặn ai. */}
-            {docQuyen ? (
+            {roHang ? (
+              <div className="mb-3 flex flex-col gap-2">
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-[var(--ink-soft)]">
+                  <div className="font-bold text-sm text-[var(--ink)] mb-1">★ Rổ hàng Radar</div>
+                  {cauChotXemPhong(fmtPrice(x.price_vnd, x.deal))}
+                </div>
+                <a href={`tel:${HOTLINE}`} className="btn btn-primary w-full text-center">📞 Gọi Hotline {HOTLINE}</a>
+                <a href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">💬 Nhắn Zalo hẹn xem phòng</a>
+              </div>
+            ) : docQuyen ? (
               <div className="mb-3 rounded-lg border border-brand/40 bg-brand/5 p-3 text-sm">
                 <div className="font-bold mb-1">⭐ Tin độc quyền Radar</div>
                 <p className="text-xs text-[var(--ink-soft)]">
@@ -504,9 +525,9 @@ export default async function ListingDetail({
                 Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} ›
               </a>
             ) : null}
-            <TuVanRadar />
-            {/* độc quyền: vẫn ghi nguồn nhưng chỉ là chữ nhỏ, không phải CTA */}
-            {docQuyen && x.source_url && x.source_url !== "#" && (
+            {!roHang && <TuVanRadar />}
+            {/* độc quyền: vẫn ghi nguồn nhưng chỉ là chữ nhỏ, không phải CTA. Rổ hàng: không bao giờ */}
+            {docQuyen && !roHang && x.source_url && x.source_url !== "#" && (
               <p className="text-[0.68rem] text-[var(--ink-faint)] mb-3">
                 Nguồn tin: <a href={x.source_url} target="_blank" rel="noopener nofollow" className="underline">{x.source_site || "bài gốc"}</a>
               </p>
@@ -519,7 +540,12 @@ export default async function ListingDetail({
                 Nhắn tin với người bán
               </Link>
             )}
-            {isCrawl ? (
+            {roHang ? (
+              <div className="mt-1 pt-3 border-t border-[var(--line)]">
+                <div className="font-bold text-sm mb-2">📅 Đặt lịch xem phòng</div>
+                <ContactForm listingId={x.id} listingTitle={x.title} datLich />
+              </div>
+            ) : isCrawl ? (
               <details className="mt-1">
                 <summary className="text-sm font-semibold cursor-pointer text-brand">Nhờ Radar hỗ trợ tìm/định giá tin tương tự</summary>
                 <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT - Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp trong khu vực.</p>
@@ -533,7 +559,7 @@ export default async function ListingDetail({
                 <AppointmentForm listingId={x.id} agentId={x.agent_id} />
               </div>
             )}
-            {!isCrawl && x.source_url && x.source_url !== "#" ? (
+            {!isCrawl && !roHang && x.source_url && x.source_url !== "#" ? (
               <a
                 href={x.source_url}
                 target="_blank"
@@ -553,7 +579,7 @@ export default async function ListingDetail({
           <div className="card rounded-lg p-5 text-sm">
             <h3 className="font-bold mb-2">Độ mới của tin</h3>
             <div className="grid grid-cols-[1fr_auto] gap-y-1.5">
-              {x.posted_at ? (<>
+              {x.posted_at && !roHang ? (<>
                 <span className="text-[var(--ink-soft)]">Đăng trên {x.source_site || "nguồn"}</span>
                 <span className="font-semibold">{fmtDT(x.posted_at)}</span>
               </>) : null}
@@ -566,7 +592,7 @@ export default async function ListingDetail({
               </span>
               <span className="text-[var(--ink-soft)]">Nguồn</span>
               <span className="font-semibold">
-                {x.source === "agent" ? "Tự đăng" : (x.source_sites && x.source_sites.length > 1 ? x.source_sites.join(" + ") : x.source_site || "crawl")}
+                {x.source === "agent" || roHang ? tenNguon(x) : (x.source_sites && x.source_sites.length > 1 ? x.source_sites.join(" + ") : x.source_site || "crawl")}
               </span>
               {x.trust_score ? (<>
                 <span className="text-[var(--ink-soft)]" title="Chấm theo mức đầy đủ dữ liệu: ảnh, pháp lý, mô tả, giá & diện tích, dấu hiệu chính chủ - không phải xác minh">Độ đầy đủ tin</span>
@@ -584,7 +610,12 @@ export default async function ListingDetail({
           <div className="text-brand font-extrabold leading-tight">{fmtPrice(x.price_vnd, x.deal)}</div>
           <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
         </div>
-        {isCrawl && x.source_url && x.source_url !== "#" ? (
+        {roHang ? (
+          <span className="ml-auto flex gap-2">
+            <a href={`tel:${HOTLINE}`} className="btn btn-primary whitespace-nowrap min-h-12 px-4">📞 Gọi</a>
+            <a href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 px-4 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</a>
+          </span>
+        ) : isCrawl && x.source_url && x.source_url !== "#" ? (
           <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Xem bài gốc ›</a>
         ) : (
           <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Liên hệ</a>

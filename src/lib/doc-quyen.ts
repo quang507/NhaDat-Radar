@@ -1,3 +1,5 @@
+import { laRoHang } from "./ro-hang";
+
 // Tin ĐỘC QUYỀN Radar (quyết định 21/8): tin cào từ FACEBOOK + mọi tin ZALO - các trang
 // khác không có nguồn này. Chính sách: GIẤU SĐT ở mọi nơi, liên hệ đi qua Cầu Nối
 // (bot Zalo / hotline) - đây là nhóm tin thu phí 1%/0.5% được vì Radar là đường liên hệ
@@ -8,7 +10,8 @@
 // (bot Zalo lặp lại quy tắc trong zalo-bot.mjs vì .mjs không import được .ts - đổi thì sửa cả hai.)
 export function laTinDocQuyen(x: { source?: string | null; source_site?: string | null }) {
   // dựa được vào mỗi source_site (vài query không select cột source): facebook + zalo_* phủ đủ
-  return x.source === "zalo_oa" || x.source === "zalo_miniapp"
+  // 28/9: + rổ hàng Radar (EvoHome, Thiên Khôi) - hàng mình nắm, liên hệ chỉ qua Radar
+  return laRoHang(x) || x.source === "zalo_oa" || x.source === "zalo_miniapp"
     || x.source_site === "facebook" || (x.source_site || "").startsWith("zalo");
 }
 

@@ -15,6 +15,7 @@ import ListingRow from "@/components/ListingRow";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import PriceTrend from "@/components/PriceTrend";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { tronRoHang } from "@/lib/ro-hang";
 import { ldJson } from "@/lib/ld";
 
 type Deal = "ban" | "cho_thue";
@@ -95,17 +96,26 @@ const COLS = "id,source,source_site,source_url,deal,kind,title,description,price
 const layTinKhuVuc = unstable_cache(
   async (deal: Deal, province: string, district: string | null, kind: string | null) => {
     const supabase = createAnonClient();
-    let q = supabase.from("listings").select(COLS).eq("status", "published").eq("deal", deal).eq("province", province);
-    if (district) q = q.eq("district", district);
-    if (kind) q = q.eq("kind", kind);
+    // builder bị mutate khi gọi filter -> dựng mới cho từng truy vấn
+    const taoQ = () => {
+      let q = supabase.from("listings").select(COLS).eq("status", "published").eq("deal", deal).eq("province", province);
+      if (district) q = q.eq("district", district);
+      if (kind) q = q.eq("kind", kind);
+      return q;
+    };
     let c = supabase.from("listings").select("id", { count: "exact", head: true })
       .eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN());
     if (district) c = c.eq("district", district);
     if (kind) c = c.eq("kind", kind);
-    const [{ data }, { count }] = await Promise.all([q.order("first_seen_at", { ascending: false }).limit(300), c]);
-    return { data: data ?? [], newToday: count ?? 0 };
+    // 28/9: rổ hàng Radar trộn 2:1 với tin còn lại (lib/ro-hang)
+    const [{ data: rh }, { data }, { count }] = await Promise.all([
+      taoQ().eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(120),
+      taoQ().neq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(300),
+      c,
+    ]);
+    return { data: tronRoHang((rh ?? []) as { id: string }[], (data ?? []) as { id: string }[]).slice(0, 300), newToday: count ?? 0 };
   },
-  ["area-listings-v1"],
+  ["area-listings-v2"],
   { revalidate: 600, tags: ["listings"] },
 );
 

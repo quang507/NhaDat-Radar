@@ -3,6 +3,8 @@ import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
 import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
+import { cauChotXemPhong, tronRoHang } from "@/lib/ro-hang";
+import { HOTLINE } from "@/components/TuVanRadar";
 
 // %/_ là wildcard ilike, ",()" phá cú pháp .or() - cùng luật clean của /search (soát 21/8:
 // province/district/keyword từ output Gemini đi thẳng vào ilike không rửa)
@@ -116,6 +118,16 @@ export async function POST(req: NextRequest) {
   const last = messages.filter((m) => m.role === "user").pop()?.text?.slice(0, 1000);
   if (!last) return NextResponse.json({ reply: "Bạn muốn tìm nhà đất như thế nào ạ?" });
 
+  // Quy tắc bán hàng (28/9): KHÔNG nhận bớt giá / không nói thời hạn hợp đồng qua tin nhắn -> mời qua xem
+  // phòng rồi thương lượng trực tiếp. Chặn trước Gemini để câu chốt luôn đúng kịch bản.
+  if (/(bớt|giảm giá|bot gia|thương lượng|fix giá|hợp đồng|hop dong|mấy tháng|bao nhiêu tháng|tối thiểu.*tháng)/i.test(last)) {
+    return NextResponse.json({
+      reply: `${cauChotXemPhong("như trên tin")}
+📞 Hotline/Zalo: ${HOTLINE}`,
+      listings: [],
+    });
+  }
+
   const convo = messages.map((m) => `${m.role === "user" ? "Người dùng" : "Trợ lý"}: ${m.text}`).join("\n");
 
   let parsed: Parsed | null = null;
@@ -158,20 +170,28 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
 
   // ===== Tìm tin =====
   const supabase = createAnonClient();
-  let q = supabase
-    .from("listings")
-    .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images")
-    .eq("status", "published");
-  if (parsed.deal) q = q.eq("deal", parsed.deal);
-  if (parsed.kind && PROP[parsed.kind]) q = q.eq("kind", parsed.kind);
-  if (parsed.province && sach(parsed.province)) q = q.ilike("province", `%${sach(parsed.province)}%`);
-  if (parsed.district && sach(parsed.district)) q = q.ilike("district", `%${sach(parsed.district)}%`);
-  if (parsed.price_min) q = q.gte("price_vnd", parsed.price_min);
-  if (parsed.price_max) q = q.lte("price_vnd", parsed.price_max);
-  if (parsed.bedrooms) q = q.gte("bedrooms", parsed.bedrooms);
-  if (parsed.keyword && sach(parsed.keyword)) q = q.ilike("title", `%${sach(parsed.keyword)}%`);
-  const { data } = await q.order("ai_score", { ascending: false, nullsFirst: false }).limit(5);
-  let found = data ?? [];
+  // builder bị mutate khi gọi filter -> dựng mới cho mỗi truy vấn
+  const taoQ = () => {
+    let q = supabase
+      .from("listings")
+      .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images,source")
+      .eq("status", "published");
+    if (parsed.deal) q = q.eq("deal", parsed.deal);
+    if (parsed.kind && PROP[parsed.kind]) q = q.eq("kind", parsed.kind);
+    if (parsed.province && sach(parsed.province)) q = q.ilike("province", `%${sach(parsed.province)}%`);
+    if (parsed.district && sach(parsed.district)) q = q.ilike("district", `%${sach(parsed.district)}%`);
+    if (parsed.price_min) q = q.gte("price_vnd", parsed.price_min);
+    if (parsed.price_max) q = q.lte("price_vnd", parsed.price_max);
+    if (parsed.bedrooms) q = q.gte("bedrooms", parsed.bedrooms);
+    if (parsed.keyword && sach(parsed.keyword)) q = q.ilike("title", `%${sach(parsed.keyword)}%`);
+    return q;
+  };
+  // 28/9: rổ hàng Radar ưu tiên (3 rổ hàng : 2 tin khác trong 5 thẻ)
+  const [{ data: rh }, { data }] = await Promise.all([
+    taoQ().eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(3),
+    taoQ().neq("source", "ro_hang").order("ai_score", { ascending: false, nullsFirst: false }).limit(5),
+  ]);
+  let found = tronRoHang(rh ?? [], data ?? [], 3).slice(0, 5);
 
   // Không có kết quả -> thử tìm NGỮ NGHĨA bằng pgvector (cần migration 003 + embed.mjs đã chạy)
   if (!found.length) {
@@ -200,7 +220,7 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
         const ids = (matches ?? []).filter((m: { similarity: number }) => m.similarity > 0.5).map((m: { id: string }) => m.id);
         if (ids.length) {
           const { data: sem } = await supabase
-            .from("listings").select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images")
+            .from("listings").select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images,source")
             .in("id", ids);
           found = sem ?? [];
         }
@@ -218,6 +238,11 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
       { json: false },
     );
     reply ||= `Mình tìm được ${found.length} tin phù hợp, bạn xem bên dưới nhé! Bấm ♥ để lưu tin.`;
+    const rhDau = found.find((x) => x.source === "ro_hang");
+    if (rhDau) reply += `
+
+${cauChotXemPhong(fmtPrice(rhDau.price_vnd, rhDau.deal))}
+📞 Hotline/Zalo: ${HOTLINE}`;
   } else {
     reply = "Hiện chưa có tin nào khớp yêu cầu 😥 Bạn thử nới giá hoặc đổi khu vực, hoặc dùng bộ lọc ở trang Tìm kiếm nhé.";
   }
