@@ -1,0 +1,110 @@
+// CÀO RỔ HÀNG EVOHOME / HIFRIENDZ (28/9) - phòng TRỐNG (status=VACANT) từ app.evohome.it.com.
+//
+//   EVOHOME_PHONE=... EVOHOME_PASSWORD=... node crawler/evohome-fetch.mjs
+//   -> crawler/private/evohome.json  (rồi crawler/ro-hang-evohome.mjs đưa lên web)
+//
+// Đăng nhập bằng Playwright (web dùng phiên đăng nhập), rồi gọi thẳng API JSON của chính app
+// trong trang đã đăng nhập - cùng cách script Antigravity đã chạy được 26/9 (1.461 phòng).
+// TÀI KHOẢN chỉ lấy từ biến môi trường (GitHub Secrets / .env.local) - repo PUBLIC, không ghi vào code.
+// File đầu ra có số nhà thật + hoa hồng -> nằm trong crawler/private/ (gitignore).
+import fs from "node:fs";
+import { chromium } from "playwright";
+
+const PHONE = process.env.EVOHOME_PHONE, PASS = process.env.EVOHOME_PASSWORD;
+if (!PHONE || !PASS) { console.error("Thiếu EVOHOME_PHONE / EVOHOME_PASSWORD"); process.exit(1); }
+const OUT = "crawler/private/evohome.json";
+const TOI_THIEU = 100;   // ít hơn chừng này phòng = đăng nhập hỏng / API đổi -> KHÔNG ghi đè file cũ
+
+const LOAI = { DUPLEX: "Gác lửng", STUDIO: "Studio", ONE_BEDROOM: "1 Phòng ngủ", TWO_BEDROOM: "2 Phòng ngủ", ROOM: "Phòng", APARTMENT: "Căn hộ" };
+const tien = (v) => {
+  const n = Number(v) || 0;
+  if (!n) return "Thỏa thuận";
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, "") + " triệu";
+  return n.toLocaleString("vi-VN") + " đ";
+};
+const so = (v) => Number(v).toLocaleString("vi-VN");
+
+const browser = await chromium.launch({ headless: true });
+const units = [];
+try {
+  const page = await (await browser.newContext()).newPage();
+  await page.goto("https://app.evohome.it.com/sign-in", { waitUntil: "domcontentloaded" });
+  await page.fill("input[name='phone'], input[name='username'], input[type='tel'], input[type='text']", PHONE);
+  await page.fill("input[name='password'], input[type='password']", PASS);
+  await page.click("button[type='submit']");
+  await page.waitForURL((u) => !u.pathname.includes("sign-in"), { timeout: 20000 }).catch(() => {});
+  if (page.url().includes("sign-in")) throw new Error("Đăng nhập EvoHome thất bại (sai tài khoản hoặc trang đổi form)");
+  await page.goto("https://app.evohome.it.com/re-selling-dashboard/real-estate/transaction-units?adminMode=old&status=VACANT&type=ROOM&view=all", { waitUntil: "networkidle" });
+
+  for (let p = 1; p <= 100; p++) {
+    const r = await page.evaluate(async (p) => {
+      const res = await fetch(`https://app.evohome.it.com/api/real-estate-management/transaction-units?page=${p}&limit=50&type=ROOM&status=VACANT&sortBy=updatedAt&sortOrder=desc`);
+      if (!res.ok) return { data: [], pages: [], status: res.status };
+      const j = await res.json();
+      return { data: j?.data || [], pages: j?.meta?.pages || [] };
+    }, p);
+    if (!r.data.length) break;
+    units.push(...r.data);
+    if (r.pages.length && p >= Math.max(...r.pages)) break;
+    await page.waitForTimeout(400);
+  }
+} finally {
+  await browser.close();
+}
+console.log(`EvoHome: ${units.length} phòng trống`);
+if (units.length < TOI_THIEU) { console.error(`Quá ít (<${TOI_THIEU}) - giữ nguyên ${OUT} cũ`); process.exit(1); }
+
+// Chuẩn hoá về dạng trung gian mà ro-hang-evohome.mjs đọc (cùng khuôn file Antigravity 26/9)
+const out = units.map((u) => {
+  const site = u.site || {};
+  const quan = site.oldDistrict?.name || "";
+  const phuongTho = site.oldWard?.name || "";
+  const phuong = phuongTho ? `Phường ${/^\d+$/.test(phuongTho) ? phuongTho.replace(/^0+/, "") : phuongTho}` : "";
+  const loai = LOAI[u.roomType] || "Phòng";
+  const gia = Number(u.rentPrice) || 0, dt = Number(u.area) || 0;
+  const tn = [
+    [u.room_hasAirConditioner, "Máy lạnh"], [u.room_hasWashingMachine, "Máy giặt"], [u.room_hasFridge, "Tủ lạnh"],
+    [u.room_hasKitchenShelf, "Kệ bếp"], [u.room_hasBed, "Giường nệm"], [u.room_hasWindow, "Cửa sổ thoáng"],
+    [u.room_hasBalcony, "Ban công"], [u.room_hasSkylight, "Giếng trời"], [u.roomGateLock === "FINGERPRINT", "Khóa vân tay"],
+    [u.roomActivityHours === "FREE", "Giờ giấc tự do"], [u.room_security, "Camera an ninh"], [u.room_hasElevator, "Thang máy"],
+  ].filter(([c]) => c).map(([, t]) => t);
+  const moTa = [
+    `🏠 Cho thuê ${loai} tại ${site.name || ""}, ${phuong ? phuong + ", " : ""}${quan}, TP.HCM.`,
+    `• Diện tích: ${dt ? dt + " m²" : "Rộng rãi thoáng mát"}`,
+    `• Giá thuê: ${tien(gia)}/tháng`,
+    u.depositPrice ? `• Tiền cọc: ${tien(u.depositPrice)}` : "",
+    "✨ TIỆN NGHI PHÒNG:",
+    ...(tn.length ? tn.map((t) => `• ${t}`) : ["• Đầy đủ tiện nghi cơ bản"]),
+    "⚡ CHI PHÍ DỊCH VỤ:",
+    u.electricityPrice ? `• Điện: ${so(u.electricityPrice)} đ/kWh` : "",
+    u.waterPrice ? `• Nước: ${so(u.waterPrice)} đ/người/tháng` : "",
+    u.managementPrice ? `• Phí quản lý: ${so(u.managementPrice)} đ/phòng` : "",
+    u.washingMachinePrice ? `• Giặt sấy: ${so(u.washingMachinePrice)} đ/người` : "",
+  ].filter(Boolean).join("\n");
+  return {
+    source_post_id: u.id,
+    posted_at: u.createdAt || null,
+    description: moTa,
+    price_vnd: gia,
+    area_m2: dt || null,
+    kind: dt >= 35 || u.roomType === "ONE_BEDROOM" || u.roomType === "TWO_BEDROOM" ? "can_ho" : "phong_tro",
+    district: quan,
+    ward: phuong || null,
+    address: `${site.name || ""}, ${phuong ? phuong + ", " : ""}${quan}, TP.HCM`,
+    lat: site.latitude ?? null,
+    lng: site.longitude ?? null,
+    images: (u.mediaFiles || []).map((m) => m.mediaFile?.url).filter(Boolean),
+    specs: {
+      "Loại phòng": loai,
+      "Số phòng": u.name || "-",
+      "Hoa hồng môi giới": u.commissionPer || "Thỏa thuận",
+      "Tiền cọc": tien(u.depositPrice),
+      "Điện": u.electricityPrice ? `${so(u.electricityPrice)} đ/kWh` : "-",
+      "Nước": u.waterPrice ? `${so(u.waterPrice)} đ/người` : "-",
+      "Phí quản lý": u.managementPrice ? `${so(u.managementPrice)} đ/phòng` : "-",
+    },
+  };
+});
+fs.mkdirSync("crawler/private", { recursive: true });
+fs.writeFileSync(OUT, JSON.stringify(out));
+console.log(`✓ Ghi ${out.length} phòng -> ${OUT}`);

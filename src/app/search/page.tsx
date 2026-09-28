@@ -8,6 +8,7 @@ import { LISTING_CARD_COLS } from "@/lib/cols";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
 import SearchClient from "./SearchClient";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { tronRoHang } from "@/lib/ro-hang";
 
 // /search KHÔNG tham số là trang có ích (điểm vào bộ lọc) -> để index.
 // /search?... là vô số tổ hợp nội dung mỏng/trùng với trang khu vực -> noindex, follow (23/9).
@@ -79,6 +80,9 @@ export default async function SearchPage({
 
   // KHÔNG dùng select("*"): cột embedding vector(768) nặng ~15KB/dòng, 200 dòng = ~3MB vô ích (xem lib/cols)
   let query = applyFilters(supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published"));
+  // 28/9: sắp xếp MẶC ĐỊNH thì rổ hàng Radar truy vấn riêng, trộn 2:1 với tin còn lại (lib/ro-hang).
+  // Người dùng chủ động chọn sắp xếp theo giá/diện tích... thì tôn trọng thứ tự đó, không trộn.
+  const tronMacDinh = !sort || !["price_asc", "price_desc", "ppm2_asc", "ppm2_desc", "area_asc", "area_desc", "score"].includes(sort);
 
   // "N tin mới hôm nay" (kiểu Homigo): tin Radar thấy lần đầu từ 0h hôm nay theo giờ VN, cùng bộ lọc
   const newTodayQuery = applyFilters(
@@ -97,13 +101,17 @@ export default async function SearchPage({
   // tổng THẬT theo bộ lọc (UX audit: "200+" là cap của limit, người dùng không biết có 250 hay 5.000 tin)
   const totalQuery = applyFilters(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"));
   // cây Tỉnh -> Quận -> Phường: dùng bản cache 10' (lib/geo) thay vì select 2.000 dòng mỗi request
-  const [{ data }, areas, { count: newToday }, { count: totalCount }] = await Promise.all([
-    query.limit(200),
+  const [{ data }, areas, { count: newToday }, { count: totalCount }, { data: rhData }] = await Promise.all([
+    tronMacDinh ? query.neq("source", "ro_hang").limit(150) : query.limit(200),
     getAreas(),
     newTodayQuery,
     totalQuery,
+    tronMacDinh
+      ? applyFilters(supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published")).eq("source", "ro_hang")
+          .order("first_seen_at", { ascending: false, nullsFirst: false }).limit(100)
+      : Promise.resolve({ data: [] as Listing[] }),
   ]);
-  const listings = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
+  const listings = tronRoHang((rhData ?? []) as Listing[], (data ?? []) as Listing[]).slice(0, 200).map(cheTinDocQuyen);
   const geo = areas.geo;
 
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL

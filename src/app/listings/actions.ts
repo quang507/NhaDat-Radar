@@ -25,7 +25,10 @@ export async function createLead(
   const project_id = String(formData.get("project_id") || "");
   const name = String(formData.get("name") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
-  const message = String(formData.get("message") || "").trim();
+  let message = String(formData.get("message") || "").trim();
+  // form "Đặt lịch xem phòng" (rổ hàng Radar): bảng leads không có cột lịch -> ghép vào đầu lời nhắn
+  const henNgay = String(formData.get("hen_ngay") || "").slice(0, 10), henBuoi = String(formData.get("hen_buoi") || "").slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(henNgay)) message = `[HẸN XEM ${henBuoi} ${henNgay.split("-").reverse().join("/")}] ${message}`.trim();
   if (!name || !phone) return { ok: false, error: "Nhập tên và số điện thoại." };
   // id rác -> lỗi Postgres 22P02 lúc insert (khách chỉ thấy "không gửi được"); chặn sớm, báo rõ
   if ((listing_id && !UUID_RE.test(listing_id)) || (project_id && !UUID_RE.test(project_id))) return { ok: false, error: "Tin đăng không hợp lệ." };
