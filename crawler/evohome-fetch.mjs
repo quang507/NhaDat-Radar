@@ -28,13 +28,24 @@ const browser = await chromium.launch({ headless: true });
 const units = [];
 try {
   const page = await (await browser.newContext()).newPage();
-  await page.goto("https://app.evohome.it.com/sign-in", { waitUntil: "domcontentloaded" });
-  await page.fill("input[name='phone'], input[name='username'], input[type='tel'], input[type='text']", PHONE);
-  await page.fill("input[name='password'], input[type='password']", PASS);
-  await page.click("button[type='submit']");
+  // Trang là SPA: HTML trả về rỗng, form do JS vẽ sau (lượt CI đầu 28/9 chờ form 30s không thấy).
+  // Selector theo data-testid của chính form (kiểm 28/9: login-username / login-password / login-submit).
+  await page.goto("https://app.evohome.it.com/sign-in", { waitUntil: "load", timeout: 60000 });
+  try {
+    await page.waitForSelector("[data-testid=login-username], input[name=username]", { timeout: 60000 });
+  } catch (e) {
+    // chỉ in trang ĐĂNG NHẬP (chưa có dữ liệu gì) để biết bị chặn hay trang đổi
+    console.error("Không thấy form đăng nhập. Tiêu đề:", await page.title(), "| URL:", page.url());
+    console.error("Chữ đầu trang:", (await page.evaluate(() => document.body?.innerText || "")).slice(0, 300));
+    throw e;
+  }
+  await page.fill("[data-testid=login-username], input[name=username]", PHONE);
+  await page.fill("[data-testid=login-password], input[name=password]", PASS);
+  await page.click("[data-testid=login-submit], button[type=submit]");
   await page.waitForURL((u) => !u.pathname.includes("sign-in"), { timeout: 20000 }).catch(() => {});
   if (page.url().includes("sign-in")) throw new Error("Đăng nhập EvoHome thất bại (sai tài khoản hoặc trang đổi form)");
-  await page.goto("https://app.evohome.it.com/re-selling-dashboard/real-estate/transaction-units?adminMode=old&status=VACANT&type=ROOM&view=all", { waitUntil: "networkidle" });
+  await page.goto("https://app.evohome.it.com/re-selling-dashboard/real-estate/transaction-units?adminMode=old&status=VACANT&type=ROOM&view=all", { waitUntil: "load", timeout: 60000 });
+  await page.waitForTimeout(3000);   // "networkidle" không bao giờ tới trên trang này (SPA gọi mạng liên tục)
 
   for (let p = 1; p <= 100; p++) {
     const r = await page.evaluate(async (p) => {
