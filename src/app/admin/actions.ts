@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,6 +20,7 @@ export async function setListingStatus(formData: FormData) {
   const status = String(formData.get("status") || "");
   if (!id || !["published", "hidden", "rejected"].includes(status)) return;
   await createAdminClient().from("listings").update({ status }).eq("id", id);
+  revalidateTag("listings");   // 28/9: trang tin/trang chủ/khu vực cache theo tag này - gỡ tin phải mất NGAY
   revalidatePath("/admin");
 }
 
@@ -28,6 +29,7 @@ export async function deleteListing(formData: FormData) {
   const id = String(formData.get("id") || "");
   if (!id) return;
   await createAdminClient().from("listings").delete().eq("id", id);
+  revalidateTag("listings");   // 28/9: trang tin/trang chủ/khu vực cache theo tag này - gỡ tin phải mất NGAY
   revalidatePath("/admin");
 }
 
@@ -39,6 +41,7 @@ export async function setListingStatusFromDetail(formData: FormData) {
   const status = String(formData.get("status") || "");
   if (!id || !["published", "hidden"].includes(status)) return;
   await createAdminClient().from("listings").update({ status }).eq("id", id);
+  revalidateTag("listings");   // 28/9: trang tin/trang chủ/khu vực cache theo tag này - gỡ tin phải mất NGAY
   revalidatePath(`/listings/${id}`);
 }
 
@@ -47,6 +50,7 @@ export async function deleteListingFromDetail(formData: FormData) {
   const id = String(formData.get("id") || "");
   if (!id) return;
   await createAdminClient().from("listings").delete().eq("id", id);
+  revalidateTag("listings");   // 28/9: trang tin/trang chủ/khu vực cache theo tag này - gỡ tin phải mất NGAY
   revalidatePath("/search");
   redirect("/search"); // tin đã xoá hẳn -> ở lại trang cũ chỉ thấy 404
 }
