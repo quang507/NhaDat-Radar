@@ -1,10 +1,10 @@
 name: Rổ hàng EvoHome - tự cập nhật phòng trống
 
 on:
-  # 2 lượt/ngày: 07h và 19h giờ VN (00 và 12 UTC). Phòng đã cho thuê tự ẩn khỏi web.
-  schedule:
-    - cron: "0 0,12 * * *"
-  workflow_dispatch: {}      # bấm chạy tay ở tab Actions
+  # 28/9: TẮT lịch tự chạy - EvoHome có Cloudflare chặn IP máy chủ GitHub (trang "Just a moment...",
+  # 2/2 lượt thử đều hỏng). Chạy ở MÁY NHÀ bằng RO-HANG.bat (hoặc CHAY.bat). Giữ bấm tay để thử lại
+  # nếu sau này EvoHome bỏ chặn.
+  workflow_dispatch: {}
 
 concurrency:
   group: ro-hang

@@ -27,7 +27,7 @@ echo   ============================================
 echo.
 
 REM ---------- 1. Bot Zalo ----------
-echo [1/2] Bat bot Zalo...
+echo [1/3] Bat bot Zalo...
 set "PM2=%APPDATA%\npm\pm2.cmd"
 if not exist "%PM2%" (
   echo       [BO QUA] Chua cai pm2. Chay: npm i -g pm2
@@ -42,9 +42,15 @@ if not exist "%PM2%" (
   echo       Bot Zalo dang chay. Tu day no tu boc tin BDS trong cac group Zalo.
 )
 
-REM ---------- 2. Cao Facebook + day len Supabase ----------
+REM ---------- 2. Ro hang EvoHome (Cloudflare chan GitHub -> chay o may nha) ----------
 echo.
-echo [2/2] Cao Facebook roi day len Supabase (20-40 phut, cu de day chay)...
+echo [2/3] Cap nhat ro hang EvoHome...
+call RO-HANG.bat /tudong
+if errorlevel 1 echo       [BO QUA] Ro hang loi - van chay tiep Facebook.
+
+REM ---------- 3. Cao Facebook + day len Supabase ----------
+echo.
+echo [3/3] Cao Facebook roi day len Supabase (20-40 phut, cu de day chay)...
 echo.
 node --env-file=.env.local crawler\daily.mjs --fb-only
 if errorlevel 1 (
