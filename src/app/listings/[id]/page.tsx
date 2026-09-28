@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";
+import { unstable_cache } from "next/cache";
 import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
@@ -34,6 +36,70 @@ import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
 
+// ---- DỮ LIỆU CÔNG KHAI CỦA TRANG TIN, CÓ CACHE (28/9) ----------------------------------------------
+// Trang tin là trang bị bot gọi nhiều nhất (~10.000 URL trong sitemap). Trước đây MỖI lượt xem gọi
+// Supabase ~8 lần (tin, dự án, đếm tin dự án, hỏi đáp, có-SĐT, so giá, tin liên quan, tin cùng người
+// đăng) -> đo 28/9: ~80.000 request/ngày, vượt hạn mức egress (8/5 GB) + log (9,8/1 GB) gói Free.
+// Phần này giống nhau với MỌI khách nên cache 30 phút theo id (client anon, không cookie). Dữ liệu chỉ
+// đổi mỗi lượt crawl (4 tiếng). Chỉ phần theo người xem (admin, SĐT sau đăng nhập) còn gọi thẳng DB.
+type Sb = ReturnType<typeof createAnonClient> | Awaited<ReturnType<typeof createClient>>;
+async function phuTroTin(sb: Sb, x: Listing) {
+  const [du, dem, hd, co, comp, rel, poster] = await Promise.all([
+    x.project_id ? sb.from("projects").select("id,name,investor").eq("id", x.project_id).maybeSingle() : Promise.resolve({ data: null }),
+    x.project_id ? sb.from("listings").select("id", { count: "exact", head: true }).eq("project_id", x.project_id).eq("status", "published") : Promise.resolve({ count: 0 }),
+    // Hỏi đáp tích luỹ từ Cầu Nối (listing_facts đọc công khai qua RLS facts_read)
+    sb.from("listing_facts").select("id,question,answer").eq("listing_id", x.id).order("created_at", { ascending: false }).limit(8),
+    // has_contact_phone - cột sinh ở migration 026; chưa có cột thì coi như không biết, không làm hỏng trang
+    sb.from("listings").select("has_contact_phone").eq("id", x.id).maybeSingle(),
+    // So sánh giá cùng loại + cùng quận
+    x.district
+      ? sb.from("listings").select("price_per_m2")
+          .eq("status", "published").eq("deal", x.deal).eq("kind", x.kind).eq("district", x.district)
+          .not("price_per_m2", "is", null).gt("price_per_m2", 0).neq("id", x.id).limit(300)
+      : Promise.resolve({ data: [] as { price_per_m2: number }[] }),
+    // audit 16/8: thiếu cả quận lẫn tỉnh thì ilike "%%" trả tin toàn quốc -> chỉ hỏi khi có khu vực; ảnh không rỗng lọc ở DB
+    (x.district || x.province)
+      ? sb.from("listings").select(LISTING_CARD_COLS)
+          .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
+          .eq(x.district ? "district" : "province", x.district || x.province!)
+          .not("images", "eq", "{}")
+          .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
+      : Promise.resolve({ data: [] as Listing[] }),
+    x.poster_key
+      ? sb.from("listings").select(LISTING_CARD_COLS, { count: "exact" })
+          .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
+          .order("first_seen_at", { ascending: false }).limit(6)
+      : Promise.resolve({ data: [] as Listing[], count: 0 }),
+  ]);
+  return {
+    tin: x,
+    duAn: (du.data ?? null) as { id: string; name: string; investor: string | null } | null,
+    tinCungDuAn: ("count" in dem ? dem.count : 0) ?? 0,
+    hoiDap: (hd.data ?? []) as { id: string; question: string; answer: string | null }[],
+    coSdt: !!(co.data as { has_contact_phone?: boolean } | null)?.has_contact_phone,
+    compRows: (comp.data ?? []) as { price_per_m2: number }[],
+    relRows: (rel.data ?? []) as unknown as Listing[],
+    posterRows: (poster.data ?? []) as unknown as Listing[],
+    posterCount: ("count" in poster ? poster.count : 0) ?? 0,
+  };
+}
+type TinCongKhai = Awaited<ReturnType<typeof phuTroTin>>;
+
+const layTinCongKhai = unstable_cache(
+  async (id: string): Promise<TinCongKhai | null> => {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const sb = createAnonClient();
+    const { data, error } = await sb.from("listings").select(LISTING_PUBLIC_COLS).eq("id", id).maybeSingle();
+    // 42703 (cột trong LISTING_PUBLIC_COLS chưa có migration - đã xảy ra, xem 015) mà nuốt im lặng thì
+    // MỌI tin ra 404, SEO de-index. NÉM lỗi: unstable_cache không cache lỗi, trang log lại.
+    if (error) throw new Error(`listing detail ${id}: ${error.code} ${error.message}`);
+    if (!data) return null;
+    return phuTroTin(sb, data as unknown as Listing);
+  },
+  ["listing-detail-v1"],
+  { revalidate: 1800, tags: ["listings"] },
+);
+
 function agoMin(iso: string | null): number | null {
   if (!iso) return null;
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -42,10 +108,9 @@ function agoMin(iso: string | null): number | null {
 // SEO/OG: share link ra Facebook/Zalo có tiêu đề + ảnh + giá
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("listings").select("title,price_vnd,deal,district,province,images,description,source,source_site,status")
-    .eq("id", id).single();
+  // cùng bản cache với thân trang (layTinCongKhai) - trước đây metadata là thêm 1 truy vấn mỗi lượt xem
+  const pub = await layTinCongKhai(id).catch(() => null);
+  const data = pub?.tin;
   if (!data) return { title: "Không tìm thấy tin - NhaDat Radar" };
   // Tin độc quyền: thân trang đã che SĐT trong mô tả (cheSoVanBan) nhưng thẻ meta/OG trước đây lấy mô tả
   // THÔ -> số lộ qua <meta name=description>, og:description, ảnh xem trước khi share (audit 22/9).
@@ -74,12 +139,18 @@ export default async function ListingDetail({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("listings").select(LISTING_PUBLIC_COLS).eq("id", id).single();
-  // 42703 (cột trong LISTING_PUBLIC_COLS chưa có migration - đã xảy ra, xem 015) mà nuốt im lặng thì
-  // MỌI tin ra 404, SEO de-index, không dấu vết. Log để còn thấy trong Vercel Logs; PGRST116
-  // (không có hàng) mới là 404 thật.
-  if (error && error.code !== "PGRST116") console.error("listing detail:", id, error.code, error.message);
-  if (!data) notFound();
+  // Phần CÔNG KHAI lấy từ cache (xem layTinCongKhai). Lỗi thật thì log + coi như không có -> dưới đây
+  // người đã đăng nhập (admin xem tin ẩn/chờ duyệt) còn được hỏi thẳng DB bằng quyền của họ.
+  let pub: TinCongKhai | null = null;
+  try { pub = await layTinCongKhai(id); } catch (e) { console.error(String(e)); }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!pub && user) {
+    // tin anon không thấy (hidden/pending/draft) - chỉ admin hoặc chủ tin qua được RLS
+    const { data: rieng } = await supabase.from("listings").select(LISTING_PUBLIC_COLS).eq("id", id).maybeSingle();
+    if (rieng) pub = await phuTroTin(supabase, rieng as unknown as Listing);
+  }
+  if (!pub) notFound();
+  const data = pub.tin;
   // contact_phone không có trong LISTING_PUBLIC_COLS -> gán sau (chỉ khi đã đăng nhập)
   const x = { ...data, contact_phone: null } as Listing;
   // FB + Zalo = tin ĐỘC QUYỀN (21/8): giấu SĐT mọi nơi, liên hệ qua Cầu Nối - xem lib/doc-quyen
@@ -89,66 +160,23 @@ export default async function ListingDetail({
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
-  // Tin thuộc dự án (gan-du-an.mjs nối theo tên) -> khối "Thông tin dự án" + đếm tin cùng
-  // dự án đang rao, kiểu batdongsan: từ tin bấm ra dự án, từ dự án thấy ai đang bán/cho thuê
-  let duAn: { id: string; name: string; investor: string | null } | null = null;
-  let tinCungDuAn = 0;
-  if (x.project_id) {
-    const [{ data: p }, { count }] = await Promise.all([
-      supabase.from("projects").select("id,name,investor").eq("id", x.project_id).single(),
-      supabase.from("listings").select("id", { count: "exact", head: true }).eq("project_id", x.project_id).eq("status", "published"),
-    ]);
-    duAn = p;
-    tinCungDuAn = count ?? 0;
-  }
-
-  // Hỏi đáp tích luỹ từ Cầu Nối (listing_facts đọc công khai qua RLS facts_read)
-  const { data: hoiDapData } = await supabase.from("listing_facts")
-    .select("id,question,answer").eq("listing_id", id)
-    .order("created_at", { ascending: false }).limit(8);
-  const hoiDap = hoiDapData ?? [];
+  // Tin thuộc dự án (gan-du-an.mjs nối theo tên) -> khối "Thông tin dự án" + đếm tin cùng dự án đang rao
+  const { duAn, tinCungDuAn, hoiDap, compRows, relRows, posterRows, posterCount } = pub;
 
   // 17/8: bỏ duyệt trước - tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
-  const { data: { user } } = await supabase.auth.getUser();
   let isAdmin = false;
   if (user) {
     const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).single();
     isAdmin = prof?.role === "admin";
   }
-  // SĐT thật: chỉ tải khi đã đăng nhập. Khách vãng lai chỉ cần biết "có SĐT" để hiện nút đăng nhập
-  // (has_contact_phone - cột sinh ở migration 026; chưa có cột thì coi như không biết, không làm hỏng trang).
-  let coSdt = false;
+  // SĐT thật: chỉ tải khi đã đăng nhập. Khách vãng lai chỉ cần biết "có SĐT" (has_contact_phone, trong cache)
+  let coSdt = pub.coSdt;
   if (user) {
     const { data: ph } = await supabase.from("listings").select("contact_phone").eq("id", id).maybeSingle();
     x.contact_phone = ph?.contact_phone ?? null;
     coSdt = !!x.contact_phone;
-  } else {
-    const { data: co } = await supabase.from("listings").select("has_contact_phone").eq("id", id).maybeSingle();
-    coSdt = !!(co as { has_contact_phone?: boolean } | null)?.has_contact_phone;
   }
 
-  // So sánh giá + tin liên quan (cùng loại + cùng quận) + tin khác của cùng người đăng (song song)
-  const [{ data: compRows }, { data: relRows }, { data: posterRows, count: posterCount }] = await Promise.all([
-    x.district
-      ? supabase.from("listings").select("price_per_m2")
-          .eq("status", "published").eq("deal", x.deal).eq("kind", x.kind)
-          .eq("district", x.district)
-          .not("price_per_m2", "is", null).gt("price_per_m2", 0).neq("id", x.id).limit(300)
-      : Promise.resolve({ data: [] as { price_per_m2: number }[] }),
-    // audit 16/8: thiếu cả quận lẫn tỉnh thì ilike "%%" trả tin toàn quốc -> chỉ hỏi khi có khu vực; ảnh không rỗng lọc ở DB
-    (x.district || x.province)
-      ? supabase.from("listings").select(LISTING_CARD_COLS)
-          .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
-          .eq(x.district ? "district" : "province", x.district || x.province!)
-          .not("images", "eq", "{}")
-          .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
-      : Promise.resolve({ data: [] as Listing[] }),
-    x.poster_key
-      ? supabase.from("listings").select(LISTING_CARD_COLS, { count: "exact" })
-          .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
-          .order("first_seen_at", { ascending: false }).limit(6)
-      : Promise.resolve({ data: [] as Listing[], count: 0 }),
-  ]);
   const posterOthers = ((posterRows ?? []) as Listing[]).map(cheTinDocQuyen);
 
   const ppm2s = (compRows ?? []).map((r) => Number(r.price_per_m2)).filter((v) => v > 0);
