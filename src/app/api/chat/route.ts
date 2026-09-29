@@ -242,7 +242,7 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
     if (rhDau) reply += `
 
 ${cauChotXemPhong(fmtPrice(rhDau.price_vnd, rhDau.deal))}
-📞 Hotline/Zalo: ${HOTLINE}`;
+📞 Hotline/Zalo: ${HOTLINE} - nhắn kèm mã phòng (ghi ở trang chi tiết tin)`;
   } else {
     reply = "Hiện chưa có tin nào khớp yêu cầu 😥 Bạn thử nới giá hoặc đổi khu vực, hoặc dùng bộ lọc ở trang Tìm kiếm nhé.";
   }

@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import AdminShell from "@/components/admin/AdminShell";
 import DangBaiCard from "@/components/admin/DangBaiCard";
 import { baiDangMotPhong, baiDangGomQuan } from "@/lib/bai-dang";
+import { maPhong, khoangIdTuMa } from "@/lib/ro-hang";
 import { fmtPrice } from "@/lib/format";
 import { LISTING_COLS } from "@/lib/cols";
 import { REPORT_REASONS } from "@/lib/reports";
@@ -123,7 +124,7 @@ type ReminderRow = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; crm_view?: string; crm_filter?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; ma?: string; crm_view?: string; crm_filter?: string }>;
 }) {
   const sp = await searchParams;
   const supabase = await createClient();
@@ -1143,12 +1144,42 @@ export default async function AdminPage({
       ? await admin.from("listing_ro_hang").select("listing_id,exact_address,unit_code,commission").in("listing_id", tins.map((t) => t.id))
       : { data: [] };
     const priv = new Map((privRows ?? []).map((r) => [r.listing_id, r]));
+    // TRA MÃ PHÒNG: khách nhắn Zalo "RH1A2B3C" -> địa chỉ thật + mã căn để dẫn đi xem
+    const khoang = sp.ma ? khoangIdTuMa(sp.ma) : null;
+    const { data: traRows } = khoang
+      ? await admin.from("listings").select("id,deal,title,price_vnd,status")
+          .eq("source", "ro_hang").gte("id", khoang[0]).lte("id", khoang[1]).limit(10)
+      : { data: null };
+    const { data: traPriv } = traRows?.length
+      ? await admin.from("listing_ro_hang").select("listing_id,exact_address,unit_code,commission").in("listing_id", traRows.map((t) => t.id))
+      : { data: null };
+    const traP = new Map((traPriv ?? []).map((r) => [r.listing_id, r]));
     return (
       <AdminShell>
         <div className="mb-4">
           <h1 className="text-lg font-bold text-slate-800">📣 Lấy content đăng bài</h1>
           <p className="text-xs text-slate-500">Chọn quận hôm nay đánh → chép bài dán vào 1-2 nhóm FB/Threads → 2-3 tiếng sau cmt chấm đẩy bài. Mục tiêu: 10 khách hỏi · 5 xem · 2 cọc / ngày.</p>
         </div>
+        <form action="/admin" className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
+          <input type="hidden" name="tab" value="dang-bai" />
+          {sp.q && <input type="hidden" name="q" value={sp.q} />}
+          <label className="text-xs font-bold text-slate-700">🔎 Tra mã phòng khách gửi</label>
+          <div className="mt-1 flex gap-2">
+            <input name="ma" defaultValue={sp.ma || ""} placeholder="RH1A2B3C" className="w-40 rounded border border-slate-300 px-2 py-1 font-mono text-sm uppercase" />
+            <button className="rounded bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Tra</button>
+          </div>
+          {sp.ma && !khoang && <p className="mt-2 text-xs text-red-600">Mã không hợp lệ (dạng RH + 6 ký tự 0-9/A-F).</p>}
+          {khoang && !traRows?.length && <p className="mt-2 text-xs text-slate-500">Không có phòng nào mã {sp.ma}.</p>}
+          {(traRows ?? []).map((t) => {
+            const p = traP.get(t.id);
+            return (
+              <div key={t.id} className="mt-2 text-xs text-slate-700">
+                <b className="font-mono">{maPhong(t.id)}</b> · {fmtPrice(t.price_vnd, t.deal)} · {t.title}{t.status !== "published" && <span className="text-red-600"> · ĐÃ HẠ ({t.status})</span>}
+                <div>🔒 {[p?.exact_address, p?.unit_code ? `P.${p.unit_code}` : null, p?.commission ? `HH ${p.commission}` : null].filter(Boolean).join(" · ") || "chưa có địa chỉ thật"} · <Link href={`/listings/${t.id}`} className="text-blue-600 underline">xem tin</Link></div>
+              </div>
+            );
+          })}
+        </form>
         <div className="mb-4 flex flex-wrap gap-1.5">
           {quans.map(([d, n]) => (
             <Link key={d} href={`/admin?tab=dang-bai&q=${encodeURIComponent(d)}`}

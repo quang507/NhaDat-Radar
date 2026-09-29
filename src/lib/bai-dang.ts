@@ -3,7 +3,7 @@
 // bài đăng ra nhóm FB cũng phải theo đúng quy tắc như web: khách muốn biết chính xác thì gọi Radar.
 import { fmtPrice, PROP } from "./format";
 import { HOTLINE } from "@/components/TuVanRadar";
-import { tagGiuPhong } from "./ro-hang";
+import { tagGiuPhong, maPhong } from "./ro-hang";
 
 type Tin = {
   id: string; deal: string; kind: string; title: string; description: string | null;
@@ -44,8 +44,9 @@ export function baiDangMotPhong(x: Tin) {
     [x.specs?.["Điện"] ? `⚡ Điện ${x.specs["Điện"]}` : "", x.specs?.["Nước"] ? `💧 Nước ${x.specs["Nước"]}` : ""].filter(Boolean).join(" · "),
     giu ? `\n${giu}` : "",
     "",
+    `🏷 Mã phòng: ${maPhong(x.id)}`,
     `👉 Cmt "XEM" hoặc ib để nhận video + vị trí chính xác, dẫn xem phòng miễn phí trong ngày!`,
-    `📞 Hotline/Zalo: ${HOTLINE}`,
+    `📞 Hotline/Zalo: ${HOTLINE} (nhắn kèm mã phòng)`,
     `🔗 ${SITE}/listings/${x.id}`,
     "",
     [hashtag(`phongtro${quan}`), hashtag(`chothuephong${quan}`), "#phongtrohcm", "#chothuephonghcm", "#nhadatradar"].join(" "),
@@ -63,10 +64,10 @@ export function baiDangGomQuan(district: string, tins: Tin[]) {
     `🏠 ${top.length} PHÒNG TRỐNG ${quan.toUpperCase()} - GIÁ TỪ ${fmtPrice(giaMin, "cho_thue").toUpperCase()}`,
     giu || "",
     "",
-    ...top.map((t, i) => `${i + 1}️⃣ ${t.specs?.["Loại phòng"] || PROP[t.kind]}${t.area_m2 ? ` ${t.area_m2}m²` : ""} - ${fmtPrice(t.price_vnd, t.deal)}\n   📍 ${t.address || quan}`),
+    ...top.map((t, i) => `${i + 1}️⃣ ${t.specs?.["Loại phòng"] || PROP[t.kind]}${t.area_m2 ? ` ${t.area_m2}m²` : ""} - ${fmtPrice(t.price_vnd, t.deal)}\n   📍 ${t.address || quan} · Mã ${maPhong(t.id)}`),
     "",
     `👉 Cmt số phòng ưng ý hoặc ib để nhận video + vị trí chính xác, dẫn xem miễn phí trong ngày!`,
-    `📞 Hotline/Zalo: ${HOTLINE}`,
+    `📞 Hotline/Zalo: ${HOTLINE} (nhắn kèm mã phòng)`,
     "",
     [hashtag(`phongtro${quan}`), hashtag(`chothuephong${quan}`), "#phongtrohcm", "#nhadatradar"].join(" "),
   ].join("\n").trim();
