@@ -33,6 +33,9 @@ import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-
 import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong } from "@/lib/ro-hang";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
+import ChiaSe from "@/components/ChiaSe";
+import MoTaThuGon from "@/components/MoTaThuGon";
+import HangVuot from "@/components/HangVuot";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
 
@@ -227,7 +230,24 @@ export default async function ListingDetail({
       .filter(([k, v]) => v && String(v).trim() !== "-" && !daCo.test(k))
       .slice(0, 14)
       .map(([k, v]) => [k, String(v)] as [string, ReactNode]),
-    ["Mã tin", x.id.slice(0, 8)],
+  ];
+
+  // KHỐI "THÔNG TIN CHÍNH" (29/9, kiểu Mogi): đứng ngay dưới ảnh, gom mọi con số khách cần so
+  // (giá, DT, PN, loại, cọc, điện nước...) - trước đây nửa ở dải mỏng dưới ảnh, nửa ở "Chi tiết bất
+  // động sản" sau mô tả (cách ~3 màn trên điện thoại; tin thiếu thông số thì khối đó chỉ còn "Mã tin").
+  // rổ hàng: posted_at là ngày đối tác TẠO căn (có khi nửa năm trước) -> trông như tin cũ; cái khách
+  // cần là phòng còn trống tới lúc nào = lần đồng bộ gần nhất
+  const ngayDang = roHang ? x.last_seen_at || x.first_seen_at : x.posted_at || x.first_seen_at;
+  const thongTin: [string, ReactNode][] = [
+    ["Mức giá", <>{fmtPrice(x.price_vnd, x.deal)}{myPpm2 ? <span className="font-normal text-[var(--ink-faint)]"> · {fmtPpm2(myPpm2)}</span> : null}</>],
+    ...(x.area_m2 ? [["Diện tích", `${x.area_m2} m²`] as [string, ReactNode]] : []),
+    ...(x.bedrooms ? [["Phòng ngủ", `${x.bedrooms} phòng`] as [string, ReactNode]] : []),
+    ...(x.bathrooms ? [["Phòng tắm", `${x.bathrooms} phòng`] as [string, ReactNode]] : []),
+    ["Loại", PROP[x.kind]],
+    ["Hình thức", x.deal === "ban" ? "Bán" : "Cho thuê"],
+    ...(ngayDang ? [[roHang ? "Còn trống lúc" : x.posted_at ? "Ngày đăng" : "Radar thấy tin", new Date(ngayDang).toLocaleDateString("vi-VN")] as [string, ReactNode]] : []),
+    ...details,
+    [roHang ? "Mã phòng" : "Mã tin", roHang ? <span className="font-mono">{maPhong(x.id)}</span> : x.id.slice(0, 8)],
   ];
 
   // ---- JSON-LD (23/9): trước đây chỉ trang khu vực có, trang tin không có gì. Chỉ khai báo dữ liệu
@@ -265,7 +285,10 @@ export default async function ListingDetail({
       {ldTin.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(o) }} />)}
       <div className="flex items-center gap-3">
         <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Quay lại</Link>
-        <span className="ml-auto"><FavButton id={x.id} /></span>
+        <span className="ml-auto flex items-center gap-2">
+          <ChiaSe url={`${SITE_URL}/listings/${x.id}`} title={x.title} />
+          <FavButton id={x.id} />
+        </span>
       </div>
 
       {/* Thanh admin: gỡ tin không liên quan / kém chất lượng tại chỗ (chỉ admin thấy) */}
@@ -323,37 +346,53 @@ export default async function ListingDetail({
         </div>
       </div>
 
-      {/* Gallery + lightbox - cap chiều cao để không đẩy hết nội dung xuống dưới fold */}
-      <div className="my-4 [&_img]:max-h-[420px]">
-        {images.length ? (
-          <Gallery images={images} title={x.title} />
-        ) : (
-          <div
-            className="rounded-lg overflow-hidden aspect-[16/9] max-h-[420px] grid place-items-center text-white text-5xl"
-            style={{ background: t.bg }}
-          >
-            <span>{t.icon}</span>
+      {/* Máy tính (29/9, kiểu Mogi): ảnh nằm TRONG cột trái để khung liên hệ đứng ngay cạnh ảnh và
+          dính theo khi cuộn - trước đây cột phải chỉ bắt đầu dưới ảnh và trôi mất. Điện thoại: 1 cột như cũ. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_360px] gap-6 mt-4 items-start">
+        <div className="flex flex-col gap-4 min-w-0">
+          {/* Gallery + lightbox - cap chiều cao để không đẩy hết nội dung xuống dưới fold */}
+          <div className="[&_img]:max-h-[420px]">
+            {images.length ? (
+              <Gallery images={images} title={x.title} />
+            ) : (
+              <div
+                className="rounded-lg overflow-hidden aspect-[16/9] max-h-[420px] grid place-items-center text-white text-5xl"
+                style={{ background: t.bg }}
+              >
+                <span>{t.icon}</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="flex flex-wrap gap-x-6 gap-y-2 py-4 my-3 border-y border-[var(--line)] text-sm">
-        {/* chỉ hiện khi có số - "0 phòng ngủ" cho đất nền là vô nghĩa (UX audit) */}
-        {x.bedrooms ? <span><b>{x.bedrooms}</b> phòng ngủ</span> : null}
-        {x.bathrooms ? <span><b>{x.bathrooms}</b> phòng tắm</span> : null}
-        <span><b>{x.area_m2 ?? "-"}</b> m²</span>
-        <span>{PROP[x.kind]}</span>
-        <span>{x.deal === "ban" ? "Bán" : "Cho thuê"}</span>
-        <ScoreInfo score={x.ai_score} trust={x.trust_score} />
-        {(x.source_count ?? 1) > 1 ? (
-          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700" title={`Cùng tin này xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
-            ✓ Xuất hiện trên {x.source_count} nguồn
-          </span>
-        ) : null}
-      </div>
-
-      <div className="grid lg:grid-cols-[1fr_360px] gap-6 mt-5">
-        <div className="flex flex-col gap-4">
+          <div className="card rounded-lg p-5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
+              <h3 className="font-bold">Thông tin chính</h3>
+              <span className="ml-auto flex flex-wrap items-center gap-2 text-sm">
+                <ScoreInfo score={x.ai_score} trust={x.trust_score} canPhai />
+                {(x.source_count ?? 1) > 1 ? (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700" title={`Cùng tin này xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
+                    ✓ {x.source_count} nguồn
+                  </span>
+                ) : null}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+              {thongTin.map((d) => (
+                <div key={d[0]} className="border-l-2 border-[var(--line)] pl-3 min-w-0">
+                  <div className="text-xs text-[var(--ink-soft)]">{d[0]}</div>
+                  <div className="font-semibold text-sm break-words">{d[1]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card rounded-lg p-5">
+            <h3 className="font-bold mb-3">Mô tả</h3>
+            {/* 17/8: trước dùng whitespace-pre-line -> tin dài (nhất là bài FB) thành khối chữ liền.
+                RichText tách đoạn, và bài nào có "- " thì thành gạch đầu dòng cho dễ quét. */}
+            <MoTaThuGon>
+              <RichText text={docQuyen ? cheSoVanBan(x.description) : x.description || ""} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
+            </MoTaThuGon>
+          </div>
           {/* So sánh giá với mặt bằng khu vực (data thật) */}
           {diffPct != null && med && (
             <div className={`card rounded-lg p-4 text-sm ${
@@ -429,25 +468,8 @@ export default async function ListingDetail({
             </div>
           ) : null}
 
-          <div className="card rounded-lg p-5">
-            <h3 className="font-bold mb-3">Mô tả</h3>
-            {/* 17/8: trước dùng whitespace-pre-line -> tin dài (nhất là bài FB) thành khối chữ liền.
-                RichText tách đoạn, và bài nào có "- " thì thành gạch đầu dòng cho dễ quét. */}
-            <RichText text={docQuyen ? cheSoVanBan(x.description) : x.description || ""} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
-          </div>
           {/* Công cụ ra quyết định tại chỗ (ISO 9241-110): trả góp cho tin bán */}
           {x.deal === "ban" && x.price_vnd && x.price_vnd >= 3e8 ? <MortgageMini price={x.price_vnd} /> : null}
-          <div className="card rounded-lg p-5">
-            <h3 className="font-bold mb-3">Chi tiết bất động sản</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {details.map((d) => (
-                <div key={d[0]} className="border-l-2 border-[var(--line)] pl-3">
-                  <div className="text-xs text-[var(--ink-soft)] uppercase">{d[0]}</div>
-                  <div className="font-semibold text-sm">{d[1]}</div>
-                </div>
-              ))}
-            </div>
-          </div>
           {/* Hỏi đáp tích luỹ từ Cầu Nối: buyer hỏi qua bot, seller trả lời -> lưu listing_facts,
               buyer SAU đọc được luôn không phải hỏi lại. Che SĐT khi hiển thị công khai. */}
           {hoiDap.length > 0 && (
@@ -501,7 +523,8 @@ export default async function ListingDetail({
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
+        {/* lg: dính theo khi cuộn; khung liên hệ rổ hàng (QR + form đặt lịch) cao hơn màn hình -> cuộn trong */}
+        <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]">
           <div className="card rounded-lg p-5" id="lien-he">
             <h3 className="font-bold mb-3">{roHang ? "Liên hệ xem phòng" : isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
             <div className="flex items-center gap-3 mb-3">
@@ -563,7 +586,7 @@ export default async function ListingDetail({
             {/* Tin cào nguồn web: hành động CHÍNH là sang bài gốc để liên hệ người đăng. Tin độc
                 quyền thì bài gốc hạ xuống dòng chữ nhỏ cuối khối (vẫn giữ ghi nguồn). */}
             {isCrawl && !docQuyen && x.source_url && x.source_url !== "#" ? (
-              <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary w-full text-center block mb-3">
+              <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary w-full text-center block mb-3 !whitespace-normal">
                 Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} ›
               </a>
             ) : null}
@@ -668,9 +691,7 @@ export default async function ListingDetail({
         <section className="mt-12">
           <h2 className="prata text-xl mb-1">Người đăng này còn {posterCount ?? posterOthers.length} tin khác</h2>
           <p className="text-xs text-[var(--ink-soft)] mb-4">Gom theo tài khoản đăng trên {x.source_site || "nguồn"} - {(posterCount ?? 0) >= 3 ? "nhiều tin cùng lúc thường là môi giới/sàn." : "ít tin, có thể là chính chủ."}</p>
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
-            {posterOthers.map((r) => <ListingCard key={r.id} x={r} />)}
-          </div>
+          <HangVuot cot={230} items={posterOthers.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
         </section>
       )}
 
@@ -680,9 +701,7 @@ export default async function ListingDetail({
           <h2 className="prata text-xl mb-4">
             {PROP[x.kind]} liên quan tại {x.district || x.province}
           </h2>
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
-            {related.map((r) => <ListingCard key={r.id} x={r} />)}
-          </div>
+          <HangVuot cot={230} items={related.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
         </section>
       )}
       {/* NN/g #6: nhớ tin đã xem (localStorage) + hiện dải "Đã xem gần đây" */}
