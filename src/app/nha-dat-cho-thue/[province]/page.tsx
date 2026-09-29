@@ -1,17 +1,12 @@
-// /nha-dat-cho-thue/[tinh] - trang SEO cấp tỉnh (cho thuê)
-export const dynamic = "force-dynamic";
-import AreaLanding, { resolveArea, areaTitle } from "@/components/AreaLanding";
+// /nha-dat-cho-thue/[tinh] - trang SEO cấp tỉnh (số liệu thật + FAQ + JSON-LD). Xem src/components/AreaLanding.tsx
+// ISR 10 phút: trang khu vực là tài sản SEO, dữ liệu đổi theo lượt crawl (4h/lần) nên không cần
+// dựng lại mỗi request. Trước 23/9 mọi trang force-dynamic -> Google tốn ngân sách thu thập, TTFB cao.
+export const revalidate = 600;
+import AreaLanding, { areaMeta } from "@/components/AreaLanding";
 
 export async function generateMetadata({ params }: { params: Promise<{ province: string }> }) {
   const { province } = await params;
-  const r = await resolveArea(province);
-  if (!r) return { title: "Không tìm thấy khu vực - NhaDat Radar" };
-  const n = r.area.cho_thue;
-  return {
-    title: areaTitle("cho_thue", r.province, null, n),
-    description: `${n.toLocaleString("vi-VN")} tin cho thuê nhà, phòng trọ, căn hộ, mặt bằng tại ${r.province} tổng hợp từ nhiều nguồn, kèm giá thuê phổ biến theo quận và cảnh báo tin bất thường. Cập nhật hằng ngày.`,
-    alternates: { canonical: `/nha-dat-cho-thue/${province}` },
-  };
+  return areaMeta("cho_thue", province);
 }
 
 export default async function Page({ params }: { params: Promise<{ province: string }> }) {

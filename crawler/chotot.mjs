@@ -1,6 +1,7 @@
 // Crawler CHỢ TỐT - dùng API JSON công khai (gateway.chotot.com). KHÔNG cần browser/proxy.
 // Có sẵn toạ độ (lat/lng) + phường -> không cần geocode. Chạy: node chotot.mjs
 import fs from "node:fs";
+import { catChuoi } from "./chung.mjs";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const API = "https://gateway.chotot.com/v1/public/ad-listing";
@@ -45,7 +46,7 @@ async function fetchPage(region, offset) {
 }
 
 function mapAd(a, city) {
-  const desc = strip(a.body).slice(0, 1100);
+  const desc = catChuoi(strip(a.body), 1100); // theo code point: .slice() từng cắt đôi emoji -> seed chết (CI 19/9)
   const text = (a.subject || "") + " " + desc;
   const price = a.price || null;
   const area = a.size || a.area || null;

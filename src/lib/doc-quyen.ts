@@ -1,3 +1,5 @@
+import { laRoHang } from "./ro-hang";
+
 // Tin ĐỘC QUYỀN Radar (quyết định 21/8): tin cào từ FACEBOOK + mọi tin ZALO - các trang
 // khác không có nguồn này. Chính sách: GIẤU SĐT ở mọi nơi, liên hệ đi qua Cầu Nối
 // (bot Zalo / hotline) - đây là nhóm tin thu phí 1%/0.5% được vì Radar là đường liên hệ
@@ -8,7 +10,8 @@
 // (bot Zalo lặp lại quy tắc trong zalo-bot.mjs vì .mjs không import được .ts - đổi thì sửa cả hai.)
 export function laTinDocQuyen(x: { source?: string | null; source_site?: string | null }) {
   // dựa được vào mỗi source_site (vài query không select cột source): facebook + zalo_* phủ đủ
-  return x.source === "zalo_oa" || x.source === "zalo_miniapp"
+  // 28/9: + rổ hàng Radar (EvoHome, Thiên Khôi) - hàng mình nắm, liên hệ chỉ qua Radar
+  return laRoHang(x) || x.source === "zalo_oa" || x.source === "zalo_miniapp"
     || x.source_site === "facebook" || (x.source_site || "").startsWith("zalo");
 }
 
@@ -24,4 +27,16 @@ export function cheSoVanBan(s: string | null | undefined) {
 // nó bắt đầu bằng chữ số - "Đường Số 7", "Quốc lộ 1A", "Đường 3/2" không bị đụng.
 export function cheSoNha(s: string | null | undefined) {
   return String(s || "").trim().replace(/^\d[\d/\-a-zA-Z]*\s+/, "*** ");
+}
+
+// Bản đã che SĐT (tiêu đề + mô tả) của một tin độc quyền; tin thường trả nguyên. Dùng NGAY SAU truy
+// vấn ở server trước khi đưa danh sách xuống client component - dữ liệu truyền xuống (RSC payload)
+// nằm trong HTML, che ở chỗ hiển thị thôi là số vẫn lộ trong mã trang (audit 22/9).
+export function cheTinDocQuyen<T extends { source?: string | null; source_site?: string | null; title?: string | null; description?: string | null }>(x: T): T {
+  if (!laTinDocQuyen(x)) return x;
+  return {
+    ...x,
+    ...(x.title != null ? { title: cheSoVanBan(x.title) } : {}),
+    ...(x.description != null ? { description: cheSoVanBan(x.description) } : {}),
+  };
 }

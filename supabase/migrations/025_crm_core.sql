@@ -96,3 +96,14 @@ create index if not exists idx_sellers_zalo on public.sellers(zalo_user_id);
 create index if not exists idx_deals_stage on public.deals(stage);
 create index if not exists idx_viewings_slot on public.viewings(slot);
 create index if not exists idx_reminders_due on public.reminders(due_at) where status = 'pending';
+
+-- RLS (audit 22/9): bảng chứa tên/SĐT/Zalo ID khách + giá chốt. Thiếu RLS = ai có anon key (public trong
+-- bundle web) đọc/ghi/xoá được qua PostgREST. Web/bot đều ghi bằng service_role (bỏ qua RLS); client chỉ
+-- admin đọc được (AdminShell đếm nhắc việc bằng browser client). la_admin() định nghĩa ở 026 — nếu áp 025
+-- trước 026 thì chạy 026 ngay sau (026 tự bật lại RLS + policy cho các bảng này).
+alter table public.buyers    enable row level security;
+alter table public.sellers   enable row level security;
+alter table public.interests enable row level security;
+alter table public.deals     enable row level security;
+alter table public.viewings  enable row level security;
+alter table public.reminders enable row level security;

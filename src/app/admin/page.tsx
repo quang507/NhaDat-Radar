@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminShell from "@/components/admin/AdminShell";
+import DangBaiCard from "@/components/admin/DangBaiCard";
+import { baiDangMotPhong, baiDangGomQuan } from "@/lib/bai-dang";
+import { maPhong, khoangIdTuMa } from "@/lib/ro-hang";
 import { fmtPrice } from "@/lib/format";
 import { LISTING_COLS } from "@/lib/cols";
 import { REPORT_REASONS } from "@/lib/reports";
@@ -121,7 +124,7 @@ type ReminderRow = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; crm_view?: string; crm_filter?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string; ma?: string; crm_view?: string; crm_filter?: string }>;
 }) {
   const sp = await searchParams;
   const supabase = await createClient();
@@ -1063,7 +1066,7 @@ export default async function AdminPage({
                             </Link>
 
                             <div className="mt-1 text-xs font-semibold text-emerald-600">
-                              {fmtPrice(d.price_vnd || d.listings?.price_vnd, d.listings?.deal || "ban")}
+                              {fmtPrice(d.price_vnd || d.listings?.price_vnd || null, d.listings?.deal || "ban")}
                             </div>
 
                             {d.buyers && (
@@ -1120,6 +1123,93 @@ export default async function AdminPage({
   // ═════════════════════════════════════════════════════════════════════════════
   // TAB 3: RỔ HÀNG (RO-HANG / USER / CRAWL)
   // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════════
+  // TAB: 1-CLICK LẤY CONTENT ĐĂNG BÀI (rổ hàng Radar) - 28/9
+  // Chọn quận muốn "đánh" hôm nay -> bài gom 5 phòng + bài lẻ từng phòng, chép 1 chạm + tải ảnh gốc.
+  // Bài chỉ dùng dữ liệu CÔNG KHAI (địa chỉ đã che); địa chỉ thật chỉ hiện dòng 🔒 cho admin đọc.
+  // ═════════════════════════════════════════════════════════════════════════════
+  if (tab === "dang-bai") {
+    const { data: dem } = await admin.from("listings").select("district").eq("source", "ro_hang").eq("status", "published").limit(5000);
+    const soPhong = new Map<string, number>();
+    for (const r of dem ?? []) if (r.district) soPhong.set(r.district, (soPhong.get(r.district) ?? 0) + 1);
+    const quans = [...soPhong.entries()].sort((a, b) => b[1] - a[1]);
+    const quan = sp.q && soPhong.has(sp.q) ? sp.q : quans[0]?.[0] || "";
+    const { data: tinRows } = quan
+      ? await admin.from("listings").select("id,deal,kind,title,description,price_vnd,area_m2,district,ward,address,specs,images,source,source_site,first_seen_at")
+          .eq("source", "ro_hang").eq("status", "published").eq("district", quan)
+          .order("price_vnd", { ascending: true }).limit(40)
+      : { data: [] };
+    const tins = tinRows ?? [];
+    const { data: privRows } = tins.length
+      ? await admin.from("listing_ro_hang").select("listing_id,exact_address,unit_code,commission").in("listing_id", tins.map((t) => t.id))
+      : { data: [] };
+    const priv = new Map((privRows ?? []).map((r) => [r.listing_id, r]));
+    // TRA MÃ PHÒNG: khách nhắn Zalo "RH1A2B3C" -> địa chỉ thật + mã căn để dẫn đi xem
+    const khoang = sp.ma ? khoangIdTuMa(sp.ma) : null;
+    const { data: traRows } = khoang
+      ? await admin.from("listings").select("id,deal,title,price_vnd,status")
+          .eq("source", "ro_hang").gte("id", khoang[0]).lte("id", khoang[1]).limit(10)
+      : { data: null };
+    const { data: traPriv } = traRows?.length
+      ? await admin.from("listing_ro_hang").select("listing_id,exact_address,unit_code,commission").in("listing_id", traRows.map((t) => t.id))
+      : { data: null };
+    const traP = new Map((traPriv ?? []).map((r) => [r.listing_id, r]));
+    return (
+      <AdminShell>
+        <div className="mb-4">
+          <h1 className="text-lg font-bold text-slate-800">📣 Lấy content đăng bài</h1>
+          <p className="text-xs text-slate-500">Chọn quận hôm nay đánh → chép bài dán vào 1-2 nhóm FB/Threads → 2-3 tiếng sau cmt chấm đẩy bài. Mục tiêu: 10 khách hỏi · 5 xem · 2 cọc / ngày.</p>
+        </div>
+        <form action="/admin" className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
+          <input type="hidden" name="tab" value="dang-bai" />
+          {sp.q && <input type="hidden" name="q" value={sp.q} />}
+          <label className="text-xs font-bold text-slate-700">🔎 Tra mã phòng khách gửi</label>
+          <div className="mt-1 flex gap-2">
+            <input name="ma" defaultValue={sp.ma || ""} placeholder="RH1A2B3C" className="w-40 rounded border border-slate-300 px-2 py-1 font-mono text-sm uppercase" />
+            <button className="rounded bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Tra</button>
+          </div>
+          {sp.ma && !khoang && <p className="mt-2 text-xs text-red-600">Mã không hợp lệ (dạng RH + 6 ký tự 0-9/A-F).</p>}
+          {khoang && !traRows?.length && <p className="mt-2 text-xs text-slate-500">Không có phòng nào mã {sp.ma}.</p>}
+          {(traRows ?? []).map((t) => {
+            const p = traP.get(t.id);
+            return (
+              <div key={t.id} className="mt-2 text-xs text-slate-700">
+                <b className="font-mono">{maPhong(t.id)}</b> · {fmtPrice(t.price_vnd, t.deal)} · {t.title}{t.status !== "published" && <span className="text-red-600"> · ĐÃ HẠ ({t.status})</span>}
+                <div>🔒 {[p?.exact_address, p?.unit_code ? `P.${p.unit_code}` : null, p?.commission ? `HH ${p.commission}` : null].filter(Boolean).join(" · ") || "chưa có địa chỉ thật"} · <Link href={`/listings/${t.id}`} className="text-blue-600 underline">xem tin</Link></div>
+              </div>
+            );
+          })}
+        </form>
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {quans.map(([d, n]) => (
+            <Link key={d} href={`/admin?tab=dang-bai&q=${encodeURIComponent(d)}`}
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${d === quan ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+              {d} <span className="opacity-60">{n}</span>
+            </Link>
+          ))}
+          {!quans.length && <p className="text-sm text-slate-400">Chưa có rổ hàng nào (chạy crawler/ro-hang-evohome.mjs).</p>}
+        </div>
+        {tins.length > 0 && (
+          <div className="mb-6">
+            <h2 className="mb-2 text-sm font-bold text-slate-700">Bài gom 5 phòng rẻ nhất {quan}</h2>
+            <DangBaiCard tieuDe={`Bài gom ${quan}`} noiDung={baiDangGomQuan(quan, tins as never[])} anh={tins.slice(0, 5).map((t) => (t.images || [])[0]).filter(Boolean)} />
+          </div>
+        )}
+        <h2 className="mb-2 text-sm font-bold text-slate-700">Bài lẻ từng phòng ({tins.length})</h2>
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
+          {tins.map((t) => {
+            const p = priv.get(t.id);
+            return (
+              <DangBaiCard key={t.id} tieuDe={`${fmtPrice(t.price_vnd, t.deal)} · ${t.title}`}
+                phu={p ? [p.exact_address, p.unit_code ? `P.${p.unit_code}` : null, p.commission ? `HH ${p.commission}` : null].filter(Boolean).join(" · ") : undefined}
+                noiDung={baiDangMotPhong(t as never)} anh={(t.images || []) as string[]} />
+            );
+          })}
+        </div>
+      </AdminShell>
+    );
+  }
+
   if (tab === "ro-hang" || tab === "user" || tab === "crawl") {
     const subTab = tab === "crawl" ? "crawl" : "user";
     let query = admin.from("listings").select(LISTING_COLS).order("created_at", { ascending: false }).limit(60);
@@ -1188,7 +1278,7 @@ export default async function AdminPage({
                   {x.title}
                 </Link>
                 <span className="text-xs text-slate-500">
-                  {fmtPrice(x.price_vnd, x.deal)} · {[x.district, x.province].filter(Boolean).join(", ")} · {x.source === "crawl" ? x.source_site : "tự đăng"}
+                  {fmtPrice(x.price_vnd, x.deal)} · {[x.district, x.province].filter(Boolean).join(", ")} · {x.source === "crawl" ? x.source_site : x.source === "ro_hang" ? `rổ hàng · ${x.source_site}` : "tự đăng"}
                 </span>
                 <span className="ml-auto flex gap-1.5">
                   {x.status !== "published" && (

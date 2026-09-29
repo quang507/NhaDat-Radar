@@ -11,6 +11,29 @@ on:
     - cron: "30 2 * * *"    # 09:30 VN, sau crawl 09:00 — canh dữ liệu mới không làm vỡ web
 
 jobs:
+  # Build bản của PR: job "test" bên dưới chỉ gọi web production nên KHÔNG bắt được lỗi build
+  # (22/9: HEAD 846ff3b vỡ type-check ở admin/page.tsx mà CI vẫn xanh).
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm ci
+      - name: Type-check
+        run: npx tsc --noEmit -p .
+      - name: Unit test
+        run: npx playwright test --project=unit
+      - name: next build
+        run: npx next build
+        env:
+          # giá trị giả: build chỉ cần biến tồn tại, không gọi DB lúc build
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
+          NEXT_TELEMETRY_DISABLED: "1"
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 25

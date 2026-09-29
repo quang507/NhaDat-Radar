@@ -35,7 +35,11 @@ export default function MoiDienSdt() {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
-      const { data: p } = await supabase.from("profiles").select("phone").eq("id", user.id).single();
+      // SĐT của chính mình đọc qua RPC (migration 026 thu quyền đọc cột phone); chưa có RPC thì select cũ
+      const rpc = await supabase.rpc("ho_so_cua_toi").maybeSingle();
+      const p = (rpc.error
+        ? (await supabase.from("profiles").select("phone").eq("id", user.id).single()).data
+        : rpc.data) as { phone?: string | null } | null;
       if (p && !p.phone) setHien(true);
     });
   }, []);

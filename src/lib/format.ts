@@ -68,3 +68,10 @@ export function thumb(kind: string): { bg: string; icon: string } {
  */
 export const coLinkThat = (u: string | null | undefined): boolean =>
   !!u && u !== "#" && /^https?:\/\//i.test(u);
+
+/**
+ * Thoát ký tự HTML cho chuỗi sẽ nhét vào HTML thô (popup/divIcon Leaflet nhận chuỗi như
+ * innerHTML). Tiêu đề/quận đến từ tin cào, tin Zalo, tin người dùng tự đăng -> không tin được.
+ */
+export const escHtml = (s: unknown): string =>
+  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

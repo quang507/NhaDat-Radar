@@ -3,13 +3,22 @@
 import { execSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
+import { chonToaDo } from "./gop.mjs";
 
 const here = import.meta.dirname;
+// Bước hỏng trước đây chỉ in "✗ lỗi" rồi trôi qua -> job CI vẫn xanh dù nguồn chết nhiều ngày.
+// Giờ gom lại: in annotation ::warning:: (hiện ngay trên trang run GitHub) + tóm tắt cuối lượt.
+const buocLoi = [];
 function step(cmd) {
   // windowsHide: pm2 chạy không có console -> mỗi bước con bật 1 cửa sổ CMD nảy lên màn hình; người dùng
   // đóng cửa sổ = giết tiến trình con giữa chừng (sự cố 17/8: facebook.mjs + embed.mjs bị ^C theo cách này).
   try { console.log("▶", cmd); execSync(cmd, { stdio: "inherit", cwd: here, windowsHide: true }); return true; }
-  catch (e) { console.error("✗ lỗi:", cmd, e.message); return false; }
+  catch (e) {
+    console.error("✗ lỗi:", cmd, e.message);
+    buocLoi.push(cmd);
+    if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Bước crawl lỗi::${cmd}`);
+    return false;
+  }
 }
 
 // 1) Crawl các nguồn headless (Chợ Tốt API + nhadat HTTP + Mogi HTML)
@@ -87,7 +96,13 @@ if (!SEED_ONLY) {
 // `--no-merge`: seed thẳng combined.json đang có, KHÔNG dựng lại. Cần khi đã chạy tay merge + geocode-all:
 // merge dựng combined.json từ file nguồn mà chỉ chotot.json có sẵn lat -> merge lại sau geocode sẽ xoá toạ độ
 // vừa bù, rồi seed ghi lat=null đè lên DB (mất pin bản đồ của ~2/3 số tin).
-if (!process.argv.includes("--no-merge")) step("node merge.mjs"); // gộp tất cả nguồn -> combined.json
+// merge hỏng thì combined.json còn lại là bản CŨ -> seed nó sẽ làm mới last_seen_at cho tin có thể đã
+// gỡ khỏi nguồn (tin chết "sống lại"). Dừng hẳn thay vì seed dữ liệu cũ.
+if (!process.argv.includes("--no-merge") && !step("node merge.mjs")) {
+  console.error("merge.mjs lỗi -> KHÔNG seed combined.json cũ. Dừng lượt này.");
+  boKhoa();
+  process.exit(1);
+}
 if (!SEED_ONLY) step("node geocode-all.mjs");           // bù toạ độ cho MỌI tin thiếu (để tin nào cũng có map)
 
 // 2) Seed vào Supabase (thay data crawl cũ)
@@ -105,7 +120,13 @@ const comb = JSON.parse(fs.readFileSync(new URL("./combined.json", import.meta.u
 // PostgREST cắt 1000 dòng/lần -> phải phân trang, không thì tin cũ ngoài 1000 bị coi là mới -> insert đụng
 // unique index uq_listings_source_post (migration 001) và seed thất bại.
 // Lấy thêm các cột DỄ RỖNG để KHÔNG ghi null đè lên giá trị tốt (xem giuNeuTrong bên dưới).
-const COT_DE_RONG = "lat,lng,images,description,specs,phone_masked,poster_key,address,posted_at,direction,legal_status,furnishing,floors,bedrooms,bathrooms,amenities";
+// geo_precision (migration 029): DB chưa có cột thì PostgREST trả 42703 cho CẢ truy vấn -> dò trước,
+// thiếu thì chạy như cũ (không ghi mức chính xác, giữ quy tắc "khác rỗng là đè") thay vì chết.
+const { error: loiCotGeo } = await sb.from("listings").select("geo_precision").limit(1);
+const CO_GEO_PRECISION = !loiCotGeo;
+if (!CO_GEO_PRECISION) console.error("⚠ DB chưa có cột listings.geo_precision (migration 029) -> toạ độ vẫn ghi theo quy tắc cũ:", loiCotGeo.message);
+const COT_DE_RONG = "lat,lng,images,description,specs,phone_masked,poster_key,address,posted_at,direction,legal_status,furnishing,floors,bedrooms,bathrooms,amenities"
+  + (CO_GEO_PRECISION ? ",geo_precision" : "");
 const oldRows = [];
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb.from("listings")
@@ -148,7 +169,23 @@ function trustScore(x) {
 
 const seenKey = new Set();
 const rows = [];
+// --fb-only (máy nhà): combined.json vẫn gộp cả file nguồn web còn nằm trên máy (merge chỉ bỏ file
+// quá 2 ngày). Seed chúng sẽ đè bản CI mới hơn và kéo dài last_seen_at của tin web có thể đã gỡ.
+// -> Lượt --fb-only chỉ ghi tin Facebook.
+const NGUON_FB = ["facebook.com", "facebook"];
+// Toạ độ: trước đây giuNeuTrong -> cứ khác rỗng là đè, nên toạ độ thật (trang chi tiết batdongsan chỉ
+// lấy ở lượt đầu) bị điểm geocode rải theo phường/quận ghi đè ở lượt sau (đo 22/9: lệch 1-5 km).
+// Giờ so mức chính xác (crawler/gop.mjs chonToaDo). DB chưa có cột geo_precision -> quy tắc cũ.
+let giuToaDoCu = 0;
+const toaDoGhi = (x, old) => {
+  if (!CO_GEO_PRECISION) return { lat: giuNeuTrong(x.lat ?? null, old?.lat), lng: giuNeuTrong(x.lng ?? null, old?.lng) };
+  const moi = { lat: x.lat ?? null, lng: x.lng ?? null, geo_precision: x.geo_precision ?? null };
+  const kq = chonToaDo(moi, old ? { lat: old.lat, lng: old.lng, geo_precision: old.geo_precision } : null);
+  if (old && moi.lat != null && kq.lat === old.lat && kq.lng === old.lng && (moi.lat !== old.lat || moi.lng !== old.lng)) giuToaDoCu++;
+  return kq;
+};
 for (const x of comb.listings) {
+  if (FB_ONLY && !NGUON_FB.includes(x.source_site)) continue;
   const key = x.source_site + "|" + (x.source_post_id || x.id);
   if (seenKey.has(key)) continue; seenKey.add(key);
   const old = oldMap.get(key);
@@ -166,7 +203,7 @@ for (const x of comb.listings) {
     direction: giuNeuTrong(x.direction, old?.direction), legal_status: giuNeuTrong(x.legal, old?.legal_status),
     furnishing: giuNeuTrong(x.furnishing, old?.furnishing),
     address: giuNeuTrong(x.address ?? null, old?.address),
-    lat: giuNeuTrong(x.lat ?? null, old?.lat), lng: giuNeuTrong(x.lng ?? null, old?.lng),
+    ...toaDoGhi(x, old),                                   // lat/lng (+ geo_precision): chính xác hơn mới được đè
     amenities: giuNeuTrong(x.amenities || [], old?.amenities), images: giuNeuTrong(x.images || [], old?.images),
     specs: giuNeuTrong(x.specs ?? null, old?.specs),        // bảng thông số nguồn (guland/batdongsan) - web ẩn ô trống
     contact_phone: null,                                   // NĐ13: không lưu SĐT thô của tin cào
@@ -180,7 +217,7 @@ for (const x of comb.listings) {
     posted_at: giuNeuTrong(x.posted_at ?? null, old?.posted_at),   // đăng trên nguồn lúc (nếu nguồn có)
     // Admin đã ẨN (nút "Ẩn tin" trên trang chi tiết, 17/8) thì giữ ẩn - không để lần cào sau bật lại tin rác.
     // Chỉ 'gone' (mất rồi thấy lại) mới về published.
-    status: old?.status === "hidden" ? "hidden" : "published", crawled_at: now, last_seen_at: now,
+    status: old?.status === "hidden" || old?.status === "rejected" ? old.status : "published", crawled_at: now, last_seen_at: now,
     first_seen_at: (old && old.first_seen_at) || now,
     crawl_count: old ? (old.crawl_count || 1) + 1 : 1,
   });
@@ -196,18 +233,42 @@ for (const x of comb.listings) {
     phone_hash: r.poster_key, price_warning: r.price_flag,
   });
 }
+if (giuToaDoCu) console.error(`(giữ toạ độ cũ chính xác hơn cho ${giuToaDoCu} tin - không đè bằng điểm geocode kém chính xác)`);
 const updates = rows.filter((r) => r.id), inserts = rows.filter((r) => !r.id);
 // UPDATE đi nhịp NHỎ hơn insert: upsert phải dò từng id + ghi lại index, hàng listings nặng
 // (mô tả + specs + mảng ảnh) - 23/8 CI chết statement timeout ở đúng chỗ này khi DB chạm
 // 13k tin với nhịp 200. Kèm migration 021 nới trần cho service_role lên 120s.
 const CHUNK = 200, CHUNK_UPDATE = 50;
-for (let i = 0; i < updates.length; i += CHUNK_UPDATE) {
-  const { error } = await sb.from("listings").upsert(updates.slice(i, i + CHUNK_UPDATE), { onConflict: "id" });
-  if (error) { console.error("Seed (update) lỗi:", error.message); process.exit(1); }
+// Một dòng hỏng từng giết CẢ lượt: lô 200 tin lỗi -> process.exit(1) -> bỏ luôn gone/alerts/embed
+// (CI 19/9: nửa emoji; audit 22/9: giá "5.99" từ model). Giờ lô lỗi thì ghi LẺ từng dòng, bỏ riêng
+// dòng hỏng (có log). Lỗi hệ thống (DB sập, sai key, timeout) thì 5 dòng lẻ đầu cũng lỗi -> dừng như cũ.
+const dongLoi = [];
+async function ghiLo(ten, lo, ghi) {
+  const { error } = await ghi(lo);
+  if (!error) return lo.length;
+  console.error(`Seed (${ten}) lỗi cả lô ${lo.length} dòng: ${error.message} -> ghi lẻ từng dòng`);
+  let ok = 0, loiLienTiep = 0;
+  for (const r of lo) {
+    const { error: e } = await ghi([r]);
+    if (!e) { ok++; loiLienTiep = 0; continue; }
+    dongLoi.push({ ten, key: `${r.source_site}|${r.source_post_id}`, msg: e.message });
+    if (++loiLienTiep >= 5 && ok === 0) {
+      console.error(`Seed (${ten}) lỗi: 5 dòng lẻ đầu tiên đều hỏng (${e.message}) -> lỗi hệ thống, dừng.`);
+      process.exit(1);
+    }
+  }
+  return ok;
 }
-for (let i = 0; i < inserts.length; i += CHUNK) {
-  const { error } = await sb.from("listings").insert(inserts.slice(i, i + CHUNK));
-  if (error) { console.error("Seed (insert) lỗi:", error.message); process.exit(1); }
+let daGhiUpdate = 0, daGhiInsert = 0;
+for (let i = 0; i < updates.length; i += CHUNK_UPDATE)
+  daGhiUpdate += await ghiLo("update", updates.slice(i, i + CHUNK_UPDATE), (lo) => sb.from("listings").upsert(lo, { onConflict: "id" }));
+for (let i = 0; i < inserts.length; i += CHUNK)
+  daGhiInsert += await ghiLo("insert", inserts.slice(i, i + CHUNK), (lo) => sb.from("listings").insert(lo));
+if (dongLoi.length) {
+  console.error(`⚠ Seed bỏ ${dongLoi.length} dòng hỏng (đã ghi ${daGhiUpdate}/${updates.length} update, ${daGhiInsert}/${inserts.length} insert):`);
+  for (const d of dongLoi.slice(0, 20)) console.error(`   - [${d.ten}] ${d.key}: ${d.msg}`);
+  buocLoi.push(`seed: bỏ ${dongLoi.length} dòng hỏng`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Seed bỏ dòng hỏng::${dongLoi.length} dòng - xem log`);
 }
 // Tin crawl không thấy lại ≥36h -> gone; nguồn chỉ cào được ở máy nhà (FB, batdongsan qua Playwright) cho 7 ngày
 // vì máy nhà không chạy mỗi ngày; gone quá 30 ngày -> xoá hẳn (giữ DB gọn)
@@ -239,7 +300,8 @@ const demLuot = {}, demDB = {};
 for (const r of rows) demLuot[r.source_site] = (demLuot[r.source_site] || 0) + 1;
 for (const r of oldRows) if (r.status === "published") demDB[r.source_site] = (demDB[r.source_site] || 0) + 1;
 // Nguồn nghi bị chặn: nguồn web có >= 20 tin trong DB nhưng lượt này cào được ít hơn sàn tối thiểu
-const nguonSut = Object.keys(demDB).filter((s) => !HOME_ONLY.includes(s) && demDB[s] >= 20 && (demLuot[s] || 0) < (MIN_SAN_LUONG[s] || 5));
+// Lượt --fb-only không cào nguồn web nên không có gì để đo sụt -> bỏ qua (khỏi báo động giả).
+const nguonSut = FB_ONLY ? [] : Object.keys(demDB).filter((s) => !HOME_ONLY.includes(s) && demDB[s] >= 20 && (demLuot[s] || 0) < (MIN_SAN_LUONG[s] || 5));
 for (const s of nguonSut) {
   console.error(`⚠ NGUỒN SỤT: ${s} chỉ có ${demLuot[s] || 0} tin lượt này (< ngưỡng sàn ${MIN_SAN_LUONG[s] || 5}) -> NGHI BỊ CHẶN, tạm không đánh dấu 'gone' cho nguồn này.`);
 }
@@ -255,7 +317,8 @@ const goneCutoffHome = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(
 // hàng loạt tin còn sống chỉ vì crawler bị 403 nửa chừng.
 const boQuaGone = [...new Set([...HOME_ONLY, ...nguonSut])];
 // NOT IN bỏ sót source_site NULL (NULL NOT IN … = NULL) -> thêm nhánh is.null (audit 16/8)
-const { count: goneN1 } = await sb.from("listings").update({ status: "gone" }, { count: "exact" })
+// Lượt --fb-only không thấy nguồn web -> không được hạ 'gone' cho nguồn web.
+const { count: goneN1 } = FB_ONLY ? { count: 0 } : await sb.from("listings").update({ status: "gone" }, { count: "exact" })
   .eq("source", "crawl").eq("status", "published")
   .or(`source_site.is.null,source_site.not.in.(${boQuaGone.map((s) => `"${s}"`).join(",")})`).lt("last_seen_at", goneCutoff);
 const homeConLai = HOME_ONLY.filter((s) => !nguonSut.includes(s));
@@ -265,17 +328,18 @@ const { count: goneN2 } = homeConLai.length
   : { count: 0 };
 const goneN = (goneN1 || 0) + (goneN2 || 0);
 
-// Xoá tin gone quá 7 ngày
-const purgeCutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+// Xoá tin gone quá 21 ngày (23/9: nới từ 7 -> 21 ngày. Lý do: kho tin đứng ~8k dù mỗi ngày vào
+// 600-1.000 tin mới; URL tin chỉ sống ~3 tuần nên Google chưa kịp index đã 404.)
+const purgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
 const { count: purgedN } = await sb.from("listings").delete({ count: "exact" })
   .eq("source", "crawl").eq("status", "gone").lt("last_seen_at", purgeCutoff);
 
 // Chốt dọn dẹp cứng: xoá mọi tin crawl cũ hơn 21 ngày không thấy lại (chống phình DB vĩnh viễn)
-const hardPurgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
+const hardPurgeCutoff = new Date(Date.now() - 45 * 24 * 3600 * 1000).toISOString();   // 23/9: nới 21 -> 45 ngày
 const { count: hardPurgedN } = await sb.from("listings").delete({ count: "exact" })
   .eq("source", "crawl").lt("last_seen_at", hardPurgeCutoff);
 
-console.log(`✅ ${now.slice(0, 10)}: ${inserts.length} tin mới · ${updates.length} tin còn sống (cập nhật) · ${goneN || 0} tin vừa gỡ (gone) · ${(purgedN || 0) + (hardPurgedN || 0)} tin cũ xoá sạch · ${rows.filter((r) => r.images.length).length} có ảnh · ${rows.filter((r) => r.source_count > 1).length} tin ≥2 nguồn · ${rows.filter((r) => r.price_flag).length} tin cờ giá.`);
+console.log(`✅ ${now.slice(0, 10)}: ${daGhiInsert} tin mới · ${daGhiUpdate} tin còn sống (cập nhật) · ${goneN || 0} tin vừa gỡ (gone) · ${(purgedN || 0) + (hardPurgedN || 0)} tin cũ xoá sạch · ${rows.filter((r) => r.images.length).length} có ảnh · ${rows.filter((r) => r.source_count > 1).length} tin ≥2 nguồn · ${rows.filter((r) => r.price_flag).length} tin cờ giá.`);
 
 // 2b) Dọn tin bóc từ group Zalo quá 1 NĂM (giữ lâu hơn tin crawl vì group không re-seed;
 // tin DM tự đăng (zalo_bot) và tin user coi như tin người dùng - KHÔNG tự xóa)
@@ -294,4 +358,11 @@ if (!SEED_ONLY) {
   step("node price-history.mjs");
   step("node alerts.mjs");
   step("node embed.mjs"); // embedding cho tìm kiếm ngữ nghĩa (cần migration 003 + GEMINI key) - giờ upsert nên embedding cũ được giữ, chỉ embed tin mới
+}
+
+if (buocLoi.length) {
+  console.error(`⚠ ${buocLoi.length} bước lỗi trong lượt này: ${buocLoi.join(" | ")}`);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    try { fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### ⚠ Bước crawl lỗi\n${buocLoi.map((c) => `- \`${c}\``).join("\n")}\n`); } catch { /* không quan trọng */ }
+  }
 }

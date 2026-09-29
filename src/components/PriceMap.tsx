@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
+import { escHtml } from "@/lib/format";
 
 export type MapPoint = { lat: number; lng: number; label: string; sub?: string };
 
@@ -40,12 +41,12 @@ export default function PriceMap({ points, height = 460 }: { points: MapPoint[];
       for (const p of points) {
         const icon = L.divIcon({
           className: "price-pin",
-          html: `<div class="pp">${p.label}</div>`,
+          html: `<div class="pp">${escHtml(p.label)}</div>`,
           iconSize: [1, 1],
         });
         L.marker([p.lat, p.lng], { icon })
           .addTo(map)
-          .bindPopup(`<b>${p.label}</b><br>${p.sub || ""}`);
+          .bindPopup(`<b>${escHtml(p.label)}</b><br>${escHtml(p.sub)}`);
         bounds.push([p.lat, p.lng]);
       }
       if (bounds.length) map.fitBounds(bounds, { padding: [44, 44], maxZoom: 13 });

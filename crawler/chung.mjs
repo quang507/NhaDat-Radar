@@ -35,3 +35,31 @@ export function canonProvince(p) {
   if (/đà nẵng|da nang/.test(t)) return "Đà Nẵng";
   return p || null;
 }
+
+// ---- Chuỗi & số an toàn cho seed (audit 22/9) ----
+// Surrogate UTF-16 lẻ (nửa emoji) -> Postgres/PostgREST từ chối cả request JSON
+// ("invalid input syntax for type json") -> CẢ LÔ insert chết. Đã xảy ra thật: lượt CI
+// 2026-09-19 19:07Z, do `.slice(0, 1100)` cắt đôi một emoji ở mô tả chotot.
+export function boSurrogateLe(s) {
+  if (typeof s !== "string" || !s) return s;
+  return s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, (_, truoc) => truoc || "");
+}
+// Cắt theo code point (không cắt đôi emoji) - thay cho `.slice(0, n)` trên văn bản người dùng
+export function catChuoi(s, n) {
+  if (typeof s !== "string") return s;
+  const cp = Array.from(s);
+  return boSurrogateLe(cp.length > n ? cp.slice(0, n).join("") : s);
+}
+// Số nguyên dương hữu hạn (cột int/bigint) hoặc null. "5.99" / NaN / âm -> null thay vì làm
+// seed chết với "invalid input syntax for type bigint".
+export function soNguyen(v, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const n = typeof v === "string" ? Number(v) : v;
+  if (typeof n !== "number" || !Number.isFinite(n)) return null;
+  const r = Math.round(n);
+  return r >= min && r <= max ? r : null;
+}
+export function soThuc(v, { min = 0, max = Number.MAX_VALUE } = {}) {
+  const n = typeof v === "string" ? Number(v) : v;
+  if (typeof n !== "number" || !Number.isFinite(n)) return null;
+  return n > min && n <= max ? n : null;
+}

@@ -45,6 +45,12 @@ const TABS: Tab[] = [
     khop: (p, t) => p === "/admin" && (t === "ro-hang" || t === "user" || t === "crawl"),
   },
   {
+    href: "/admin?tab=dang-bai",
+    label: "Lấy content đăng bài",
+    Icon: IconPlus,
+    khop: (p, t) => p === "/admin" && t === "dang-bai",
+  },
+  {
     href: "/admin?tab=leads",
     label: "Liên hệ & Tin nhắn",
     Icon: IconChat,

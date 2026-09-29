@@ -1,8 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    // ảnh crawl thường hotlink từ CDN khác — nới remote patterns khi bật ảnh thật
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
+  // 22/9: bỏ remotePatterns "**" — web không dùng next/image (ảnh hotlink bằng <img>), mà pattern mở
+  // khiến /_next/image thành proxy ảnh công cộng cho MỌI domain (ai cũng dùng được, Vercel tính phí).
+  // Khi nào dùng next/image thì liệt kê đúng từng hostname cần thiết.
+
+  // Header bảo mật cơ bản. CHƯA đặt CSP: trang nạp Clarity, Turnstile, tile Esri/OSM/Mapbox và ảnh
+  // hotlink từ nhiều CDN -> CSP phải liệt kê kỹ + thử trên preview trước.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+        ],
+      },
+    ];
   },
 
   // Sự cố 17/8: `next build` ở MÁY NHÀ treo cứng — tiến trình chỉ tiêu 6.7s CPU trong 15 phút,

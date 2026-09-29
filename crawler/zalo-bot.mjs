@@ -348,6 +348,7 @@ const GT_TTL_MS = 30 * 60_000;
 const choDapAn = new Map();   // sellerThread -> { reqId, buyerThread, listingId, question, luc }
 const DAP_TTL_MS = 24 * 60 * 60_000;
 const choXemNha = new Map();  // buyerThread -> { listingId, khungGio, luc } - đang chờ khách cho SĐT để chốt lịch xem
+const XEM_TTL_MS = 30 * 60_000; // hết 30 phút không cho SĐT thì bỏ luồng hẹn xem (trước đây thiếu hằng này -> ReferenceError)
 // ---- CRM SYNC (Tự động đồng bộ khách hàng, lịch xem, deals vào CRM) ----
 async function crmUpsertBuyer({ zaloId, phone = null, name = null, preferences = null, notes = null }) {
   try {

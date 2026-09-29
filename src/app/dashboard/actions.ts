@@ -8,6 +8,21 @@ import { parseVnd } from "@/lib/vnd";
 
 export type ListingState = { ok: boolean; error?: string };
 
+// khớp enum listing_deal / property_kind (supabase/schema.sql)
+const DEALS = ["ban", "cho_thue"];
+const KINDS = ["phong_tro", "can_ho", "nha", "dat", "mat_bang", "khac"];
+
+// Ảnh hợp lệ = file public trong bucket uploads của chính project này (ImageUpload -> getPublicUrl)
+function laAnhStorage(u: string): boolean {
+  try {
+    const goc = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "");
+    const x = new URL(u);
+    return x.protocol === "https:" && x.host === goc.host && x.pathname.startsWith("/storage/v1/object/public/uploads/");
+  } catch {
+    return false;
+  }
+}
+
 // Tên tỉnh người dùng gõ tay -> tên chuẩn trong DB (khớp merge.mjs canonProvince), để tin tự đăng lọt vào bộ lọc/trang khu vực.
 function canonProvince(p: string): string | null {
   const t = p.toLowerCase().trim();
@@ -39,7 +54,13 @@ export async function createListing(
   } = await supabase.auth.getUser();
   if (!user) redirect("/auth");
 
-  const title = String(formData.get("title") || "").trim();
+  const title = String(formData.get("title") || "").trim().slice(0, 200);
+  // deal/kind đi thẳng vào cột enum: giá trị lạ -> lỗi Postgres khó hiểu. Chặn từ đây.
+  const deal = String(formData.get("deal") || "ban");
+  const kind = String(formData.get("kind") || "nha");
+  if (!DEALS.includes(deal) || !KINDS.includes(kind)) return { ok: false, error: "Loại tin / loại BĐS không hợp lệ." };
+  const description = String(formData.get("description") || "").slice(0, 8000);
+  const txt = (k: string, max = 200) => String(formData.get(k) || "").trim().slice(0, max) || null;
   const price = parseVnd(String(formData.get("price") || ""));
   if (!title) return { ok: false, error: "Nhập tiêu đề tin." };
   if (!price) return { ok: false, error: "Giá chưa đọc được - nhập kiểu \"8,5 tỷ\" hoặc \"12 triệu\"." };
@@ -54,40 +75,48 @@ export async function createListing(
   let images: string[] = [];
   try {
     const arr = JSON.parse(String(formData.get("images") || "[]"));
-    if (Array.isArray(arr)) images = arr.filter((u) => typeof u === "string" && u.startsWith("http")).slice(0, 12);
+    // Chỉ nhận ảnh đã upload lên Storage của chính Supabase project (ImageUpload) - không cho gắn URL
+    // ngoài tuỳ ý (ảnh theo dõi/ảnh bẩn hiện trên trang tin).
+    if (Array.isArray(arr)) images = arr.filter((u) => typeof u === "string" && laAnhStorage(u)).slice(0, 12);
   } catch { /* không có ảnh */ }
+
+  // Chống spam: tin lên thẳng không qua duyệt -> giới hạn 10 tin/giờ/tài khoản.
+  const admin = createAdminClient();
+  const { count: gioQua } = await admin.from("listings").select("id", { count: "exact", head: true })
+    .eq("agent_id", user.id).gte("created_at", new Date(Date.now() - 3600_000).toISOString());
+  if ((gioQua ?? 0) >= 10) return { ok: false, error: "Bạn đã đăng 10 tin trong 1 giờ qua - thử lại sau nhé." };
 
   // Ghi bằng service-role SAU KHI đã xác thực user + ép agent_id = user.id.
   // Client thường không được insert listings nữa (migration 005 gỡ policy insert),
   // để không ai gọi thẳng PostgREST tự đặt status/ai_score/trust_score giả.
-  const { error } = await createAdminClient().from("listings").insert({
+  const { error } = await admin.from("listings").insert({
     source: "agent",
     agent_id: user.id,
-    deal: String(formData.get("deal") || "ban"),
-    kind: String(formData.get("kind") || "nha"),
+    deal,
+    kind,
     title,
-    description: String(formData.get("description") || ""),
+    description,
     price_vnd: price,
     area_m2: area,
     bedrooms: Number(formData.get("bedrooms") || 0) || null,
     bathrooms: Number(formData.get("bathrooms") || 0) || null,
     floors: Number(formData.get("floors") || 0) || null,
-    direction: String(formData.get("direction") || "") || null,
-    legal_status: String(formData.get("legal_status") || "") || null,
-    furnishing: String(formData.get("furnishing") || "") || null,
+    direction: txt("direction", 40),
+    legal_status: txt("legal_status", 120),
+    furnishing: txt("furnishing", 120),
     province: canonProvince(String(formData.get("province") || "")),
     district: canonDistrict(String(formData.get("district") || "")),
-    address: String(formData.get("address") || "") || null,
-    contact_name: String(formData.get("contact_name") || "") || null,
+    address: txt("address", 300),
+    contact_name: txt("contact_name", 120),
     contact_phone: contactPhone || null,
-    amenities,
+    amenities: amenities.map((a) => a.slice(0, 60)).slice(0, 30),
     images,
     // Điểm tính từ độ đầy đủ tin thật (trước đây gán cứng 90 cho mọi tin tự đăng)
     ai_score: (() => {
       let s = 62;
       if (images.length >= 3) s += 9; else if (images.length) s += 4;
       if (formData.get("legal_status")) s += 7;
-      if (String(formData.get("description") || "").length > 200) s += 6;
+      if (description.length > 200) s += 6;
       if (area) s += 4;
       if (Number(formData.get("bedrooms"))) s += 3;
       return Math.min(92, s);

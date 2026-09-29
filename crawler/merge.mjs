@@ -1,7 +1,8 @@
 // Gộp đa nguồn -> 1 dataset chuẩn (nhadat + chotot + batdongsan). Chuẩn hoá tên tỉnh + url + price_per_m2.
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
-import { canonProvince, suaChuHong } from "./chung.mjs";
+import { gopTrung, nguongGiaLech, coLech, CUM_TOI_THIEU, NGUOI_DANG_TOI_THIEU, LECH_TOI_THIEU } from "./gop.mjs";
+import { canonProvince, suaChuHong, boSurrogateLe, soNguyen, soThuc } from "./chung.mjs";
 import { PHONE_RE } from "./quality-gate.mjs";
 import { createHash } from "node:crypto";
 
@@ -72,17 +73,44 @@ function canonDistrict(raw) {
   const m = s.match(/\(\s*(?:P\.|Phường)?\s*([^)]*?)\s*(?:mới)?\s*\)\s*$/i);
   const base = s.replace(/\s*\([^)]*\)\s*$/, "").trim();
   const district = base ? canonDistrictName(base) : null;
-  const wardHint = m && m[1] ? "Phường " + m[1].replace(/^(P\.|Phường)\s*/i, "") : null;
+  // Ngoặc KHÔNG phải lúc nào cũng là phường: batdongsan ghi "Quận 9 (TP. Thủ Đức mới)" -> bản cũ đẻ ra
+  // "Phường TP. Thủ Đức" rồi đem đi geocode (audit 22/9). Có tiền tố cấp quận/TP -> không phải phường.
+  const hintTho = m && m[1] ? m[1].replace(/^(P\.|Phường)\s*/i, "").trim() : null;
+  const wardHint = hintTho && !/^(tp\.?|thành phố|quận|huyện|thị xã|tx\.?|q\.)\s*/i.test(hintTho) ? "Phường " + hintTho : null;
   return { district, wardHint };
+}
+
+const DEALS = new Set(["ban", "cho_thue"]);
+const KINDS = new Set(["phong_tro", "can_ho", "nha", "dat", "mat_bang", "khac"]);
+const giaBoDi = {};   // đếm theo nguồn: giá không hợp lệ bị đặt null
+let daoToaDo = 0, boToaDo = 0;
+// Toạ độ phải nằm trong khung Việt Nam. Nguồn ghi đảo lat/lng (lat=106) -> đảo lại; ngoài khung
+// cả hai chiều -> null để geocode bù, thay vì lưu điểm ma (trigger geo để NULL, web vẫn đọc lat/lng).
+function toaDoVN(lat, lng) {
+  const trongVN = (a, b) => a >= 8 && a <= 23.6 && b >= 102 && b <= 110;
+  const a = soThuc(lat, { min: -91, max: 90 }), b = soThuc(lng, { min: -181, max: 180 });
+  if (lat == null || lng == null) return { lat: null, lng: null };
+  if (a != null && b != null && trongVN(a, b)) return { lat: a, lng: b };
+  const a2 = Number(lng), b2 = Number(lat);
+  if (Number.isFinite(a2) && Number.isFinite(b2) && trongVN(a2, b2)) { daoToaDo++; return { lat: a2, lng: b2 }; }
+  boToaDo++;
+  return { lat: null, lng: null };
 }
 
 function norm(x) {
   // sửa Unicode hỏng TRƯỚC khi chuẩn hoá - không thì "Thủ ƌức" đi qua canonDistrict
   // thành bucket riêng và "\u01ồng Nai" thành tỉnh ma (xem suaChuHong trong chung.mjs)
-  x = { ...x, title: suaChuHong(x.title), description: suaChuHong(x.description),
-    province: suaChuHong(x.province), district: suaChuHong(x.district),
-    ward: suaChuHong(x.ward), address: suaChuHong(x.address) };
-  const price = x.price_vnd ?? null, area = x.area_m2 ?? null;
+  // boSurrogateLe: nửa emoji còn sót ở BẤT KỲ nguồn nào làm PostgREST từ chối cả lô insert
+  // (audit 22/9) -> chặn ở đây, điểm hẹp duy nhất mọi nguồn đi qua.
+  const sach = (s) => boSurrogateLe(suaChuHong(s));
+  x = { ...x, title: sach(x.title), description: sach(x.description),
+    province: sach(x.province), district: sach(x.district),
+    ward: sach(x.ward), address: sach(x.address) };
+  // Số phải đúng kiểu cột (price_vnd bigint, bedrooms int...): "5.99", NaN, âm, 390đ ("390 nghìn/m²"
+  // của batdongsan) -> null thay vì lọt vào DB hoặc làm seed chết. Giá < 1 triệu không phải giá BĐS.
+  const price = soNguyen(x.price_vnd, { min: 1_000_000 }), area = soThuc(x.area_m2, { max: 1_000_000 });
+  if (x.price_vnd != null && price == null) giaBoDi[x.source_site] = (giaBoDi[x.source_site] || 0) + 1;
+  const toaDo = toaDoVN(x.lat, x.lng);
   const dc = canonDistrict(x.district);
   // nguồn nào không có sẵn trường SĐT thì dò trong mô tả - chotot/mogi người đăng hay tự
   // viết số vào bài (đo: 98% tin facebook dò ra được số ngay trong mô tả).
@@ -100,13 +128,17 @@ function norm(x) {
     title: x.title || "",
     description: x.description || "",
     price_vnd: price, area_m2: area,
-    price_per_m2: x.price_per_m2 ?? (price && area ? Math.round(price / area) : null),
-    bedrooms: x.bedrooms ?? null, bathrooms: x.bathrooms ?? null, floors: x.floors ?? null,
+    price_per_m2: price && area ? Math.round(price / area) : null,
+    bedrooms: soNguyen(x.bedrooms, { max: 200 }), bathrooms: soNguyen(x.bathrooms, { max: 200 }), floors: soNguyen(x.floors, { max: 200 }),
     direction: x.direction ?? null, legal: x.legal ?? x.legal_status ?? null, furnishing: x.furnishing ?? null,
-    listing_type: x.listing_type, property_type: x.property_type,
+    // enum trong DB (listing_deal NOT NULL / property_kind NOT NULL): deal sai -> bản ghi bị loại ở
+    // bước lọc ngay sau norm (1 tin thiếu deal từng làm cả lô 200 tin insert lỗi); kind lạ -> "khac"
+    listing_type: DEALS.has(x.listing_type) ? x.listing_type : null,
+    property_type: KINDS.has(x.property_type) ? x.property_type : "khac",
     province: canonProvince(x.province), district: dc.district, ward: x.ward ?? dc.wardHint ?? null,
     address: x.address ?? null,                      // chuỗi địa chỉ nguyên văn của nguồn (có tên đường)
-    lat: x.lat ?? null, lng: x.lng ?? null,
+    lat: toaDo.lat, lng: toaDo.lng,
+    geo_precision: toaDo.lat != null ? "nguon" : null,   // toạ độ có sẵn lúc merge = do trang nguồn cung cấp
     amenities: x.amenities || [],
     specs: x.specs && Object.keys(x.specs).length ? x.specs : null,   // bảng thông số riêng của nguồn
     poster_role: x.poster_role || "khong_ro", poster_listing_count: x.poster_listing_count || 1,
@@ -129,9 +161,17 @@ const sources = ["chotot.json", "batdongsan.json", "mogi.json", "facebook.json",
 let all = [];
 for (const f of sources) { const rows = load(f).map(norm); all = all.concat(rows); console.error(f, "->", rows.length); }
 
+// Bản ghi không có loại tin hợp lệ (ban/cho_thue) thì không có chỗ trong DB (listing_deal NOT NULL)
+// -> loại ở đây, có đếm, thay vì để nó làm hỏng cả lô insert ở seed (audit 22/9).
+const saiLoai = {};
+all = all.filter((x) => { if (x.listing_type) return true; saiLoai[x.source_site] = (saiLoai[x.source_site] || 0) + 1; return false; });
+if (Object.keys(saiLoai).length) console.error("loại vì thiếu/sai listing_type:", JSON.stringify(saiLoai));
+if (Object.keys(giaBoDi).length) console.error("giá không hợp lệ -> null (< 1 triệu / không phải số):", JSON.stringify(giaBoDi));
+if (daoToaDo || boToaDo) console.error(`toạ độ: đảo lại lat/lng ${daoToaDo} tin, bỏ ${boToaDo} tin ngoài khung Việt Nam`);
+
 // Lọc tin rác (dịch vụ, tuyển dụng, vay vốn, hàng tiêu dùng...) trước khi dedupe
 const beforeJunk = all.length;
-all = all.filter((x) => !isJunk(x.title, x.description));
+all = all.filter((x) => !isJunk(x.title, x.description, x.property_type));
 console.error("junk filter:", beforeJunk, "->", all.length, `(bỏ ${beforeJunk - all.length} tin rác)`);
 
 // Cổng chất lượng (audit 16/8: batdongsantoanquoc 141/144 tin không giá, không DT, không quận -> lọt search dạng
@@ -175,7 +215,7 @@ function titleFingerprint(x) {
   const ab = x.area_m2 ? Math.round(x.area_m2) : "-";
   return [words.join(" "), pb, ab, stripAccent((x.district || "").toLowerCase())].join("|");
 }
-const richness = (x) => (x.images || []).length * 10 + Math.min(500, (x.description || "").length) / 50 + (x.lat ? 3 : 0);
+// gộp bản trùng theo từng trường: crawler/gop.mjs (tách riêng để unit test được)
 
 const seenId = new Set(), byKey = new Map(), seenTitle = new Set();
 const kept = [];
@@ -196,12 +236,7 @@ for (const x of all) {
       dup.source_count += 1;
       dup.source_sites = [...new Set([...(dup.source_sites || [dup.source_site]), x.source_site])];
     }
-    // giữ bản giàu dữ liệu hơn nhưng bảo toàn danh tính (id/source_post_id/first-seen) của bản đầu
-    if (richness(x) > richness(dup)) {
-      const keepIdent = { id: dup.id, source: dup.source, source_site: dup.source_site, url: dup.url, source_post_id: dup.source_post_id,
-        source_count: dup.source_count, source_sites: dup.source_sites, posted_at: dup.posted_at ?? x.posted_at };
-      Object.assign(dup, x, keepIdent);
-    }
+    gopTrung(dup, x);   // gộp theo từng trường - xem chú thích ở gopTrung
     for (const k of keys) if (!byKey.has(k)) byKey.set(k, dup); // key của x cũng trỏ về dup (audit: tin thứ 3 trùng x lọt lưới)
     continue;
   }
@@ -213,7 +248,8 @@ all = kept;
 
 // ---- Cảnh báo giá lệch (price_flag) trên TOÀN BỘ dữ liệu ----
 // Trước đây chỉ crawl.js (nhadat.vn) sinh price_warning -> nguồn đó 0 tin -> 0% tin có cờ.
-// Cụm = tỉnh|quận|loại|bán-thuê; so theo giá/m² (thuê không có DT thì so theo giá). Cần >=5 tin & >=2 người đăng khác nhau.
+// Cụm = tỉnh|quận|loại|bán-thuê; so theo giá/m² (thuê không có DT thì so theo giá).
+// 22/9: ngưỡng cứng ±28% gắn cờ 22% số tin -> đổi sang hàng rào IQR của chính cụm (xem gop.mjs).
 const median = (arr) => { const s = [...arr].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const clusters = new Map();
 for (const x of all) {
@@ -227,21 +263,20 @@ for (const x of all) {
 let flagged = 0;
 for (const rows of clusters.values()) {
   const posters = new Set(rows.map((r) => r.poster));
-  if (rows.length < 5 || posters.size < 2) continue;
-  const med = median(rows.map((r) => r.v));
-  if (!med) continue;
+  if (rows.length < CUM_TOI_THIEU || posters.size < NGUOI_DANG_TOI_THIEU) continue;
+  const ng = nguongGiaLech(rows.map((r) => r.v));
+  if (!ng || !ng.p50) continue;
   for (const { x, v } of rows) {
-    const dev = (v - med) / med;
-    if (Math.abs(dev) >= 0.28) {
-      x.price_warning = { reason: dev > 0 ? "cao_hon" : "thap_hon", deviation_pct: Math.round(dev * 100),
-        cluster_size: rows.length, distinct_posters: posters.size, median_vnd: Math.round(med), basis: x.price_per_m2 ? "m2" : "gia" };
-      flagged++;
-    }
+    const lech = coLech(v, ng);
+    if (!lech) continue;
+    x.price_warning = { ...lech, cluster_size: rows.length, distinct_posters: posters.size,
+      median_vnd: Math.round(ng.p50), nguong_vnd: [Math.round(ng.thap), Math.round(ng.cao)], basis: x.price_per_m2 ? "m2" : "gia" };
+    flagged++;
   }
 }
 // điểm heuristic phải phản ánh cờ giá vừa tính (nguồn tự chấm giữ nguyên, chỉ trừ thêm khi có cờ)
 for (const x of all) if (x.price_warning && x.ai_score) x.ai_score = Math.max(35, x.ai_score - 12);
-console.error("price_flag:", flagged, "tin lệch ≥28% so với trung vị cụm (", clusters.size, "cụm )");
+console.error(`price_flag: ${flagged} tin ngoài hàng rào IQR của cụm (và lệch ≥${Math.round(LECH_TOI_THIEU * 100)}% so với trung vị), ${clusters.size} cụm`);
 
 // ---- Lý do dấu hiệu môi giới/chính chủ (cho nguồn chưa tự sinh) ----
 for (const x of all) {

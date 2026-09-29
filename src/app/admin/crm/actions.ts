@@ -155,12 +155,17 @@ export async function ganBdsQuanTam(formData: FormData) {
   if (isUuid) {
     listingId = listing_code_or_id;
   } else {
-    const { data: found } = await admin
-      .from("listings")
-      .select("id")
-      .or(`id.ilike.${listing_code_or_id}%,title.ilike.%${listing_code_or_id}%`)
-      .limit(1)
-      .maybeSingle();
+    // id là uuid: không ilike được (lỗi 42883) -> chỉ tìm theo tiêu đề. Bỏ ký tự đặc biệt của
+    // cú pháp PostgREST/LIKE để từ khoá không phá được bộ lọc.
+    const kw = listing_code_or_id.replace(/[%_,()*\\]/g, " ").trim().slice(0, 100);
+    const { data: found } = kw
+      ? await admin
+          .from("listings")
+          .select("id")
+          .ilike("title", `%${kw}%`)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
     listingId = found?.id ?? null;
   }
 

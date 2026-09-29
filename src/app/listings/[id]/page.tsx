@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
+import { createAnonClient } from "@/lib/supabase/anon";
+import { unstable_cache } from "next/cache";
+import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
@@ -12,7 +14,8 @@ import { posterReasonText, type Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
 import ReportButton from "./ReportButton";
 import PriceTrend from "@/components/PriceTrend";
-import { areaPath } from "@/lib/slug";
+import { areaPath, DEAL_WORD } from "@/lib/slug";
+import { ldJson, SITE_URL } from "@/lib/ld";
 import { nhanTinh } from "@/lib/sap-nhap";
 import ScoreInfo from "@/components/ScoreInfo";
 import LegalHint from "@/components/LegalHint";
@@ -26,10 +29,76 @@ import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
-import { laTinDocQuyen, cheSoVanBan, cheSoNha } from "@/lib/doc-quyen";
+import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
+import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong } from "@/lib/ro-hang";
+import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
+
+// ---- DỮ LIỆU CÔNG KHAI CỦA TRANG TIN, CÓ CACHE (28/9) ----------------------------------------------
+// Trang tin là trang bị bot gọi nhiều nhất (~10.000 URL trong sitemap). Trước đây MỖI lượt xem gọi
+// Supabase ~8 lần (tin, dự án, đếm tin dự án, hỏi đáp, có-SĐT, so giá, tin liên quan, tin cùng người
+// đăng) -> đo 28/9: ~80.000 request/ngày, vượt hạn mức egress (8/5 GB) + log (9,8/1 GB) gói Free.
+// Phần này giống nhau với MỌI khách nên cache 30 phút theo id (client anon, không cookie). Dữ liệu chỉ
+// đổi mỗi lượt crawl (4 tiếng). Chỉ phần theo người xem (admin, SĐT sau đăng nhập) còn gọi thẳng DB.
+type Sb = ReturnType<typeof createAnonClient> | Awaited<ReturnType<typeof createClient>>;
+async function phuTroTin(sb: Sb, x: Listing) {
+  const [du, dem, hd, co, comp, rel, poster] = await Promise.all([
+    x.project_id ? sb.from("projects").select("id,name,investor").eq("id", x.project_id).maybeSingle() : Promise.resolve({ data: null }),
+    x.project_id ? sb.from("listings").select("id", { count: "exact", head: true }).eq("project_id", x.project_id).eq("status", "published") : Promise.resolve({ count: 0 }),
+    // Hỏi đáp tích luỹ từ Cầu Nối (listing_facts đọc công khai qua RLS facts_read)
+    sb.from("listing_facts").select("id,question,answer").eq("listing_id", x.id).order("created_at", { ascending: false }).limit(8),
+    // has_contact_phone - cột sinh ở migration 026; chưa có cột thì coi như không biết, không làm hỏng trang
+    sb.from("listings").select("has_contact_phone").eq("id", x.id).maybeSingle(),
+    // So sánh giá cùng loại + cùng quận
+    x.district
+      ? sb.from("listings").select("price_per_m2")
+          .eq("status", "published").eq("deal", x.deal).eq("kind", x.kind).eq("district", x.district)
+          .not("price_per_m2", "is", null).gt("price_per_m2", 0).neq("id", x.id).limit(300)
+      : Promise.resolve({ data: [] as { price_per_m2: number }[] }),
+    // audit 16/8: thiếu cả quận lẫn tỉnh thì ilike "%%" trả tin toàn quốc -> chỉ hỏi khi có khu vực; ảnh không rỗng lọc ở DB
+    (x.district || x.province)
+      ? sb.from("listings").select(LISTING_CARD_COLS)
+          .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
+          .eq(x.district ? "district" : "province", x.district || x.province!)
+          .not("images", "eq", "{}")
+          .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
+      : Promise.resolve({ data: [] as Listing[] }),
+    x.poster_key
+      ? sb.from("listings").select(LISTING_CARD_COLS, { count: "exact" })
+          .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
+          .order("first_seen_at", { ascending: false }).limit(6)
+      : Promise.resolve({ data: [] as Listing[], count: 0 }),
+  ]);
+  return {
+    tin: x,
+    duAn: (du.data ?? null) as { id: string; name: string; investor: string | null } | null,
+    tinCungDuAn: ("count" in dem ? dem.count : 0) ?? 0,
+    hoiDap: (hd.data ?? []) as { id: string; question: string; answer: string | null }[],
+    coSdt: !!(co.data as { has_contact_phone?: boolean } | null)?.has_contact_phone,
+    compRows: (comp.data ?? []) as { price_per_m2: number }[],
+    relRows: (rel.data ?? []) as unknown as Listing[],
+    posterRows: (poster.data ?? []) as unknown as Listing[],
+    posterCount: ("count" in poster ? poster.count : 0) ?? 0,
+  };
+}
+type TinCongKhai = Awaited<ReturnType<typeof phuTroTin>>;
+
+const layTinCongKhai = unstable_cache(
+  async (id: string): Promise<TinCongKhai | null> => {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const sb = createAnonClient();
+    const { data, error } = await sb.from("listings").select(LISTING_PUBLIC_COLS).eq("id", id).maybeSingle();
+    // 42703 (cột trong LISTING_PUBLIC_COLS chưa có migration - đã xảy ra, xem 015) mà nuốt im lặng thì
+    // MỌI tin ra 404, SEO de-index. NÉM lỗi: unstable_cache không cache lỗi, trang log lại.
+    if (error) throw new Error(`listing detail ${id}: ${error.code} ${error.message}`);
+    if (!data) return null;
+    return phuTroTin(sb, data as unknown as Listing);
+  },
+  ["listing-detail-v1"],
+  { revalidate: 1800, tags: ["listings"] },
+);
 
 function agoMin(iso: string | null): number | null {
   if (!iso) return null;
@@ -39,19 +108,27 @@ function agoMin(iso: string | null): number | null {
 // SEO/OG: share link ra Facebook/Zalo có tiêu đề + ảnh + giá
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("listings").select("title,price_vnd,deal,district,province,images,description")
-    .eq("id", id).single();
+  // cùng bản cache với thân trang (layTinCongKhai) - trước đây metadata là thêm 1 truy vấn mỗi lượt xem
+  const pub = await layTinCongKhai(id).catch(() => null);
+  const data = pub?.tin;
   if (!data) return { title: "Không tìm thấy tin - NhaDat Radar" };
-  const title = `${data.title} - ${fmtPrice(data.price_vnd, data.deal)}`;
-  const description = (data.description || "").slice(0, 160) ||
+  // Tin độc quyền: thân trang đã che SĐT trong mô tả (cheSoVanBan) nhưng thẻ meta/OG trước đây lấy mô tả
+  // THÔ -> số lộ qua <meta name=description>, og:description, ảnh xem trước khi share (audit 22/9).
+  const docQuyen = laTinDocQuyen(data);
+  const title = `${docQuyen ? cheSoVanBan(data.title) : data.title} - ${fmtPrice(data.price_vnd, data.deal)}`;
+  const moTa = docQuyen ? cheSoVanBan(data.description) : data.description || "";
+  const description = moTa.slice(0, 160) ||
     `${[data.district, data.province].filter(Boolean).join(", ")} · NhaDat Radar`;
   const img = cleanImages(data.images || [])[0];
   return {
     title,
     description,
-    openGraph: { title, description, ...(img ? { images: [{ url: img }] } : {}) },
+    // canonical: trang tin trước đây không khai báo -> mọi biến thể URL (tham số utm, tracking) đều
+    // được coi là trang riêng. Tin đã gỡ thì noindex,follow: URL còn mở cho người đang giữ link,
+    // nhưng không nên nằm trong kết quả tìm kiếm (23/9).
+    alternates: { canonical: `/listings/${id}` },
+    ...(data.status === "gone" ? { robots: { index: false, follow: true } } : {}),
+    openGraph: { type: "article", url: `${SITE_URL}/listings/${id}`, title, description, ...(img ? { images: [{ url: img }] } : {}) },
   };
 }
 
@@ -62,68 +139,45 @@ export default async function ListingDetail({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data, error } = await supabase.from("listings").select(LISTING_COLS).eq("id", id).single();
-  // 42703 (cột trong LISTING_COLS chưa có migration - đã xảy ra, xem 015) mà nuốt im lặng thì
-  // MỌI tin ra 404, SEO de-index, không dấu vết. Log để còn thấy trong Vercel Logs; PGRST116
-  // (không có hàng) mới là 404 thật.
-  if (error && error.code !== "PGRST116") console.error("listing detail:", id, error.code, error.message);
-  if (!data) notFound();
-  const x = data as Listing;
+  // Phần CÔNG KHAI lấy từ cache (xem layTinCongKhai). Lỗi thật thì log + coi như không có -> dưới đây
+  // người đã đăng nhập (admin xem tin ẩn/chờ duyệt) còn được hỏi thẳng DB bằng quyền của họ.
+  let pub: TinCongKhai | null = null;
+  try { pub = await layTinCongKhai(id); } catch (e) { console.error(String(e)); }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!pub && user) {
+    // tin anon không thấy (hidden/pending/draft) - chỉ admin hoặc chủ tin qua được RLS
+    const { data: rieng } = await supabase.from("listings").select(LISTING_PUBLIC_COLS).eq("id", id).maybeSingle();
+    if (rieng) pub = await phuTroTin(supabase, rieng as unknown as Listing);
+  }
+  if (!pub) notFound();
+  const data = pub.tin;
+  // contact_phone không có trong LISTING_PUBLIC_COLS -> gán sau (chỉ khi đã đăng nhập)
+  const x = { ...data, contact_phone: null } as Listing;
   // FB + Zalo = tin ĐỘC QUYỀN (21/8): giấu SĐT mọi nơi, liên hệ qua Cầu Nối - xem lib/doc-quyen
   const docQuyen = laTinDocQuyen(x);
+  // tiêu đề tin FB/Zalo cũng hay chứa số ("Bán nhà Q7 LH 09...") -> che luôn, như mô tả
+  if (docQuyen) Object.assign(x, cheTinDocQuyen(x));
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
-  // Tin thuộc dự án (gan-du-an.mjs nối theo tên) -> khối "Thông tin dự án" + đếm tin cùng
-  // dự án đang rao, kiểu batdongsan: từ tin bấm ra dự án, từ dự án thấy ai đang bán/cho thuê
-  let duAn: { id: string; name: string; investor: string | null } | null = null;
-  let tinCungDuAn = 0;
-  if (x.project_id) {
-    const [{ data: p }, { count }] = await Promise.all([
-      supabase.from("projects").select("id,name,investor").eq("id", x.project_id).single(),
-      supabase.from("listings").select("id", { count: "exact", head: true }).eq("project_id", x.project_id).eq("status", "published"),
-    ]);
-    duAn = p;
-    tinCungDuAn = count ?? 0;
-  }
-
-  // Hỏi đáp tích luỹ từ Cầu Nối (listing_facts đọc công khai qua RLS facts_read)
-  const { data: hoiDapData } = await supabase.from("listing_facts")
-    .select("id,question,answer").eq("listing_id", id)
-    .order("created_at", { ascending: false }).limit(8);
-  const hoiDap = hoiDapData ?? [];
+  // Tin thuộc dự án (gan-du-an.mjs nối theo tên) -> khối "Thông tin dự án" + đếm tin cùng dự án đang rao
+  const { duAn, tinCungDuAn, hoiDap, compRows, relRows, posterRows, posterCount } = pub;
 
   // 17/8: bỏ duyệt trước - tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
-  const { data: { user } } = await supabase.auth.getUser();
   let isAdmin = false;
   if (user) {
     const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).single();
     isAdmin = prof?.role === "admin";
   }
+  // SĐT thật: chỉ tải khi đã đăng nhập. Khách vãng lai chỉ cần biết "có SĐT" (has_contact_phone, trong cache)
+  let coSdt = pub.coSdt;
+  if (user) {
+    const { data: ph } = await supabase.from("listings").select("contact_phone").eq("id", id).maybeSingle();
+    x.contact_phone = ph?.contact_phone ?? null;
+    coSdt = !!x.contact_phone;
+  }
 
-  // So sánh giá + tin liên quan (cùng loại + cùng quận) + tin khác của cùng người đăng (song song)
-  const [{ data: compRows }, { data: relRows }, { data: posterRows, count: posterCount }] = await Promise.all([
-    x.district
-      ? supabase.from("listings").select("price_per_m2")
-          .eq("status", "published").eq("deal", x.deal).eq("kind", x.kind)
-          .eq("district", x.district)
-          .not("price_per_m2", "is", null).gt("price_per_m2", 0).neq("id", x.id).limit(300)
-      : Promise.resolve({ data: [] as { price_per_m2: number }[] }),
-    // audit 16/8: thiếu cả quận lẫn tỉnh thì ilike "%%" trả tin toàn quốc -> chỉ hỏi khi có khu vực; ảnh không rỗng lọc ở DB
-    (x.district || x.province)
-      ? supabase.from("listings").select(LISTING_CARD_COLS)
-          .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
-          .eq(x.district ? "district" : "province", x.district || x.province!)
-          .not("images", "eq", "{}")
-          .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
-      : Promise.resolve({ data: [] as Listing[] }),
-    x.poster_key
-      ? supabase.from("listings").select(LISTING_CARD_COLS, { count: "exact" })
-          .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
-          .order("first_seen_at", { ascending: false }).limit(6)
-      : Promise.resolve({ data: [] as Listing[], count: 0 }),
-  ]);
-  const posterOthers = ((posterRows ?? []) as Listing[]);
+  const posterOthers = ((posterRows ?? []) as Listing[]).map(cheTinDocQuyen);
 
   const ppm2s = (compRows ?? []).map((r) => Number(r.price_per_m2)).filter((v) => v > 0);
   // UX audit 16/8: từng hiện "Cao hơn mặt bằng ~35%" dựa trên 1 tin -> vô nghĩa & gây hiểu lầm.
@@ -134,13 +188,16 @@ export default async function ListingDetail({
   const myPpm2 = x.price_per_m2 ? Number(x.price_per_m2) : null;
   const diffPct = med && myPpm2 ? Math.round(((myPpm2 - med) / med) * 100) : null;
 
-  const related = ((relRows ?? []) as Listing[]).filter((r) => r.images?.length).slice(0, 6);
+  const related = ((relRows ?? []) as Listing[]).map(cheTinDocQuyen).filter((r) => r.images?.length).slice(0, 6);
 
   const roleGuess = x.poster_role_guess;
   const seen = agoMin(x.first_seen_at);
   const lastSeen = agoMin(x.last_seen_at ?? null);
   const isGone = x.status === "gone";
   const isCrawl = x.source === "crawl";
+  // RỔ HÀNG RADAR (28/9): hàng mình nắm - không link gốc, không tên đối tác, CTA chỉ về Radar (lib/ro-hang)
+  const roHang = laRoHang(x);
+  const giuPhong = tagGiuPhong(x);
   const reasons = (x.poster_reasons || []).map(posterReasonText);
   const fmtDT = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "-";
@@ -173,8 +230,39 @@ export default async function ListingDetail({
     ["Mã tin", x.id.slice(0, 8)],
   ];
 
+  // ---- JSON-LD (23/9): trước đây chỉ trang khu vực có, trang tin không có gì. Chỉ khai báo dữ liệu
+  // ĐÃ hiển thị trên trang (giá, diện tích, phòng, khu vực) - không bịa thêm thuộc tính.
+  const ldTin: Record<string, unknown>[] = [
+    {
+      "@context": "https://schema.org", "@type": "RealEstateListing",
+      name: x.title, url: `${SITE_URL}/listings/${x.id}`,
+      ...(x.description ? { description: x.description.slice(0, 500) } : {}),
+      ...(images.length ? { image: images.slice(0, 5) } : {}),
+      ...(x.first_seen_at ? { datePosted: x.first_seen_at } : {}),
+      ...(x.price_vnd ? { offers: { "@type": "Offer", price: x.price_vnd, priceCurrency: "VND",
+        availability: isGone ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+        ...(x.deal === "cho_thue" ? { priceSpecification: { "@type": "UnitPriceSpecification", price: x.price_vnd, priceCurrency: "VND", unitText: "THÁNG" } } : {}) } } : {}),
+      ...(x.province ? { address: { "@type": "PostalAddress", addressCountry: "VN", addressRegion: x.province,
+        ...(x.district ? { addressLocality: x.district } : {}), ...(x.ward ? { addressSubLocality: x.ward } : {}) } } : {}),
+      ...(x.lat && x.lng ? { geo: { "@type": "GeoCoordinates", latitude: x.lat, longitude: x.lng } } : {}),
+      ...(x.area_m2 ? { floorSize: { "@type": "QuantitativeValue", value: x.area_m2, unitCode: "MTK" } } : {}),
+      ...(x.bedrooms ? { numberOfBedrooms: x.bedrooms } : {}),
+      ...(x.bathrooms ? { numberOfBathroomsTotal: x.bathrooms } : {}),
+    },
+    {
+      "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: `${DEAL_WORD[x.deal === "cho_thue" ? "cho_thue" : "ban"]} nhà đất`, item: SITE_URL + (x.deal === "cho_thue" ? "/nha-dat-cho-thue" : "/nha-dat-ban") },
+        ...(x.province ? [{ "@type": "ListItem", position: 3, name: x.province, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province) }] : []),
+        ...(x.province && x.district ? [{ "@type": "ListItem", position: 4, name: x.district, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province, x.district) }] : []),
+        { "@type": "ListItem", position: x.district ? 5 : 4, name: x.title, item: `${SITE_URL}/listings/${x.id}` },
+      ],
+    },
+  ];
+
   return (
     <div>
+      {ldTin.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(o) }} />)}
       <div className="flex items-center gap-3">
         <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Quay lại</Link>
         <span className="ml-auto"><FavButton id={x.id} /></span>
@@ -209,7 +297,7 @@ export default async function ListingDetail({
       </nav>
       {isGone && (
         <div className="rounded-lg p-3 my-3 border border-amber-500/40 bg-amber-500/10 text-sm">
-          <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {x.source_site || "nguồn"} từ{" "}
+          <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {roHang ? "rổ hàng" : x.source_site || "nguồn"} từ{" "}
           {lastSeen != null ? fresh(lastSeen) : "một thời gian"}. Tin đã ẩn khỏi kết quả tìm kiếm; giữ lại để tham khảo giá.
         </div>
       )}
@@ -220,7 +308,14 @@ export default async function ListingDetail({
             📍 {diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}
           </div>
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
-          <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
+          {roHang ? (
+            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
+              <span className="font-semibold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-full">★ Rổ hàng Radar · phòng trống đã xác thực</span>
+              {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded-full">{giuPhong}</span>}
+            </div>
+          ) : (
+            <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
+          )}
         </div>
         <div className="text-right shrink-0">
           <div className="prata text-2xl text-brand">{fmtPrice(x.price_vnd, x.deal)}</div>
@@ -408,7 +503,7 @@ export default async function ListingDetail({
 
         <div className="flex flex-col gap-4">
           <div className="card rounded-lg p-5" id="lien-he">
-            <h3 className="font-bold mb-3">{isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
+            <h3 className="font-bold mb-3">{roHang ? "Liên hệ xem phòng" : isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#16233a] text-xs">
                 {x.source === "agent" ? "BÁN" : "TIN"}
@@ -416,14 +511,37 @@ export default async function ListingDetail({
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (x.contact_phone || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
+                  {docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (coSdt || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
                 </div>
               </div>
             </div>
             {/* TIN ĐỘC QUYỀN (FB + Zalo): không hiện SĐT cho bất kỳ ai - Radar là đường liên hệ
                 duy nhất (Cầu Nối), đây là nhóm tin thu phí được. Nguồn web thì giữ luật cũ:
                 SĐT hiện sau đăng nhập (mô hình Homigo), hotline Radar không chặn ai. */}
-            {docQuyen ? (
+            {roHang ? (
+              <div className="mb-3 flex flex-col gap-2">
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-[var(--ink-soft)]">
+                  <div className="font-bold text-sm text-[var(--ink)] mb-1">★ Rổ hàng Radar</div>
+                  {cauChotXemPhong(fmtPrice(x.price_vnd, x.deal))}
+                </div>
+                {/* mã phòng: zalo.me không điền sẵn tin nhắn -> khách gửi mã để biết hỏi phòng nào */}
+                <div className="rounded-lg border border-dashed border-[var(--line)] p-3 text-center">
+                  <div className="text-xs text-[var(--ink-soft)]">Mã phòng - gửi kèm khi nhắn Zalo</div>
+                  <div className="font-mono text-xl font-extrabold tracking-wider select-all">{maPhong(x.id)}</div>
+                </div>
+                <a href={`tel:${HOTLINE}`} className="btn btn-primary w-full text-center">📞 Gọi Hotline {HOTLINE}</a>
+                <a href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">💬 Nhắn Zalo hẹn xem phòng</a>
+                {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
+                <div className="hidden lg:flex items-center gap-3 rounded-lg border border-[var(--line)] p-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/zalo-qr.svg" alt={`QR Zalo ${HOTLINE}`} width={96} height={96} className="rounded bg-white p-1 shrink-0" />
+                  <div className="text-xs text-[var(--ink-soft)]">
+                    <div className="font-bold text-sm text-[var(--ink)] mb-1">Quét để nhắn Zalo</div>
+                    Mở camera điện thoại quét mã, gửi <b className="font-mono text-[var(--ink)]">{maPhong(x.id)}</b> để được tư vấn &amp; hẹn xem phòng.
+                  </div>
+                </div>
+              </div>
+            ) : docQuyen ? (
               <div className="mb-3 rounded-lg border border-brand/40 bg-brand/5 p-3 text-sm">
                 <div className="font-bold mb-1">⭐ Tin độc quyền Radar</div>
                 <p className="text-xs text-[var(--ink-soft)]">
@@ -437,7 +555,7 @@ export default async function ListingDetail({
                 {user && !x.contact_phone && x.phone_masked && (
                   <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
                 )}
-                {!user && (x.contact_phone || x.phone_masked) && (
+                {!user && (coSdt || x.phone_masked) && (
                   <div className="mb-3"><DangNhapDeXem /></div>
                 )}
               </>
@@ -449,9 +567,9 @@ export default async function ListingDetail({
                 Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} ›
               </a>
             ) : null}
-            <TuVanRadar />
-            {/* độc quyền: vẫn ghi nguồn nhưng chỉ là chữ nhỏ, không phải CTA */}
-            {docQuyen && x.source_url && x.source_url !== "#" && (
+            {!roHang && <TuVanRadar />}
+            {/* độc quyền: vẫn ghi nguồn nhưng chỉ là chữ nhỏ, không phải CTA. Rổ hàng: không bao giờ */}
+            {docQuyen && !roHang && x.source_url && x.source_url !== "#" && (
               <p className="text-[0.68rem] text-[var(--ink-faint)] mb-3">
                 Nguồn tin: <a href={x.source_url} target="_blank" rel="noopener nofollow" className="underline">{x.source_site || "bài gốc"}</a>
               </p>
@@ -464,7 +582,12 @@ export default async function ListingDetail({
                 Nhắn tin với người bán
               </Link>
             )}
-            {isCrawl ? (
+            {roHang ? (
+              <div className="mt-1 pt-3 border-t border-[var(--line)]">
+                <div className="font-bold text-sm mb-2">📅 Đặt lịch xem phòng</div>
+                <ContactForm listingId={x.id} listingTitle={x.title} datLich />
+              </div>
+            ) : isCrawl ? (
               <details className="mt-1">
                 <summary className="text-sm font-semibold cursor-pointer text-brand">Nhờ Radar hỗ trợ tìm/định giá tin tương tự</summary>
                 <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT - Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp trong khu vực.</p>
@@ -478,7 +601,7 @@ export default async function ListingDetail({
                 <AppointmentForm listingId={x.id} agentId={x.agent_id} />
               </div>
             )}
-            {!isCrawl && x.source_url && x.source_url !== "#" ? (
+            {!isCrawl && !roHang && x.source_url && x.source_url !== "#" ? (
               <a
                 href={x.source_url}
                 target="_blank"
@@ -498,7 +621,7 @@ export default async function ListingDetail({
           <div className="card rounded-lg p-5 text-sm">
             <h3 className="font-bold mb-2">Độ mới của tin</h3>
             <div className="grid grid-cols-[1fr_auto] gap-y-1.5">
-              {x.posted_at ? (<>
+              {x.posted_at && !roHang ? (<>
                 <span className="text-[var(--ink-soft)]">Đăng trên {x.source_site || "nguồn"}</span>
                 <span className="font-semibold">{fmtDT(x.posted_at)}</span>
               </>) : null}
@@ -511,7 +634,7 @@ export default async function ListingDetail({
               </span>
               <span className="text-[var(--ink-soft)]">Nguồn</span>
               <span className="font-semibold">
-                {x.source === "agent" ? "Tự đăng" : (x.source_sites && x.source_sites.length > 1 ? x.source_sites.join(" + ") : x.source_site || "crawl")}
+                {x.source === "agent" || roHang ? tenNguon(x) : (x.source_sites && x.source_sites.length > 1 ? x.source_sites.join(" + ") : x.source_site || "crawl")}
               </span>
               {x.trust_score ? (<>
                 <span className="text-[var(--ink-soft)]" title="Chấm theo mức đầy đủ dữ liệu: ảnh, pháp lý, mô tả, giá & diện tích, dấu hiệu chính chủ - không phải xác minh">Độ đầy đủ tin</span>
@@ -527,9 +650,14 @@ export default async function ListingDetail({
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 py-2.5 flex items-center gap-3">
         <div className="min-w-0">
           <div className="text-brand font-extrabold leading-tight">{fmtPrice(x.price_vnd, x.deal)}</div>
-          <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
+          <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[roHang ? `Mã ${maPhong(x.id)}` : null, x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
         </div>
-        {isCrawl && x.source_url && x.source_url !== "#" ? (
+        {roHang ? (
+          <span className="ml-auto flex gap-2">
+            <a href={`tel:${HOTLINE}`} className="btn btn-primary whitespace-nowrap min-h-12 px-4">📞 Gọi</a>
+            <a href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 px-4 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</a>
+          </span>
+        ) : isCrawl && x.source_url && x.source_url !== "#" ? (
           <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Xem bài gốc ›</a>
         ) : (
           <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Liên hệ</a>

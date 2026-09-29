@@ -23,12 +23,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
   // chống replay: chỉ nhận event trong vòng 5 phút
+  // thiếu/không phải số thì trước đây BỎ QUA kiểm tra (tsNum = 0/NaN) -> giờ từ chối luôn
   const tsNum = Number(ts);
-  if (tsNum && Math.abs(Date.now() - tsNum) > 5 * 60 * 1000) {
+  if (!Number.isFinite(tsNum) || tsNum <= 0 || Math.abs(Date.now() - tsNum) > 5 * 60 * 1000) {
     return NextResponse.json({ error: "stale event" }, { status: 401 });
   }
 
-  let event: { event_name?: string; sender?: { id?: string }; message?: { text?: string } };
+  let event: { event_name?: string; sender?: { id?: string }; message?: { text?: string; msg_id?: string } };
   try { event = JSON.parse(raw); } catch { return NextResponse.json({ ok: true }); }
 
   const userId = event.sender?.id;
@@ -38,6 +39,18 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
+
+  // Chống xử lý trùng: Zalo giao lại event khi webhook trả chậm/lỗi -> trước đây mỗi lần giao lại là
+  // thêm 1 tin đăng trùng + 1 lượt gọi Gemini + 1 câu trả lời lặp. Khoá theo msg_id (PK bot_state).
+  const msgId = event.message?.msg_id;
+  if (msgId) {
+    const { error: dupErr } = await admin.from("bot_state").insert({
+      loai: "oa_msg", thread: String(msgId), payload: null,
+      expires_at: new Date(Date.now() + 3 * 24 * 3600_000).toISOString(),
+    });
+    if (dupErr?.code === "23505") return NextResponse.json({ ok: true }); // đã xử lý rồi
+    if (dupErr) console.error("zalo webhook dedupe:", dupErr.message); // lỗi khác: vẫn xử lý tiếp
+  }
   const ai = await classifyAndExtract(text);
 
   // 1) NGƯỜI RAO cung cấp tin -> ghi lại (có consent vì họ chủ động gửi)

@@ -34,4 +34,5 @@ create table if not exists listing_facts (
   created_at timestamptz not null default now()
 );
 alter table listing_facts enable row level security;
+drop policy if exists "facts_read" on listing_facts;  -- chạy lại được (audit 22/9)
 create policy "facts_read" on listing_facts for select using (true);

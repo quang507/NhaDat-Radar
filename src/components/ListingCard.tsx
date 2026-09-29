@@ -3,7 +3,8 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
-import { laTinDocQuyen } from "@/lib/doc-quyen";
+import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
+import { laRoHang, tenNguon, tagGiuPhong } from "@/lib/ro-hang";
 
 export default function ListingCard({ x }: { x: Listing }) {
   const t = thumb(x.kind);
@@ -14,6 +15,8 @@ export default function ListingCard({ x }: { x: Listing }) {
   const ageMin = x.first_seen_at ? Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000) : null;
   const isNew = ageMin != null && ageMin < 24 * 60;      // Radar thấy trong 24h
   const multi = (x.source_count ?? 1) > 1;
+  const roHang = laRoHang(x);
+  const giuPhong = tagGiuPhong(x);
 
   return (
     <Link
@@ -25,7 +28,7 @@ export default function ListingCard({ x }: { x: Listing }) {
         style={{ background: t.bg }}
       >
         {x.images?.[0] ? (
-          <SafeImg src={x.images[0]} alt={x.title} className="lc-img w-full h-full object-cover" />
+          <SafeImg src={x.images[0]} alt={laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title} className="lc-img w-full h-full object-cover" />
         ) : (
           <span className="flex flex-col items-center gap-1.5 opacity-95">
             <span className="w-12 h-12 rounded-full bg-white/20 grid place-items-center text-2xl backdrop-blur-sm">{t.icon}</span>
@@ -35,7 +38,9 @@ export default function ListingCard({ x }: { x: Listing }) {
         <span className="absolute top-2 left-2 flex items-center gap-1">
           {/* tag kiểu batdongsan (21/8): tin độc quyền FB/Zalo - Radar giữ kênh liên hệ trực tiếp với nguồn */}
           {xacThuc && (
-            <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white" title="Tin độc quyền - Radar liên hệ trực tiếp nguồn đăng, SĐT được bảo vệ">✓ XÁC THỰC</span>
+            roHang
+              ? <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500 text-white" title="Hàng Radar trực tiếp nắm - phòng trống đã xác thực">★ RỔ HÀNG RADAR</span>
+              : <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white" title="Tin độc quyền - Radar liên hệ trực tiếp nguồn đăng, SĐT được bảo vệ">✓ XÁC THỰC</span>
           )}
           <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded-md bg-black/55 text-white backdrop-blur-sm">
             {x.deal === "ban" ? "Để bán" : "Cho thuê"}
@@ -47,6 +52,11 @@ export default function ListingCard({ x }: { x: Listing }) {
         {x.images && x.images.length > 1 && (
           <span className="absolute bottom-2 right-2 text-[0.65rem] font-bold px-1.5 py-0.5 rounded-md bg-black/55 text-white">
             {x.images.length} ảnh
+          </span>
+        )}
+        {giuPhong && !x.price_flag && (
+          <span className="absolute bottom-2 left-2 max-w-[75%] text-[0.62rem] font-bold px-1.5 py-0.5 rounded-md bg-red-600 text-white truncate" title={giuPhong}>
+            🔥 Giữ phòng sang đầu tháng sau
           </span>
         )}
         {x.price_flag && (
@@ -63,7 +73,7 @@ export default function ListingCard({ x }: { x: Listing }) {
           {ppm2 && <span className="text-[0.7rem] text-[var(--ink-faint)] font-semibold">{ppm2}</span>}
         </div>
         <h3 className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-brand transition-colors">
-          {x.title}
+          {laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title}
         </h3>
         <div className="text-xs text-[var(--ink-soft)] truncate">
           {[x.district, x.province].filter(Boolean).join(", ") || "-"}
@@ -76,8 +86,8 @@ export default function ListingCard({ x }: { x: Listing }) {
           <span className="ml-auto text-[0.68rem] text-[var(--ink-faint)] shrink-0">{PROP[x.kind]}</span>
         </div>
         <div className="flex items-center gap-1.5 mt-auto pt-2 border-t border-[var(--line)] text-[0.66rem] font-bold">
-          <span className={`px-1.5 py-0.5 rounded ${isAgent ? "text-emerald-600 bg-emerald-500/10" : "text-[var(--ink-soft)] bg-[var(--surface-2)]"}`}>
-            {isAgent ? "Tự đăng" : x.source_site || "crawl"}
+          <span className={`px-1.5 py-0.5 rounded ${isAgent ? "text-emerald-600 bg-emerald-500/10" : roHang ? "text-amber-700 bg-amber-500/10" : "text-[var(--ink-soft)] bg-[var(--surface-2)]"}`}>
+            {tenNguon(x)}
           </span>
           {multi && (
             <span className="px-1.5 py-0.5 rounded text-emerald-700 bg-emerald-500/10" title={`Cùng tin xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>

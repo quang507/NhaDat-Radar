@@ -1,6 +1,6 @@
 export type Listing = {
   id: string;
-  source: "crawl" | "agent" | "zalo_oa" | "zalo_miniapp" | "user";
+  source: "crawl" | "agent" | "zalo_oa" | "zalo_miniapp" | "user" | "ro_hang";
   source_site: string | null;
   source_url: string | null;
   agent_id: string | null;

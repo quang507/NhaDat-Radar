@@ -18,7 +18,7 @@ export function markConvSeen(convId: string, iso: string) {
   // so bằng Date.parse (so chuỗi ISO sẽ sai nếu lẫn định dạng "+00:00" và "Z")
   if (!m[convId] || Date.parse(m[convId]) < Date.parse(iso)) {
     m[convId] = iso;
-    localStorage.setItem(KEY, JSON.stringify(m));
+    try { localStorage.setItem(KEY, JSON.stringify(m)); } catch { /* Safari private mode / hết quota */ }
     window.dispatchEvent(new Event("ndr:msgseen"));
   }
 }

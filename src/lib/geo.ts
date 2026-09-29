@@ -6,11 +6,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { canonDistrict } from "@/lib/format";
 
 export type Deal = "ban" | "cho_thue";
+/** kind -> { ban, cho_thue } (trang /nha-dat-ban/[tinh]/[quan]/[loai] + sitemap) */
+export type KindCount = Record<string, { ban: number; cho_thue: number }>;
 export type AreaTree = {
   /** Tỉnh -> Quận -> [Phường] (select phụ thuộc + autosuggest) */
   geo: Record<string, Record<string, string[]>>;
-  /** Số tin theo tỉnh/quận, tách bán/thuê (trang khu vực, sitemap, chip) */
-  counts: Record<string, { ban: number; cho_thue: number; districts: Record<string, { ban: number; cho_thue: number }> }>;
+  /** Số tin theo tỉnh/quận, tách bán/thuê, kèm đếm theo LOẠI BĐS (trang khu vực, sitemap, chip) */
+  counts: Record<string, { ban: number; cho_thue: number; kinds: KindCount; districts: Record<string, { ban: number; cho_thue: number; kinds: KindCount }> }>;
   total: number;
   sources: number;
   districtCount: number;
@@ -25,9 +27,9 @@ export const getAreas = unstable_cache(
       .select("*", { count: "exact", head: true })
       .eq("status", "published");
 
-    const rows: { province: string | null; district: string | null; ward: string | null; deal: string; source: string; source_site: string | null }[] = [];
+    const rows: { province: string | null; district: string | null; ward: string | null; deal: string; kind: string | null; source: string; source_site: string | null }[] = [];
     for (let from = 0; ; from += 1000) {
-      const { data } = await sb.from("listings").select("province,district,ward,deal,source,source_site").eq("status", "published").order("id").range(from, from + 999);
+      const { data } = await sb.from("listings").select("province,district,ward,deal,kind,source,source_site").eq("status", "published").order("id").range(from, from + 999);
       rows.push(...(data ?? []));
       if (!data || data.length < 1000) break;
     }
@@ -38,14 +40,17 @@ export const getAreas = unstable_cache(
       sources.add(r.source === "crawl" ? (r.source_site || "crawl") : r.source);
       const p = (r.province || "").trim(); if (!p) continue;
       const deal = (r.deal === "cho_thue" ? "cho_thue" : "ban") as Deal;
-      geo[p] ??= {}; counts[p] ??= { ban: 0, cho_thue: 0, districts: {} };
+      geo[p] ??= {}; counts[p] ??= { ban: 0, cho_thue: 0, kinds: {}, districts: {} };
       counts[p][deal] += 1;
+      const kind = (r.kind || "").trim();
+      if (kind) { counts[p].kinds[kind] ??= { ban: 0, cho_thue: 0 }; counts[p].kinds[kind][deal] += 1; }
       const raw = (r.district || "").trim();
       const d = canonDistrict(raw);
       if (!d) continue;
       geo[p][d] ??= [];
-      counts[p].districts[d] ??= { ban: 0, cho_thue: 0 };
+      counts[p].districts[d] ??= { ban: 0, cho_thue: 0, kinds: {} };
       counts[p].districts[d][deal] += 1;
+      if (kind) { counts[p].districts[d].kinds[kind] ??= { ban: 0, cho_thue: 0 }; counts[p].districts[d].kinds[kind][deal] += 1; }
       // CHỈ lấy phường từ cột ward thật. Bản cũ còn "chế" phường từ hậu tố "(P. X mới)" của
       // district - nhưng merge.mjs đã chuyển hậu tố đó vào ward từ lâu, hàng nào tới đây mà
       // ward vẫn null thì phường chế ra không khớp cột ward của bất kỳ hàng nào -> dropdown
@@ -57,6 +62,6 @@ export const getAreas = unstable_cache(
     for (const p of Object.keys(geo)) for (const d of Object.keys(geo[p])) { geo[p][d].sort(); districtCount++; }
     return { geo, counts, total: exactTotal ?? rows.length, sources: sources.size, districtCount };
   },
-  ["areas-v2"],
+  ["areas-v3"],   // v3: thêm đếm theo loại BĐS (23/9)
   { revalidate: 600, tags: ["areas"] },
 );
