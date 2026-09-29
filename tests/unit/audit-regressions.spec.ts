@@ -50,3 +50,8 @@ test("migration 025 (CRM: tên/SĐT khách) bật RLS cho cả 6 bảng", () => 
 test("schema.sql không còn đọc role từ metadata client lúc đăng ký", () => {
   expect(doc("supabase/schema.sql")).not.toMatch(/raw_user_meta_data->>'role'/);
 });
+
+test("rổ hàng EvoHome không ghi cột generated của listings (price_per_m2 từng làm upsert chết, 0 phòng lên web)", () => {
+  const s = doc("crawler/ro-hang-evohome.mjs");
+  for (const c of ["price_per_m2", "has_contact_phone"]) expect(s, c).not.toMatch(new RegExp(`\b${c}\s*:`));
+});

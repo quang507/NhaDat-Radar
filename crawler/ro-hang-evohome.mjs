@@ -143,7 +143,6 @@ for (const x of src) {
     description: moTa,
     price_vnd: x.price_vnd,
     area_m2: dt,
-    price_per_m2: dt ? Math.round(x.price_vnd / dt) : null,
     province: "Hồ Chí Minh",
     district: quan,
     ward: x.ward || null,
