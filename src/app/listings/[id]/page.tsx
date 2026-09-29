@@ -30,7 +30,7 @@ import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
-import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong } from "@/lib/ro-hang";
+import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong } from "@/lib/ro-hang";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import AppointmentForm from "@/components/AppointmentForm";
@@ -524,8 +524,22 @@ export default async function ListingDetail({
                   <div className="font-bold text-sm text-[var(--ink)] mb-1">★ Rổ hàng Radar</div>
                   {cauChotXemPhong(fmtPrice(x.price_vnd, x.deal))}
                 </div>
+                {/* mã phòng: zalo.me không điền sẵn tin nhắn -> khách gửi mã để biết hỏi phòng nào */}
+                <div className="rounded-lg border border-dashed border-[var(--line)] p-3 text-center">
+                  <div className="text-xs text-[var(--ink-soft)]">Mã phòng - gửi kèm khi nhắn Zalo</div>
+                  <div className="font-mono text-xl font-extrabold tracking-wider select-all">{maPhong(x.id)}</div>
+                </div>
                 <a href={`tel:${HOTLINE}`} className="btn btn-primary w-full text-center">📞 Gọi Hotline {HOTLINE}</a>
                 <a href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">💬 Nhắn Zalo hẹn xem phòng</a>
+                {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
+                <div className="hidden lg:flex items-center gap-3 rounded-lg border border-[var(--line)] p-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/zalo-qr.svg" alt={`QR Zalo ${HOTLINE}`} width={96} height={96} className="rounded bg-white p-1 shrink-0" />
+                  <div className="text-xs text-[var(--ink-soft)]">
+                    <div className="font-bold text-sm text-[var(--ink)] mb-1">Quét để nhắn Zalo</div>
+                    Mở camera điện thoại quét mã, gửi <b className="font-mono text-[var(--ink)]">{maPhong(x.id)}</b> để được tư vấn &amp; hẹn xem phòng.
+                  </div>
+                </div>
               </div>
             ) : docQuyen ? (
               <div className="mb-3 rounded-lg border border-brand/40 bg-brand/5 p-3 text-sm">
@@ -636,7 +650,7 @@ export default async function ListingDetail({
       <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 py-2.5 flex items-center gap-3">
         <div className="min-w-0">
           <div className="text-brand font-extrabold leading-tight">{fmtPrice(x.price_vnd, x.deal)}</div>
-          <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
+          <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[roHang ? `Mã ${maPhong(x.id)}` : null, x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
         </div>
         {roHang ? (
           <span className="ml-auto flex gap-2">

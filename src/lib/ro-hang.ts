@@ -29,6 +29,22 @@ export function tagGiuPhong(x: { deal?: string | null; source?: string | null; s
   return ngay >= 20 ? "🔥 Hỗ trợ giữ phòng từ hôm nay sang đầu tháng sau nhận phòng!" : null;
 }
 
+/**
+ * Mã phòng cho khách nhắn Zalo (29/9): link zalo.me không điền sẵn được tin nhắn -> khách gửi mã
+ * để biết đang hỏi phòng nào trong ~1.400 phòng. Lấy 6 ký tự đầu của id (uuid) nên không cần cột mới;
+ * trùng hiếm (~6% có 1 cặp trùng trên 1.400 tin) -> ô tra mã ở admin hiện đủ các tin khớp.
+ */
+export function maPhong(id: string) {
+  return "RH" + id.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
+/** "rh1a2b3c" / "1A2B3C" -> khoảng id [gte, lte] để lọc cột uuid; null nếu không phải mã hợp lệ */
+export function khoangIdTuMa(ma: string): [string, string] | null {
+  const p = ma.trim().toLowerCase().replace(/^rh/, "");
+  if (!/^[0-9a-f]{6}$/.test(p)) return null;
+  return [`${p}00-0000-0000-0000-000000000000`, `${p}ff-ffff-ffff-ffff-ffffffffffff`];
+}
+
 /** Câu chốt khi khách hỏi giá / bớt / hợp đồng một tin rổ hàng (web + chatbot dùng chung) */
 export function cauChotXemPhong(giaHienThi: string) {
   return `Dạ phòng giá niêm yết ${giaHienThi}, nhưng anh/chị cứ qua xem phòng thực tế ưng ý thì em sẽ trực tiếp hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà cho mình nhé! Anh/chị ghé xem được sáng hay chiều nay ạ?`;
