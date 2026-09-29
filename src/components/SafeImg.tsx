@@ -13,7 +13,9 @@ export default function SafeImg({ src, alt, className }: { src: string; alt: str
       className={className}
       // Ảnh CDN Facebook (tin cào FB, 17/8): gửi kèm Referer của mình dễ bị fbcdn từ chối -> không gửi
       referrerPolicy={/fbcdn\.net|scontent/.test(src) ? "no-referrer" : undefined}
-      onError={(e) => { const el = e.currentTarget; if (el.src !== src) el.src = src; }}
+      // lỗi lần 1: thử URL gốc; lỗi tiếp (URL gốc cũng hỏng) -> ẩn ảnh để lộ nền khung, không hiện
+      // chữ alt tràn ra thẻ (29/9: thẻ ngang mobile hiện nguyên tiêu đề đè lên ô ảnh)
+      onError={(e) => { const el = e.currentTarget; if (!el.dataset.goc) { el.dataset.goc = "1"; if (el.src !== src) { el.src = src; return; } } el.style.visibility = "hidden"; }}
     />
   );
 }

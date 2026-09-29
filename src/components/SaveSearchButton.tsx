@@ -23,7 +23,8 @@ const giaNgan = (v?: string) => {
 // rồi bấm hủy đăng ký trong email và mất luôn niềm tin. Giờ mở popup cho người dùng THẤY
 // đúng cái họ sắp nhận rồi mới xác nhận; bộ lọc trống trơn thì chặn, mời chọn khu vực trước.
 // Email chỉ gửi từ pipeline chạy server (alerts.mjs) - không tốn gì trên máy khách.
-export default function SaveSearchButton({ filters }: { filters: Filters }) {
+// compact: chỉ icon 🔔 (thanh công cụ điện thoại, 29/9) - popup xác nhận giữ nguyên
+export default function SaveSearchButton({ filters, compact = false }: { filters: Filters; compact?: boolean }) {
   const [state, setState] = useState<"idle" | "open" | "busy" | "done">("idle");
   const router = useRouter();
 
@@ -76,8 +77,10 @@ export default function SaveSearchButton({ filters }: { filters: Filters }) {
         onClick={() => state === "idle" && setState("open")}
         disabled={state === "done" || state === "busy"}
         type="button"
+        aria-label={compact ? (state === "done" ? "Đã đăng ký email tin mới" : "Nhận email tin mới") : undefined}
+        title={compact ? "Nhận email khi có tin mới khớp bộ lọc" : undefined}
       >
-        {state === "done" ? "✅ Sẽ email khi có tin mới" : "🔔 Nhận email tin mới"}
+        {compact ? (state === "done" ? "✅" : "🔔") : state === "done" ? "✅ Sẽ email khi có tin mới" : "🔔 Nhận email tin mới"}
       </button>
 
       {(state === "open" || state === "busy") && (

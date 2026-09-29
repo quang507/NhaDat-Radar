@@ -24,8 +24,16 @@ export default function DaiDocQuyen({ listings, toiDa = 6 }: { listings: Listing
         <span className="text-xs text-[var(--ink-soft)]">không có trên các trang BĐS khác · liên hệ qua Radar</span>
       </div>
       {/* không đè thêm badge - ListingCard tự gắn tag "✓ XÁC THỰC" cho tin độc quyền */}
-      <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(250px,1fr))]">
-        {tins.map((x) => <ListingCard key={x.id} x={x} />)}
+      {/* Điện thoại: hàng vuốt ngang (29/9, kiểu "Tin TOP" của Mogi) - 6 thẻ xếp dọc từng chiếm ~6 màn
+          trước khi tới danh sách. Thẻ rộng 78% để lộ mép thẻ sau = gợi ý vuốt được. -mx-5/px-5 khớp
+          padding của <main> để hàng chạy tràn mép màn hình. sm+: lưới như cũ. */}
+      <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-5 -mx-5 px-5 pb-2 [scrollbar-width:none]
+        sm:grid sm:gap-4 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 sm:[grid-template-columns:repeat(auto-fill,minmax(250px,1fr))]">
+        {tins.map((x) => (
+          <div key={x.id} className="w-[78%] shrink-0 snap-start sm:w-auto flex">
+            <ListingCard x={x} />
+          </div>
+        ))}
       </div>
     </div>
   );

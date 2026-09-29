@@ -125,6 +125,16 @@ export default function SearchClient({
   useEffect(() => { setPage(1); }, [listings]);
   useEffect(() => { if (page > 1) window.scrollTo({ top: 0, behavior: "smooth" }); }, [page]);
 
+  // Bảng lọc trên điện thoại mở toàn màn hình -> khoá cuộn trang nền (sm+ là khối thường, không khoá)
+  useEffect(() => {
+    if (!showFilter || window.matchMedia("(min-width: 640px)").matches) return;
+    const cu = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = cu; };
+  }, [showFilter]);
+  // số bộ lọc ĐANG ÁP (theo URL) - badge "Lọc (n)"
+  const soLoc = [goc.province, goc.district, goc.ward, goc.kind, goc.priceMin, goc.priceMax, goc.areaMin, goc.bedrooms, goc.legal, goc.direction, own ? "1" : ""].filter(Boolean).length;
+
   const mapItems: MapItem[] = useMemo(
     () => listings
       .filter((x) => x.lat != null && x.lng != null)
@@ -181,7 +191,11 @@ export default function SearchClient({
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div>
           <h1 className="prata text-xl md:text-2xl">{pageTitle}</h1>
-          <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+          <p className="sm:hidden text-xs text-[var(--ink-soft)] mt-0.5 tabular-nums">
+            <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> tin
+            {newToday > 0 ? <> · <b className="text-emerald-600">{newToday.toLocaleString("vi-VN")} mới hôm nay</b></> : null}
+          </p>
+          <p className="hidden sm:block text-xs text-[var(--ink-soft)] mt-0.5">
             {newToday > 0 ? <><b className="text-emerald-600">{newToday.toLocaleString("vi-VN")} tin mới hôm nay</b> · </> : null}
             Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{(total ?? 0) > listings.length ? ` (đang hiển thị ${listings.length} tin mới nhất - thu hẹp bộ lọc để xem đúng phần bạn cần)` : ""}.
           </p>
@@ -192,7 +206,7 @@ export default function SearchClient({
             </p>
           )}
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto hidden sm:flex items-center gap-2">
           <SaveSearchButton filters={goc} />
           {/* dropdown tự vẽ thay <select> trần: list option của select do HĐH vẽ, không ăn CSS web */}
           <ChonSapXep options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} />
@@ -228,10 +242,24 @@ export default function SearchClient({
         </button>
       </div>
 
+      {/* Điện thoại (29/9, kiểu Mogi): 1 hàng Lọc (n) · Sắp xếp · 🔔 - chip loại/giá/DT + 2 công tắc
+          chuyển vào bảng lọc, trước đây chiếm nửa màn đầu trước khi thấy tin nào */}
+      <div className="sm:hidden flex items-center gap-2 mb-3">
+        <button
+          className={`btn text-sm font-semibold ${soLoc ? "!border-brand !text-brand" : ""}`}
+          aria-expanded={showFilter}
+          onClick={() => setShowFilter(true)}
+        >
+          ⚙ Lọc{soLoc ? ` (${soLoc})` : ""}
+        </button>
+        <ChonSapXep options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} />
+        <span className="ml-auto"><SaveSearchButton filters={goc} compact /></span>
+      </div>
+
       <RecentSearches />
 
       {/* ===== Hàng chip lọc nhanh (cấp CƠ BẢN - người tìm nhà vãng lai) ===== */}
-      <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
+      <div className="hidden sm:flex flex-wrap items-center gap-2 mb-4 text-sm">
         <button
           className={`btn text-sm ${showFilter ? "!border-brand !text-brand" : ""}`}
           aria-expanded={showFilter}
@@ -288,9 +316,37 @@ export default function SearchClient({
       {/* ===== Bộ lọc ===== */}
       {showFilter && (
         <form
-          className="card rounded-lg p-4 mb-5 shadow-sm"
+          className="card p-4 shadow-sm fixed inset-0 z-[60] overflow-y-auto rounded-none pb-28
+            sm:static sm:inset-auto sm:z-auto sm:overflow-visible sm:rounded-lg sm:mb-5 sm:pb-4"
           onSubmit={(e) => { e.preventDefault(); submit(); }}
         >
+          {/* Điện thoại: bảng lọc toàn màn hình - tiêu đề + nút đóng + 2 công tắc (sm+ ở hàng chip) */}
+          <div className="sm:hidden flex items-center mb-4">
+            <h2 className="font-bold text-lg">Bộ lọc</h2>
+            <button type="button" className="ml-auto w-10 h-10 grid place-items-center text-xl" aria-label="Đóng bộ lọc" onClick={() => setShowFilter(false)}>✕</button>
+          </div>
+          <div className="sm:hidden flex flex-col gap-3 mb-4 pb-4 border-b border-[var(--line)]">
+            <button
+              type="button" role="switch" aria-checked={!!own}
+              className="flex items-center gap-2 text-sm font-semibold text-[var(--ink-soft)]"
+              onClick={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
+            >
+              <span className={`w-9 h-5 rounded-full transition relative shrink-0 ${own ? "bg-emerald-500" : "bg-[var(--line-strong)]"}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
+              </span>
+              Tin chính chủ tự đăng
+            </button>
+            <button
+              type="button" role="switch" aria-checked={!!newAddr}
+              className="flex items-center gap-2 text-sm font-semibold text-[var(--ink-soft)]"
+              onClick={() => push({ ...goc, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
+            >
+              <span className={`w-9 h-5 rounded-full transition relative shrink-0 ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
+              </span>
+              Địa chỉ mới sau sáp nhập
+            </button>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <label className="block">
               <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Từ khoá</span>
@@ -392,9 +448,12 @@ export default function SearchClient({
               </label>
             </div>
           )}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4">
-            <button className="btn btn-primary px-8" type="submit">Tìm kiếm</button>
-            <button className="btn" type="button" onClick={clear}>Xóa bộ lọc</button>
+          <div className="fixed bottom-0 inset-x-0 z-[61] flex gap-3 p-4 border-t border-[var(--line)] bg-[var(--surface)]
+            sm:static sm:z-auto sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2 sm:p-0 sm:mt-4 sm:border-0 sm:bg-transparent">
+            <button className="btn sm:order-2" type="button" onClick={clear}>Xóa bộ lọc</button>
+            <button className="btn btn-primary flex-1 sm:flex-none px-8 sm:order-1" type="submit">
+              <span className="sm:hidden">Xem kết quả</span><span className="hidden sm:inline">Tìm kiếm</span>
+            </button>
           </div>
         </form>
       )}
