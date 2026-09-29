@@ -14,6 +14,9 @@ import { tinhCuGopVao } from "@/lib/sap-nhap";
 import type { Listing } from "@/lib/types";
 import PlaceSuggest, { buildPlaces, type Place } from "@/components/PlaceSuggest";
 import RecentlyViewed, { RecentSearches, rememberSearch } from "@/components/RecentlyViewed";
+import { ChipQuan, SidebarKhuVuc, type DieuHuong } from "@/components/DieuHuongKhuVuc";
+
+export type { DieuHuong };
 
 export type GeoTree = Record<string, Record<string, string[]>>;
 
@@ -42,13 +45,14 @@ const AREA_OPTS: [string, string][] = [
 
 
 export default function SearchClient({
-  listings, geo, params, newToday = 0, total,
+  listings, geo, params, newToday = 0, total, dieuHuong = null,
 }: {
   listings: Listing[];
   geo: GeoTree;
   params: Record<string, string | undefined>;
   newToday?: number; // số tin Radar thấy lần đầu từ 0h hôm nay (cùng bộ lọc)
   total?: number;    // tổng thật theo bộ lọc (danh sách chỉ tải 200)
+  dieuHuong?: DieuHuong | null; // loại + quận kèm số tin của 1 tỉnh (server tính, xem search/page.tsx)
 }) {
   const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
@@ -313,6 +317,11 @@ export default function SearchClient({
         </button>
       </div>
 
+      {dieuHuong && !newAddr && (
+        <ChipQuan dh={dieuHuong} district={goc.district}
+          onPick={(d) => push({ ...goc, province: dieuHuong.province, district: d, ward: "" })} />
+      )}
+
       {/* ===== Bộ lọc ===== */}
       {showFilter && (
         <form
@@ -459,7 +468,8 @@ export default function SearchClient({
       )}
 
       {/* ===== Kết quả + bản đồ ===== */}
-      <div className={`grid gap-4 items-start ${showMap && mapItems.length > 0 ? "lg:grid-cols-[1fr_420px]" : ""}`}>
+      {/* cột phải lg+: bản đồ khi bật "Xem bản đồ", còn lại là sidebar Loại/Quận kèm số tin (kiểu Mogi, 29/9) */}
+      <div className={`grid gap-4 items-start ${showMap && mapItems.length > 0 ? "lg:grid-cols-[1fr_420px]" : dieuHuong ? "lg:grid-cols-[minmax(0,1fr)_280px]" : ""}`}>
         {/* min-w-0 BẮT BUỘC: mô tả trong ListingRow dùng line-clamp (-webkit-box) -> bề rộng nội tại = cả đoạn text
             chưa xuống dòng -> cột 1fr phình (đo được 2190px ở viewport 1400) đẩy cột bản đồ 420px ra NGOÀI màn hình.
             Sự cố 17/8: "Xem bản đồ" bấm không thấy gì. */}
@@ -500,49 +510,42 @@ export default function SearchClient({
             </div>
           )}
         </div>
-        {showMap && mapItems.length > 0 && (
+        {showMap && mapItems.length > 0 ? (
           <div className="hidden lg:block sticky top-20 h-[calc(100vh-7rem)]">
             <MapResults items={mapItems} />
           </div>
-        )}
+        ) : dieuHuong ? (
+          <SidebarKhuVuc dh={dieuHuong} dealWord={dealWord} kind={goc.kind} district={goc.district} anQuan={newAddr}
+            onKind={(k) => push({ ...goc, kind: k })}
+            onDistrict={(d) => push({ ...goc, province: dieuHuong.province, district: d, ward: "" })} />
+        ) : null}
       </div>
 
       {/* NN/g #6: tin đã xem gần đây (localStorage) */}
       <RecentlyViewed />
 
-      {/* ===== Tìm kiếm phổ biến (kiểu footer SEO batdongsan) ===== */}
-      {(() => {
-        // Chưa chọn tỉnh -> lấy tỉnh NHIỀU TIN NHẤT trong kết quả (trước lấy provinces[0] = sort() ->
-        // luôn ra "Bà Rịa - Vũng Tàu" chỉ vì đứng đầu bảng chữ cái, 17/8)
-        const topProv = (() => {
-          const c = new Map<string, number>();
-          for (const x of listings) if (x.province) c.set(x.province, (c.get(x.province) || 0) + 1);
-          return [...c.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-        })();
-        const prov = f.province || topProv || (geo["Hồ Chí Minh"] ? "Hồ Chí Minh" : provinces[0]);
-        const ds = prov && geo[prov] ? Object.keys(geo[prov]).sort().slice(0, 12) : [];
-        if (!ds.length) return null;
-        return (
-          <section className="mt-10 card rounded-xl p-5">
-            <h2 className="font-bold text-sm mb-3">Tìm kiếm nhiều tại {prov}</h2>
-            <div className="flex flex-wrap gap-2">
-              {/* Link thật (bot crawl được) tới trang SEO khu vực /nha-dat-ban/[tinh]/[quan] */}
-              {ds.map((d) => (
-                <Link
-                  key={d}
-                  href={areaPath(f.deal === "cho_thue" ? "cho_thue" : "ban", prov, d)}
-                  className="text-xs px-2.5 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition"
-                >
-                  {dealWord} nhà đất {d}
-                </Link>
-              ))}
-              <Link href={areaPath(f.deal === "cho_thue" ? "cho_thue" : "ban", prov)} className="text-xs px-2.5 py-1.5 rounded-lg border border-brand text-brand font-semibold">
-                Toàn {prov} ›
+      {/* ===== Tìm kiếm phổ biến (kiểu footer SEO batdongsan) =====
+          Link thật (bot crawl được) tới trang khu vực /nha-dat-ban/[tinh]/[quan]. 29/9: xếp theo SỐ TIN
+          kèm số đếm (trước: 12 quận đầu bảng chữ cái, không số) - dùng chung dữ liệu với sidebar. */}
+      {dieuHuong && dieuHuong.districts.length > 0 && (
+        <section className="mt-10 card rounded-xl p-5">
+          <h2 className="font-bold text-sm mb-3">Tìm kiếm nhiều tại {dieuHuong.province}</h2>
+          <div className="flex flex-wrap gap-2">
+            {dieuHuong.districts.slice(0, 12).map(([d, n]) => (
+              <Link
+                key={d}
+                href={areaPath(f.deal === "cho_thue" ? "cho_thue" : "ban", dieuHuong.province, d)}
+                className="text-xs px-2.5 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition"
+              >
+                {dealWord} nhà đất {d} <span className="text-[var(--ink-faint)] tabular-nums">({n.toLocaleString("vi-VN")})</span>
               </Link>
-            </div>
-          </section>
-        );
-      })()}
+            ))}
+            <Link href={areaPath(f.deal === "cho_thue" ? "cho_thue" : "ban", dieuHuong.province)} className="text-xs px-2.5 py-1.5 rounded-lg border border-brand text-brand font-semibold">
+              Toàn {dieuHuong.province} ›
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
