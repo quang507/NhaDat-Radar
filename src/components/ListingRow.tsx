@@ -20,11 +20,15 @@ export default function ListingRow({ x }: { x: Listing }) {
   const multi = (x.source_count ?? 1) > 1;
 
   return (
-    <Link href={`/listings/${x.id}`} className="card rounded-xl overflow-hidden flex flex-col sm:flex-row hover:border-[var(--line-strong)] hover:shadow-md transition-all group">
+    // MỘT link cho mỗi tin; bên trong phần điện thoại (sm:hidden) và desktop (hidden sm:*) tách riêng.
+    // Không render 2 link: link ẩn đứng trước làm locator/bot "tin đầu tiên" trỏ vào phần không hiện.
+    <Link href={`/listings/${x.id}`} className="card rounded-xl overflow-hidden flex flex-row gap-3 p-2 sm:gap-0 sm:p-0 active:bg-[var(--surface-2)] sm:active:bg-transparent hover:border-[var(--line-strong)] hover:shadow-md transition-all group">
+      <MobileThumb x={x} />
+      <MobileBody x={x} ago={ago} isNew={isNew} />
       {/* Media: 1 ảnh lớn + tối đa 3 ảnh nhỏ */}
       {/* UX audit 16/8: dải ảnh cao ~400px/dòng (desktop) và chiếm cả màn hình (mobile) -> 1,5 tin/màn.
           Cap chiều cao: mobile 176px, desktop 208px - ~3 tin/màn như batdongsan. */}
-      <div className="sm:w-[300px] shrink-0 relative">
+      <div className="hidden sm:block sm:w-[300px] shrink-0 relative">
         {imgs.length ? (
           <div className={`grid gap-0.5 h-44 sm:h-52 ${imgs.length > 1 ? "grid-rows-[2fr_1fr]" : ""}`}>
             <SafeImg src={imgs[0]} alt={laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title} className="w-full h-full object-cover" />
@@ -59,7 +63,7 @@ export default function ListingRow({ x }: { x: Listing }) {
       </div>
 
       {/* Nội dung */}
-      <div className="flex-1 p-4 flex flex-col gap-1.5 min-w-0">
+      <div className="hidden sm:flex flex-1 p-4 flex-col gap-1.5 min-w-0">
         <h3 className="font-semibold leading-snug line-clamp-2 group-hover:text-brand transition-colors uppercase text-[0.92rem]">
           {laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title}
         </h3>
@@ -91,5 +95,51 @@ export default function ListingRow({ x }: { x: Listing }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+// Điện thoại (<640px): thẻ ngang gọn kiểu Mogi (29/9) - ảnh nhỏ trái, chữ phải, ~5 tin/màn.
+// Bản desktop ở trên (ảnh + dải ảnh + mô tả) cao ~420px/tin khi xếp dọc trên màn hẹp -> 1,5 tin/màn.
+// Bỏ mô tả, giá/m², nguồn, điểm AI: khách lướt so giá chỉ cần ảnh - tên - khu vực - DT - giá.
+// Ảnh ẩn (display:none) + loading=lazy thì trình duyệt không tải -> không tải ảnh 2 lần.
+function MobileThumb({ x }: { x: Listing }) {
+  const t = thumb(x.kind);
+  const img = x.images?.[0];
+  const docQuyen = laTinDocQuyen(x);
+  return (
+    <div className="sm:hidden relative w-[124px] h-[104px] shrink-0 rounded-lg overflow-hidden bg-[var(--surface-2)]">
+      {img ? (
+        <SafeImg src={img} alt={docQuyen ? cheSoVanBan(x.title) : x.title} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full grid place-items-center text-2xl opacity-60">{t.icon}</div>
+      )}
+      {docQuyen && (
+        <span className={`absolute top-1 left-1 text-[0.6rem] font-extrabold px-1 py-px rounded text-white ${laRoHang(x) ? "bg-amber-500" : "bg-emerald-600"}`}>
+          {laRoHang(x) ? "★ Radar" : "✓ Xác thực"}
+        </span>
+      )}
+      {(x.images?.length ?? 0) > 1 && (
+        <span className="absolute bottom-1 right-1 text-[0.6rem] font-bold px-1 py-px rounded bg-black/55 text-white">{x.images!.length} ảnh</span>
+      )}
+    </div>
+  );
+}
+
+function MobileBody({ x, ago, isNew }: { x: Listing; ago: string | null; isNew: boolean }) {
+  const specs = [x.area_m2 ? `${x.area_m2} m²` : null, x.bedrooms ? `${x.bedrooms} PN` : null, x.bathrooms ? `${x.bathrooms} WC` : null]
+    .filter(Boolean).join(" · ") || PROP[x.kind];
+  return (
+    <div className="sm:hidden flex-1 min-w-0 flex flex-col gap-0.5 py-0.5">
+      <h3 className="text-sm font-semibold leading-snug line-clamp-2">{laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title}</h3>
+      <div className="text-xs text-[var(--ink-soft)] truncate">{x.district || x.province || "-"}</div>
+      <div className="text-xs text-[var(--ink-soft)] truncate tabular-nums">{specs}</div>
+      <div className="text-brand font-extrabold leading-tight tabular-nums">{fmtPrice(x.price_vnd, x.deal)}</div>
+      <div className="mt-auto flex items-center gap-1.5 text-[0.68rem]">
+        {isNew && <span className="font-bold px-1 rounded bg-emerald-500 text-white">Mới</span>}
+        {x.price_flag && <span className="font-bold px-1 rounded bg-red-500/90 text-white">⚠ giá lệch</span>}
+        {ago && <span className="text-[var(--ink-faint)]">{ago}</span>}
+        <span className="ml-auto"><FavButton id={x.id} /></span>
+      </div>
+    </div>
   );
 }

@@ -21,11 +21,13 @@ export default function ListingCard({ x }: { x: Listing }) {
   return (
     <Link
       href={`/listings/${x.id}`}
-      className="reveal group card rounded-xl overflow-hidden hover:border-[var(--line-strong)] hover:shadow-md transition-all duration-200 flex flex-col"
+      className="reveal group card rounded-xl overflow-hidden hover:border-[var(--line-strong)] hover:shadow-md transition-all duration-200 flex flex-col w-full"
     >
       <div
         className="aspect-[16/10] grid place-items-center text-white relative overflow-hidden"
-        style={{ background: t.bg }}
+        // có ảnh thì nền chờ xám nhạt; gradient theo loại chỉ cho tin không ảnh (ảnh EvoHome tải 1-2s,
+        // gradient hồng lúc chờ trông như thẻ lỗi - 29/9)
+        style={{ background: x.images?.[0] ? "var(--surface-2)" : t.bg }}
       >
         {x.images?.[0] ? (
           <SafeImg src={x.images[0]} alt={laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title} className="lc-img w-full h-full object-cover" />
