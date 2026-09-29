@@ -6,7 +6,7 @@ import { canonDistrict, startOfDayVN } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
 import { LISTING_CARD_COLS } from "@/lib/cols";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
-import SearchClient from "./SearchClient";
+import SearchClient, { type DieuHuong } from "./SearchClient";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang } from "@/lib/ro-hang";
 
@@ -114,6 +114,24 @@ export default async function SearchPage({
   const listings = tronRoHang((rhData ?? []) as Listing[], (data ?? []) as Listing[]).slice(0, 200).map(cheTinDocQuyen);
   const geo = areas.geo;
 
+  // ĐIỀU HƯỚNG KHU VỰC (29/9, kiểu Mogi "Quận 1 (1.629)"): tính sẵn ở server từ bảng đếm đã cache
+  // (getAreas, 10') - không tốn truy vấn thêm, và chỉ gửi xuống client phần của 1 tỉnh thay vì cả bảng.
+  // Đếm theo deal + loại + khu vực; CHƯA trừ giá/DT (nói rõ ở tooltip phía client).
+  const demDeal = (c: { ban: number; cho_thue: number } | undefined) =>
+    !c ? 0 : deal === "ban" ? c.ban : deal === "cho_thue" ? c.cho_thue : c.ban + c.cho_thue;
+  const tinhs = Object.keys(areas.counts);
+  const tinhDH = (province && (tinhs.find((p) => p === province) || tinhs.find((p) => p.toLowerCase().includes(province.toLowerCase()))))
+    || [...tinhs].sort((a, b) => demDeal(areas.counts[b]) - demDeal(areas.counts[a]))[0];
+  const nutTinh = tinhDH ? areas.counts[tinhDH] : undefined;
+  const nutLoai = district && nutTinh?.districts[canonDistrict(district)] ? nutTinh.districts[canonDistrict(district)] : nutTinh;
+  const dieuHuong: DieuHuong | null = nutTinh && tinhDH ? {
+    province: tinhDH,
+    kinds: Object.entries(nutLoai?.kinds || {}).map(([k, c]) => [k, demDeal(c)] as [string, number]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]),
+    districts: Object.entries(nutTinh.districts)
+      .map(([d, c]) => [d, kind ? demDeal(c.kinds[kind]) : demDeal(c)] as [string, number])
+      .filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]),
+  } : null;
+
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL
-  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday ?? 0} total={totalCount ?? listings.length} />;
+  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday ?? 0} total={totalCount ?? listings.length} dieuHuong={dieuHuong} />;
 }
