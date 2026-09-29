@@ -24,10 +24,16 @@ const tien = (v) => {
 };
 const so = (v) => Number(v).toLocaleString("vi-VN");
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, args: ["--disable-dev-shm-usage"] });
 const units = [];
-try {
-  const page = await (await browser.newContext()).newPage();
+
+// Đăng nhập + mở trang danh sách trong một tab MỚI. Tách riêng để tab crash thì dựng lại được.
+async function moTab() {
+  const ctx = await browser.newContext();
+  // 29/9 lượt 19:22 chết "Target crashed" giữa vòng lặp: trang view=all là SPA nặng (vẽ cả nghìn phòng
+  // kèm ảnh). Chỉ cần phiên đăng nhập để gọi API -> không tải ảnh/font/media cho nhẹ bộ nhớ.
+  await ctx.route("**/*", (r) => (["image", "font", "media"].includes(r.request().resourceType()) ? r.abort() : r.continue()));
+  const page = await ctx.newPage();
   // Trang là SPA: HTML trả về rỗng, form do JS vẽ sau (lượt CI đầu 28/9 chờ form 30s không thấy).
   // Selector theo data-testid của chính form (kiểm 28/9: login-username / login-password / login-submit).
   await page.goto("https://app.evohome.it.com/sign-in", { waitUntil: "load", timeout: 60000 });
@@ -46,14 +52,34 @@ try {
   if (page.url().includes("sign-in")) throw new Error("Đăng nhập EvoHome thất bại (sai tài khoản hoặc trang đổi form)");
   await page.goto("https://app.evohome.it.com/re-selling-dashboard/real-estate/transaction-units?adminMode=old&status=VACANT&type=ROOM&view=all", { waitUntil: "load", timeout: 60000 });
   await page.waitForTimeout(3000);   // "networkidle" không bao giờ tới trên trang này (SPA gọi mạng liên tục)
+  return { ctx, page };
+}
 
+try {
+  // form đăng nhập thỉnh thoảng không vẽ kịp 60s (29/9: lần 1 kẹt, chạy lại ngay thì được) -> thử lần nữa
+  let ctx, page;
+  try { ({ ctx, page } = await moTab()); }
+  catch (e) { console.warn("Mở trang lần 1 lỗi, thử lại:", String(e.message).split("\n")[0]); await browser.contexts().at(-1)?.close().catch(() => {}); ({ ctx, page } = await moTab()); }
+  let lanThu = 0;
   for (let p = 1; p <= 100; p++) {
-    const r = await page.evaluate(async (p) => {
-      const res = await fetch(`https://app.evohome.it.com/api/real-estate-management/transaction-units?page=${p}&limit=50&type=ROOM&status=VACANT&sortBy=updatedAt&sortOrder=desc`);
-      if (!res.ok) return { data: [], pages: [], status: res.status };
-      const j = await res.json();
-      return { data: j?.data || [], pages: j?.meta?.pages || [] };
-    }, p);
+    let r;
+    try {
+      r = await page.evaluate(async (p) => {
+        const res = await fetch(`https://app.evohome.it.com/api/real-estate-management/transaction-units?page=${p}&limit=50&type=ROOM&status=VACANT&sortBy=updatedAt&sortOrder=desc`);
+        if (!res.ok) return { data: [], pages: [], status: res.status };
+        const j = await res.json();
+        return { data: j?.data || [], pages: j?.meta?.pages || [] };
+      }, p);
+    } catch (e) {
+      // tab crash / bị đóng -> dựng tab mới, đăng nhập lại, lấy tiếp đúng trang p (không lặp phòng đã có)
+      if (++lanThu > 3 || !/crash|closed|Target/i.test(String(e?.message))) throw e;
+      console.warn(`Trang ${p}: ${String(e.message).split("\n")[0]} -> mở tab mới, thử lại (lần ${lanThu}/3)`);
+      await ctx.close().catch(() => {});
+      ({ ctx, page } = await moTab());
+      p--;
+      continue;
+    }
+    if (r.status) console.warn(`Trang ${p}: API trả ${r.status} - dừng`);
     if (!r.data.length) break;
     units.push(...r.data);
     if (r.pages.length && p >= Math.max(...r.pages)) break;
