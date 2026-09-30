@@ -1319,6 +1319,97 @@ export default async function AdminPage({
   // ═════════════════════════════════════════════════════════════════════════════
   // TAB 4: LIÊN HỆ & LEADS
   // ═════════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════════
+  // TAB: QUAN TÂM (30/9) - ai đang để ý phòng nào, bảng su_kien (migration 031).
+  // Phòng "nóng" = nhiều lượt Gọi/Zalo/đặt lịch -> ưu tiên đẩy bài FB; câu hỏi bot 0 kết quả -> sửa bot.
+  // ═════════════════════════════════════════════════════════════════════════════
+  if (tab === "quan-tam") {
+    const tu = new Date(Date.now() - 7 * 864e5).toISOString();
+    const { data: skData, error: skErr } = await admin.from("su_kien")
+      .select("loai,listing_id,khach,noi_dung,ket_qua,created_at").gte("created_at", tu)
+      .order("created_at", { ascending: false }).limit(10000);
+    const sk = skData ?? [];
+    type Dem = { xem: number; goi: number; zalo: number; chia_se: number; luu: number; dat_lich: number; khach: Set<string> };
+    const theoTin = new Map<string, Dem>();
+    const tong: Record<string, number> = {};
+    for (const e of sk) {
+      tong[e.loai] = (tong[e.loai] ?? 0) + 1;
+      if (!e.listing_id || e.loai === "chat") continue;
+      const d = theoTin.get(e.listing_id) ?? { xem: 0, goi: 0, zalo: 0, chia_se: 0, luu: 0, dat_lich: 0, khach: new Set<string>() };
+      d[e.loai as keyof Omit<Dem, "khach">] += 1;
+      if (e.khach) d.khach.add(e.khach);
+      theoTin.set(e.listing_id, d);
+    }
+    // điểm nóng: liên hệ thật (gọi/zalo/đặt lịch) nặng nhất, rồi lưu/chia sẻ, lượt xem chỉ để phân định
+    const diem = (d: Dem) => (d.goi + d.zalo + d.dat_lich) * 10 + (d.luu + d.chia_se) * 3 + d.xem * 0.1;
+    const top = [...theoTin.entries()].sort((a, b) => diem(b[1]) - diem(a[1])).slice(0, 40);
+    const { data: tinRows } = top.length
+      ? await admin.from("listings").select("id,title,price_vnd,deal,district,source,source_site,status").in("id", top.map(([id]) => id))
+      : { data: [] };
+    const tinMap = new Map((tinRows ?? []).map((t) => [t.id, t]));
+    const chatHut = sk.filter((e) => e.loai === "chat" && !e.ket_qua).slice(0, 40);
+    const chatTong = sk.filter((e) => e.loai === "chat").length;
+    const o = "px-2 py-2 text-right tabular-nums";
+    return (
+      <AdminShell>
+        <div className="mb-4">
+          <h1 className="text-xl font-bold text-slate-800">📈 Quan tâm 7 ngày qua</h1>
+          <p className="text-xs text-slate-500">Lượt xem, bấm Gọi / Zalo, lưu ♥, chia sẻ, đặt lịch theo từng tin (khách ẩn danh, không lưu IP/SĐT). Phòng nóng lên đầu - ưu tiên đẩy bài FB.</p>
+        </div>
+        {skErr ? (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+            Chưa ghi được: bảng <code>su_kien</code> chưa có. Chạy <code>supabase/migrations/031_su_kien.sql</code> trên Supabase (SQL Editor) rồi tải lại trang.
+          </div>
+        ) : (
+          <>
+            <div className="mb-4 flex flex-wrap gap-2 text-sm">
+              {[["xem", "👀 Xem"], ["goi", "📞 Gọi"], ["zalo", "💬 Zalo"], ["dat_lich", "📅 Đặt lịch"], ["luu", "♥ Lưu"], ["chia_se", "↗ Chia sẻ"], ["chat", "🤖 Hỏi bot"]].map(([k, l]) => (
+                <span key={k} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5"><b className="tabular-nums">{(tong[k] ?? 0).toLocaleString("vi-VN")}</b> <span className="text-slate-500">{l}</span></span>
+              ))}
+            </div>
+            <div className="mb-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-xs text-slate-500">
+                  <tr><th className="px-3 py-2 text-left">Tin</th><th className={o}>Khách</th><th className={o}>Xem</th><th className={o}>Gọi</th><th className={o}>Zalo</th><th className={o}>Đặt lịch</th><th className={o}>Lưu</th><th className={o}>Chia sẻ</th></tr>
+                </thead>
+                <tbody>
+                  {top.map(([id, d]) => {
+                    const t = tinMap.get(id);
+                    return (
+                      <tr key={id} className="border-t border-slate-100">
+                        <td className="px-3 py-2">
+                          <Link href={`/listings/${id}`} className="font-semibold text-slate-800 hover:text-emerald-600">{t?.title || id.slice(0, 8)}</Link>
+                          <div className="text-xs text-slate-500">
+                            {t ? `${fmtPrice(t.price_vnd, t.deal)} · ${t.district || ""}` : ""}
+                            {t?.source === "ro_hang" ? ` · ${maPhong(id)}` : t?.source_site ? ` · ${t.source_site}` : ""}
+                            {t && t.status !== "published" ? <span className="text-red-600"> · {t.status}</span> : null}
+                          </div>
+                        </td>
+                        <td className={o}>{d.khach.size}</td><td className={o}>{d.xem}</td>
+                        <td className={`${o} font-bold text-emerald-700`}>{d.goi || ""}</td><td className={`${o} font-bold text-blue-700`}>{d.zalo || ""}</td>
+                        <td className={`${o} font-bold text-amber-700`}>{d.dat_lich || ""}</td><td className={o}>{d.luu || ""}</td><td className={o}>{d.chia_se || ""}</td>
+                      </tr>
+                    );
+                  })}
+                  {!top.length && <tr><td colSpan={8} className="p-8 text-center text-slate-400">Chưa có sự kiện nào trong 7 ngày.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <h2 className="mb-2 text-sm font-bold text-slate-700">🤖 Câu hỏi bot trả lời 0 kết quả ({chatHut.length}/{chatTong} câu)</h2>
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              {chatHut.length ? chatHut.map((e, i) => (
+                <div key={i} className="flex gap-3 border-b border-slate-100 px-4 py-2 text-sm last:border-0">
+                  <span className="text-slate-700">“{e.noi_dung}”</span>
+                  <span className="ml-auto shrink-0 text-xs text-slate-400">{new Date(e.created_at).toLocaleString("vi-VN")}</span>
+                </div>
+              )) : <p className="p-6 text-center text-sm text-slate-400">Không có câu nào bot trả lời hụt.</p>}
+            </div>
+          </>
+        )}
+      </AdminShell>
+    );
+  }
+
   if (tab === "leads") {
     type LeadRow = {
       id: string;

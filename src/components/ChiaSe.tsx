@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { baoSuKien } from "@/lib/su-kien-client";
 
 // Nút chia sẻ tin (29/9, Mogi có FB/Messenger/Zalo). Khách thuê phòng hay gửi tin cho bạn ở ghép.
 // Điện thoại: bảng chia sẻ của hệ điều hành (navigator.share - có sẵn Zalo, Messenger...).
 // Máy tính (không có navigator.share): menu nhỏ Sao chép link + Facebook. Zalo/Messenger trên web
 // cần app id của họ nên không làm - người dùng dán link đã chép.
-export default function ChiaSe({ url, title }: { url: string; title: string }) {
+export default function ChiaSe({ url, title, listingId }: { url: string; title: string; listingId?: string }) {
   const [mo, setMo] = useState(false);
   const [daChep, setDaChep] = useState(false);
 
   async function bam() {
+    baoSuKien("chia_se", listingId);
     if (typeof navigator !== "undefined" && navigator.share) {
       try { await navigator.share({ title, url }); } catch { /* người dùng đóng bảng chia sẻ */ }
       return;

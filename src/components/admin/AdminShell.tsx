@@ -51,6 +51,12 @@ const TABS: Tab[] = [
     khop: (p, t) => p === "/admin" && t === "dang-bai",
   },
   {
+    href: "/admin?tab=quan-tam",
+    label: "Quan tâm (7 ngày)",
+    Icon: IconChart,
+    khop: (p, t) => p === "/admin" && t === "quan-tam",
+  },
+  {
     href: "/admin?tab=leads",
     label: "Liên hệ & Tin nhắn",
     Icon: IconChat,

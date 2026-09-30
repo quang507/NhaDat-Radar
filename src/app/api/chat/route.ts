@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { ghiSuKien } from "@/lib/su-kien";
 import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
 import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
@@ -279,6 +280,8 @@ ${cauChotXemPhong(fmtPrice(rhDau.price_vnd, rhDau.deal))}
     reply = "Hiện chưa có tin nào khớp yêu cầu 😥 Bạn thử nới giá hoặc đổi khu vực, hoặc dùng bộ lọc ở trang Tìm kiếm nhé.";
   }
 
+  // log câu hỏi + số kết quả (bảng su_kien, loai='chat') -> tab "Quan tâm" liệt kê câu bot trả lời hụt
+  after(() => ghiSuKien({ loai: "chat", listingId: typeof body.dangXem === "string" ? body.dangXem : null, noiDung: last, ketQua: found.length }));
   return NextResponse.json({
     reply,
     listings: found.map((x) => ({

@@ -34,6 +34,7 @@ import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong } from "@/lib
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import ChiaSe from "@/components/ChiaSe";
+import { GhiXemTin, LinkTheoDoi } from "@/components/TheoDoi";
 import MoTaThuGon from "@/components/MoTaThuGon";
 import HangVuot from "@/components/HangVuot";
 import AppointmentForm from "@/components/AppointmentForm";
@@ -286,7 +287,7 @@ export default async function ListingDetail({
       <div className="flex items-center gap-3">
         <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Quay lại</Link>
         <span className="ml-auto flex items-center gap-2">
-          <ChiaSe url={`${SITE_URL}/listings/${x.id}`} title={x.title} />
+          <ChiaSe url={`${SITE_URL}/listings/${x.id}`} title={x.title} listingId={x.id} />
           <FavButton id={x.id} />
         </span>
       </div>
@@ -552,8 +553,8 @@ export default async function ListingDetail({
                   <div className="text-xs text-[var(--ink-soft)]">Mã phòng - gửi kèm khi nhắn Zalo</div>
                   <div className="font-mono text-xl font-extrabold tracking-wider select-all">{maPhong(x.id)}</div>
                 </div>
-                <a href={`tel:${HOTLINE}`} className="btn btn-primary w-full text-center">📞 Gọi Hotline {HOTLINE}</a>
-                <a href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">💬 Nhắn Zalo hẹn xem phòng</a>
+                <LinkTheoDoi loai="goi" listingId={x.id} href={`tel:${HOTLINE}`} className="btn btn-primary w-full text-center">📞 Gọi Hotline {HOTLINE}</LinkTheoDoi>
+                <LinkTheoDoi loai="zalo" listingId={x.id} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">💬 Nhắn Zalo hẹn xem phòng</LinkTheoDoi>
                 {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
                 <div className="hidden lg:flex items-center gap-3 rounded-lg border border-[var(--line)] p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -590,7 +591,7 @@ export default async function ListingDetail({
                 Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} ›
               </a>
             ) : null}
-            {!roHang && <TuVanRadar />}
+            {!roHang && <TuVanRadar listingId={x.id} />}
             {/* độc quyền: vẫn ghi nguồn nhưng chỉ là chữ nhỏ, không phải CTA. Rổ hàng: không bao giờ */}
             {docQuyen && !roHang && x.source_url && x.source_url !== "#" && (
               <p className="text-[0.68rem] text-[var(--ink-faint)] mb-3">
@@ -677,8 +678,8 @@ export default async function ListingDetail({
         </div>
         {roHang ? (
           <span className="ml-auto flex gap-2">
-            <a href={`tel:${HOTLINE}`} className="btn btn-primary whitespace-nowrap min-h-12 px-4">📞 Gọi</a>
-            <a href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 px-4 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</a>
+            <LinkTheoDoi loai="goi" listingId={x.id} href={`tel:${HOTLINE}`} className="btn btn-primary whitespace-nowrap min-h-12 px-4">📞 Gọi</LinkTheoDoi>
+            <LinkTheoDoi loai="zalo" listingId={x.id} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 px-4 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</LinkTheoDoi>
           </span>
         ) : isCrawl && x.source_url && x.source_url !== "#" ? (
           <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Xem bài gốc ›</a>
@@ -705,6 +706,7 @@ export default async function ListingDetail({
         </section>
       )}
       {/* NN/g #6: nhớ tin đã xem (localStorage) + hiện dải "Đã xem gần đây" */}
+      <GhiXemTin listingId={x.id} />
       <RecentlyViewedTracker item={{ id: x.id, title: x.title, price: fmtPrice(x.price_vnd, x.deal), where: [x.district, x.province].filter(Boolean).join(", "), img: images[0] || null }} />
       <RecentlyViewed excludeId={x.id} />
       {/* chừa chỗ cho thanh CTA dính đáy trên mobile */}
