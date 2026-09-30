@@ -3,7 +3,7 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
-import { demAnh, layVideo } from "@/lib/img";
+import { thongTinAnh, layVideo } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon } from "@/lib/ro-hang";
 
@@ -59,7 +59,7 @@ export default function ListingRow({ x }: { x: Listing }) {
         </span>
         {imgs.length > 0 && (
           <span className="absolute bottom-2 right-2 text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-black/55 text-white">
-            {demAnh(x.images)} ảnh{demAnh(x.images) < (x.images?.length ?? 0) ? " · ▶" : ""}
+            {thongTinAnh(x).so} ảnh{thongTinAnh(x).video ? " · ▶" : ""}
           </span>
         )}
       </div>
@@ -120,8 +120,8 @@ function MobileThumb({ x }: { x: Listing }) {
           {laRoHang(x) ? "★ Radar" : "✓ Xác thực"}
         </span>
       )}
-      {demAnh(x.images) > 1 && (
-        <span className="absolute bottom-1 right-1 text-[0.6rem] font-bold px-1 py-px rounded bg-black/55 text-white">{demAnh(x.images)} ảnh{demAnh(x.images) < (x.images?.length ?? 0) ? " · ▶" : ""}</span>
+      {thongTinAnh(x).so > 1 && (
+        <span className="absolute bottom-1 right-1 text-[0.6rem] font-bold px-1 py-px rounded bg-black/55 text-white">{thongTinAnh(x).so} ảnh{thongTinAnh(x).video ? " · ▶" : ""}</span>
       )}
     </div>
   );
