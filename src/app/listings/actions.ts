@@ -1,6 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
+import { after } from "next/server";
+import { baoLeadMoi } from "@/lib/bao-lead";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/supabase/anon";
 import { REPORT_REASONS } from "@/lib/reports";
@@ -45,6 +47,9 @@ export async function createLead(
     console.error("createLead error:", error.message); // không rò chi tiết Postgres ra client
     return { ok: false, error: "Không gửi được liên hệ, vui lòng thử lại." };
   }
+  // báo admin qua email SAU khi trả kết quả cho khách (after): khách không phải chờ Resend,
+  // gửi lỗi cũng không ảnh hưởng - lead đã nằm trong DB
+  after(() => baoLeadMoi({ listing_id: listing_id || null, name, phone, message }));
   return { ok: true };
 }
 
