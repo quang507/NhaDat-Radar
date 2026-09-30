@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type MiniListing = { id: string; title: string; price: string; meta: string; image: string | null };
 type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[] };
@@ -18,6 +19,8 @@ export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  // đang ở trang chi tiết tin -> gửi kèm id để bot hiểu "phòng này còn không", "giá bao nhiêu" (30/9)
+  const dangXem = usePathname()?.match(/^\/listings\/([0-9a-f-]{36})/i)?.[1] || null;
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
@@ -34,7 +37,7 @@ export default function ChatWidget() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.map(({ role, text }) => ({ role, text })) }),
+        body: JSON.stringify({ messages: next.map(({ role, text }) => ({ role, text })), dangXem }),
       });
       const j = await res.json();
       setMsgs((m) => [...m, { role: "bot", text: j.reply || "Xin lỗi, mình chưa trả lời được.", listings: j.listings }]);
