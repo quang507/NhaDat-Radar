@@ -1,5 +1,6 @@
 "use client";
 
+import { baoSuKien } from "@/lib/su-kien-client";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -84,6 +85,7 @@ export default function FavButton({ id, className = "" }: { id: string; classNam
         e.stopPropagation();
         const cur = getFavs();
         setFavs(on ? cur.filter((x) => x !== id) : [...cur, id]);
+        if (!on) baoSuKien("luu", id);
         void syncDb(id, !on);
       }}
       className={`w-8 h-8 rounded-full grid place-items-center text-base transition shadow

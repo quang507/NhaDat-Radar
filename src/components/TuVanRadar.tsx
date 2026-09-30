@@ -11,24 +11,30 @@
 export const HOTLINE = "0346689460";
 export const HOTLINE_ZALO = `https://zalo.me/${HOTLINE}`;
 
-export default function TuVanRadar() {
+import { LinkTheoDoi } from "./TheoDoi";
+
+export default function TuVanRadar({ listingId }: { listingId?: string }) {
+  // có listingId (trang chi tiết tin) -> ghi sự kiện gọi/Zalo; nơi khác dùng <a> thường
+  const A = ({ loai, ...p }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { loai: "goi" | "zalo" }) =>
+    listingId ? <LinkTheoDoi loai={loai} listingId={listingId} {...p} /> : <a {...p} />;
   return (
     <div className="mt-3 pt-3 border-t border-[var(--line)]">
       <div className="text-xs text-[var(--ink-soft)] mb-1.5">
         Cần tư vấn nhanh tin này? Gọi <b>Radar</b> - miễn phí, không phải người đăng tin.
       </div>
       <div className="flex gap-2">
-        <a href={`tel:${HOTLINE}`} className="btn btn-primary flex-1 text-center whitespace-nowrap">
+        <A loai="goi" href={`tel:${HOTLINE}`} className="btn btn-primary flex-1 text-center whitespace-nowrap">
           📞 {HOTLINE}
-        </a>
-        <a
+        </A>
+        <A
+          loai="zalo"
           href={HOTLINE_ZALO}
           target="_blank"
           rel="noopener"
           className="btn flex-1 text-center whitespace-nowrap border border-[#0068ff] text-[#0068ff] font-semibold"
         >
           Chat Zalo
-        </a>
+        </A>
       </div>
     </div>
   );

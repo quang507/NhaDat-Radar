@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { baoLeadMoi } from "@/lib/bao-lead";
+import { ghiSuKien } from "@/lib/su-kien";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/supabase/anon";
 import { REPORT_REASONS } from "@/lib/reports";
@@ -50,6 +51,7 @@ export async function createLead(
   // báo admin qua email SAU khi trả kết quả cho khách (after): khách không phải chờ Resend,
   // gửi lỗi cũng không ảnh hưởng - lead đã nằm trong DB
   after(() => baoLeadMoi({ listing_id: listing_id || null, name, phone, message }));
+  after(() => ghiSuKien({ loai: "dat_lich", listingId: listing_id || null }));
   return { ok: true };
 }
 
