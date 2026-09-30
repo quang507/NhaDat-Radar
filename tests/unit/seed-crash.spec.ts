@@ -83,3 +83,9 @@ test("laAnh: bỏ video lẫn trong danh sách ảnh (EvoHome .mov/.mp4), giữ 
     "/tuong-doi.jpg", "", null,
   ]) expect(laAnh(u as string), String(u)).toBe(false);
 });
+
+test("laVideo: nhận .mp4/.mov (kể cả có query), không nhận ảnh / URL tương đối", async () => {
+  const { laVideo, laAnh } = await import(CRAWLER + "chung.mjs");
+  for (const u of ["https://m.evohome.it.com/a.mov", "https://x.com/a.MP4?t=1", "https://x.com/a.webm"]) { expect(laVideo(u), u).toBe(true); expect(laAnh(u), u).toBe(false); }
+  for (const u of ["https://x.com/a.jpg", "https://cdn.chotot.com/abc", "/a.mp4", null]) expect(laVideo(u as string), String(u)).toBe(false);
+});

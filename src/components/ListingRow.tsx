@@ -3,6 +3,7 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
+import { demAnh, layVideo } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon } from "@/lib/ro-hang";
 
@@ -10,7 +11,8 @@ import { laRoHang, tenNguon } from "@/lib/ro-hang";
 // giá + giá/m² + diện tích + PN, mô tả 2 dòng, chân tin nguồn + thời gian.
 export default function ListingRow({ x }: { x: Listing }) {
   const t = thumb(x.kind);
-  const imgs = (x.images || []).slice(0, 4);
+  const vids = new Set(layVideo(x.images));   // video rổ hàng nằm cuối images - không đưa vào dải ảnh
+  const imgs = (x.images || []).filter((u) => !vids.has(u)).slice(0, 4);
   // giá/m² cho cả bán lẫn thuê (batdongsan hiện trên mọi card)
   const ppm2 = x.price_per_m2 && x.price_per_m2 > 0 ? fmtPpm2(x.price_per_m2) : null;
   const loc = [x.district, x.province].filter(Boolean).join(", ");
@@ -57,7 +59,7 @@ export default function ListingRow({ x }: { x: Listing }) {
         </span>
         {imgs.length > 0 && (
           <span className="absolute bottom-2 right-2 text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-black/55 text-white">
-            {(x.images || []).length} ảnh
+            {demAnh(x.images)} ảnh{demAnh(x.images) < (x.images?.length ?? 0) ? " · ▶" : ""}
           </span>
         )}
       </div>
@@ -118,8 +120,8 @@ function MobileThumb({ x }: { x: Listing }) {
           {laRoHang(x) ? "★ Radar" : "✓ Xác thực"}
         </span>
       )}
-      {(x.images?.length ?? 0) > 1 && (
-        <span className="absolute bottom-1 right-1 text-[0.6rem] font-bold px-1 py-px rounded bg-black/55 text-white">{x.images!.length} ảnh</span>
+      {demAnh(x.images) > 1 && (
+        <span className="absolute bottom-1 right-1 text-[0.6rem] font-bold px-1 py-px rounded bg-black/55 text-white">{demAnh(x.images)} ảnh{demAnh(x.images) < (x.images?.length ?? 0) ? " · ▶" : ""}</span>
       )}
     </div>
   );
