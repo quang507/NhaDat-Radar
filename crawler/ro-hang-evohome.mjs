@@ -19,7 +19,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { smartGeocode, LOI } from "./geo.mjs";
-import { hash31, laAnh } from "./chung.mjs";
+import { hash31, laAnh, laVideo } from "./chung.mjs";
 
 const PARTNER = "evohome";
 const HOTLINE = "0346689460";
@@ -177,7 +177,8 @@ for (const x of src) {
     lat: lech?.lat ?? null,
     lng: lech?.lng ?? null,
     geo_precision: lech ? "duong" : null,
-    images: anh,
+    // ảnh trước (thẻ tin dùng ảnh đầu), video (tối đa 2) nối cuối -> trang chi tiết phát được
+    images: [...anh, ...(x.images || []).filter(laVideo).slice(0, 2)],
     amenities: [],
     specs: Object.fromEntries(Object.entries(specs).filter(([k]) => !/hoa hồng|số phòng/i.test(k))),
     contact_name: "NhaDat Radar",

@@ -8,7 +8,7 @@ import { createAnonClient } from "@/lib/supabase/anon";
 import { unstable_cache } from "next/cache";
 import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb } from "@/lib/format";
-import { cleanImages } from "@/lib/img";
+import { cleanImages, layVideo } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
 import { posterReasonText, type Listing } from "@/lib/types";
 import ContactForm from "./ContactForm";
@@ -354,7 +354,7 @@ export default async function ListingDetail({
           {/* Gallery + lightbox - cap chiều cao để không đẩy hết nội dung xuống dưới fold */}
           <div className="[&_img]:max-h-[420px]">
             {images.length ? (
-              <Gallery images={images} title={x.title} />
+              <Gallery images={images} title={x.title} videos={layVideo(x.images)} />
             ) : (
               <div
                 className="rounded-lg overflow-hidden aspect-[16/9] max-h-[420px] grid place-items-center text-white text-5xl"

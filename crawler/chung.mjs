@@ -73,3 +73,10 @@ export function laAnh(u) {
   const duoi = (u.split(/[?#]/)[0].match(/\.([a-z0-9]{2,5})$/i) || [])[1]?.toLowerCase();
   return !duoi || ["jpg", "jpeg", "png", "webp", "gif", "avif", "bmp"].includes(duoi);
 }
+
+// URL là VIDEO (30/9): EvoHome có ~11 phòng kèm video .mp4/.mov -> giữ lại (cuối danh sách ảnh) để trang
+// chi tiết phát được, như Mogi. Thẻ tin / ảnh đại diện vẫn chỉ dùng ảnh (laAnh).
+export function laVideo(u) {
+  if (typeof u !== "string" || !/^https?:\/\//.test(u)) return false;
+  return /\.(mp4|mov|m4v|webm)$/i.test(u.split(/[?#]/)[0]);
+}

@@ -44,7 +44,10 @@ function useSnapTrack(n: number, onIndexChange: (i: number) => void) {
   return { ref, onScroll, scrollTo };
 }
 
-export default function Gallery({ images, title }: { images: string[]; title: string }) {
+// videos (30/9, kiểu Mogi): video phòng (rổ hàng EvoHome) - nhãn "▶ Video" trên ảnh chính + ô đầu hàng ảnh nhỏ,
+// bấm mở trình phát toàn màn hình. Không trộn vào track vuốt ảnh để không đụng logic snap/lightbox.
+export default function Gallery({ images, title, videos = [] }: { images: string[]; title: string; videos?: string[] }) {
+  const [video, setVideo] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);       // ảnh đang xem trong lightbox
   const [heroIdx, setHeroIdx] = useState(0); // ảnh đang xem ở carousel trang chi tiết
@@ -64,6 +67,14 @@ export default function Gallery({ images, title }: { images: string[]; title: st
     setOpen(true);
     requestAnimationFrame(() => box.scrollTo(i, false));
   }, [box]);
+
+  useEffect(() => {
+    if (!video) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setVideo(null); };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [video]);
 
   useEffect(() => {
     if (!open) return;
@@ -105,6 +116,12 @@ export default function Gallery({ images, title }: { images: string[]; title: st
             />
           ))}
         </div>
+        {videos.length > 0 && (
+          <button type="button" onClick={() => setVideo(videos[0])}
+            className="absolute top-3 left-3 flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg bg-black/70 text-white hover:bg-black/85">
+            ▶ Video
+          </button>
+        )}
         <span className="absolute bottom-3 right-3 text-xs font-bold px-2.5 py-1 rounded-lg bg-black/60 text-white pointer-events-none">
           {heroIdx + 1}/{n} · vuốt để xem - bấm phóng to 🔍
         </span>
@@ -116,9 +133,15 @@ export default function Gallery({ images, title }: { images: string[]; title: st
           </div>
         )}
       </div>
-      {n > 1 && (
+      {(n > 1 || videos.length > 0) && (
         <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mt-2">
-          {images.slice(1, 6).map((img, i) => (
+          {videos.map((v) => (
+            <button key={v} type="button" onClick={() => setVideo(v)} aria-label="Xem video phòng"
+              className="aspect-[4/3] w-full rounded-lg bg-[#16233a] text-white grid place-items-center hover:opacity-90 transition">
+              <span className="flex flex-col items-center gap-0.5"><span className="text-2xl leading-none">▶</span><span className="text-[0.7rem] font-semibold">Video</span></span>
+            </button>
+          ))}
+          {images.slice(1, 6 - videos.length).map((img, i) => (
             <div key={i} className="relative">
               <Img
                 src={img}
@@ -126,16 +149,29 @@ export default function Gallery({ images, title }: { images: string[]; title: st
                 className="aspect-[4/3] w-full object-cover rounded-lg cursor-zoom-in hover:opacity-90 transition"
                 onClick={() => openAt(i + 1)}
               />
-              {i === 4 && n > 6 && (
+              {i === 4 - videos.length && n > 6 - videos.length && (
                 <button
-                  onClick={() => openAt(5)}
+                  onClick={() => openAt(i + 1)}
                   className="absolute inset-0 rounded-lg bg-black/55 text-white font-bold text-sm grid place-items-center"
                 >
-                  +{n - 6} ảnh
+                  +{n - (6 - videos.length)} ảnh
                 </button>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {video && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onClick={() => setVideo(null)}>
+          <div className="flex justify-end px-4 py-3">
+            <button aria-label="Đóng video" className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white text-lg" onClick={() => setVideo(null)}>✕</button>
+          </div>
+          <div className="flex-1 min-h-0 grid place-items-center px-2 pb-4" onClick={(e) => e.stopPropagation()}>
+            {/* .mov (iPhone) phát được trên Safari/iOS và phần lớn Chrome; lỗi thì còn link mở trực tiếp */}
+            <video src={video} controls autoPlay playsInline className="max-h-full max-w-full rounded-lg bg-black" />
+            <a href={video} target="_blank" rel="noopener" className="mt-2 text-xs text-white/70 underline">Không phát được? Mở video trực tiếp</a>
+          </div>
         </div>
       )}
 

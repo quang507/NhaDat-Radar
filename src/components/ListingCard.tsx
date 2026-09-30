@@ -3,6 +3,7 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
+import { demAnh } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon, tagGiuPhong } from "@/lib/ro-hang";
 
@@ -51,9 +52,9 @@ export default function ListingCard({ x }: { x: Listing }) {
             <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500 text-white" title="Radar thấy tin trong 24 giờ qua">Mới</span>
           )}
         </span>
-        {x.images && x.images.length > 1 && (
+        {demAnh(x.images) > 1 && (
           <span className="absolute bottom-2 right-2 text-[0.65rem] font-bold px-1.5 py-0.5 rounded-md bg-black/55 text-white">
-            {x.images.length} ảnh
+            {demAnh(x.images)} ảnh{demAnh(x.images) < (x.images?.length ?? 0) ? " · ▶" : ""}
           </span>
         )}
         {giuPhong && !x.price_flag && (
