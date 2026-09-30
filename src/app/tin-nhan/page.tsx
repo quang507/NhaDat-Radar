@@ -91,7 +91,7 @@ function Chat() {
           markConvSeen(sel, m.created_at);
         })
       .subscribe();
-    const t = setInterval(load, 15000);
+    const t = setInterval(() => { if (document.visibilityState === "visible") load(); }, 15000);   // 1/10: tab nền thì thôi poll
     return () => { stop = true; supabase.removeChannel(ch); clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel]);

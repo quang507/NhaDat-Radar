@@ -54,16 +54,20 @@ export default function NavMsg() {
     let ch: ReturnType<typeof supabase.channel> | null = null;
     let timer: ReturnType<typeof setInterval> | null = null;
     let onSeen: (() => void) | null = null;
+    let onVis: (() => void) | null = null;
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!active || !user) return;
       setUid(user.id);
       recompute(user.id);
-      // realtime (nếu publication bật) + poll dự phòng 20s
+      // realtime (nếu publication bật) + poll dự phòng 60s, CHỈ khi tab đang hiện (1/10: 20s cả khi tab nằm nền
+      // -> vài tab admin mở cả ngày là hàng chục nghìn lượt gọi Supabase/ngày, góp phần vượt hạn mức log gói Free)
       ch = supabase.channel("nav-msg")
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => { if (active) recompute(user.id); })
         .subscribe();
-      timer = setInterval(() => { if (active) recompute(user.id); }, 20000);
+      timer = setInterval(() => { if (active && document.visibilityState === "visible") recompute(user.id); }, 60000);
+      onVis = () => { if (active && document.visibilityState === "visible") recompute(user.id); };   // quay lại tab -> cập nhật ngay
+      document.addEventListener("visibilitychange", onVis);
       onSeen = () => { if (active) recompute(user.id); };
       window.addEventListener("ndr:msgseen", onSeen);
     })();
@@ -73,6 +77,7 @@ export default function NavMsg() {
       if (ch) supabase.removeChannel(ch);
       if (timer) clearInterval(timer);
       if (onSeen) window.removeEventListener("ndr:msgseen", onSeen);
+      if (onVis) document.removeEventListener("visibilitychange", onVis);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
