@@ -67,3 +67,19 @@ test("junk filter: rác thật vẫn bị loại", async () => {
   expect(isJunk("Nhận thi công sơn nhà trọn gói", "")).toBe(true);
   expect(isJunk("ib em", "")).toBe(true);
 });
+
+test("laAnh: bỏ video lẫn trong danh sách ảnh (EvoHome .mov/.mp4), giữ ảnh kể cả URL không đuôi", async () => {
+  const { laAnh } = await import(CRAWLER + "chung.mjs");
+  for (const u of [
+    "https://media.evohome.it.com/transaction-units/a.jpg",
+    "https://media.evohome.it.com/transaction-units/a.JPEG",
+    "https://x.com/a.png?w=800",
+    "https://cdn.chotot.com/abc/preset:view/plain/450cec3842f94f6a",   // CDN không đuôi
+  ]) expect(laAnh(u), u).toBe(true);
+  for (const u of [
+    "https://media.evohome.it.com/transaction-units/7cb86eb6.mov",
+    "https://media.evohome.it.com/transaction-units/a.mp4",
+    "https://x.com/a.mp4?t=1",
+    "/tuong-doi.jpg", "", null,
+  ]) expect(laAnh(u as string), String(u)).toBe(false);
+});

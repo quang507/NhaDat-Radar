@@ -12,9 +12,12 @@ export function hiRes(u: string): string {
 }
 
 // Lọc mảng ảnh: bỏ link không phải ảnh (album facebook...), object rác.
+// video lẫn trong danh sách ảnh nguồn (EvoHome .mp4/.mov, 30/9) -> <img> vỡ; bộ lọc chính ở crawler/chung.mjs laAnh()
+const LA_VIDEO = /\.(mp4|mov|m4v|webm|avi|3gp|mkv)$/i;
+
 export function cleanImages(images: unknown[]): string[] {
   return (images || [])
     .map((i) => (typeof i === "string" ? i : (i as { uri?: string })?.uri))
-    .filter((u): u is string => typeof u === "string" && /^https?:\/\//.test(u) && !u.includes("facebook.com/media"))
+    .filter((u): u is string => typeof u === "string" && /^https?:\/\//.test(u) && !u.includes("facebook.com/media") && !LA_VIDEO.test(u.split(/[?#]/)[0]))
     .map(hiRes);
 }

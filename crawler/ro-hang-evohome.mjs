@@ -19,7 +19,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { smartGeocode, LOI } from "./geo.mjs";
-import { hash31 } from "./chung.mjs";
+import { hash31, laAnh } from "./chung.mjs";
 
 const PARTNER = "evohome";
 const HOTLINE = "0346689460";
@@ -128,6 +128,7 @@ for (const x of src) {
     .replace(/\n{3,}/g, "\n\n").trim()
     + `\n\n💬 Giá niêm yết ${giaTrieu(x.price_vnd)}/tháng. Anh/chị qua xem phòng thực tế, ưng ý Radar hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà.`;
 
+  const anh = (x.images || []).filter(laAnh).slice(0, 20);
   const cuRow = cu.get(x.source_post_id);
   const id = cuRow?.id || crypto.randomUUID();
   rows.push({
@@ -150,7 +151,7 @@ for (const x of src) {
     lat: lech?.lat ?? null,
     lng: lech?.lng ?? null,
     geo_precision: lech ? "duong" : null,
-    images: (x.images || []).filter((u) => /^https?:\/\//.test(u)).slice(0, 20),
+    images: anh,
     amenities: [],
     specs: Object.fromEntries(Object.entries(specs).filter(([k]) => !/hoa hồng|số phòng/i.test(k))),
     contact_name: "NhaDat Radar",
@@ -158,7 +159,9 @@ for (const x of src) {
     trust_score: 95,
     poster_role_guess: null,
     poster_reasons: ["Rổ hàng Radar - phòng trống đã xác thực"],
-    status: "published",
+    // không còn ảnh nào (EvoHome không có ảnh, hoặc chỉ có video) -> tạm ẩn: thẻ không ảnh khó bán
+    // và trông như tin lỗi. Lượt sau đối tác bổ sung ảnh thì tự hiện lại.
+    status: anh.length ? "published" : "hidden",
     posted_at: x.posted_at || now,
     first_seen_at: cuRow?.first_seen_at || now,
     last_seen_at: now,
@@ -177,6 +180,7 @@ for (const x of src) {
     updated_at: now,
   });
 }
+console.log(`Ẩn ${rows.filter((r) => r.status === "hidden").length} phòng không có ảnh (hoặc chỉ có video)`);
 console.log(`Dựng ${rows.length} tin · có toạ độ ${rows.filter((r) => r.lat != null).length} · geocode bù ${geoCache.size} địa chỉ`);
 
 if (!sb) {

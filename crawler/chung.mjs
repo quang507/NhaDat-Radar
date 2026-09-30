@@ -63,3 +63,13 @@ export function soThuc(v, { min = 0, max = Number.MAX_VALUE } = {}) {
   if (typeof n !== "number" || !Number.isFinite(n)) return null;
   return n > min && n <= max ? n : null;
 }
+
+// URL là ẢNH trình duyệt vẽ được bằng <img> (30/9): danh sách "ảnh" của EvoHome lẫn 13 file video
+// .mp4/.mov -> web đưa vào <img> thành ô vỡ (tin Nguyễn Văn Tạo chỉ có đúng 1 file .mov).
+// Xét theo đuôi file: ~5.000 ảnh EvoHome không trả content-type nhưng đuôi .jpg/.jpeg vẫn hiện bình thường.
+// URL không có đuôi (CDN kiểu chotot/batdongsan) coi là ảnh - chỉ loại khi đuôi rõ ràng là video/khác.
+export function laAnh(u) {
+  if (typeof u !== "string" || !/^https?:\/\//.test(u)) return false;
+  const duoi = (u.split(/[?#]/)[0].match(/\.([a-z0-9]{2,5})$/i) || [])[1]?.toLowerCase();
+  return !duoi || ["jpg", "jpeg", "png", "webp", "gif", "avif", "bmp"].includes(duoi);
+}
