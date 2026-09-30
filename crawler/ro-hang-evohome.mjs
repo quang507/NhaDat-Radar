@@ -78,7 +78,7 @@ const giaTrieu = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1).replace(/\.0$/, "").
 const cu = new Map();
 if (sb) {
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from("listings").select("id,source_post_id,first_seen_at,crawl_count")
+    const { data, error } = await sb.from("listings").select("id,source_post_id,first_seen_at,crawl_count,status")
       .eq("source", "ro_hang").eq("source_site", PARTNER).range(from, from + 999);
     if (error) throw error;
     for (const r of data) cu.set(r.source_post_id, r);
@@ -87,16 +87,42 @@ if (sb) {
   console.log(`Đã có trong DB: ${cu.size}`);
 }
 
-// ---- geocode bù (Nominatim ~1 req/s), cache theo địa chỉ toà nhà -----------------------------
+// ---- toạ độ thật ĐÃ LƯU của phòng cũ (listing_ro_hang) -> khỏi geocode lại mỗi lượt ------------
+// 30/9: mỗi lượt geocode lại ~124 địa chỉ (Nominatim 1 req/s + thử 2 biến thể) = ~10 phút / 12 phút chạy.
+const daLuu = new Map();   // listing_id -> { lat, lng }
+if (sb && cu.size) {
+  const ids = [...cu.values()].map((r) => r.id);
+  for (let i = 0; i < ids.length; i += 300) {
+    const { data, error } = await sb.from("listing_ro_hang").select("listing_id,exact_lat,exact_lng").in("listing_id", ids.slice(i, i + 300));
+    if (error) throw error;
+    for (const r of data) if (r.exact_lat != null && r.exact_lng != null) daLuu.set(r.listing_id, { lat: r.exact_lat, lng: r.exact_lng });
+  }
+}
+
+// ---- geocode bù (Nominatim ~1 req/s) cho phòng MỚI, cache ra file để lượt sau khỏi tra lại ------
+// File nằm trong crawler/private/ (gitignore - chứa địa chỉ thật). Tra không ra (null) thì 7 ngày sau mới thử lại.
+const FILE_CACHE = "crawler/private/geocode-cache.json";
+const THU_LAI_MS = 7 * 864e5;
+let fileCache = {};
+try { fileCache = JSON.parse(fs.readFileSync(FILE_CACHE, "utf8")); } catch { /* chưa có file */ }
 const geoCache = new Map();
+let soTraMoi = 0, soDungLai = 0;
 async function toaDoThat(x) {
   if (x.lat != null && x.lng != null) return { lat: x.lat, lng: x.lng, precision: "nguon" };
-  if (process.env.NO_GEOCODE) return null;   // máy không ra được mạng ngoài: để null, ghim sau theo phường
+  const luu = daLuu.get(cu.get(x.source_post_id)?.id);
+  if (luu) { soDungLai++; return { ...luu, precision: "duong" }; }
   const q = gon([x.address?.split(",")[0], x.ward, tenQuan(x.district), "Hồ Chí Minh"].filter(Boolean).join(", "));
+  const f = fileCache[q];
+  if (f && (f.lat != null || Date.now() - f.t < THU_LAI_MS)) { soDungLai++; return f.lat != null ? { lat: f.lat, lng: f.lng, precision: "duong" } : null; }
+  if (process.env.NO_GEOCODE) return null;   // máy không ra được mạng ngoài: để null, ghim sau theo phường
   if (!geoCache.has(q)) {
     let g = await smartGeocode(q);
     if (!g || g === LOI) g = await smartGeocode(gon([x.ward, tenQuan(x.district), "Hồ Chí Minh"].filter(Boolean).join(", ")));
-    geoCache.set(q, g && g !== LOI ? g : null);
+    const kq = g && g !== LOI ? g : null;
+    geoCache.set(q, kq);
+    // LOI = lỗi mạng/giới hạn -> không ghi cache (lượt sau thử lại); null thật = không tìm thấy -> ghi kèm thời điểm
+    if (g !== LOI) fileCache[q] = kq ? { lat: kq.lat, lng: kq.lng, t: Date.now() } : { lat: null, t: Date.now() };
+    soTraMoi++;
     await new Promise((r) => setTimeout(r, 1100));
   }
   const g = geoCache.get(q);
@@ -181,7 +207,8 @@ for (const x of src) {
   });
 }
 console.log(`Ẩn ${rows.filter((r) => r.status === "hidden").length} phòng không có ảnh (hoặc chỉ có video)`);
-console.log(`Dựng ${rows.length} tin · có toạ độ ${rows.filter((r) => r.lat != null).length} · geocode bù ${geoCache.size} địa chỉ`);
+try { fs.writeFileSync(FILE_CACHE, JSON.stringify(fileCache)); } catch (e) { console.warn("Không ghi được cache toạ độ:", e.message); }
+console.log(`Dựng ${rows.length} tin · có toạ độ ${rows.filter((r) => r.lat != null).length} · toạ độ dùng lại ${soDungLai} · tra mới ${soTraMoi} địa chỉ`);
 
 if (!sb) {
   fs.writeFileSync(OUT, JSON.stringify({ rows, priv }));
@@ -198,9 +225,12 @@ for (let i = 0; i < rows.length; i += 200) {
 }
 // phòng đã hết (không còn trong file) -> gone
 const conLai = new Set(rows.map((r) => r.source_post_id));
-let het = [...cu.values()].filter((r) => !conLai.has(r.source_post_id)).map((r) => r.id);
+// chỉ tính phòng CHƯA hạ (bản cũ đếm lại cả phòng đã "gone" từ lượt trước -> lượt nào cũng báo "hạ 30")
+let het = [...cu.values()].filter((r) => !conLai.has(r.source_post_id) && r.status !== "gone").map((r) => r.id);
 // lượt cào hụt (EvoHome lỗi giữa chừng) mà vẫn hạ thì nửa rổ hàng biến mất khỏi web -> chỉ hạ khi đủ lớn
-if (rows.length < cu.size * 0.5) { console.warn(`Chỉ ${rows.length}/${cu.size} phòng - nghi lượt cào hụt, KHÔNG hạ phòng nào`); het = []; }
+// so với số phòng ĐANG HIỆN (không tính phòng đã gone - chúng tích luỹ dần, làm ngưỡng ngày càng cao, sớm muộn chặn nhầm)
+const dangHien = [...cu.values()].filter((r) => r.status !== "gone").length;
+if (rows.length < dangHien * 0.5) { console.warn(`Chỉ ${rows.length}/${dangHien} phòng - nghi lượt cào hụt, KHÔNG hạ phòng nào`); het = []; }
 for (let i = 0; i < het.length; i += 100) {
   await sb.from("listings").update({ status: "gone" }).in("id", het.slice(i, i + 100));
 }
