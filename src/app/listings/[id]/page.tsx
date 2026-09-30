@@ -101,7 +101,9 @@ const layTinCongKhai = unstable_cache(
     return phuTroTin(sb, data as unknown as Listing);
   },
   ["listing-detail-v1"],
-  { revalidate: 1800, tags: ["listings"] },
+  // 1/10: 30 phút -> 6 tiếng. Bot quét ~10.000 trang tin hiếm quay lại cùng trang trong 30 phút -> gần như mọi
+  // lượt là cache miss (~8-10 lượt gọi Supabase). Dữ liệu chỉ đổi mỗi lượt crawl (~4 tiếng); tin hạ "gone" trễ tối đa 6 tiếng.
+  { revalidate: 21600, tags: ["listings"] },
 );
 
 function agoMin(iso: string | null): number | null {
