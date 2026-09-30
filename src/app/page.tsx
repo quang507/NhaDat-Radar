@@ -7,6 +7,8 @@ import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> tr
 import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen from "@/components/DaiDocQuyen";
+import HangVuot from "@/components/HangVuot";
+import HeroTimKiem, { type ChipKhuVuc } from "@/components/HeroTimKiem";
 import { laTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang, laRoHang } from "@/lib/ro-hang";
 
@@ -75,18 +77,13 @@ const HERO: string | null = (() => {
 })();
 
 const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
-  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/?kind=nha&deal=ban" },
-  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/?kind=dat&deal=ban" },
-  { t: "Căn hộ", f: (x) => x.kind === "can_ho", href: "/?kind=can_ho" },
-  { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/?kind=nha&deal=cho_thue" },
+  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/search?kind=nha&deal=ban" },
+  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/search?kind=dat&deal=ban" },
+  { t: "Căn hộ", f: (x) => x.kind === "can_ho", href: "/search?kind=can_ho" },
+  { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/search?kind=nha&deal=cho_thue" },
   // khối và link phải cùng bộ lọc - bản cũ khối gồm cả "khac" nhưng link chỉ mat_bang,
   // bấm "Xem tất cả" là tin đang hiện biến mất
-  { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/?kind=mat_bang" },
-];
-const PROVINCES = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng"];
-const PRICE_BUCKETS: [string, string][] = [
-  ["500000000", "Dưới 500 triệu"], ["1000000000", "Dưới 1 tỷ"],
-  ["3000000000", "Dưới 3 tỷ"], ["5000000000", "Dưới 5 tỷ"], ["10000000000", "Dưới 10 tỷ"],
+  { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/search?kind=mat_bang" },
 ];
 
 export default async function Home({
@@ -113,24 +110,42 @@ export default async function Home({
   const isSouth = (x: Listing) => SOUTH.test(x.province || "");
   listings.sort((a, b) => Number(isSouth(b)) - Number(isSouth(a)));
 
-  const withImg = listings.filter((x) => x.images && x.images.length > 0);
-  // Cụm ảnh hero: 3 tin điểm chất lượng cao nhất có ảnh (không lấy tùy tiện)
-  const collage = [...withImg].sort((a, b) => (b.ai_score ?? 0) - (a.ai_score ?? 0)).slice(0, 3);
-  const featured = withImg.slice(0, 8);
+  // Chip khu vực dưới ô tìm kiếm: quận TP.HCM nhiều tin nhất theo thuê/bán (bảng đếm cache, không thêm truy vấn)
+  const hcm = areas.counts["Hồ Chí Minh"];
+  const chipQuan = (d: "ban" | "cho_thue"): ChipKhuVuc[] => Object.entries(hcm?.districts || {})
+    .map(([district, c]) => ({ province: "Hồ Chí Minh", district, n: c[d] }))
+    .filter((c) => c.n > 0).sort((a, b) => b.n - a.n).slice(0, 10);
+  const chip = { cho_thue: chipQuan("cho_thue"), ban: chipQuan("ban") };
   const hasFilter = Boolean(deal || kind || province || bedrooms || priceMax || q);
   const mapItems: MapItem[] = listings
     .filter((x) => x.lat != null && x.lng != null)
     .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, label: shortPrice(x.price_vnd), title: x.title }));
 
-  const sel = "inp appearance-none pr-8 cursor-pointer";
   const hero = HERO;
   return (
     <div>
-      {/* ===== BANNER QUẢNG CÁO ĐỐI TÁC (public/hero.jpg) - full width, KHÔNG đè chữ của Radar lên
-          (UX audit 16/8: H1 "Tìm nhà đất…" từng nằm đè lên "VILLA NY'AH" -> hai thông điệp chồng nhau).
-          Gắn nhãn "Quảng cáo" (minh bạch), bấm được nếu có NEXT_PUBLIC_HERO_LINK. Mobile cắt vừa 200px. ===== */}
+      {/* ===== HERO kiểu Mogi (30/9): màn đầu là Ô TÌM KIẾM (tab Thuê | Mua | Định giá + chip khu vực/giá).
+          Trước đây banner quảng cáo chiếm gần hết màn đầu, ô tìm nửa bề ngang nằm dưới. ===== */}
+      <section className="pt-1 pb-5">
+        <h1 className={`prata leading-[1.15] mb-2 text-balance ${hasFilter ? "text-[1.4rem] md:text-[1.8rem]" : "text-[1.6rem] md:text-[2.3rem]"}`}>
+          Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
+        </h1>
+        <p className="text-sm text-[var(--ink-soft)] mb-4 max-w-2xl">
+          Tổng hợp tin nhiều nguồn, so giá với mặt bằng khu vực - và phòng trống Radar dẫn đi xem tận nơi.
+        </p>
+        <HeroTimKiem chip={chip} />
+        <div className="flex gap-6 mt-4 overflow-x-auto [scrollbar-width:none]">
+          <Stat n={totalPublished ?? listings.length} label="tin đang rao" />
+          <Stat n={projectCount ?? projects.length} label="dự án" />
+          <Stat n={districtCount} label="quận/huyện" />
+          <Stat n={sourceCount} label="nguồn dữ liệu" />
+        </div>
+      </section>
+
+      {/* ===== BANNER QUẢNG CÁO ĐỐI TÁC (public/hero.jpg) - dời xuống DƯỚI ô tìm kiếm (30/9), giữ nguyên
+          tỉ lệ (cắt thấp thì mất chữ quảng cáo "40 phút từ Sài Gòn"). Gắn nhãn "Quảng cáo" (minh bạch), link NEXT_PUBLIC_HERO_LINK. ===== */}
       {!hasFilter && hero && (
-        <section className="hero-art relative overflow-hidden rounded-xl shadow-sm mb-6">
+        <section className="hero-art relative overflow-hidden rounded-xl shadow-sm mb-2">
           {(() => {
             // banner Villa Ny'ah -> trang Nhã Đạt (anh Quang chốt 16/8); env ghi đè được khi đổi đối tác
             const link = process.env.NEXT_PUBLIC_HERO_LINK || "https://nhadat.company/";
@@ -141,76 +156,6 @@ export default async function Home({
           <span className="absolute top-2 right-3 text-[0.65rem] font-semibold px-1.5 py-0.5 rounded bg-black/45 text-white/90 tracking-wide">Quảng cáo</span>
         </section>
       )}
-
-      {/* ===== HERO Radar: H1 + ô tìm kiếm luôn ở đây (không phụ thuộc banner) ===== */}
-      <section className="grid lg:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-10 items-center pt-3 pb-6">
-        <div className="hero-in">
-          <h1 className={`prata leading-[1.1] mb-3 text-balance ${hero ? "text-[1.6rem] md:text-[2.1rem]" : "text-[2rem] md:text-[2.7rem]"}`}>
-            Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
-          </h1>
-          <p className="text-[var(--ink-soft)] mb-5 max-w-xl">
-            Tổng hợp tin từ nhiều nguồn, ghi rõ nguồn &amp; thời điểm Radar thấy tin, so giá với mặt bằng khu vực,
-            nêu dấu hiệu chính chủ / môi giới từ dữ liệu.
-          </p>
-          <form action="/search" className="card rounded-lg p-3 shadow-sm hero-in-2">
-            <input name="q" defaultValue={q} placeholder="Từ khoá: quận, dự án, đường..." className="inp mb-2" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <select name="deal" defaultValue={deal || ""} className={sel}>
-                <option value="">Mua bán &amp; thuê</option>
-                <option value="ban">Mua bán</option>
-                <option value="cho_thue">Cho thuê</option>
-              </select>
-              <select name="kind" defaultValue={kind || ""} className={sel}>
-                <option value="">Loại BĐS</option>
-                {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-              <select name="province" defaultValue={province || ""} className={sel}>
-                <option value="">Toàn quốc</option>
-                {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-              <select name="priceMax" defaultValue={priceMax || ""} className={sel}>
-                <option value="">Mức giá</option>
-                {PRICE_BUCKETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-              <select name="bedrooms" defaultValue={bedrooms || ""} className={sel}>
-                <option value="">Số phòng ngủ</option>
-                {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+ phòng ngủ</option>)}
-              </select>
-              <button className="btn btn-primary" type="submit">Tìm kiếm</button>
-            </div>
-          </form>
-          <div className="flex gap-6 mt-5 hero-in-2">
-            <Stat n={totalPublished ?? listings.length} label="tin đang rao" />
-            <Stat n={projectCount ?? projects.length} label="dự án" />
-            <Stat n={districtCount} label="quận/huyện" />
-            <Stat n={sourceCount} label="nguồn dữ liệu" />
-          </div>
-        </div>
-
-        {collage.length >= 3 && (
-          <div className="hero-art hidden lg:grid grid-cols-2 grid-rows-2 gap-3 h-[380px]">
-            {collage.map((x, i) => (
-              <Link
-                key={x.id}
-                href={`/listings/${x.id}`}
-                className={`relative rounded-lg overflow-hidden shadow-md ${i === 0 ? "row-span-2" : ""}`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={x.images[0]} alt={x.title} className="w-full h-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 to-transparent" />
-                {i === 0 && (
-                  <span className="absolute top-2 left-2 text-[0.65rem] font-bold px-2 py-0.5 rounded bg-brand text-white">Tin nổi bật</span>
-                )}
-                <span className="absolute inset-x-0 bottom-0 p-2.5 text-white drop-shadow">
-                  <span className="block text-sm font-bold">{shortPrice(x.price_vnd)}{x.area_m2 ? ` · ${x.area_m2} m²` : ""}</span>
-                  <span className="block text-[0.7rem] leading-snug line-clamp-1 opacity-95">{x.title}</span>
-                  <span className="block text-[0.65rem] opacity-75">{[x.district, x.province].filter(Boolean).join(", ")}</span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
 
       {hasFilter ? (
         <section className="mt-2">
@@ -243,9 +188,8 @@ export default async function Home({
           <DaiDocQuyen listings={listings} />
           {projects.length > 0 && (
             <Section title="Dự án nổi bật" href="/projects">
-              <div className="grid gap-4 md:grid-cols-3">
-                {projects.slice(0, 3).map((p) => (
-                  <Link key={p.id} href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition group">
+              <HangVuot items={projects.slice(0, 3).map((p) => ({ key: p.id, node: (
+                  <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition group w-full">
                     {/* Ảnh chiếm ~2/3 card (16:10), mô tả gọn 1 khối - ảnh là thứ bán dự án */}
                     <div className="aspect-[16/10] bg-[#16233a] grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
@@ -263,29 +207,17 @@ export default async function Home({
                       </div>
                     </div>
                   </Link>
-                ))}
-              </div>
+              ) }))} />
             </Section>
           )}
 
-          {/* khối "nổi bật" trộn cả bán + thuê (ưu tiên có ảnh) -> link sang search sort điểm,
-              không phải /?deal=ban (tin thuê đang hiện sẽ biến mất sau khi bấm) */}
-          {featured.length > 0 && (
-            <Section title="Bất động sản nổi bật" href="/search?sort=score">
-              <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
-                {featured.map((x) => <ListingCard key={x.id} x={x} />)}
-              </div>
-            </Section>
-          )}
-
+          {/* 30/9: bỏ khối "Bất động sản nổi bật" - trùng dải độc quyền phía trên (cùng các phòng rổ hàng) */}
           {CATS.map((c) => {
             const items = listings.filter(c.f).filter((x) => x.images && x.images.length > 0).slice(0, 8);
             if (!items.length) return null;
             return (
               <Section key={c.t} title={c.t} href={c.href}>
-                <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
-                  {items.map((x) => <ListingCard key={x.id} x={x} />)}
-                </div>
+                <HangVuot cot={230} toiDaSm={4} items={items.map((x) => ({ key: x.id, node: <ListingCard x={x} /> }))} />
               </Section>
             );
           })}
