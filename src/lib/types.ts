@@ -30,6 +30,10 @@ export type Listing = {
   // nên để nguyên dạng nhãn→giá trị, trang chi tiết chỉ hiện ô nào có dữ liệu.
   specs: Record<string, string> | null;
   images: string[];
+  /** số ảnh THẬT trước khi cắt bớt images cho danh sách (lib/img gonChoDanhSach) - nhãn "N ảnh" */
+  so_anh?: number;
+  /** tin có video (đã tách khỏi images khi làm gọn cho danh sách) */
+  co_video?: boolean;
   contact_name: string | null;
   contact_phone: string | null;
   ai_score: number | null;

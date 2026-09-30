@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> cache được (30/9)
+import { unstable_cache } from "next/cache";
+import { gonChoDanhSach } from "@/lib/img";
 import type { Listing } from "@/lib/types";
 import { canonDistrict, startOfDayVN } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
@@ -24,17 +26,27 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   };
 }
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
-  const sp = await searchParams;
+// KẾT QUẢ TÌM KIẾM CÓ CACHE 5 PHÚT theo bộ lọc (30/9). Trước đây force-dynamic: MỌI lượt xem (kể cả bot) là
+// 4 truy vấn Supabase kéo ~250 tin kèm nguyên mô tả -> nguồn egress Supabase lớn nhất + trang chậm khi DB bận.
+// Dữ liệu chỉ đổi mỗi lượt crawl (vài tiếng) nên trễ tối đa 5 phút là chấp nhận được. Client ẩn danh vì dữ
+// liệu công khai, không phụ thuộc người xem.
+// Chỉ gửi xuống trình duyệt các trường thẻ tin / bản đồ / bộ đếm thực sự dùng (ListingRow, ListingCard,
+// SearchClient, MapResults - soát 30/9). Bỏ source_url, ward, trust_score, poster_role_guess, status và
+// 3 mốc thời gian không hiển thị: 200 tin × ~8 trường thừa là cả trăm KB mỗi lượt xem.
+const TRUONG_THE = ["id", "source", "source_site", "source_count", "source_sites", "deal", "kind", "title", "description",
+  "price_vnd", "area_m2", "price_per_m2", "bedrooms", "bathrooms", "province", "district", "lat", "lng", "images",
+  "so_anh", "co_video", "ai_score", "price_flag", "first_seen_at"] as const;
+const chiTruongThe = (x: Listing) =>
+  Object.fromEntries(TRUONG_THE.filter((k) => x[k as keyof Listing] != null).map((k) => [k, x[k as keyof Listing]])) as unknown as Listing;
+
+const KHOA_LOC = ["deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "bedrooms", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
+const timKiemCoCache = unstable_cache(
+  async (sp: Record<string, string | undefined>) => {
   const { kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own, legal, direction, newAddr, agent } = sp;
   // URL có lọc giá mà không có deal (dán tay / link cũ): hiểu theo thang tỷ như UI đang hiện
   // (SearchClient.push cũng ép vậy) - không thì mọi tin thuê đều lọt lưới "dưới X tỷ".
   const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : priceMin || priceMax ? "ban" : undefined;
-  const supabase = await createClient();
+  const supabase = createAnonClient();
 
   // Làm sạch input trước khi đưa vào ilike/or của PostgREST: %/_ là wildcard, ",()" phá cú pháp .or() (audit 16/8: province/district/ward từng đưa thẳng)
   const clean = (s: string) => s.replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
@@ -101,9 +113,8 @@ export default async function SearchPage({
   // tổng THẬT theo bộ lọc (UX audit: "200+" là cap của limit, người dùng không biết có 250 hay 5.000 tin)
   const totalQuery = applyFilters(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"));
   // cây Tỉnh -> Quận -> Phường: dùng bản cache 10' (lib/geo) thay vì select 2.000 dòng mỗi request
-  const [{ data }, areas, { count: newToday }, { count: totalCount }, { data: rhData }] = await Promise.all([
+  const [{ data }, { count: newToday }, { count: totalCount }, { data: rhData }] = await Promise.all([
     tronMacDinh ? query.neq("source", "ro_hang").limit(150) : query.limit(200),
-    getAreas(),
     newTodayQuery,
     totalQuery,
     tronMacDinh
@@ -111,7 +122,26 @@ export default async function SearchPage({
           .order("first_seen_at", { ascending: false, nullsFirst: false }).limit(100)
       : Promise.resolve({ data: [] as Listing[] }),
   ]);
-  const listings = tronRoHang((rhData ?? []) as Listing[], (data ?? []) as Listing[]).slice(0, 200).map(cheTinDocQuyen);
+  // làm gọn cho trang danh sách: mô tả 220 ký tự, tối đa 4 ảnh (lib/img) - trang từng nặng 589 KB
+  const listings = tronRoHang((rhData ?? []) as Listing[], (data ?? []) as Listing[]).slice(0, 200).map(cheTinDocQuyen).map(gonChoDanhSach).map(chiTruongThe);
+  return { listings, newToday: newToday ?? 0, total: totalCount ?? listings.length };
+  },
+  ["search-v2"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9)
+  { revalidate: 300, tags: ["listings"] },
+);
+
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const sp = await searchParams;
+  const { kind, province, district, priceMin, priceMax } = sp;
+  const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : priceMin || priceMax ? "ban" : undefined;
+  // khoá cache chỉ gồm tham số lọc (bỏ utm/fbclid... để không mỗi link quảng cáo là một bản cache riêng)
+  const loc = Object.fromEntries(KHOA_LOC.filter((k) => sp[k]).map((k) => [k, sp[k]!.slice(0, 120)]));
+  // cây Tỉnh -> Quận -> Phường: dùng bản cache 10' (lib/geo) thay vì select 2.000 dòng mỗi request
+  const [{ listings, newToday, total: totalCount }, areas] = await Promise.all([timKiemCoCache(loc), getAreas()]);
   const geo = areas.geo;
 
   // ĐIỀU HƯỚNG KHU VỰC (29/9, kiểu Mogi "Quận 1 (1.629)"): tính sẵn ở server từ bảng đếm đã cache
@@ -133,5 +163,5 @@ export default async function SearchPage({
   } : null;
 
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL
-  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday ?? 0} total={totalCount ?? listings.length} dieuHuong={dieuHuong} />;
+  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday} total={totalCount} dieuHuong={dieuHuong} />;
 }

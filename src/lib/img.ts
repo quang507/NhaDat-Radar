@@ -22,6 +22,26 @@ export function layVideo(images: unknown[] | null | undefined): string[] {
 /** số ẢNH (không tính video) - nhãn "N ảnh" trên thẻ tin */
 export const demAnh = (images: unknown[] | null | undefined) => (images || []).length - layVideo(images).length;
 
+/**
+ * Làm gọn 1 tin cho TRANG DANH SÁCH (30/9): trang tìm kiếm từng nặng 589 KB vì mỗi thẻ mang nguyên mô tả
+ * (thẻ chỉ hiện 2 dòng, điện thoại không hiện) + mọi URL ảnh (thẻ dùng tối đa 4). Giữ số ảnh thật ở so_anh.
+ */
+export function gonChoDanhSach<T extends { description?: string | null; images?: string[] | null; so_anh?: number; co_video?: boolean }>(x: T): T {
+  const anh = (x.images || []).filter((u) => !LA_VIDEO.test(String(u).split(/[?#]/)[0]));
+  return {
+    ...x,
+    so_anh: x.so_anh ?? anh.length,
+    co_video: x.co_video ?? anh.length < (x.images || []).length,
+    images: anh.slice(0, 4),
+    description: x.description ? x.description.slice(0, 160) : x.description,   // thẻ ngang desktop hiện 2 dòng ~150 ký tự
+  };
+}
+
+/** số ảnh + có video không - dùng được cả với tin đã làm gọn (so_anh/co_video) lẫn tin đầy đủ */
+export function thongTinAnh(x: { images?: string[] | null; so_anh?: number; co_video?: boolean }) {
+  return { so: x.so_anh ?? demAnh(x.images), video: x.co_video ?? layVideo(x.images).length > 0 };
+}
+
 export function cleanImages(images: unknown[]): string[] {
   return (images || [])
     .map((i) => (typeof i === "string" ? i : (i as { uri?: string })?.uri))
