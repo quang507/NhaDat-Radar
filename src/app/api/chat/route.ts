@@ -3,7 +3,9 @@ import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
 import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
-import { cauChotXemPhong, tronRoHang } from "@/lib/ro-hang";
+import { cauChotXemPhong, tronRoHang, laRoHang, maPhong } from "@/lib/ro-hang";
+import { lamSachTuKhoa, cacMucNoi, type BoLoc } from "@/lib/chat-tim";
+import { cheSoVanBan } from "@/lib/doc-quyen";
 import { HOTLINE } from "@/components/TuVanRadar";
 
 // %/_ là wildcard ilike, ",()" phá cú pháp .or() - cùng luật clean của /search (soát 21/8:
@@ -40,10 +42,11 @@ const PARSE_PROMPT = `Bạn là trợ lý AI của sàn nhà đất NhaDat Radar
  "price_min": number|null,  // VND: "2 tỷ"=2000000000, "5tr/tháng"=5000000
  "price_max": number|null,
  "bedrooms": number|null,
- "keyword": string|null,
+ "keyword": string|null,   // tên đường / dự án / địa danh nhỏ hơn quận. VIẾT CÓ DẤU CHUẨN kể cả khi người dùng gõ không dấu ("pham huu lau" -> "Phạm Hữu Lầu"); KHÔNG kèm chữ "đường", "phố", "hẻm", "gần"
  "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời thân thiện ngắn tiếng Việt. Gợi ý được: tìm kiếm /search, AI định giá /dinh-gia, tính lãi vay /tinh-lai-vay, đăng tin cần đăng nhập /auth rồi vào /dashboard/new, lưu tin bằng nút ♥.
 }
-Không bịa. Giá quy về VND.`;
+Không bịa. Giá quy về VND.
+Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu") -> mode "chat", small_talk_reply trả lời từ thông tin tin đó (không bịa thêm), mời gọi/nhắn Zalo hotline để hẹn xem.`;
 
 function fallbackParse(text: string): Parsed {
   const t = text.toLowerCase();
@@ -103,7 +106,7 @@ export async function POST(req: NextRequest) {
   if (!rateLimit(`chat:${ip}`, 20, 60_000)) {
     return NextResponse.json({ reply: "Bạn thao tác hơi nhanh, chờ một phút rồi thử lại nhé." }, { status: 429 });
   }
-  let body: { messages?: ChatMsg[] };
+  let body: { messages?: ChatMsg[]; dangXem?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -128,7 +131,18 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const convo = messages.map((m) => `${m.role === "user" ? "Người dùng" : "Trợ lý"}: ${m.text}`).join("\n");
+  // Tin khách đang xem (widget gửi kèm khi ở trang /listings/[id]) -> ngữ cảnh cho câu "phòng này còn không"
+  let dangXem = "";
+  if (typeof body.dangXem === "string" && /^[0-9a-f-]{36}$/i.test(body.dangXem)) {
+    const { data } = await createAnonClient().from("listings")
+      .select("id,title,price_vnd,deal,area_m2,district,province,address,source,source_site").eq("id", body.dangXem).eq("status", "published").maybeSingle();
+    if (data) {
+      const rh = laRoHang(data);
+      // địa chỉ công khai (rổ hàng/độc quyền đã che số nhà) - không bao giờ đưa địa chỉ thật cho AI
+      dangXem = `NGƯỜI DÙNG ĐANG XEM TIN: "${cheSoVanBan(data.title)}" - ${fmtPrice(data.price_vnd, data.deal)}${data.area_m2 ? `, ${data.area_m2}m²` : ""}, ${cheSoVanBan([data.address, data.district, data.province].filter(Boolean).join(", "))}${rh ? `. Đây là phòng trống rổ hàng Radar, mã phòng ${maPhong(data.id)}, hotline/Zalo ${HOTLINE} (khách nhắn kèm mã phòng)` : ""}.`;
+    }
+  }
+  const convo = (dangXem ? dangXem + "\n" : "") + messages.map((m) => `${m.role === "user" ? "Người dùng" : "Trợ lý"}: ${m.text}`).join("\n");
 
   let parsed: Parsed | null = null;
   const raw = await gemini(`${PARSE_PROMPT}\n\n--- HỘI THOẠI ---\n${convo}`);
@@ -171,27 +185,36 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
   // ===== Tìm tin =====
   const supabase = createAnonClient();
   // builder bị mutate khi gọi filter -> dựng mới cho mỗi truy vấn
-  const taoQ = () => {
+  const taoQ = (b: BoLoc) => {
     let q = supabase
       .from("listings")
       .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images,source")
       .eq("status", "published");
-    if (parsed.deal) q = q.eq("deal", parsed.deal);
-    if (parsed.kind && PROP[parsed.kind]) q = q.eq("kind", parsed.kind);
-    if (parsed.province && sach(parsed.province)) q = q.ilike("province", `%${sach(parsed.province)}%`);
-    if (parsed.district && sach(parsed.district)) q = q.ilike("district", `%${sach(parsed.district)}%`);
-    if (parsed.price_min) q = q.gte("price_vnd", parsed.price_min);
-    if (parsed.price_max) q = q.lte("price_vnd", parsed.price_max);
-    if (parsed.bedrooms) q = q.gte("bedrooms", parsed.bedrooms);
-    if (parsed.keyword && sach(parsed.keyword)) q = q.ilike("title", `%${sach(parsed.keyword)}%`);
+    if (b.deal) q = q.eq("deal", b.deal);
+    if (b.kind && PROP[b.kind]) q = q.eq("kind", b.kind);
+    if (b.province && sach(b.province)) q = q.ilike("province", `%${sach(b.province)}%`);
+    if (b.district && sach(b.district)) q = q.ilike("district", `%${sach(b.district)}%`);
+    if (b.price_min) q = q.gte("price_vnd", b.price_min);
+    if (b.price_max) q = q.lte("price_vnd", b.price_max);
+    if (b.bedrooms) q = q.gte("bedrooms", b.bedrooms);
+    // 30/9: từ khoá (tên đường/dự án) tìm cả tiêu đề + địa chỉ + phường + quận như trang /search -
+    // trước chỉ tìm tiêu đề nên "Phạm Hữu Lầu" trong địa chỉ bị bỏ sót
+    if (b.keyword) q = q.or(`title.ilike.%${b.keyword}%,address.ilike.%${b.keyword}%,ward.ilike.%${b.keyword}%,district.ilike.%${b.keyword}%`);
     return q;
   };
-  // 28/9: rổ hàng Radar ưu tiên (3 rổ hàng : 2 tin khác trong 5 thẻ)
-  const [{ data: rh }, { data }] = await Promise.all([
-    taoQ().eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(3),
-    taoQ().neq("source", "ro_hang").order("ai_score", { ascending: false, nullsFirst: false }).limit(5),
-  ]);
-  let found = tronRoHang(rh ?? [], data ?? [], 3).slice(0, 5);
+  // Nới dần bộ lọc (bỏ giá -> bỏ loại -> bỏ từ khoá) trước khi dùng tìm ngữ nghĩa, và NÓI THẬT với khách
+  // là đang đưa tin gần đúng (lib/chat-tim). Rổ hàng Radar ưu tiên (3 rổ hàng : 2 tin khác trong 5 thẻ).
+  type TinChat = { id: string; title: string; price_vnd: number | null; area_m2: number | null; bedrooms: number | null; district: string | null; province: string | null; deal: string; kind: string; images: string[] | null; source: string | null };
+  let found: TinChat[] = [];
+  let ghiChuNoi: string | null = null;
+  for (const { loc, ghiChu } of cacMucNoi({ ...parsed, keyword: lamSachTuKhoa(parsed.keyword) || null })) {
+    const [{ data: rh }, { data }] = await Promise.all([
+      taoQ(loc).eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(3),
+      taoQ(loc).neq("source", "ro_hang").order("ai_score", { ascending: false, nullsFirst: false }).limit(5),
+    ]);
+    found = tronRoHang(rh ?? [], data ?? [], 3).slice(0, 5);
+    if (found.length) { ghiChuNoi = ghiChu; break; }
+  }
 
   // Không có kết quả -> thử tìm NGỮ NGHĨA bằng pgvector (cần migration 003 + embed.mjs đã chạy)
   if (!found.length) {
@@ -223,6 +246,7 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
             .from("listings").select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images,source")
             .in("id", ids);
           found = sem ?? [];
+          if (found.length) ghiChuNoi = "không có tin khớp đúng từ khoá - đây là các tin có nội dung gần giống";
         }
       }
     } catch { /* chưa có pgvector/embedding - bỏ qua */ }
@@ -233,11 +257,19 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
     const summary = found
       .map((x, i) => `${i + 1}. ${x.title} - ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? `, ${x.area_m2}m²` : ""} (${[x.district, x.province].filter(Boolean).join(", ")})`)
       .join("\n");
+    // 30/9: nói RÕ cho AI kết quả khớp đúng hay là tin gần đúng (đã nới lọc) - bản cũ để AI tự đoán nên
+    // có lúc đưa 5 phòng đúng đường mà vẫn trả lời "chưa có phòng trên đường này"
     reply = await gemini(
-      `Bạn là trợ lý sàn nhà đất NhaDat Radar. Người dùng hỏi: "${last}".\nHệ thống tìm được:\n${summary}\n\nViết 1-2 câu tiếng Việt thân thiện giới thiệu kết quả (KHÔNG liệt kê lại - web đã hiển thị thẻ tin). Gợi ý tinh chỉnh nếu phù hợp.`,
+      `Bạn là trợ lý sàn nhà đất NhaDat Radar. Người dùng hỏi: "${last}".\nHệ thống tìm được:\n${summary}\n\n${
+        ghiChuNoi
+          ? `LƯU Ý: đây KHÔNG phải kết quả khớp đúng - ${ghiChuNoi}. Nói rõ điều đó trong câu đầu.`
+          : "Đây là các tin KHỚP ĐÚNG yêu cầu - KHÔNG được nói là không có hay chưa có."
+      }\nViết 1-2 câu tiếng Việt thân thiện giới thiệu kết quả (KHÔNG liệt kê lại - web đã hiển thị thẻ tin). Gợi ý tinh chỉnh nếu phù hợp.`,
       { json: false },
     );
-    reply ||= `Mình tìm được ${found.length} tin phù hợp, bạn xem bên dưới nhé! Bấm ♥ để lưu tin.`;
+    reply ||= ghiChuNoi
+      ? `Mình ${ghiChuNoi.replace(/^không/, "không tìm thấy")}. Bạn xem thử bên dưới nhé!`
+      : `Mình tìm được ${found.length} tin phù hợp, bạn xem bên dưới nhé! Bấm ♥ để lưu tin.`;
     const rhDau = found.find((x) => x.source === "ro_hang");
     if (rhDau) reply += `
 
