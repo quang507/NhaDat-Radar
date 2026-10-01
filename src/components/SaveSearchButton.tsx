@@ -30,7 +30,7 @@ export default function SaveSearchButton({ filters, compact = false }: { filters
 
   const tomTat = [
     filters.deal === "cho_thue" ? "Cho thuê" : filters.deal === "ban" ? "Mua bán" : "Mua bán & cho thuê",
-    filters.kind ? (PROP as Record<string, string>)[filters.kind] : "mọi loại nhà đất",
+    filters.kind ? filters.kind.split(",").map((k) => (PROP as Record<string, string>)[k] || k).join(", ") : "mọi loại nhà đất",
     [filters.ward, filters.district, filters.province].filter(Boolean).join(", ") || null,
     filters.priceMax ? `dưới ${giaNgan(filters.priceMax)}` : filters.priceMin ? `từ ${giaNgan(filters.priceMin)}` : null,
     filters.areaMin ? `≥ ${filters.areaMin} m²` : null,

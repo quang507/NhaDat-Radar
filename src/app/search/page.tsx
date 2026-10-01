@@ -65,6 +65,9 @@ const layDuAn = unstable_cache(
   { revalidate: 3600 },
 );
 
+/** "nha,can_ho" -> ["nha","can_ho"]; chỉ nhận mã loại hợp lệ, tối đa 6 */
+const dsLoai = (kind?: string) => String(kind || "").split(",").map((k) => k.trim()).filter((k) => /^[a-z_]{2,20}$/.test(k)).slice(0, 6);
+
 const KHOA_LOC = ["deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "bathrooms", "ti", "project", "street", "anh", "gan", "bk", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
 const timKiemCoCache = unstable_cache(
   async (sp: Record<string, string | undefined>) => {
@@ -79,13 +82,16 @@ const timKiemCoCache = unstable_cache(
   const clean = (s: string) => s.replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
   // Bộ lọc dùng chung cho danh sách + đếm (cùng điều kiện)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any }>(query: T): T => {
+  const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any; in: any }>(query: T): T => {
     if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
     if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
     // ?agent=<uuid> từ nút "Xem tin đăng" trang /agents - trước đây link đó truyền ?q=<tên
     // người bán> mà q chỉ tìm trong tiêu đề/địa chỉ nên luôn 0 kết quả
     if (agent && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agent)) query = query.eq("agent_id", agent);
-    if (kind) query = query.eq("kind", kind);
+    // kind có thể là danh sách "nha,can_ho" (bộ lọc mua bán tick nhiều loại, 1/10)
+    const kinds = dsLoai(kind);
+    if (kinds.length === 1) query = query.eq("kind", kinds[0]);
+    else if (kinds.length > 1) query = query.in("kind", kinds);
     // Công tắc "Địa chỉ mới sau sáp nhập" BẬT -> lọc theo địa giới 2025: chọn "Hồ Chí Minh"
     // thì trả về CẢ tin còn ghi "Bình Dương" / "Bà Rịa - Vũng Tàu", vì nguồn vẫn dùng tên tỉnh cũ.
     // TẮT (mặc định) -> đúng tên tỉnh như nguồn ghi, giữ thói quen tìm của thị trường.
@@ -201,7 +207,7 @@ export default async function SearchPage({
     province: tinhDH,
     kinds: Object.entries(nutLoai?.kinds || {}).map(([k, c]) => [k, demDeal(c)] as [string, number]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]),
     districts: Object.entries(nutTinh.districts)
-      .map(([d, c]) => [d, kind ? demDeal(c.kinds[kind]) : demDeal(c)] as [string, number])
+      .map(([d, c]) => [d, kind ? dsLoai(kind).reduce((n, k) => n + demDeal(c.kinds[k]), 0) : demDeal(c)] as [string, number])
       .filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]),
   } : null;
 
