@@ -68,12 +68,13 @@ export function tronRoHang<T extends { id: string }>(roHang: T[], khac: T[], moi
 
 /**
  * Link mở phòng gốc trên app EvoHome (1/10, chỉ admin thấy ở trang chi tiết tin).
- * Đường dẫn trang chi tiết 1 phòng bên EvoHome CHƯA xác minh (cần đăng nhập mới xem được) ->
- * đặt biến môi trường EVOHOME_UNIT_URL dạng ".../{id}" ({id} = id phòng EvoHome = source_post_id).
- * Chưa đặt thì mở trang danh sách phòng trống, admin tra theo số phòng / toà nhà hiện kèm.
+ * Mẫu lấy từ URL thật khi bấm 1 phòng trên EvoHome: trang danh sách + "&sheet=transaction-unit:<id>:detail"
+ * mở bảng chi tiết phòng bên phải (<id> = id phòng EvoHome = source_post_id). Cần đăng nhập EvoHome.
+ * EVOHOME_UNIT_URL (có "{id}") để đổi mẫu nếu EvoHome đổi đường dẫn.
  */
+const DS_PHONG_EVOHOME = "https://app.evohome.it.com/re-selling-dashboard/real-estate/transaction-units?adminMode=old&status=VACANT&type=ROOM&view=all";
 export function linkGocEvohome(sourcePostId: string | null | undefined) {
-  const mau = process.env.EVOHOME_UNIT_URL;
-  if (mau && sourcePostId) return mau.replace("{id}", encodeURIComponent(sourcePostId));
-  return "https://app.evohome.it.com/re-selling-dashboard/real-estate/transaction-units?adminMode=old&status=VACANT&type=ROOM&view=all";
+  if (!sourcePostId) return DS_PHONG_EVOHOME;
+  const mau = process.env.EVOHOME_UNIT_URL || `${DS_PHONG_EVOHOME}&sheet=transaction-unit%3A{id}%3Adetail`;
+  return mau.replace("{id}", encodeURIComponent(sourcePostId));
 }
