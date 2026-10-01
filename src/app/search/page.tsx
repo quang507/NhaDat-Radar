@@ -11,6 +11,7 @@ import { tinhCuGopVao } from "@/lib/sap-nhap";
 import SearchClient, { type DieuHuong } from "./SearchClient";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang } from "@/lib/ro-hang";
+import { docTienIch, dieuKienTienIch } from "@/lib/tien-ich";
 
 // /search KHÔNG tham số là trang có ích (điểm vào bộ lọc) -> để index.
 // /search?... là vô số tổ hợp nội dung mỏng/trùng với trang khu vực -> noindex, follow (23/9).
@@ -39,10 +40,36 @@ const TRUONG_THE = ["id", "source", "source_site", "source_count", "source_sites
 const chiTruongThe = (x: Listing) =>
   Object.fromEntries(TRUONG_THE.filter((k) => x[k as keyof Listing] != null).map((k) => [k, x[k as keyof Listing]])) as unknown as Listing;
 
-const KHOA_LOC = ["deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
+/** ?gan=lat,lng&bk=km -> tâm + nửa cạnh khung (độ); null nếu sai định dạng. Bán kính 0,5-20 km, mặc định 2 km */
+function toaDoGan(gan?: string, bk?: string) {
+  const m = String(gan || "").match(/^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat = Number(m[1]), lng = Number(m[2]);
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  const km = Math.min(20, Math.max(0.5, Number(bk) || 2));
+  return { lat, lng, km, dLat: km / 111.32, dLng: km / (111.32 * Math.cos((lat * Math.PI) / 180)) };
+}
+function kmGiua(a: { lat: number; lng: number }, lat: number, lng: number) {
+  const r = Math.PI / 180, dLat = (lat - a.lat) * r, dLng = (lng - a.lng) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(lat * r) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
+// danh sách dự án cho ô "Chọn dự án..." (đổi rất ít -> cache 1 giờ)
+const layDuAn = unstable_cache(
+  async () => {
+    const { data } = await createAnonClient().from("projects").select("id,name").eq("status", "published").order("name").limit(500);
+    return (data ?? []) as { id: string; name: string }[];
+  },
+  ["search-du-an"],
+  { revalidate: 3600 },
+);
+
+const KHOA_LOC = ["deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "bathrooms", "ti", "project", "street", "anh", "gan", "bk", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
 const timKiemCoCache = unstable_cache(
   async (sp: Record<string, string | undefined>) => {
-  const { kind, province, district, ward, priceMin, priceMax, areaMin, areaMax, bedrooms, q, sort, own, legal, direction, newAddr, agent } = sp;
+  const { kind, province, district, ward, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, ti, project, street, anh, q, sort, own, legal, direction, newAddr, agent } = sp;
+  const tam = toaDoGan(sp.gan, sp.bk);
   // URL có lọc giá mà không có deal (dán tay / link cũ): hiểu theo thang tỷ như UI đang hiện
   // (SearchClient.push cũng ép vậy) - không thì mọi tin thuê đều lọt lưới "dưới X tỷ".
   const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : priceMin || priceMax ? "ban" : undefined;
@@ -52,7 +79,7 @@ const timKiemCoCache = unstable_cache(
   const clean = (s: string) => s.replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
   // Bộ lọc dùng chung cho danh sách + đếm (cùng điều kiện)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const applyFilters = <T extends { eq: any; ilike: any; gte: any; lte: any; or: any }>(query: T): T => {
+  const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any }>(query: T): T => {
     if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
     if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
     // ?agent=<uuid> từ nút "Xem tin đăng" trang /agents - trước đây link đó truyền ?q=<tên
@@ -78,6 +105,15 @@ const timKiemCoCache = unstable_cache(
     if (areaMin && !Number.isNaN(Number(areaMin))) query = query.gte("area_m2", Number(areaMin));
     if (areaMax && !Number.isNaN(Number(areaMax))) query = query.lte("area_m2", Number(areaMax));
     if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
+    if (bathrooms && !Number.isNaN(Number(bathrooms))) query = query.gte("bathrooms", Number(bathrooms));
+    // 1/10 bộ lọc kiểu EvoHome: tiện ích (mỗi cái 1 nhóm OR, các nhóm AND với nhau - lib/tien-ich),
+    // dự án, tên đường, có/không ảnh, bán kính quanh 1 điểm (link Google Maps)
+    for (const t of docTienIch(ti)) query = query.or(dieuKienTienIch(t));
+    if (project && /^[0-9a-f-]{36}$/i.test(project)) query = query.eq("project_id", project);
+    if (street && clean(street)) query = query.ilike("address", `%${clean(street)}%`);
+    if (anh === "co") query = query.neq("images", "{}");
+    else if (anh === "khong") query = query.eq("images", "{}");
+    if (tam) query = query.gte("lat", tam.lat - tam.dLat).lte("lat", tam.lat + tam.dLat).gte("lng", tam.lng - tam.dLng).lte("lng", tam.lng + tam.dLng);
     // bộ lọc nâng cao (NN/g #7): pháp lý & hướng - khớp chuỗi mềm vì nguồn ghi tự do ("Sổ hồng riêng", "Đông Nam")
     if (legal) query = query.ilike("legal_status", `%${clean(legal)}%`);
     // cả cụm ("Tây Nam"), không cắt lấy chữ đầu - split(" ")[0] làm "Tây Nam" lọc thành
@@ -95,7 +131,7 @@ const timKiemCoCache = unstable_cache(
   let query = applyFilters(supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published"));
   // 28/9: sắp xếp MẶC ĐỊNH thì rổ hàng Radar truy vấn riêng, trộn 2:1 với tin còn lại (lib/ro-hang).
   // Người dùng chủ động chọn sắp xếp theo giá/diện tích... thì tôn trọng thứ tự đó, không trộn.
-  const tronMacDinh = !sort || !["price_asc", "price_desc", "ppm2_asc", "ppm2_desc", "area_asc", "area_desc", "score"].includes(sort);
+  const tronMacDinh = !tam && (!sort || !["price_asc", "price_desc", "ppm2_asc", "ppm2_desc", "area_asc", "area_desc", "score"].includes(sort));
 
   // "N tin mới hôm nay" (kiểu Homigo): tin Radar thấy lần đầu từ 0h hôm nay theo giờ VN, cùng bộ lọc
   const newTodayQuery = applyFilters(
@@ -124,10 +160,16 @@ const timKiemCoCache = unstable_cache(
       : Promise.resolve({ data: [] as Listing[] }),
   ]);
   // làm gọn cho trang danh sách: mô tả 220 ký tự, tối đa 4 ảnh (lib/img) - trang từng nặng 589 KB
-  const listings = tronRoHang((rhData ?? []) as Listing[], (data ?? []) as Listing[]).slice(0, 200).map(cheTinDocQuyen).map(gonChoDanhSach).map(chiTruongThe);
+  let gop = tronRoHang((rhData ?? []) as Listing[], (data ?? []) as Listing[]);
+  // lọc theo khoảng cách: khung vuông ở DB -> cắt đúng bán kính + xếp gần trước (sắp xếp khác vẫn tôn trọng)
+  if (tam) {
+    gop = gop.filter((x) => x.lat != null && x.lng != null && kmGiua(tam, x.lat!, x.lng!) <= tam.km);
+    if (!sort) gop.sort((a, b) => kmGiua(tam, a.lat!, a.lng!) - kmGiua(tam, b.lat!, b.lng!));
+  }
+  const listings = gop.slice(0, 200).map(cheTinDocQuyen).map(gonChoDanhSach).map(chiTruongThe);
   return { listings, newToday: newToday ?? 0, total: totalCount ?? listings.length };
   },
-  ["search-v2"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9)
+  ["search-v3"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9)
   { revalidate: 300, tags: ["listings"] },
 );
 
@@ -142,7 +184,7 @@ export default async function SearchPage({
   // khoá cache chỉ gồm tham số lọc (bỏ utm/fbclid... để không mỗi link quảng cáo là một bản cache riêng)
   const loc = Object.fromEntries(KHOA_LOC.filter((k) => sp[k]).map((k) => [k, sp[k]!.slice(0, 120)]));
   // cây Tỉnh -> Quận -> Phường: dùng bản cache 10' (lib/geo) thay vì select 2.000 dòng mỗi request
-  const [{ listings, newToday, total: totalCount }, areas] = await Promise.all([timKiemCoCache(loc), getAreas()]);
+  const [{ listings, newToday, total: totalCount }, areas, duAn] = await Promise.all([timKiemCoCache(loc), getAreas(), layDuAn()]);
   const geo = areas.geo;
 
   // ĐIỀU HƯỚNG KHU VỰC (29/9, kiểu Mogi "Quận 1 (1.629)"): tính sẵn ở server từ bảng đếm đã cache
@@ -164,5 +206,5 @@ export default async function SearchPage({
   } : null;
 
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL
-  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday} total={totalCount} dieuHuong={dieuHuong} />;
+  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday} total={totalCount} dieuHuong={dieuHuong} duAn={duAn} />;
 }
