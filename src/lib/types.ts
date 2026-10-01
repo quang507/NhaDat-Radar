@@ -34,6 +34,7 @@ export type Listing = {
   so_anh?: number;
   /** tin có video (đã tách khỏi images khi làm gọn cho danh sách) */
   co_video?: boolean;
+  ti?: string[];          // khoá tiện ích đã nhận ra (server tính, thẻ phòng cho thuê - lib/tien-ich tienIchCua)
   contact_name: string | null;
   contact_phone: string | null;
   ai_score: number | null;

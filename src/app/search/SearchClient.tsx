@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import ListingRow from "@/components/ListingRow";
+import ThePhong from "@/components/ThePhong";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
@@ -80,13 +81,15 @@ const tuParams = (p: Record<string, string | undefined>): BoLoc =>
   Object.fromEntries(O_LOC.map((k) => [k, p[k] || ""])) as BoLoc;
 
 export default function SearchClient({
-  listings, geo, params, newToday = 0, total, dieuHuong = null, duAn = [],
+  listings, geo, params, newToday = 0, total, trang = 1, moiTrang = 20, dieuHuong = null, duAn = [],
 }: {
   listings: Listing[];
   geo: GeoTree;
   params: Record<string, string | undefined>;
   newToday?: number; // số tin Radar thấy lần đầu từ 0h hôm nay (cùng bộ lọc)
-  total?: number;    // tổng thật theo bộ lọc (danh sách chỉ tải 200)
+  total?: number;    // tổng thật theo bộ lọc
+  trang?: number;    // trang đang xem (phân trang ở server, 1/10)
+  moiTrang?: number; // số tin mỗi trang
   dieuHuong?: DieuHuong | null; // loại + quận kèm số tin của 1 tỉnh (server tính, xem search/page.tsx)
   duAn?: { id: string; name: string }[]; // ô "Chọn dự án..."
 }) {
@@ -138,19 +141,23 @@ export default function SearchClient({
   // (21/8): nguồn không trang nào khác có = hàng bán được, cho đứng vị trí đẹp nhất.
   // locDocQuyen ưu tiên tin ZALO trước FB - lý do "lúc thấy lúc không" trước đây là FB đông
   // hơn chiếm hết 6 slot. Phần độc quyền còn lại nằm chung danh sách.
-  const docQuyen = useMemo(() => locDocQuyen(display, 6), [display]);
+  // dải độc quyền chỉ ở trang 1 - các trang sau là danh sách thường (mỗi trang chỉ có 20 tin của chính nó)
+  const docQuyen = useMemo(() => (trang === 1 ? locDocQuyen(display, 6) : []), [display, trang]);
   const conLai = useMemo(() => {
     const idsTrenDai = new Set(docQuyen.map((x) => x.id));
     return display.filter((x) => !idsTrenDai.has(x.id));
   }, [display, docQuyen]);
 
-  // Phân trang kiểu batdongsan: 20 tin/trang, đổi lọc thì về trang 1 (dải độc quyền đứng
-  // ngoài phân trang - luôn hiện ở mọi trang)
-  const PER_PAGE = 20;
-  const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(conLai.length / PER_PAGE);
-  useEffect(() => { setPage(1); }, [listings]);
-  useEffect(() => { if (page > 1) window.scrollTo({ top: 0, behavior: "smooth" }); }, [page]);
+  // PHÂN TRANG THẬT (1/10): server chỉ gửi 20 tin của trang đang xem (?page=n), nút trang là link thật
+  // (bot đi theo được, Back/Forward đúng). Đổi bộ lọc/sắp xếp thì push() bỏ page -> về trang 1.
+  const pathname = usePathname();
+  const totalPages = Math.min(500, Math.max(1, Math.ceil((total ?? listings.length) / moiTrang)));
+  const linkTrang = (n: number) => {
+    const usp = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v && k !== "page") usp.set(k, v);
+    if (n > 1) usp.set("page", String(n));
+    return pathname + (usp.size ? "?" + usp.toString() : "");
+  };
 
   // Popup bộ lọc mở -> khoá cuộn trang nền, Esc để đóng
   useEffect(() => {
@@ -216,6 +223,29 @@ export default function SearchClient({
   const pageTitle = `${dealWord} ${kindWord}${locWord ? " " + locWord : " toàn quốc"}`;
 
   const muaBan = goc.deal === "ban"; // mua bán: bộ lọc kiểu batdongsan; cho thuê / gộp: kiểu EvoHome
+  const choThue = goc.deal === "cho_thue"; // cho thuê: thẻ phòng dạng lưới kiểu EvoHome (ThePhong)
+  // dải nút trang: link thật ?page=n (kiểu EvoHome: cho thuê hiện cả trên lẫn dưới danh sách)
+  const phanTrang = (lop: string) => totalPages > 1 && (
+    <nav className={`flex items-center justify-center gap-1.5 ${lop}`} aria-label="Phân trang">
+      {trang > 1
+        ? <Link className="btn !px-3 text-sm" href={linkTrang(trang - 1)} rel="prev" aria-label="Trang trước">‹</Link>
+        : <span className="btn !px-3 text-sm opacity-40" aria-hidden>‹</span>}
+      {Array.from({ length: totalPages }, (_, i) => i + 1)
+        .filter((n) => n === 1 || n === totalPages || Math.abs(n - trang) <= 2)
+        .map((n, i, arr) => (
+          <span key={n} className="flex items-center gap-1.5">
+            {i > 0 && arr[i - 1] !== n - 1 && <span className="text-[var(--ink-faint)]">…</span>}
+            <Link
+              className={`btn !px-3.5 text-sm ${n === trang ? "!bg-brand !text-white !border-brand" : ""}`}
+              href={linkTrang(n)} aria-label={`Trang ${n}`} aria-current={n === trang ? "page" : undefined}
+            >{n}</Link>
+          </span>
+        ))}
+      {trang < totalPages
+        ? <Link className="btn !px-3 text-sm" href={linkTrang(trang + 1)} rel="next" aria-label="Trang sau">›</Link>
+        : <span className="btn !px-3 text-sm opacity-40" aria-hidden>›</span>}
+    </nav>
+  );
   const dauTrang = (
     <>
       {/* ===== Breadcrumb ===== */}
@@ -237,7 +267,7 @@ export default function SearchClient({
           </p>
           <p className="hidden sm:block text-xs text-[var(--ink-soft)] mt-0.5">
             {newToday > 0 ? <><b className="text-emerald-600">{newToday.toLocaleString("vi-VN")} tin mới hôm nay</b> · </> : null}
-            Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{(total ?? 0) > listings.length ? ` (đang hiển thị ${listings.length} tin mới nhất - thu hẹp bộ lọc để xem đúng phần bạn cần)` : ""}.
+            Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{totalPages > 1 ? ` · trang ${trang}/${totalPages.toLocaleString("vi-VN")}` : ""}.
           </p>
           {/* Nói rõ vì sao lọc "Hồ Chí Minh" lại ra tin ghi Bình Dương - không thì khách tưởng lọc sai */}
           {newAddr && gomThem.length > 0 && (
@@ -340,6 +370,18 @@ export default function SearchClient({
         <>
           {dauTrang}
           {thanhTim}
+      {/* "Chế độ xem: [Danh sách] [Bản đồ]" như EvoHome - bản đồ chỉ có ở màn lg+ (xem MapResults) */}
+      {choThue && (
+        <div className="hidden lg:flex items-center gap-3 mb-3 text-sm">
+          <span className="text-xs font-semibold text-[var(--ink-soft)]">Chế độ xem</span>
+          <div className="flex rounded-lg border border-[var(--line-strong)] overflow-hidden">
+            {([[false, "▦ Danh sách"], [true, "📍 Bản đồ"]] as const).map(([v, l]) => (
+              <button key={l} type="button" aria-pressed={showMap === v} onClick={() => setShowMap(v)}
+                className={`h-9 px-4 font-semibold transition ${showMap === v ? "bg-brand text-white" : "bg-[var(--surface)] hover:bg-[var(--surface-2)]"}`}>{l}</button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* ===== BỘ LỌC KIỂU EVOHOME (1/10) =====
           Hàng 1: chip xổ xuống Mua/thuê · Loại · Diện tích · Giá (+ nhãn khoảng ✕) · Sắp xếp · Bộ lọc (n)
           Hàng 2: tick tiện ích · Hàng 3: dự án · Hàng 4: tỉnh + công tắc · dải quận · Hàng 5: tên đường
@@ -646,28 +688,12 @@ export default function SearchClient({
         <div className="min-w-0">
           {display.length ? (
             <>
-              <DaiDocQuyen listings={display} />
-              <div className="flex flex-col gap-3">
-                {conLai.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((x) => <ListingRow key={x.id} x={x} />)}
+              {trang === 1 && <DaiDocQuyen listings={display} />}
+              {choThue && phanTrang("mb-3")}
+              <div className={choThue ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" : "flex flex-col gap-3"}>
+                {conLai.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-1.5 mt-5">
-                  <button className="btn !px-3 text-sm" disabled={page <= 1} aria-label="Trang trước" onClick={() => setPage((p) => p - 1)}>‹</button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 2)
-                    .map((n, i, arr) => (
-                      <span key={n} className="flex items-center gap-1.5">
-                        {i > 0 && arr[i - 1] !== n - 1 && <span className="text-[var(--ink-faint)]">…</span>}
-                        <button
-                          className={`btn !px-3.5 text-sm ${n === page ? "!bg-brand !text-white !border-brand" : ""}`}
-                          aria-label={`Trang ${n}`} aria-current={n === page ? "page" : undefined}
-                          onClick={() => setPage(n)}
-                        >{n}</button>
-                      </span>
-                    ))}
-                  <button className="btn !px-3 text-sm" disabled={page >= totalPages} aria-label="Trang sau" onClick={() => setPage((p) => p + 1)}>›</button>
-                </div>
-              )}
+              {phanTrang("mt-5")}
             </>
           ) : (
             <div className="card rounded-lg p-10 text-center">
