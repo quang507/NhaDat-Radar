@@ -38,6 +38,10 @@ export function docTienIch(s: string | null | undefined): TienIch[] {
 /** chuỗi điều kiện .or() PostgREST cho 1 tiện ích (các cụm từ không chứa ký tự đặc biệt của .or) */
 export function dieuKienTienIch(t: TienIch) {
   const dk = t.tu.flatMap((w) => [`description.ilike.%${w}%`, `title.ilike.%${w}%`]);
+  dk.unshift(`amenities.cs.{${t.k}}`);   // rổ hàng lưu thẳng khoá này (evohome-fetch.mjs)
   if (t.am) dk.unshift(`amenities.cs.{${t.am}}`);
   return dk.join(",");
 }
+
+/** nhãn hiển thị cho khoá tiện ích kiểu mới ("dieu_hoa" -> "❄ Điều hòa"); khoá lạ -> null */
+export const nhanTienIch = (k: string) => { const t = THEO_KHOA.get(k); return t ? `${t.icon} ${t.ten}` : null; };

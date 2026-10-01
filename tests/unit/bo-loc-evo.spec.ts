@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { toaDoTuLink, laHostMaps } from "../../src/lib/maps-link";
-import { docTienIch, dieuKienTienIch } from "../../src/lib/tien-ich";
+import { docTienIch, dieuKienTienIch, nhanTienIch } from "../../src/lib/tien-ich";
 import { linkGocEvohome } from "../../src/lib/ro-hang";
 
 // Bộ lọc kiểu EvoHome (1/10): đọc toạ độ từ link Google Maps, tiện ích, link gốc EvoHome cho admin.
@@ -25,6 +25,9 @@ test("tiện ích: đọc tham số ti + dựng điều kiện .or()", () => {
   const dk = dieuKienTienIch(docTienIch("dieu_hoa")[0]);
   expect(dk).toContain("amenities.cs.{ac}");
   expect(dk).toContain("description.ilike.%máy lạnh%");
+  expect(dk).toContain("amenities.cs.{dieu_hoa}");   // khoá rổ hàng lưu thẳng
+  expect(nhanTienIch("dieu_hoa")).toBe("❄ Điều hòa");
+  expect(nhanTienIch("la")).toBeNull();
   // ký tự phá cú pháp .or() không được có trong cụm từ
   for (const t of docTienIch("dieu_hoa,nuoc_nong,tu_lanh,tivi,may_giat,tu_quan_ao,giuong,ban_cong,thang_may,de_xe,thu_cung,san_phoi,gieng_troi,xe_dien,an_ninh,chu_chung,gac_lung,bon_rua,cua_so,ke_bep"))
     for (const w of t.tu) expect(w, w).not.toMatch(/[,()%_*]/);

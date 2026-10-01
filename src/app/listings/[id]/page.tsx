@@ -32,6 +32,7 @@ import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong, linkGocEvohome } from "@/lib/ro-hang";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import ChiaSe from "@/components/ChiaSe";
@@ -517,7 +518,7 @@ export default async function ListingDetail({
               <div className="flex flex-wrap gap-2 text-sm">
                 {x.amenities.map((a) => (
                   <span key={a} className="px-2.5 py-1 rounded-lg border border-[var(--line)] bg-[var(--bg)]">
-                    {AMEN[a] || a}
+                    {AMEN[a] || nhanTienIch(a) || a}
                   </span>
                 ))}
               </div>

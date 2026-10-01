@@ -91,6 +91,9 @@ try {
 console.log(`EvoHome: ${units.length} phòng trống`);
 if (units.length < TOI_THIEU) { console.error(`Quá ít (<${TOI_THIEU}) - giữ nguyên ${OUT} cũ`); process.exit(1); }
 
+const DA_MAP = new Set(["room_hasAirConditioner", "room_hasWashingMachine", "room_hasFridge", "room_hasKitchenShelf", "room_hasBed",
+  "room_hasWindow", "room_hasBalcony", "room_hasSkylight", "room_hasElevator"]);
+const TRUONG_LA = new Map();   // trường room_has* chưa map -> số phòng có
 // Chuẩn hoá về dạng trung gian mà ro-hang-evohome.mjs đọc (cùng khuôn file Antigravity 26/9)
 const out = units.map((u) => {
   const site = u.site || {};
@@ -105,6 +108,15 @@ const out = units.map((u) => {
     [u.room_hasBalcony, "Ban công"], [u.room_hasSkylight, "Giếng trời"], [u.roomGateLock === "FINGERPRINT", "Khóa vân tay"],
     [u.roomActivityHours === "FREE", "Giờ giấc tự do"], [u.room_security, "Camera an ninh"], [u.room_hasElevator, "Thang máy"],
   ].filter(([c]) => c).map(([, t]) => t);
+  // 1/10: khoá tiện ích cho bộ lọc web (src/lib/tien-ich.ts TIEN_ICH.k). Chỉ map các trường EvoHome đã
+  // biết tên; trường room_has* lạ thì đếm ở TRUONG_LA để in cuối lượt -> bổ sung map sau, không đoán tên.
+  const ti = [
+    [u.room_hasAirConditioner, "dieu_hoa"], [u.room_hasWashingMachine, "may_giat"], [u.room_hasFridge, "tu_lanh"],
+    [u.room_hasKitchenShelf, "ke_bep"], [u.room_hasBed, "giuong"], [u.room_hasWindow, "cua_so"],
+    [u.room_hasBalcony, "ban_cong"], [u.room_hasSkylight, "gieng_troi"], [u.roomGateLock === "FINGERPRINT", "an_ninh"],
+    [u.room_security, "an_ninh"], [u.room_hasElevator, "thang_may"], [u.roomType === "DUPLEX", "gac_lung"],
+  ].filter(([c]) => c).map(([, k]) => k);
+  for (const [k, v] of Object.entries(u)) if (/^room_has/.test(k) && v && !DA_MAP.has(k)) TRUONG_LA.set(k, (TRUONG_LA.get(k) || 0) + 1);
   const moTa = [
     `🏠 Cho thuê ${loai} tại ${site.name || ""}, ${phuong ? phuong + ", " : ""}${quan}, TP.HCM.`,
     `• Diện tích: ${dt ? dt + " m²" : "Rộng rãi thoáng mát"}`,
@@ -131,6 +143,7 @@ const out = units.map((u) => {
     lat: site.latitude ?? null,
     lng: site.longitude ?? null,
     images: (u.mediaFiles || []).map((m) => m.mediaFile?.url).filter(Boolean),
+    amenities: [...new Set(ti)],
     specs: {
       "Loại phòng": loai,
       "Số phòng": u.name || "-",
@@ -142,6 +155,7 @@ const out = units.map((u) => {
     },
   };
 });
+if (TRUONG_LA.size) console.log("Trường tiện ích EvoHome chưa map (thêm vào biến ti):", Object.fromEntries(TRUONG_LA));
 fs.mkdirSync("crawler/private", { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(out));
 console.log(`✓ Ghi ${out.length} phòng -> ${OUT}`);
