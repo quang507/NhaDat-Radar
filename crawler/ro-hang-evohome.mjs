@@ -6,8 +6,8 @@
 // để trong crawler/private/ (gitignore - repo PUBLIC mà file có số nhà thật + hoa hồng).
 //
 // Quy tắc bán hàng áp khi đưa lên web (bảng listings đọc công khai):
-//   A. Che số nhà: "166 Nguyễn Thái Sơn" -> "Gần số 160 Nguyễn Thái Sơn"; hẻm "588/37 Huỳnh Tấn Phát"
-//      -> "Hẻm gần số 580 Huỳnh Tấn Phát". Toạ độ lệch ~50-75 m, lệch THEO TOÀ NHÀ (mọi phòng cùng toà
+//   A. Che số nhà kiểu EvoHome (1/10): hẻm "86/23/2 Thích Quảng Đức" -> "86/•• Thích Quảng Đức";
+//      mặt tiền "166 Nguyễn Thái Sơn" -> "16• Nguyễn Thái Sơn" (che-dia-chi.mjs). Toạ độ lệch ~50-75 m, lệch THEO TOÀ NHÀ (mọi phòng cùng toà
 //      cùng một điểm) - lệch từng phòng một hướng khác nhau thì lấy trung bình các ghim là ra nhà thật.
 //   B. Không ghi thời hạn hợp đồng; cuối mô tả là câu mời xem phòng + thương lượng trực tiếp.
 //   D. Không link bài gốc (source_url null), không hoa hồng/số phòng; SĐT duy nhất là hotline Radar.
@@ -20,6 +20,7 @@ import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { smartGeocode, LOI } from "./geo.mjs";
 import { hash31, laAnh, laVideo } from "./chung.mjs";
+import { cheDiaChi } from "./che-dia-chi.mjs";
 
 const PARTNER = "evohome";
 const HOTLINE = "0346689460";
@@ -32,28 +33,8 @@ console.log(`Rổ hàng ${PARTNER}: ${src.length} phòng trong ${FILE}`);
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const sb = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
 
-// ---- A. che số nhà --------------------------------------------------------------------------
+// ---- A. che số nhà: chỉ che phần nhỏ nhất kiểu EvoHome ("86/23/2" -> "86/••") - che-dia-chi.mjs ----
 const gon = (s) => String(s || "").replace(/\s+,/g, ",").replace(/\s+/g, " ").trim();
-const lamTron = (n) => { const r = Math.floor(n / 10) * 10; return r === n ? Math.max(r - 10, 0) : r; };
-
-/** "166 Nguyễn Thái Sơn" -> "Gần số 160 Nguyễn Thái Sơn" (xem đầu file).
- *  Số nhà VN rất tạp: "18-20", "7A1", "90Bis", "886/39A-886/39B", "01-02 F2 Đường DN4" -> bóc CẢ CỤM
- *  token đầu có chữ số (chỉ gồm chữ/số/"/"/"-"), phần còn lại là tên đường. Không ra tên đường -> "". */
-export function cheDiaChi(dauDiaChi) {
-  const toks = gon(dauDiaChi).split(" ");
-  let hem = false;
-  if (/^(hẻm|hem|h\.)$/i.test(toks[0])) { hem = true; toks.shift(); }
-  else if (/^(số|so)$/i.test(toks[0])) toks.shift();
-  const cumSo = [];
-  while (toks.length && /\d/.test(toks[0]) && /^[\w/-]+$/.test(toks[0])) cumSo.push(toks.shift());
-  const duong = gon(toks.join(" "));
-  if (!duong) return "";
-  if (!cumSo.length) return /\d/.test(duong.split(" ")[0]) ? "" : `Khu vực ${duong}`;
-  hem ||= cumSo.some((t) => t.includes("/"));
-  const so = Number((cumSo[0].match(/\d+/) || ["0"])[0]);
-  if (so < 20) return `${hem ? "Hẻm đầu đường" : "Đầu đường"} ${duong}`;
-  return `${hem ? "Hẻm gần số" : "Gần số"} ${lamTron(so)} ${duong}`;
-}
 
 function lechToaDo(lat, lng, hatGiong) {
   const h = Math.abs(hash31(hatGiong));
@@ -145,7 +126,7 @@ for (const x of src) {
   const lech = that ? lechToaDo(that.lat, that.lng, `${PARTNER}|${dauDiaChi.toLowerCase()}`) : null;
 
   // B. mô tả: bỏ hợp đồng + khối liên hệ/SĐT, thay số nhà bằng bản che, chốt bằng câu mời xem phòng
-  const cheThuong = diaChiChe ? diaChiChe.charAt(0).toLowerCase() + diaChiChe.slice(1) : "khu vực";   // "tại gần số 160..."
+  const cheThuong = diaChiChe ? diaChiChe.charAt(0).toLowerCase() + diaChiChe.slice(1) : "khu vực";   // "tại 86/•• Thích Quảng Đức..."
   const moTa = String(x.description || "").split("\n")
     .filter((l) => !/hợp đồng|liên hệ|hotline|zalo|\d{9,}/i.test(l))
     .map(gon)   // nguồn hay có khoảng trắng kép -> không chuẩn hoá thì split theo địa chỉ trượt, lộ số nhà
