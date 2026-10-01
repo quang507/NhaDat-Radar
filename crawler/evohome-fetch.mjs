@@ -92,7 +92,9 @@ console.log(`EvoHome: ${units.length} phòng trống`);
 if (units.length < TOI_THIEU) { console.error(`Quá ít (<${TOI_THIEU}) - giữ nguyên ${OUT} cũ`); process.exit(1); }
 
 const DA_MAP = new Set(["room_hasAirConditioner", "room_hasWashingMachine", "room_hasFridge", "room_hasKitchenShelf", "room_hasBed",
-  "room_hasWindow", "room_hasBalcony", "room_hasSkylight", "room_hasElevator"]);
+  "room_hasWindow", "room_hasBalcony", "room_hasSkylight", "room_hasElevator",
+  // 1/10: 5 trường lượt nhập báo chưa map (nước nóng 433, tủ áo 1.030, nệm 752, thú cưng 617, tivi 71 phòng)
+  "room_hasWaterHeater", "room_hasWardrobe", "room_hasMattress", "room_hasPet", "room_hasTv"]);
 const TRUONG_LA = new Map();   // trường room_has* chưa map -> số phòng có
 // Chuẩn hoá về dạng trung gian mà ro-hang-evohome.mjs đọc (cùng khuôn file Antigravity 26/9)
 const out = units.map((u) => {
@@ -107,6 +109,8 @@ const out = units.map((u) => {
     [u.room_hasKitchenShelf, "Kệ bếp"], [u.room_hasBed, "Giường nệm"], [u.room_hasWindow, "Cửa sổ thoáng"],
     [u.room_hasBalcony, "Ban công"], [u.room_hasSkylight, "Giếng trời"], [u.roomGateLock === "FINGERPRINT", "Khóa vân tay"],
     [u.roomActivityHours === "FREE", "Giờ giấc tự do"], [u.room_security, "Camera an ninh"], [u.room_hasElevator, "Thang máy"],
+    [u.room_hasWaterHeater, "Nước nóng"], [u.room_hasWardrobe, "Tủ quần áo"], [u.room_hasMattress, "Nệm"],
+    [u.room_hasPet, "Cho nuôi thú cưng"], [u.room_hasTv, "Tivi"],
   ].filter(([c]) => c).map(([, t]) => t);
   // 1/10: khoá tiện ích cho bộ lọc web (src/lib/tien-ich.ts TIEN_ICH.k). Chỉ map các trường EvoHome đã
   // biết tên; trường room_has* lạ thì đếm ở TRUONG_LA để in cuối lượt -> bổ sung map sau, không đoán tên.
@@ -115,6 +119,8 @@ const out = units.map((u) => {
     [u.room_hasKitchenShelf, "ke_bep"], [u.room_hasBed, "giuong"], [u.room_hasWindow, "cua_so"],
     [u.room_hasBalcony, "ban_cong"], [u.room_hasSkylight, "gieng_troi"], [u.roomGateLock === "FINGERPRINT", "an_ninh"],
     [u.room_security, "an_ninh"], [u.room_hasElevator, "thang_may"], [u.roomType === "DUPLEX", "gac_lung"],
+    [u.room_hasWaterHeater, "nuoc_nong"], [u.room_hasWardrobe, "tu_quan_ao"], [u.room_hasMattress, "giuong"],
+    [u.room_hasPet, "thu_cung"], [u.room_hasTv, "tivi"],
   ].filter(([c]) => c).map(([, k]) => k);
   for (const [k, v] of Object.entries(u)) if (/^room_has/.test(k) && v && !DA_MAP.has(k)) TRUONG_LA.set(k, (TRUONG_LA.get(k) || 0) + 1);
   const moTa = [
