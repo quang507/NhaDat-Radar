@@ -45,3 +45,17 @@ export function dieuKienTienIch(t: TienIch) {
 
 /** nhãn hiển thị cho khoá tiện ích kiểu mới ("dieu_hoa" -> "❄ Điều hòa"); khoá lạ -> null */
 export const nhanTienIch = (k: string) => { const t = THEO_KHOA.get(k); return t ? `${t.icon} ${t.ten}` : null; };
+
+/**
+ * Tiện ích của 1 tin (hiện icon trên thẻ phòng kiểu EvoHome, 1/10): cùng luật khớp với bộ lọc -
+ * amenities chứa khoá mới/khoá cũ, HOẶC tiêu đề/mô tả có cụm từ. Tính ở server trên mô tả ĐẦY ĐỦ
+ * (trước khi gonChoDanhSach cắt còn 160 ký tự).
+ */
+export function tienIchCua(x: { title?: string | null; description?: string | null; amenities?: string[] | null }): string[] {
+  const chu = `${x.title || ""} ${x.description || ""}`.toLowerCase();
+  const am = new Set(x.amenities || []);
+  return TIEN_ICH.filter((t) => am.has(t.k) || (t.am && am.has(t.am)) || t.tu.some((w) => chu.includes(w))).map((t) => t.k);
+}
+
+/** khoá -> tiện ích (icon + tên) cho thẻ tin */
+export const tienIchTheoKhoa = (k: string) => THEO_KHOA.get(k);

@@ -21,7 +21,8 @@ for (const s of searches ?? []) {
   let q = sb.from("listings").select("id,title,price_vnd,deal,district,province,area_m2")
     .eq("status", "published").gt("first_seen_at", since).limit(10);
   if (s.deal) q = q.eq("deal", s.deal);
-  if (s.kind) q = q.eq("kind", s.kind);
+  // kind có thể là danh sách "nha,can_ho" (bộ lọc mua bán tick nhiều loại)
+  if (s.kind) { const ks = s.kind.split(",").filter(Boolean); q = ks.length > 1 ? q.in("kind", ks) : q.eq("kind", ks[0]); }
   if (s.province) q = q.ilike("province", `%${s.province}%`);
   // district so KHỚP CHÍNH XÁC như trang /search (DB đã chuẩn hoá qua canonDistrict):
   // substring thì "Quận 1" ăn cả Quận 10/11/12 - email trả tin mà vào web cùng bộ lọc lại
@@ -42,7 +43,7 @@ for (const s of searches ?? []) {
   ).join("");
   // nhãn tiếng Việt như popup đăng ký, không phơi mã enum "can_ho" ra subject email
   const KIND_VN = { nha: "Nhà", dat: "Đất", can_ho: "Căn hộ", mat_bang: "Mặt bằng", phong_tro: "Phòng trọ", khac: "BĐS khác" };
-  const criteria = [s.kind ? KIND_VN[s.kind] || s.kind : null, s.deal === "ban" ? "bán" : s.deal === "cho_thue" ? "cho thuê" : null, s.ward, s.district, s.province].filter(Boolean).join(" · ") || "tất cả";
+  const criteria = [s.kind ? s.kind.split(",").map((k) => KIND_VN[k] || k).join(", ") : null, s.deal === "ban" ? "bán" : s.deal === "cho_thue" ? "cho thuê" : null, s.ward, s.district, s.province].filter(Boolean).join(" · ") || "tất cả";
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 15000);

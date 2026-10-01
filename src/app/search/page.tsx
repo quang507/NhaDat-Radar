@@ -6,12 +6,12 @@ import { gonChoDanhSach } from "@/lib/img";
 import type { Listing } from "@/lib/types";
 import { canonDistrict, startOfDayVN } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
-import { LISTING_CARD_COLS } from "@/lib/cols";
+import { LISTING_SEARCH_COLS } from "@/lib/cols";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
 import SearchClient, { type DieuHuong } from "./SearchClient";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
-import { tronRoHang } from "@/lib/ro-hang";
-import { docTienIch, dieuKienTienIch } from "@/lib/tien-ich";
+import { oTronRoHang, xepTheoThuTu } from "@/lib/ro-hang";
+import { docTienIch, dieuKienTienIch, tienIchCua } from "@/lib/tien-ich";
 
 // /search KHÔNG tham số là trang có ích (điểm vào bộ lọc) -> để index.
 // /search?... là vô số tổ hợp nội dung mỏng/trùng với trang khu vực -> noindex, follow (23/9).
@@ -36,7 +36,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 // 3 mốc thời gian không hiển thị: 200 tin × ~8 trường thừa là cả trăm KB mỗi lượt xem.
 const TRUONG_THE = ["id", "source", "source_site", "source_count", "source_sites", "deal", "kind", "title", "description",
   "price_vnd", "area_m2", "price_per_m2", "bedrooms", "bathrooms", "province", "district", "lat", "lng", "images",
-  "so_anh", "co_video", "ai_score", "price_flag", "first_seen_at"] as const;
+  "so_anh", "co_video", "ti", "ai_score", "price_flag", "first_seen_at"] as const;
 const chiTruongThe = (x: Listing) =>
   Object.fromEntries(TRUONG_THE.filter((k) => x[k as keyof Listing] != null).map((k) => [k, x[k as keyof Listing]])) as unknown as Listing;
 
@@ -65,7 +65,16 @@ const layDuAn = unstable_cache(
   { revalidate: 3600 },
 );
 
-const KHOA_LOC = ["deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "bathrooms", "ti", "project", "street", "anh", "gan", "bk", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
+/** "nha,can_ho" -> ["nha","can_ho"]; chỉ nhận mã loại hợp lệ, tối đa 6 */
+const dsLoai = (kind?: string) => String(kind || "").split(",").map((k) => k.trim()).filter((k) => /^[a-z_]{2,20}$/.test(k)).slice(0, 6);
+
+// PHÂN TRANG THẬT (1/10): mỗi trang tải đúng 20 tin bằng .range() thay vì kéo 200 tin mới nhất rồi lật
+// trang ở trình duyệt - trước đó khách chỉ xem được 200/3.860 tin mua bán, HTML trang ~350-450 KB.
+const MOI_TRANG = 20;
+const TRANG_TOI_DA = 500;
+const soTrang = (p?: string) => Math.min(TRANG_TOI_DA, Math.max(1, parseInt(p || "1", 10) || 1));
+
+const KHOA_LOC = ["page", "deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "bathrooms", "ti", "project", "street", "anh", "gan", "bk", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
 const timKiemCoCache = unstable_cache(
   async (sp: Record<string, string | undefined>) => {
   const { kind, province, district, ward, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, ti, project, street, anh, q, sort, own, legal, direction, newAddr, agent } = sp;
@@ -79,13 +88,16 @@ const timKiemCoCache = unstable_cache(
   const clean = (s: string) => s.replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
   // Bộ lọc dùng chung cho danh sách + đếm (cùng điều kiện)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any }>(query: T): T => {
+  const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any; in: any }>(query: T): T => {
     if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
     if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
     // ?agent=<uuid> từ nút "Xem tin đăng" trang /agents - trước đây link đó truyền ?q=<tên
     // người bán> mà q chỉ tìm trong tiêu đề/địa chỉ nên luôn 0 kết quả
     if (agent && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agent)) query = query.eq("agent_id", agent);
-    if (kind) query = query.eq("kind", kind);
+    // kind có thể là danh sách "nha,can_ho" (bộ lọc mua bán tick nhiều loại, 1/10)
+    const kinds = dsLoai(kind);
+    if (kinds.length === 1) query = query.eq("kind", kinds[0]);
+    else if (kinds.length > 1) query = query.in("kind", kinds);
     // Công tắc "Địa chỉ mới sau sáp nhập" BẬT -> lọc theo địa giới 2025: chọn "Hồ Chí Minh"
     // thì trả về CẢ tin còn ghi "Bình Dương" / "Bà Rịa - Vũng Tàu", vì nguồn vẫn dùng tên tỉnh cũ.
     // TẮT (mặc định) -> đúng tên tỉnh như nguồn ghi, giữ thói quen tìm của thị trường.
@@ -128,7 +140,7 @@ const timKiemCoCache = unstable_cache(
   };
 
   // KHÔNG dùng select("*"): cột embedding vector(768) nặng ~15KB/dòng, 200 dòng = ~3MB vô ích (xem lib/cols)
-  let query = applyFilters(supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published"));
+  let query = applyFilters(supabase.from("listings").select(LISTING_SEARCH_COLS).eq("status", "published"));
   // 28/9: sắp xếp MẶC ĐỊNH thì rổ hàng Radar truy vấn riêng, trộn 2:1 với tin còn lại (lib/ro-hang).
   // Người dùng chủ động chọn sắp xếp theo giá/diện tích... thì tôn trọng thứ tự đó, không trộn.
   const tronMacDinh = !tam && (!sort || !["price_asc", "price_desc", "ppm2_asc", "ppm2_desc", "area_asc", "area_desc", "score"].includes(sort));
@@ -146,30 +158,51 @@ const timKiemCoCache = unstable_cache(
   else if (sort === "area_desc") query = query.order("area_m2", { ascending: false, nullsFirst: false });
   else if (sort === "score") query = query.order("ai_score", { ascending: false, nullsFirst: false });
   else query = query.order("first_seen_at", { ascending: false, nullsFirst: false }); // mặc định: crawl mới nhất trước
+  // khoá phụ theo id: rổ hàng nhập theo lô trùng first_seen_at -> không có khoá phụ thì Postgres trả thứ tự
+  // tuỳ ý mỗi lần, .range() trang 2 lặp lại tin của trang 1 (đo 1/10: 13/20 tin trùng)
+  query = query.order("id", { ascending: true });
 
   // tổng THẬT theo bộ lọc (UX audit: "200+" là cap của limit, người dùng không biết có 250 hay 5.000 tin)
   const totalQuery = applyFilters(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"));
-  // cây Tỉnh -> Quận -> Phường: dùng bản cache 10' (lib/geo) thay vì select 2.000 dòng mỗi request
-  const [{ data }, { count: newToday }, { count: totalCount }, { data: rhData }] = await Promise.all([
-    tronMacDinh ? query.neq("source", "ro_hang").limit(150) : query.limit(200),
-    newTodayQuery,
-    totalQuery,
-    tronMacDinh
-      ? applyFilters(supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published")).eq("source", "ro_hang")
-          .order("first_seen_at", { ascending: false, nullsFirst: false }).limit(100)
+  const trang = soTrang(sp.page);
+  const tu = (trang - 1) * MOI_TRANG;
+  // tiện ích (ti) tính trên mô tả đầy đủ TRƯỚC khi gonChoDanhSach cắt - thẻ phòng cho thuê hiện icon tiện ích
+  const gon = (ds: Listing[]) => ds.map((x) => (x.deal === "cho_thue" ? { ...x, ti: tienIchCua(x) } : x)).map(cheTinDocQuyen).map(gonChoDanhSach).map(chiTruongThe);
+
+  // Lọc theo khoảng cách: DB chỉ lọc được khung vuông -> vẫn tải tối đa 200 tin trong khung, cắt đúng
+  // bán kính + xếp gần trước ở đây, rồi mới chia trang (tổng = số tin thật sự trong bán kính).
+  if (tam) {
+    const [{ data }, { count: newToday }] = await Promise.all([query.limit(200), newTodayQuery]);
+    const gop = ((data ?? []) as Listing[]).filter((x) => x.lat != null && x.lng != null && kmGiua(tam, x.lat!, x.lng!) <= tam.km);
+    if (!sort) gop.sort((a, b) => kmGiua(tam, a.lat!, a.lng!) - kmGiua(tam, b.lat!, b.lng!));
+    return { listings: gon(gop.slice(tu, tu + MOI_TRANG)), newToday: newToday ?? 0, total: gop.length, trang };
+  }
+
+  // Sắp xếp chủ động (giá, diện tích, điểm...): lấy thẳng đoạn của trang
+  if (!tronMacDinh) {
+    const [{ data }, { count: newToday }, { count: total }] = await Promise.all([query.range(tu, tu + MOI_TRANG - 1), newTodayQuery, totalQuery]);
+    return { listings: gon((data ?? []) as Listing[]), newToday: newToday ?? 0, total: total ?? 0, trang };
+  }
+
+  // Mặc định: trộn rổ hàng 2:1 (lib/ro-hang). Đếm 2 bên trước -> biết trang này cần đoạn nào của mỗi bên
+  // (oTronRoHang) -> tải đúng 2 đoạn đó, nhịp trộn liền mạch qua các trang.
+  const [{ count: newToday }, { count: total }, { count: soRh }] = await Promise.all([
+    newTodayQuery, totalQuery,
+    applyFilters(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published")).eq("source", "ro_hang"),
+  ]);
+  const R = soRh ?? 0, K = Math.max(0, (total ?? 0) - R);
+  const o = oTronRoHang(R, K, tu, MOI_TRANG);
+  const [{ data: khac }, { data: rh }] = await Promise.all([
+    o.khacSo ? query.neq("source", "ro_hang").range(o.khacTu, o.khacTu + o.khacSo - 1) : Promise.resolve({ data: [] as Listing[] }),
+    o.rhSo
+      ? applyFilters(supabase.from("listings").select(LISTING_SEARCH_COLS).eq("status", "published")).eq("source", "ro_hang")
+          .order("first_seen_at", { ascending: false, nullsFirst: false }).order("id", { ascending: true }).range(o.rhTu, o.rhTu + o.rhSo - 1)
       : Promise.resolve({ data: [] as Listing[] }),
   ]);
-  // làm gọn cho trang danh sách: mô tả 220 ký tự, tối đa 4 ảnh (lib/img) - trang từng nặng 589 KB
-  let gop = tronRoHang((rhData ?? []) as Listing[], (data ?? []) as Listing[]);
-  // lọc theo khoảng cách: khung vuông ở DB -> cắt đúng bán kính + xếp gần trước (sắp xếp khác vẫn tôn trọng)
-  if (tam) {
-    gop = gop.filter((x) => x.lat != null && x.lng != null && kmGiua(tam, x.lat!, x.lng!) <= tam.km);
-    if (!sort) gop.sort((a, b) => kmGiua(tam, a.lat!, a.lng!) - kmGiua(tam, b.lat!, b.lng!));
-  }
-  const listings = gop.slice(0, 200).map(cheTinDocQuyen).map(gonChoDanhSach).map(chiTruongThe);
-  return { listings, newToday: newToday ?? 0, total: totalCount ?? listings.length };
+  const listings = gon(xepTheoThuTu(o.thuTu, (rh ?? []) as Listing[], (khac ?? []) as Listing[]));
+  return { listings, newToday: newToday ?? 0, total: total ?? listings.length, trang };
   },
-  ["search-v3"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9)
+  ["search-v6"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10)
   { revalidate: 300, tags: ["listings"] },
 );
 
@@ -184,7 +217,7 @@ export default async function SearchPage({
   // khoá cache chỉ gồm tham số lọc (bỏ utm/fbclid... để không mỗi link quảng cáo là một bản cache riêng)
   const loc = Object.fromEntries(KHOA_LOC.filter((k) => sp[k]).map((k) => [k, sp[k]!.slice(0, 120)]));
   // cây Tỉnh -> Quận -> Phường: dùng bản cache 10' (lib/geo) thay vì select 2.000 dòng mỗi request
-  const [{ listings, newToday, total: totalCount }, areas, duAn] = await Promise.all([timKiemCoCache(loc), getAreas(), layDuAn()]);
+  const [{ listings, newToday, total: totalCount, trang }, areas, duAn] = await Promise.all([timKiemCoCache(loc), getAreas(), layDuAn()]);
   const geo = areas.geo;
 
   // ĐIỀU HƯỚNG KHU VỰC (29/9, kiểu Mogi "Quận 1 (1.629)"): tính sẵn ở server từ bảng đếm đã cache
@@ -201,10 +234,10 @@ export default async function SearchPage({
     province: tinhDH,
     kinds: Object.entries(nutLoai?.kinds || {}).map(([k, c]) => [k, demDeal(c)] as [string, number]).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]),
     districts: Object.entries(nutTinh.districts)
-      .map(([d, c]) => [d, kind ? demDeal(c.kinds[kind]) : demDeal(c)] as [string, number])
+      .map(([d, c]) => [d, kind ? dsLoai(kind).reduce((n, k) => n + demDeal(c.kinds[k]), 0) : demDeal(c)] as [string, number])
       .filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]),
   } : null;
 
   // key theo query: đổi URL (Back/Forward, breadcrumb, chip) là remount -> state luôn khớp URL
-  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday} total={totalCount} dieuHuong={dieuHuong} duAn={duAn} />;
+  return <SearchClient key={JSON.stringify(sp)} listings={listings} geo={geo} params={{ ...sp, deal }} newToday={newToday} total={totalCount} trang={trang} moiTrang={MOI_TRANG} dieuHuong={dieuHuong} duAn={duAn} />;
 }

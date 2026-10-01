@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import ListingRow from "@/components/ListingRow";
+import ThePhong from "@/components/ThePhong";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
@@ -17,6 +18,7 @@ import PlaceSuggest, { buildPlaces, type Place } from "@/components/PlaceSuggest
 import RecentlyViewed, { RecentSearches, rememberSearch } from "@/components/RecentlyViewed";
 import { SidebarKhuVuc, type DieuHuong } from "@/components/DieuHuongKhuVuc";
 import { HangTienIch, ChonDuAn, KhuVucChip, OKhoangCach, doiTi } from "@/components/BoLocEvo";
+import { PopLoai, PopKhoang, CongTac, NhomNut, SidebarKhoang, KHOANG_GIA_MUA, KHOANG_DT_MUA, LOAI_MUA, tachDs } from "@/components/BoLocMuaBan";
 
 const TIEU_DE = "text-xs font-bold tracking-wide text-[var(--ink)] mb-2.5";
 
@@ -60,6 +62,8 @@ const KHOANG_DT: [string, string][] = [
   ["70-100", "70 - 100m²"], ["100-150", "100 - 150m²"], ["150-", "Trên 150m²"],
 ];
 const DEAL_OPTS: [string, string][] = [["", "Mua & thuê"], ["ban", "Mua bán"], ["cho_thue", "Cho thuê"]];
+/** tên loại cho tiêu đề/nhãn: 1 loại -> tên loại; nhiều loại (kind=nha,can_ho từ bộ lọc mua bán) -> rỗng */
+const tenLoai = (kind: string) => (kind && !kind.includes(",") ? (PROP as Record<string, string>)[kind] || "" : "");
 /** nhãn chip cho khoảng đang áp (kể cả khoảng gõ tay không nằm trong mốc) */
 function nhanKhoang(min: string, max: string, fmt: (n: number) => string) {
   if (min && max) return `${fmt(Number(min))} - ${fmt(Number(max))}`;
@@ -77,13 +81,15 @@ const tuParams = (p: Record<string, string | undefined>): BoLoc =>
   Object.fromEntries(O_LOC.map((k) => [k, p[k] || ""])) as BoLoc;
 
 export default function SearchClient({
-  listings, geo, params, newToday = 0, total, dieuHuong = null, duAn = [],
+  listings, geo, params, newToday = 0, total, trang = 1, moiTrang = 20, dieuHuong = null, duAn = [],
 }: {
   listings: Listing[];
   geo: GeoTree;
   params: Record<string, string | undefined>;
   newToday?: number; // số tin Radar thấy lần đầu từ 0h hôm nay (cùng bộ lọc)
-  total?: number;    // tổng thật theo bộ lọc (danh sách chỉ tải 200)
+  total?: number;    // tổng thật theo bộ lọc
+  trang?: number;    // trang đang xem (phân trang ở server, 1/10)
+  moiTrang?: number; // số tin mỗi trang
   dieuHuong?: DieuHuong | null; // loại + quận kèm số tin của 1 tỉnh (server tính, xem search/page.tsx)
   duAn?: { id: string; name: string }[]; // ô "Chọn dự án..."
 }) {
@@ -135,19 +141,23 @@ export default function SearchClient({
   // (21/8): nguồn không trang nào khác có = hàng bán được, cho đứng vị trí đẹp nhất.
   // locDocQuyen ưu tiên tin ZALO trước FB - lý do "lúc thấy lúc không" trước đây là FB đông
   // hơn chiếm hết 6 slot. Phần độc quyền còn lại nằm chung danh sách.
-  const docQuyen = useMemo(() => locDocQuyen(display, 6), [display]);
+  // dải độc quyền chỉ ở trang 1 - các trang sau là danh sách thường (mỗi trang chỉ có 20 tin của chính nó)
+  const docQuyen = useMemo(() => (trang === 1 ? locDocQuyen(display, 6) : []), [display, trang]);
   const conLai = useMemo(() => {
     const idsTrenDai = new Set(docQuyen.map((x) => x.id));
     return display.filter((x) => !idsTrenDai.has(x.id));
   }, [display, docQuyen]);
 
-  // Phân trang kiểu batdongsan: 20 tin/trang, đổi lọc thì về trang 1 (dải độc quyền đứng
-  // ngoài phân trang - luôn hiện ở mọi trang)
-  const PER_PAGE = 20;
-  const [page, setPage] = useState(1);
-  const totalPages = Math.ceil(conLai.length / PER_PAGE);
-  useEffect(() => { setPage(1); }, [listings]);
-  useEffect(() => { if (page > 1) window.scrollTo({ top: 0, behavior: "smooth" }); }, [page]);
+  // PHÂN TRANG THẬT (1/10): server chỉ gửi 20 tin của trang đang xem (?page=n), nút trang là link thật
+  // (bot đi theo được, Back/Forward đúng). Đổi bộ lọc/sắp xếp thì push() bỏ page -> về trang 1.
+  const pathname = usePathname();
+  const totalPages = Math.min(500, Math.max(1, Math.ceil((total ?? listings.length) / moiTrang)));
+  const linkTrang = (n: number) => {
+    const usp = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) if (v && k !== "page") usp.set(k, v);
+    if (n > 1) usp.set("page", String(n));
+    return pathname + (usp.size ? "?" + usp.toString() : "");
+  };
 
   // Popup bộ lọc mở -> khoá cuộn trang nền, Esc để đóng
   useEffect(() => {
@@ -188,7 +198,7 @@ export default function SearchClient({
     if (sort && !("sort" in next)) usp.set("sort", sort); // chip/toggle không làm mất sort đang chọn
     const href = "/search" + (usp.size ? "?" + usp.toString() : "");
     // NN/g #6: nhớ tìm kiếm gần đây (nhãn ngắn dễ nhận ra)
-    const label = [next.deal === "cho_thue" ? "Thuê" : next.deal === "ban" ? "Mua" : "", next.kind ? (PROP as Record<string, string>)[next.kind] : "", next.ward || next.district || next.province || next.q || "toàn quốc", next.priceMax ? "≤" + shortPrice(Number(next.priceMax)) : ""].filter(Boolean).join(" · ");
+    const label = [next.deal === "cho_thue" ? "Thuê" : next.deal === "ban" ? "Mua" : "", tenLoai(next.kind || ""), next.ward || next.district || next.province || next.q || "toàn quốc", next.priceMax ? "≤" + shortPrice(Number(next.priceMax)) : ""].filter(Boolean).join(" · ");
     if (usp.size) rememberSearch(label, href);
     router.push(href);
   }
@@ -208,12 +218,36 @@ export default function SearchClient({
 
   // Tiêu đề động kiểu batdongsan: "Mua bán nhà riêng Quận 7, Hồ Chí Minh"
   const dealWord = f.deal === "cho_thue" ? "Cho thuê" : f.deal === "ban" ? "Mua bán" : "Mua bán & cho thuê";
-  const kindWord = f.kind ? (PROP as Record<string, string>)[f.kind]?.toLowerCase() : "nhà đất";
+  const kindWord = tenLoai(f.kind).toLowerCase() || "nhà đất";
   const locWord = [f.district, f.province].filter(Boolean).join(", ");
   const pageTitle = `${dealWord} ${kindWord}${locWord ? " " + locWord : " toàn quốc"}`;
 
-  return (
-    <div>
+  const muaBan = goc.deal === "ban"; // mua bán: bộ lọc kiểu batdongsan; cho thuê / gộp: kiểu EvoHome
+  const choThue = goc.deal === "cho_thue"; // cho thuê: thẻ phòng dạng lưới kiểu EvoHome (ThePhong)
+  // dải nút trang: link thật ?page=n (kiểu EvoHome: cho thuê hiện cả trên lẫn dưới danh sách)
+  const phanTrang = (lop: string) => totalPages > 1 && (
+    <nav className={`flex items-center justify-center gap-1.5 ${lop}`} aria-label="Phân trang">
+      {trang > 1
+        ? <Link className="btn !px-3 text-sm" href={linkTrang(trang - 1)} rel="prev" aria-label="Trang trước">‹</Link>
+        : <span className="btn !px-3 text-sm opacity-40" aria-hidden>‹</span>}
+      {Array.from({ length: totalPages }, (_, i) => i + 1)
+        .filter((n) => n === 1 || n === totalPages || Math.abs(n - trang) <= 2)
+        .map((n, i, arr) => (
+          <span key={n} className="flex items-center gap-1.5">
+            {i > 0 && arr[i - 1] !== n - 1 && <span className="text-[var(--ink-faint)]">…</span>}
+            <Link
+              className={`btn !px-3.5 text-sm ${n === trang ? "!bg-brand !text-white !border-brand" : ""}`}
+              href={linkTrang(n)} aria-label={`Trang ${n}`} aria-current={n === trang ? "page" : undefined}
+            >{n}</Link>
+          </span>
+        ))}
+      {trang < totalPages
+        ? <Link className="btn !px-3 text-sm" href={linkTrang(trang + 1)} rel="next" aria-label="Trang sau">›</Link>
+        : <span className="btn !px-3 text-sm opacity-40" aria-hidden>›</span>}
+    </nav>
+  );
+  const dauTrang = (
+    <>
       {/* ===== Breadcrumb ===== */}
       <nav className="text-xs text-[var(--ink-soft)] mb-2 flex flex-wrap gap-1 items-center">
         <Link href="/" className="hover:text-brand">Trang chủ</Link>
@@ -233,7 +267,7 @@ export default function SearchClient({
           </p>
           <p className="hidden sm:block text-xs text-[var(--ink-soft)] mt-0.5">
             {newToday > 0 ? <><b className="text-emerald-600">{newToday.toLocaleString("vi-VN")} tin mới hôm nay</b> · </> : null}
-            Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{(total ?? 0) > listings.length ? ` (đang hiển thị ${listings.length} tin mới nhất - thu hẹp bộ lọc để xem đúng phần bạn cần)` : ""}.
+            Hiện có <b>{(total ?? listings.length).toLocaleString("vi-VN")}</b> bất động sản{totalPages > 1 ? ` · trang ${trang}/${totalPages.toLocaleString("vi-VN")}` : ""}.
           </p>
           {/* Nói rõ vì sao lọc "Hồ Chí Minh" lại ra tin ghi Bình Dương - không thì khách tưởng lọc sai */}
           {newAddr && gomThem.length > 0 && (
@@ -242,11 +276,23 @@ export default function SearchClient({
             </p>
           )}
         </div>
-        <div className="ml-auto hidden sm:flex items-center gap-2">
-          <SaveSearchButton filters={goc} />
-        </div>
+        {muaBan ? (
+          // mua bán (kiểu batdongsan): "Nhận email tin mới" + ô sắp xếp nằm ngay dưới tiêu đề
+          <div className="ml-auto flex items-center gap-2">
+            <span className="hidden sm:block"><SaveSearchButton filters={goc} /></span>
+            <span className="sm:hidden"><SaveSearchButton filters={goc} compact /></span>
+            <ChipLoc label="Mới nhất" options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} />
+          </div>
+        ) : (
+          <div className="ml-auto hidden sm:flex items-center gap-2">
+            <SaveSearchButton filters={goc} />
+          </div>
+        )}
       </div>
-
+    </>
+  );
+  const thanhTim = (
+    <>
       {/* ===== Thanh tìm 1 dòng + Xem bản đồ (kiểu batdongsan) ===== */}
       <div className="flex gap-2 mb-2">
         <form
@@ -275,7 +321,67 @@ export default function SearchClient({
           {showMap ? "Đóng bản đồ" : "Xem bản đồ"}
         </button>
       </div>
+    </>
+  );
 
+  // ===== HÀNG LỌC MUA BÁN (kiểu batdongsan.com.vn/nha-dat-ban, 1/10) =====
+  // [Lọc (n)] [Tin chính chủ] [Loại nhà đất ▾] [Khoảng giá ▾] [Diện tích ▾] [Địa chỉ sau sáp nhập]
+  // Popover chọn xong mới "Áp dụng"; mọi giá trị xuất phát từ goc (bộ ĐÃ ÁP theo URL).
+  const hangLocMua = (
+    <div className="flex items-center gap-2 pb-4 mb-4 border-b border-[var(--line)] text-sm overflow-x-auto sm:overflow-visible sm:flex-wrap -mx-5 px-5 sm:mx-0 sm:px-0 [scrollbar-width:none]">
+      <button
+        className={`shrink-0 h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition
+          ${showFilter || soLoc ? "border-brand text-brand bg-brand/5 font-semibold" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
+        aria-expanded={showFilter}
+        onClick={() => { setF(tuParams(params)); setShowFilter(true); }}
+      >
+        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+          <path d="M3 4h14l-5.5 6.5V16l-3 1.5v-7L3 4z" strokeLinejoin="round" />
+        </svg>
+        Lọc
+        {soLoc > 0 && <span className="grid place-items-center min-w-5 h-5 px-1 rounded-full bg-brand text-white text-[0.7rem] font-bold">{soLoc}</span>}
+      </button>
+      <CongTac bat={own} onDoi={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
+        icon={<span className="grid place-items-center w-4 h-4 rounded bg-brand text-white text-[0.6rem]" aria-hidden>✓</span>}>
+        Tin chính chủ
+      </CongTac>
+      <PopLoai kind={goc.kind} onApDung={(k) => push({ ...goc, kind: k })} />
+      <PopKhoang loai="gia" min={goc.priceMin} max={goc.priceMax} nhanDangAp={KHOANG_GIA_MUA.find(([v]) => v === giaDangAp)?.[1] || nhanGia}
+        onApDung={(a, b) => push({ ...goc, priceMin: a, priceMax: b })} />
+      <PopKhoang loai="dt" min={goc.areaMin} max={goc.areaMax} nhanDangAp={KHOANG_DT_MUA.find(([v]) => v === dtDangAp)?.[1] || nhanDt}
+        onApDung={(a, b) => push({ ...goc, areaMin: a, areaMax: b })} />
+      <CongTac bat={newAddr} onDoi={() => push({ ...goc, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
+        title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 - chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
+        icon={<span aria-hidden>📍</span>}>
+        Địa chỉ sau sáp nhập
+      </CongTac>
+    </div>
+  );
+
+  return (
+    <div>
+      {muaBan ? (
+        <>
+          {thanhTim}
+          {hangLocMua}
+          {dauTrang}
+        </>
+      ) : (
+        <>
+          {dauTrang}
+          {thanhTim}
+      {/* "Chế độ xem: [Danh sách] [Bản đồ]" như EvoHome - bản đồ chỉ có ở màn lg+ (xem MapResults) */}
+      {choThue && (
+        <div className="hidden lg:flex items-center gap-3 mb-3 text-sm">
+          <span className="text-xs font-semibold text-[var(--ink-soft)]">Chế độ xem</span>
+          <div className="flex rounded-lg border border-[var(--line-strong)] overflow-hidden">
+            {([[false, "▦ Danh sách"], [true, "📍 Bản đồ"]] as const).map(([v, l]) => (
+              <button key={l} type="button" aria-pressed={showMap === v} onClick={() => setShowMap(v)}
+                className={`h-9 px-4 font-semibold transition ${showMap === v ? "bg-brand text-white" : "bg-[var(--surface)] hover:bg-[var(--surface-2)]"}`}>{l}</button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* ===== BỘ LỌC KIỂU EVOHOME (1/10) =====
           Hàng 1: chip xổ xuống Mua/thuê · Loại · Diện tích · Giá (+ nhãn khoảng ✕) · Sắp xếp · Bộ lọc (n)
           Hàng 2: tick tiện ích · Hàng 3: dự án · Hàng 4: tỉnh + công tắc · dải quận · Hàng 5: tên đường
@@ -368,6 +474,9 @@ export default function SearchClient({
         </label>
       </form>
 
+        </>
+      )}
+
       {/* ===== POPUP "Bộ lọc" (giữa màn hình; điện thoại toàn màn hình) ===== */}
       {showFilter && (
         <div className="fixed inset-0 z-[60] bg-black/40 sm:grid sm:place-items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowFilter(false); }}>
@@ -408,81 +517,158 @@ export default function SearchClient({
                   <input className={o(f.q)} value={f.q} onChange={set("q")} placeholder="Từ khoá: đường, dự án, khu vực..." />
                 </div>
               </section>
-              <section>
-                <h3 className={TIEU_DE}>NHU CẦU & LOẠI</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <select className={o(f.deal)} value={f.deal} onChange={set("deal")} aria-label="Bán/Cho thuê">
-                    <option value="">Mua & thuê</option><option value="ban">Mua bán</option><option value="cho_thue">Cho thuê</option>
+              {muaBan ? (
+                <>
+                  <section>
+                    <h3 className={TIEU_DE}>NHU CẦU</h3>
+                    <NhomNut opts={[["ban", "Mua bán"], ["cho_thue", "Cho thuê"]]} value={f.deal}
+                      onChange={(v) => setF((s) => ({ ...s, deal: v, priceMin: "", priceMax: "" }))} />
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>LOẠI NHÀ ĐẤT</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {LOAI_MUA.map(([k, ten, icon]) => {
+                        const on = tachDs(f.kind).includes(k);
+                        return (
+                          <button key={k} type="button" aria-pressed={on}
+                            onClick={() => setF((s) => { const a = tachDs(s.kind); return { ...s, kind: (on ? a.filter((x) => x !== k) : [...a, k]).join(",") }; })}
+                            className={`h-9 px-3 rounded-full border text-sm flex items-center gap-1.5 transition
+                              ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] hover:border-brand"}`}>
+                            <span aria-hidden>{icon}</span>{ten}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>KHOẢNG GIÁ</h3>
+                    <NhomNut opts={KHOANG_GIA_MUA} value={f.priceMin || f.priceMax ? `${f.priceMin}-${f.priceMax}` : ""}
+                      onChange={(v) => { const [a = "", b = ""] = v.split("-"); setF((s) => ({ ...s, priceMin: a, priceMax: b })); }} />
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>DIỆN TÍCH</h3>
+                    <NhomNut opts={KHOANG_DT_MUA} value={f.areaMin || f.areaMax ? `${f.areaMin}-${f.areaMax}` : ""}
+                      onChange={(v) => { const [a = "", b = ""] = v.split("-"); setF((s) => ({ ...s, areaMin: a, areaMax: b })); }} />
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>SỐ PHÒNG NGỦ</h3>
+                    <NhomNut opts={[["1", "1+"], ["2", "2+"], ["3", "3+"], ["4", "4+"], ["5", "5+"]]} value={f.bedrooms}
+                      onChange={(v) => setF((s) => ({ ...s, bedrooms: v }))} />
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>SỐ PHÒNG TẮM, VỆ SINH</h3>
+                    <NhomNut opts={[["1", "1+"], ["2", "2+"], ["3", "3+"], ["4", "4+"], ["5", "5+"]]} value={f.bathrooms}
+                      onChange={(v) => setF((s) => ({ ...s, bathrooms: v }))} />
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>HƯỚNG NHÀ</h3>
+                    <NhomNut opts={["Bắc", "Đông Bắc", "Đông", "Đông Nam", "Nam", "Tây Nam", "Tây", "Tây Bắc"].map((d) => [d, d] as [string, string])}
+                      value={f.direction} onChange={(v) => setF((s) => ({ ...s, direction: v }))} />
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>PHÁP LÝ</h3>
+                    <NhomNut opts={[["sổ", "Sổ đỏ/Sổ hồng"], ["hợp đồng", "Hợp đồng mua bán"], ["chờ sổ", "Đang chờ sổ"], ["thổ cư", "Thổ cư"]]}
+                      value={f.legal} onChange={(v) => setF((s) => ({ ...s, legal: v }))} />
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>TIN CÓ ẢNH</h3>
+                    <NhomNut opts={[["co", "Có hình ảnh"], ["khong", "Chưa có hình ảnh"]]} value={f.anh}
+                      onChange={(v) => setF((s) => ({ ...s, anh: v }))} />
+                  </section>
+                  {duAn.length > 0 && (
+                    <section>
+                      <h3 className={TIEU_DE}>DỰ ÁN</h3>
+                      <ChonDuAn duAn={duAn} value={f.project} onChon={(id) => setF((s) => ({ ...s, project: id }))} />
+                    </section>
+                  )}
+                  <section>
+                    <h3 className={TIEU_DE}>TÊN ĐƯỜNG</h3>
+                    <input className={o(f.street)} value={f.street} onChange={set("street")} placeholder="Gõ tên đường / khu vực..." />
+                  </section>
+                  <section>
+                    <h3 className={TIEU_DE}>KHOẢNG CÁCH</h3>
+                    <OKhoangCach gan={f.gan} bk={f.bk} onDoi={(gan, bk) => setF((s) => ({ ...s, gan, bk }))} />
+                  </section>
+                </>
+              ) : (
+                <>
+                <section>
+                  <h3 className={TIEU_DE}>NHU CẦU & LOẠI</h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <select className={o(f.deal)} value={f.deal} onChange={set("deal")} aria-label="Bán/Cho thuê">
+                      <option value="">Mua & thuê</option><option value="ban">Mua bán</option><option value="cho_thue">Cho thuê</option>
+                    </select>
+                    <select className={o(f.kind)} value={f.kind} onChange={set("kind")} aria-label="Loại bất động sản">
+                      <option value="">Loại: Tất cả</option>
+                      {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
+                </section>
+                <section>
+                  <h3 className={TIEU_DE}>KHOẢNG GIÁ & DIỆN TÍCH</h3>
+                  <div className="grid gap-3 grid-cols-2">
+                    <select className={o(f.priceMin)} value={f.priceMin} onChange={set("priceMin")} aria-label="Giá từ">
+                      {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{v ? `Từ ${l}` : "Giá từ: Tất cả"}</option>)}
+                      {f.priceMin && !bangGia(f.deal).some(([v]) => v === f.priceMin) && <option value={f.priceMin}>Từ {shortPrice(Number(f.priceMin))}</option>}
+                    </select>
+                    <select className={o(f.priceMax)} value={f.priceMax} onChange={set("priceMax")} aria-label="Giá đến">
+                      {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{v ? `Đến ${l}` : "Giá đến: Tất cả"}</option>)}
+                      {f.priceMax && !bangGia(f.deal).some(([v]) => v === f.priceMax) && <option value={f.priceMax}>Đến {shortPrice(Number(f.priceMax))}</option>}
+                    </select>
+                    <input className={o(f.areaMin)} type="number" min={0} value={f.areaMin} onChange={set("areaMin")} placeholder="Diện tích từ (m²)" />
+                    <input className={o(f.areaMax)} type="number" min={0} value={f.areaMax} onChange={set("areaMax")} placeholder="Diện tích đến (m²)" />
+                  </div>
+                </section>
+                <section>
+                  <h3 className={TIEU_DE}>HÌNH ẢNH</h3>
+                  <select className={o(f.anh)} value={f.anh} onChange={set("anh")} aria-label="Hình ảnh">
+                    <option value="">Tất cả</option><option value="co">Có hình ảnh</option><option value="khong">Chưa có hình ảnh</option>
                   </select>
-                  <select className={o(f.kind)} value={f.kind} onChange={set("kind")} aria-label="Loại bất động sản">
-                    <option value="">Loại: Tất cả</option>
-                    {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-              </section>
-              <section>
-                <h3 className={TIEU_DE}>KHOẢNG GIÁ & DIỆN TÍCH</h3>
-                <div className="grid gap-3 grid-cols-2">
-                  <select className={o(f.priceMin)} value={f.priceMin} onChange={set("priceMin")} aria-label="Giá từ">
-                    {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{v ? `Từ ${l}` : "Giá từ: Tất cả"}</option>)}
-                    {f.priceMin && !bangGia(f.deal).some(([v]) => v === f.priceMin) && <option value={f.priceMin}>Từ {shortPrice(Number(f.priceMin))}</option>}
-                  </select>
-                  <select className={o(f.priceMax)} value={f.priceMax} onChange={set("priceMax")} aria-label="Giá đến">
-                    {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{v ? `Đến ${l}` : "Giá đến: Tất cả"}</option>)}
-                    {f.priceMax && !bangGia(f.deal).some(([v]) => v === f.priceMax) && <option value={f.priceMax}>Đến {shortPrice(Number(f.priceMax))}</option>}
-                  </select>
-                  <input className={o(f.areaMin)} type="number" min={0} value={f.areaMin} onChange={set("areaMin")} placeholder="Diện tích từ (m²)" />
-                  <input className={o(f.areaMax)} type="number" min={0} value={f.areaMax} onChange={set("areaMax")} placeholder="Diện tích đến (m²)" />
-                </div>
-              </section>
-              <section>
-                <h3 className={TIEU_DE}>HÌNH ẢNH</h3>
-                <select className={o(f.anh)} value={f.anh} onChange={set("anh")} aria-label="Hình ảnh">
-                  <option value="">Tất cả</option><option value="co">Có hình ảnh</option><option value="khong">Chưa có hình ảnh</option>
-                </select>
-              </section>
-              <section>
-                <h3 className={TIEU_DE}>KHOẢNG CÁCH</h3>
-                <OKhoangCach gan={f.gan} bk={f.bk} onDoi={(gan, bk) => setF((s) => ({ ...s, gan, bk }))} />
-              </section>
-              <section>
-                <h3 className={TIEU_DE}>CHI TIẾT</h3>
-                <div className="grid gap-3 grid-cols-2">
-                  <select className={o(f.bedrooms)} value={f.bedrooms} onChange={set("bedrooms")} aria-label="Phòng ngủ">
-                    <option value="">Phòng ngủ: Tất cả</option>
-                    {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ phòng ngủ</option>)}
-                  </select>
-                  <select className={o(f.bathrooms)} value={f.bathrooms} onChange={set("bathrooms")} aria-label="Phòng tắm">
-                    <option value="">Phòng tắm: Tất cả</option>
-                    {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+ phòng tắm</option>)}
-                  </select>
-                  <select className={o(f.direction)} value={f.direction} onChange={set("direction")} aria-label="Hướng">
-                    <option value="">Hướng: Tất cả</option>
-                    {["Đông", "Tây", "Nam", "Bắc", "Đông Nam", "Đông Bắc", "Tây Nam", "Tây Bắc"].map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                  <select className={o(f.legal)} value={f.legal} onChange={set("legal")} aria-label="Pháp lý">
-                    <option value="">Pháp lý: Tất cả</option>
-                    <option value="sổ">Đã có sổ (hồng/đỏ)</option>
-                    <option value="hợp đồng">Hợp đồng mua bán</option>
-                    <option value="thổ cư">Thổ cư</option>
-                  </select>
-                </div>
-              </section>
-              <section>
-                <h3 className={TIEU_DE}>TIỆN NGHI</h3>
-                <div className="flex flex-wrap gap-2">
-                  {TIEN_ICH.map((t) => {
-                    const on = f.ti.split(",").includes(t.k);
-                    return (
-                      <button key={t.k} type="button" aria-pressed={on} onClick={() => setF((s) => ({ ...s, ti: doiTi(s.ti, t.k) }))}
-                        className={`h-9 px-3 rounded-lg border text-sm flex items-center gap-1.5 transition
-                          ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] hover:border-brand"}`}>
-                        <span aria-hidden>{t.icon}</span>{t.ten}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+                </section>
+                <section>
+                  <h3 className={TIEU_DE}>KHOẢNG CÁCH</h3>
+                  <OKhoangCach gan={f.gan} bk={f.bk} onDoi={(gan, bk) => setF((s) => ({ ...s, gan, bk }))} />
+                </section>
+                <section>
+                  <h3 className={TIEU_DE}>CHI TIẾT</h3>
+                  <div className="grid gap-3 grid-cols-2">
+                    <select className={o(f.bedrooms)} value={f.bedrooms} onChange={set("bedrooms")} aria-label="Phòng ngủ">
+                      <option value="">Phòng ngủ: Tất cả</option>
+                      {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ phòng ngủ</option>)}
+                    </select>
+                    <select className={o(f.bathrooms)} value={f.bathrooms} onChange={set("bathrooms")} aria-label="Phòng tắm">
+                      <option value="">Phòng tắm: Tất cả</option>
+                      {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+ phòng tắm</option>)}
+                    </select>
+                    <select className={o(f.direction)} value={f.direction} onChange={set("direction")} aria-label="Hướng">
+                      <option value="">Hướng: Tất cả</option>
+                      {["Đông", "Tây", "Nam", "Bắc", "Đông Nam", "Đông Bắc", "Tây Nam", "Tây Bắc"].map((d) => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    <select className={o(f.legal)} value={f.legal} onChange={set("legal")} aria-label="Pháp lý">
+                      <option value="">Pháp lý: Tất cả</option>
+                      <option value="sổ">Đã có sổ (hồng/đỏ)</option>
+                      <option value="hợp đồng">Hợp đồng mua bán</option>
+                      <option value="thổ cư">Thổ cư</option>
+                    </select>
+                  </div>
+                </section>
+                <section>
+                  <h3 className={TIEU_DE}>TIỆN NGHI</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {TIEN_ICH.map((t) => {
+                      const on = f.ti.split(",").includes(t.k);
+                      return (
+                        <button key={t.k} type="button" aria-pressed={on} onClick={() => setF((s) => ({ ...s, ti: doiTi(s.ti, t.k) }))}
+                          className={`h-9 px-3 rounded-lg border text-sm flex items-center gap-1.5 transition
+                            ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] hover:border-brand"}`}>
+                          <span aria-hidden>{t.icon}</span>{t.ten}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+                </>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3 px-6 py-4 border-t border-[var(--line)]">
               <button type="button" className="h-12 rounded-lg border border-[var(--line-strong)] font-semibold hover:bg-[var(--surface-2)]"
@@ -495,35 +681,19 @@ export default function SearchClient({
 
       {/* ===== Kết quả + bản đồ ===== */}
       {/* cột phải lg+: bản đồ khi bật "Xem bản đồ", còn lại là sidebar Loại/Quận kèm số tin (kiểu Mogi, 29/9) */}
-      <div className={`grid gap-4 items-start ${showMap && mapItems.length > 0 ? "lg:grid-cols-[1fr_420px]" : dieuHuong ? "lg:grid-cols-[minmax(0,1fr)_280px]" : ""}`}>
+      <div className={`grid gap-4 items-start ${showMap && mapItems.length > 0 ? "lg:grid-cols-[1fr_420px]" : dieuHuong || muaBan ? "lg:grid-cols-[minmax(0,1fr)_280px]" : ""}`}>
         {/* min-w-0 BẮT BUỘC: mô tả trong ListingRow dùng line-clamp (-webkit-box) -> bề rộng nội tại = cả đoạn text
             chưa xuống dòng -> cột 1fr phình (đo được 2190px ở viewport 1400) đẩy cột bản đồ 420px ra NGOÀI màn hình.
             Sự cố 17/8: "Xem bản đồ" bấm không thấy gì. */}
         <div className="min-w-0">
           {display.length ? (
             <>
-              <DaiDocQuyen listings={display} />
-              <div className="flex flex-col gap-3">
-                {conLai.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((x) => <ListingRow key={x.id} x={x} />)}
+              {trang === 1 && <DaiDocQuyen listings={display} />}
+              {choThue && phanTrang("mb-3")}
+              <div className={choThue ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" : "flex flex-col gap-3"}>
+                {conLai.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}
               </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-1.5 mt-5">
-                  <button className="btn !px-3 text-sm" disabled={page <= 1} aria-label="Trang trước" onClick={() => setPage((p) => p - 1)}>‹</button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 2)
-                    .map((n, i, arr) => (
-                      <span key={n} className="flex items-center gap-1.5">
-                        {i > 0 && arr[i - 1] !== n - 1 && <span className="text-[var(--ink-faint)]">…</span>}
-                        <button
-                          className={`btn !px-3.5 text-sm ${n === page ? "!bg-brand !text-white !border-brand" : ""}`}
-                          aria-label={`Trang ${n}`} aria-current={n === page ? "page" : undefined}
-                          onClick={() => setPage(n)}
-                        >{n}</button>
-                      </span>
-                    ))}
-                  <button className="btn !px-3 text-sm" disabled={page >= totalPages} aria-label="Trang sau" onClick={() => setPage((p) => p + 1)}>›</button>
-                </div>
-              )}
+              {phanTrang("mt-5")}
             </>
           ) : (
             <div className="card rounded-lg p-10 text-center">
@@ -540,10 +710,20 @@ export default function SearchClient({
           <div className="hidden lg:block sticky top-20 h-[calc(100vh-7rem)]">
             <MapResults items={mapItems} />
           </div>
-        ) : dieuHuong ? (
-          <SidebarKhuVuc dh={dieuHuong} dealWord={dealWord} kind={goc.kind} district={goc.district} anQuan={newAddr}
-            onKind={(k) => push({ ...goc, kind: k })}
-            onDistrict={(d) => push({ ...goc, province: dieuHuong.province, district: d, ward: "" })} />
+        ) : dieuHuong || muaBan ? (
+          // mua bán: thêm "Lọc theo khoảng giá / diện tích" trên cùng cột phải (kiểu batdongsan)
+          <div className="hidden lg:flex flex-col gap-4">
+            {muaBan && (
+              <SidebarKhoang gia={giaDangAp} dt={dtDangAp}
+                onGia={(v) => { const [a, b] = tachKhoang(v); push({ ...goc, priceMin: a, priceMax: b }); }}
+                onDt={(v) => { const [a, b] = tachKhoang(v); push({ ...goc, areaMin: a, areaMax: b }); }} />
+            )}
+            {dieuHuong && (
+              <SidebarKhuVuc dh={dieuHuong} dealWord={dealWord} kind={goc.kind} district={goc.district} anQuan={newAddr}
+                onKind={(k) => push({ ...goc, kind: k })}
+                onDistrict={(d) => push({ ...goc, province: dieuHuong.province, district: d, ward: "" })} />
+            )}
+          </div>
         ) : null}
       </div>
 

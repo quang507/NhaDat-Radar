@@ -1,6 +1,6 @@
 // RỔ HÀNG RADAR (28/9): hàng Radar trực tiếp nắm - EvoHome/HiFriendz (phòng cho thuê), Thiên Khôi
 // (nhà phố bán). Nhập bằng crawler/ro-hang-*.mjs với source='ro_hang'; địa chỉ đã che số nhà,
-// toạ độ đã lệch ~60 m ngay từ lúc nhập (bản thật ở bảng listing_ro_hang, chỉ admin đọc).
+// toạ độ đã lệch ~20-35 m ngay từ lúc nhập (bản thật ở bảng listing_ro_hang, chỉ admin đọc).
 //
 // Quy tắc bán hàng trên web:
 //   - không lộ tên đối tác / link gốc: hiển thị "Rổ hàng Radar"
@@ -77,4 +77,41 @@ export function linkGocEvohome(sourcePostId: string | null | undefined) {
   if (!sourcePostId) return DS_PHONG_EVOHOME;
   const mau = process.env.EVOHOME_UNIT_URL || `${DS_PHONG_EVOHOME}&sheet=transaction-unit%3A{id}%3Adetail`;
   return mau.replace("{id}", encodeURIComponent(sourcePostId));
+}
+
+/**
+ * Phân trang THẬT cho danh sách trộn (1/10): cùng nhịp với tronRoHang (moiNhom rổ hàng : 1 tin khác,
+ * hết một bên thì bên kia nối tiếp) nhưng chỉ tính VỊ TRÍ, không cần tải cả danh sách. Cho biết trang
+ * [tu, tu+so) cần lấy đoạn nào của mỗi bên và xếp xen theo thứ tự nào -> mỗi trang chỉ tải đúng ~20 tin.
+ * R / K = tổng số tin rổ hàng / tin khác khớp bộ lọc.
+ */
+export function oTronRoHang(R: number, K: number, tu: number, so: number, moiNhom = 2) {
+  const thuTu: ("r" | "k")[] = [];
+  let i = 0, j = 0, rhTu = -1, khacTu = -1, viTri = 0;
+  const het = tu + so;
+  const dat = (b: "r" | "k") => {
+    if (viTri >= tu && viTri < het) {
+      thuTu.push(b);
+      if (b === "r" && rhTu < 0) rhTu = i - 1;
+      if (b === "k" && khacTu < 0) khacTu = j - 1;
+    }
+    viTri++;
+  };
+  while ((i < R || j < K) && viTri < het) {
+    for (let k = 0; k < moiNhom && i < R && viTri < het; k++) { i++; dat("r"); }
+    if (j < K && viTri < het) { j++; dat("k"); }
+  }
+  const rhSo = thuTu.filter((b) => b === "r").length, khacSo = thuTu.length - rhSo;
+  return { rhTu: Math.max(rhTu, 0), rhSo, khacTu: Math.max(khacTu, 0), khacSo, thuTu };
+}
+
+/** Ghép 2 đoạn đã tải theo thứ tự oTronRoHang trả về */
+export function xepTheoThuTu<T>(thuTu: ("r" | "k")[], rh: T[], khac: T[]): T[] {
+  let i = 0, j = 0;
+  const out: T[] = [];
+  for (const b of thuTu) {
+    const x = b === "r" ? rh[i++] : khac[j++];
+    if (x !== undefined) out.push(x);
+  }
+  return out;
 }
