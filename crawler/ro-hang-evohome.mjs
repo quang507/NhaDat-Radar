@@ -7,7 +7,7 @@
 //
 // Quy tắc bán hàng áp khi đưa lên web (bảng listings đọc công khai):
 //   A. Che số nhà kiểu EvoHome (1/10): hẻm "86/23/2 Thích Quảng Đức" -> "86/•• Thích Quảng Đức";
-//      mặt tiền "166 Nguyễn Thái Sơn" -> "16• Nguyễn Thái Sơn" (che-dia-chi.mjs). Toạ độ lệch ~50-75 m, lệch THEO TOÀ NHÀ (mọi phòng cùng toà
+//      mặt tiền "166 Nguyễn Thái Sơn" -> "16• Nguyễn Thái Sơn" (che-dia-chi.mjs). Toạ độ lệch ~20-35 m, lệch THEO TOÀ NHÀ (mọi phòng cùng toà
 //      cùng một điểm) - lệch từng phòng một hướng khác nhau thì lấy trung bình các ghim là ra nhà thật.
 //   B. Không ghi thời hạn hợp đồng; cuối mô tả là câu mời xem phòng + thương lượng trực tiếp.
 //   D. Không link bài gốc (source_url null), không hoa hồng/số phòng; SĐT duy nhất là hotline Radar.
@@ -39,7 +39,7 @@ const gon = (s) => String(s || "").replace(/\s+,/g, ",").replace(/\s+/g, " ").tr
 function lechToaDo(lat, lng, hatGiong) {
   const h = Math.abs(hash31(hatGiong));
   const goc = ((h % 360) * Math.PI) / 180;
-  const met = 50 + ((h >>> 9) % 26);           // 50-75 m
+  const met = 20 + ((h >>> 9) % 16);           // 20-35 m (1/10: địa chỉ đã giữ số hẻm chính, lệch 75 m dễ rơi sang hẻm bên)
   return {
     lat: +(lat + (met * Math.cos(goc)) / 111320).toFixed(6),
     lng: +(lng + (met * Math.sin(goc)) / (111320 * Math.cos((lat * Math.PI) / 180))).toFixed(6),

@@ -1,6 +1,6 @@
 // RỔ HÀNG RADAR (28/9): hàng Radar trực tiếp nắm - EvoHome/HiFriendz (phòng cho thuê), Thiên Khôi
 // (nhà phố bán). Nhập bằng crawler/ro-hang-*.mjs với source='ro_hang'; địa chỉ đã che số nhà,
-// toạ độ đã lệch ~60 m ngay từ lúc nhập (bản thật ở bảng listing_ro_hang, chỉ admin đọc).
+// toạ độ đã lệch ~20-35 m ngay từ lúc nhập (bản thật ở bảng listing_ro_hang, chỉ admin đọc).
 //
 // Quy tắc bán hàng trên web:
 //   - không lộ tên đối tác / link gốc: hiển thị "Rổ hàng Radar"
