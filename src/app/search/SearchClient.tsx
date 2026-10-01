@@ -7,14 +7,18 @@ import ListingRow from "@/components/ListingRow";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
-import ChonSapXep from "@/components/ChonSapXep";
+import ChipLoc from "@/components/ChipLoc";
+import { TIEN_ICH, docTienIch } from "@/lib/tien-ich";
 import { PROP, shortPrice } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
 import type { Listing } from "@/lib/types";
 import PlaceSuggest, { buildPlaces, type Place } from "@/components/PlaceSuggest";
 import RecentlyViewed, { RecentSearches, rememberSearch } from "@/components/RecentlyViewed";
-import { ChipQuan, SidebarKhuVuc, type DieuHuong } from "@/components/DieuHuongKhuVuc";
+import { SidebarKhuVuc, type DieuHuong } from "@/components/DieuHuongKhuVuc";
+import { HangTienIch, ChonDuAn, KhuVucChip, OKhoangCach, doiTi } from "@/components/BoLocEvo";
+
+const TIEU_DE = "text-xs font-bold tracking-wide text-[var(--ink)] mb-2.5";
 
 export type { DieuHuong };
 
@@ -39,13 +43,41 @@ const SORTS: [string, string][] = [
   ["ppm2_asc", "Giá/m² thấp đến cao"], ["ppm2_desc", "Giá/m² cao đến thấp"],
   ["area_asc", "Diện tích nhỏ đến lớn"], ["area_desc", "Diện tích lớn đến nhỏ"],
 ];
-const AREA_OPTS: [string, string][] = [
-  ["", "Diện tích"], ["30", "≥ 30 m²"], ["50", "≥ 50 m²"], ["80", "≥ 80 m²"], ["100", "≥ 100 m²"], ["150", "≥ 150 m²"],
+// Hàng chip lọc nhanh (1/10, kiểu EvoHome): chọn theo KHOẢNG "min-max" (1 đầu rỗng = dưới/trên),
+// thay cho "Dưới X" / "≥ X" - người tìm nhà nghĩ theo khoảng ("7 - 8 triệu", "20 - 30m²").
+const KHOANG_GIA_THUE: [string, string][] = [
+  ["", "Mọi mức giá"], ["-3000000", "Dưới 3 triệu"], ["3000000-5000000", "3 - 5 triệu"], ["5000000-7000000", "5 - 7 triệu"],
+  ["7000000-10000000", "7 - 10 triệu"], ["10000000-15000000", "10 - 15 triệu"], ["15000000-20000000", "15 - 20 triệu"],
+  ["20000000-50000000", "20 - 50 triệu"], ["50000000-", "Trên 50 triệu"],
 ];
+const KHOANG_GIA_BAN: [string, string][] = [
+  ["", "Mọi mức giá"], ["-1000000000", "Dưới 1 tỷ"], ["1000000000-2000000000", "1 - 2 tỷ"], ["2000000000-3000000000", "2 - 3 tỷ"],
+  ["3000000000-5000000000", "3 - 5 tỷ"], ["5000000000-10000000000", "5 - 10 tỷ"], ["10000000000-20000000000", "10 - 20 tỷ"],
+  ["20000000000-", "Trên 20 tỷ"],
+];
+const KHOANG_DT: [string, string][] = [
+  ["", "Mọi diện tích"], ["-20", "Dưới 20m²"], ["20-30", "20 - 30m²"], ["30-50", "30 - 50m²"], ["50-70", "50 - 70m²"],
+  ["70-100", "70 - 100m²"], ["100-150", "100 - 150m²"], ["150-", "Trên 150m²"],
+];
+const DEAL_OPTS: [string, string][] = [["", "Mua & thuê"], ["ban", "Mua bán"], ["cho_thue", "Cho thuê"]];
+/** nhãn chip cho khoảng đang áp (kể cả khoảng gõ tay không nằm trong mốc) */
+function nhanKhoang(min: string, max: string, fmt: (n: number) => string) {
+  if (min && max) return `${fmt(Number(min))} - ${fmt(Number(max))}`;
+  if (max) return `Dưới ${fmt(Number(max))}`;
+  if (min) return `Trên ${fmt(Number(min))}`;
+  return "";
+}
 
+
+// Mọi ô lọc (URL <-> state). 1/10 thêm: phòng tắm, tiện ích (ti), dự án, tên đường, hình ảnh, khoảng cách (gan + bk)
+const O_LOC = ["q", "deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax",
+  "bedrooms", "bathrooms", "legal", "direction", "ti", "project", "street", "anh", "gan", "bk"] as const;
+type BoLoc = Record<(typeof O_LOC)[number], string>;
+const tuParams = (p: Record<string, string | undefined>): BoLoc =>
+  Object.fromEntries(O_LOC.map((k) => [k, p[k] || ""])) as BoLoc;
 
 export default function SearchClient({
-  listings, geo, params, newToday = 0, total, dieuHuong = null,
+  listings, geo, params, newToday = 0, total, dieuHuong = null, duAn = [],
 }: {
   listings: Listing[];
   geo: GeoTree;
@@ -53,18 +85,12 @@ export default function SearchClient({
   newToday?: number; // số tin Radar thấy lần đầu từ 0h hôm nay (cùng bộ lọc)
   total?: number;    // tổng thật theo bộ lọc (danh sách chỉ tải 200)
   dieuHuong?: DieuHuong | null; // loại + quận kèm số tin của 1 tỉnh (server tính, xem search/page.tsx)
+  duAn?: { id: string; name: string }[]; // ô "Chọn dự án..."
 }) {
   const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(Boolean(params.legal || params.direction || params.areaMin || params.bedrooms)); // NN/g #7: nâng cao mở sẵn nếu đang dùng
   const [showMap, setShowMap] = useState(false);
-  const [f, setF] = useState({
-    q: params.q || "", deal: params.deal || "", kind: params.kind || "",
-    province: params.province || "", district: params.district || "", ward: params.ward || "",
-    priceMin: params.priceMin || "", priceMax: params.priceMax || "",
-    areaMin: params.areaMin || "", bedrooms: params.bedrooms || "",
-    legal: params.legal || "", direction: params.direction || "",   // bộ lọc nâng cao (môi giới / nhà đầu tư)
-  });
+  const [f, setF] = useState(tuParams(params));
   const places = useMemo(() => buildPlaces(geo), [geo]);
   const pickPlace = (p: Place) => {
     const next = { ...f, q: "", province: p.province, district: p.district || "", ward: p.ward || "" };
@@ -79,13 +105,7 @@ export default function SearchClient({
   // 🔔 phải xuất phát từ đây chứ KHÔNG phải từ f: f còn chứa những gì đang chọn dở trong
   // panel chưa bấm "Tìm kiếm" - bản cũ đổi sắp xếp là âm thầm áp luôn bộ lọc gõ dở, và
   // popup 🔔 mô tả một bộ lọc khác với kết quả trên màn hình.
-  const goc = {
-    q: params.q || "", deal: params.deal || "", kind: params.kind || "",
-    province: params.province || "", district: params.district || "", ward: params.ward || "",
-    priceMin: params.priceMin || "", priceMax: params.priceMax || "",
-    areaMin: params.areaMin || "", bedrooms: params.bedrooms || "",
-    legal: params.legal || "", direction: params.direction || "",
-  };
+  const goc = tuParams(params);
   // Tỉnh cũ được gộp thêm vào kết quả khi bật "Địa chỉ mới sau sáp nhập" (xem lib/sap-nhap)
   const gomThem = useMemo(() => (f.province ? tinhCuGopVao(f.province) : []), [f.province]);
 
@@ -129,15 +149,25 @@ export default function SearchClient({
   useEffect(() => { setPage(1); }, [listings]);
   useEffect(() => { if (page > 1) window.scrollTo({ top: 0, behavior: "smooth" }); }, [page]);
 
-  // Bảng lọc trên điện thoại mở toàn màn hình -> khoá cuộn trang nền (sm+ là khối thường, không khoá)
+  // Popup bộ lọc mở -> khoá cuộn trang nền, Esc để đóng
   useEffect(() => {
-    if (!showFilter || window.matchMedia("(min-width: 640px)").matches) return;
+    if (!showFilter) return;
     const cu = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = cu; };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setShowFilter(false); };
+    document.addEventListener("keydown", esc);
+    return () => { document.body.style.overflow = cu; document.removeEventListener("keydown", esc); };
   }, [showFilter]);
   // số bộ lọc ĐANG ÁP (theo URL) - badge "Lọc (n)"
-  const soLoc = [goc.province, goc.district, goc.ward, goc.kind, goc.priceMin, goc.priceMax, goc.areaMin, goc.bedrooms, goc.legal, goc.direction, own ? "1" : ""].filter(Boolean).length;
+  // khoảng giá / diện tích tính 1 bộ lọc dù có cả 2 đầu
+  const soLoc = [goc.province, goc.district, goc.ward, goc.kind, goc.priceMin || goc.priceMax, goc.areaMin || goc.areaMax, goc.bedrooms, goc.bathrooms, goc.legal, goc.direction, goc.anh, goc.gan, goc.project, goc.street, own ? "1" : ""].filter(Boolean).length + docTienIch(goc.ti).length;
+  const khoangGia = goc.deal === "cho_thue" ? KHOANG_GIA_THUE : KHOANG_GIA_BAN;
+  const giaDangAp = goc.priceMin || goc.priceMax ? `${goc.priceMin}-${goc.priceMax}` : "";
+  const dtDangAp = goc.areaMin || goc.areaMax ? `${goc.areaMin}-${goc.areaMax}` : "";
+  const nhanGia = nhanKhoang(goc.priceMin, goc.priceMax, shortPrice);
+  const nhanDt = nhanKhoang(goc.areaMin, goc.areaMax, (n) => `${n}m²`);
+  // "a-b" -> {min, max}; chuỗi rỗng = bỏ lọc
+  const tachKhoang = (v: string) => { const [a = "", b = ""] = v.split("-"); return [a, b]; };
 
   const mapItems: MapItem[] = useMemo(
     () => listings
@@ -163,9 +193,11 @@ export default function SearchClient({
     router.push(href);
   }
   const submit = () => push({ ...f, sort });
-  const clear = () => { setNewAddr(false); setF({ q: "", deal: "", kind: "", province: "", district: "", ward: "", priceMin: "", priceMax: "", areaMin: "", bedrooms: "", legal: "", direction: "" }); router.push("/search"); };
+  const clear = () => { setNewAddr(false); setF(tuParams({})); router.push("/search"); };
 
   const sel = "inp appearance-none pr-8 cursor-pointer";
+  // ô trong popup: đang chọn giá trị thì viền màu brand (như "Tầng trệt" bên EvoHome)
+  const o = (v: string) => `${sel} ${v ? "!border-brand !text-brand font-semibold" : ""}`;
   const set = (k: string) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const v = e.target.value;
     // Đổi Bán <-> Cho thuê thì XOÁ mức giá đã chọn: hai chế độ dùng hai thang khác nhau
@@ -212,8 +244,6 @@ export default function SearchClient({
         </div>
         <div className="ml-auto hidden sm:flex items-center gap-2">
           <SaveSearchButton filters={goc} />
-          {/* dropdown tự vẽ thay <select> trần: list option của select do HĐH vẽ, không ăn CSS web */}
-          <ChonSapXep options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} />
         </div>
       </div>
 
@@ -246,225 +276,221 @@ export default function SearchClient({
         </button>
       </div>
 
-      {/* Điện thoại (29/9, kiểu Mogi): 1 hàng Lọc (n) · Sắp xếp · 🔔 - chip loại/giá/DT + 2 công tắc
-          chuyển vào bảng lọc, trước đây chiếm nửa màn đầu trước khi thấy tin nào */}
-      <div className="sm:hidden flex items-center gap-2 mb-3">
+      {/* ===== BỘ LỌC KIỂU EVOHOME (1/10) =====
+          Hàng 1: chip xổ xuống Mua/thuê · Loại · Diện tích · Giá (+ nhãn khoảng ✕) · Sắp xếp · Bộ lọc (n)
+          Hàng 2: tick tiện ích · Hàng 3: dự án · Hàng 4: tỉnh + công tắc · dải quận · Hàng 5: tên đường
+          Mọi chip xuất phát từ goc (bộ ĐÃ ÁP theo URL), không phải f (lựa chọn dở trong popup). */}
+      <div className="flex flex-wrap items-center gap-2 mb-3 text-sm">
+        <div className="hidden sm:contents">
+          <ChipLoc label="Mua & thuê" options={DEAL_OPTS} value={goc.deal}
+            onChange={(v) => push({ ...goc, deal: v, priceMin: "", priceMax: "" })} />
+          <ChipLoc label="Loại nhà đất" options={[["", "Tất cả loại"], ...Object.entries(PROP)]} value={goc.kind}
+            onChange={(v) => push({ ...goc, kind: v })} />
+          <ChipLoc label="Mọi diện tích"
+            options={dtDangAp && !KHOANG_DT.some(([v]) => v === dtDangAp) ? [...KHOANG_DT, [dtDangAp, nhanDt]] : KHOANG_DT}
+            value={dtDangAp}
+            onChange={(v) => { const [a, b] = tachKhoang(v); push({ ...goc, areaMin: a, areaMax: b }); }} />
+          <ChipLoc label={goc.deal === "cho_thue" ? "Giá thuê" : "Khoảng giá"} badge
+            options={giaDangAp && !khoangGia.some(([v]) => v === giaDangAp) ? [...khoangGia, [giaDangAp, nhanGia]] : khoangGia}
+            value={giaDangAp}
+            onChange={(v) => { const [a, b] = tachKhoang(v); push({ ...goc, priceMin: a, priceMax: b }); }} />
+          {nhanGia && (
+            <span className="flex items-center gap-1.5 text-xs text-[var(--ink-soft)]">
+              1 mức giá
+              <button type="button" title="Bỏ lọc giá" onClick={() => push({ ...goc, priceMin: "", priceMax: "" })}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand/10 text-brand font-semibold hover:bg-brand/20">
+                {nhanGia} <span aria-hidden>✕</span>
+              </button>
+            </span>
+          )}
+        </div>
+        <span className="sm:ml-2"><ChipLoc label="Mới nhất" options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} /></span>
         <button
-          className={`btn text-sm font-semibold ${soLoc ? "!border-brand !text-brand" : ""}`}
+          className={`h-10 px-4 rounded-lg border text-sm font-semibold flex items-center gap-2 transition
+            ${showFilter || soLoc ? "border-brand text-brand bg-brand/5" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
           aria-expanded={showFilter}
-          onClick={() => setShowFilter(true)}
+          onClick={() => { setF(tuParams(params)); setShowFilter(true); }}
         >
-          ⚙ Lọc{soLoc ? ` (${soLoc})` : ""}
+          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <path d="M3 6h9M15 6h2M3 14h2M8 14h9" strokeLinecap="round" /><circle cx="13.5" cy="6" r="1.8" /><circle cx="6.5" cy="14" r="1.8" />
+          </svg>
+          Bộ lọc
+          {soLoc > 0 && <span className="grid place-items-center min-w-5 h-5 px-1 rounded-full bg-brand text-white text-[0.7rem] font-bold">{soLoc}</span>}
         </button>
-        <ChonSapXep options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} />
-        <span className="ml-auto"><SaveSearchButton filters={goc} compact /></span>
+        <span className="sm:hidden ml-auto"><SaveSearchButton filters={goc} compact /></span>
       </div>
+
+      <HangTienIch ti={goc.ti} onDoi={(k) => push({ ...goc, ti: doiTi(goc.ti, k) })} />
+      {duAn.length > 0 && <ChonDuAn duAn={duAn} value={goc.project} onChon={(id) => push({ ...goc, project: id })} />}
 
       <RecentSearches />
 
-      {/* ===== Hàng chip lọc nhanh (cấp CƠ BẢN - người tìm nhà vãng lai) ===== */}
-      <div className="hidden sm:flex flex-wrap items-center gap-2 mb-4 text-sm">
-        <button
-          className={`btn text-sm ${showFilter ? "!border-brand !text-brand" : ""}`}
-          aria-expanded={showFilter}
-          onClick={() => setShowFilter((v) => !v)}
-        >
-          Lọc{(() => { const n = [f.province, f.district, f.ward, f.kind, f.priceMin, f.priceMax, f.areaMin, f.bedrooms, f.legal, f.direction].filter(Boolean).length; return n ? ` (${n})` : ""; })()}
-        </button>
-        {/* chip xuất phát từ goc (bộ đã áp), không phải f (còn lẫn lựa chọn gõ dở trong panel) */}
-        <select className={`${sel} !w-auto`} value={goc.kind}
-          onChange={(e) => push({ ...goc, kind: e.target.value })}>
-          <option value="">Loại nhà đất</option>
-          {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <select className={`${sel} !w-auto`} value={goc.priceMax}
-          onChange={(e) => push({ ...goc, priceMax: e.target.value })}>
-          <option value="">Khoảng giá</option>
-          {bangGia(goc.deal).slice(1).map(([v, l]) => <option key={v} value={v}>Dưới {l}</option>)}
-          {/* giá đang áp không nằm trong mốc (gõ tay ở ô nâng cao) -> vẫn phải hiện, không thì chip trống như chưa lọc */}
-          {goc.priceMax && !bangGia(goc.deal).some(([v]) => v === goc.priceMax) && (
-            <option value={goc.priceMax}>Dưới {shortPrice(Number(goc.priceMax))}</option>
-          )}
-        </select>
-        <select className={`${sel} !w-auto`} value={goc.areaMin}
-          onChange={(e) => push({ ...goc, areaMin: e.target.value })}>
-          {AREA_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          {/* diện tích gõ tay (VD 75) không có trong mốc -> thêm option động cho chip khỏi trống */}
-          {goc.areaMin && !AREA_OPTS.some(([v]) => v === goc.areaMin) && (
-            <option value={goc.areaMin}>≥ {goc.areaMin} m²</option>
-          )}
-        </select>
-        <button
-          role="switch" aria-checked={!!own}
-          className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
-          onClick={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
-        >
-          <span className={`w-9 h-5 rounded-full transition relative ${own ? "bg-emerald-500" : "bg-[var(--line-strong)]"}`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
-          </span>
-          Tin chính chủ tự đăng
-        </button>
-        <button
-          role="switch" aria-checked={!!newAddr}
-          className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
-          onClick={() => push({ ...goc, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
-          title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 - chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
-        >
-          <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
-            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
-          </span>
-          Địa chỉ mới sau sáp nhập
-        </button>
-      </div>
-
-      {dieuHuong && !newAddr && (
-        <ChipQuan dh={dieuHuong} district={goc.district}
-          onPick={(d) => push({ ...goc, province: dieuHuong.province, district: d, ward: "" })} />
-      )}
-
-      {/* ===== Bộ lọc ===== */}
-      {showFilter && (
-        <form
-          className="card p-4 shadow-sm fixed inset-0 z-[60] overflow-y-auto rounded-none pb-28
-            sm:static sm:inset-auto sm:z-auto sm:overflow-visible sm:rounded-lg sm:mb-5 sm:pb-4"
-          onSubmit={(e) => { e.preventDefault(); submit(); }}
-        >
-          {/* Điện thoại: bảng lọc toàn màn hình - tiêu đề + nút đóng + 2 công tắc (sm+ ở hàng chip) */}
-          <div className="sm:hidden flex items-center mb-4">
-            <h2 className="font-bold text-lg">Bộ lọc</h2>
-            <button type="button" className="ml-auto w-10 h-10 grid place-items-center text-xl" aria-label="Đóng bộ lọc" onClick={() => setShowFilter(false)}>✕</button>
-          </div>
-          <div className="sm:hidden flex flex-col gap-3 mb-4 pb-4 border-b border-[var(--line)]">
-            <button
-              type="button" role="switch" aria-checked={!!own}
-              className="flex items-center gap-2 text-sm font-semibold text-[var(--ink-soft)]"
-              onClick={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
-            >
-              <span className={`w-9 h-5 rounded-full transition relative shrink-0 ${own ? "bg-emerald-500" : "bg-[var(--line-strong)]"}`}>
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
-              </span>
-              Tin chính chủ tự đăng
-            </button>
-            <button
-              type="button" role="switch" aria-checked={!!newAddr}
-              className="flex items-center gap-2 text-sm font-semibold text-[var(--ink-soft)]"
-              onClick={() => push({ ...goc, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
-            >
-              <span className={`w-9 h-5 rounded-full transition relative shrink-0 ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
-              </span>
-              Địa chỉ mới sau sáp nhập
-            </button>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Từ khoá</span>
-              <input className="inp" value={f.q} onChange={set("q")} placeholder="Đường, dự án, khu vực..." />
-            </label>
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Tỉnh/Thành phố</span>
-              <select className={sel} value={f.province} onChange={set("province")}>
-                <option value="">Chọn tỉnh/thành phố</option>
-                {provinces.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </label>
-            {!newAddr ? (
-              <>
-                <label className="block">
-                  <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Quận/Huyện <span className="text-[var(--ink-faint)] font-normal">(cũ)</span></span>
-                  <select className={sel} value={f.district} onChange={set("district")} disabled={!districts.length}>
-                    <option value="">Chọn quận/huyện</option>
-                    {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phường/Xã</span>
-                  <select className={sel} value={f.ward} onChange={set("ward")} disabled={!wards.length}>
-                    <option value="">Chọn phường/xã</option>
-                    {wards.map((w) => <option key={w} value={w}>{w}</option>)}
-                  </select>
-                </label>
-              </>
-            ) : (
-              <label className="block xl:col-span-2">
-                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phường/Xã <span className="text-brand font-normal">(mới sau sáp nhập)</span></span>
-                <select className={sel} value={f.ward} onChange={(e) => setF((s) => ({ ...s, district: "", ward: e.target.value }))} disabled={!allWards.length}>
-                  <option value="">Chọn phường/xã mới</option>
-                  {allWards.map((w) => <option key={w} value={w}>{w}</option>)}
-                </select>
-              </label>
-            )}
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Loại bất động sản</span>
-              <select className={sel} value={f.kind} onChange={set("kind")}>
-                <option value="">Tất cả</option>
-                {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
-            </label>
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Bán/Cho thuê</span>
-              <select className={sel} value={f.deal} onChange={set("deal")}>
-                <option value="">Tất cả</option>
-                <option value="ban">Bán</option>
-                <option value="cho_thue">Cho thuê</option>
-              </select>
-            </label>
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Giá từ</span>
-              <select className={sel} value={f.priceMin} onChange={set("priceMin")}>
-                {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </label>
-            <label className="block">
-              <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Giá đến</span>
-              <select className={sel} value={f.priceMax} onChange={set("priceMax")}>
-                {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </label>
-          </div>
-          {/* NN/g #7: cấp NÂNG CAO - môi giới / nhà đầu tư (diện tích, PN, hướng, pháp lý) ẩn mặc định để người vãng lai không rối */}
-          <button type="button" onClick={() => setShowAdvanced((v) => !v)} className="mt-3 text-sm font-semibold text-brand flex items-center gap-1">
-            {showAdvanced ? "▾" : "▸"} Bộ lọc nâng cao <span className="text-xs font-normal text-[var(--ink-soft)]">(diện tích, phòng ngủ, hướng, pháp lý)</span>
+      <KhuVucChip
+        tinhs={dieuHuong ? [dieuHuong.province, ...provinces.filter((p) => p !== dieuHuong.province)] : provinces}
+        province={goc.province}
+        districts={!newAddr && goc.province && dieuHuong?.province === goc.province ? dieuHuong.districts.map(([d]) => d) : []}
+        district={goc.district}
+        onTinh={(p) => push({ ...goc, province: p, district: "", ward: "" })}
+        onQuan={(d) => push({ ...goc, district: d, ward: "" })}
+        phai={<>
+          <button
+            role="switch" aria-checked={!!own}
+            className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
+            onClick={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
+          >
+            <span className={`w-9 h-5 rounded-full transition relative ${own ? "bg-emerald-500" : "bg-[var(--line-strong)]"}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
+            </span>
+            Tin chính chủ
           </button>
-          {showAdvanced && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mt-3 pt-3 border-t border-[var(--line)]">
-              <label className="block">
-                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Diện tích tối thiểu (m²)</span>
-                <input className="inp" type="number" min={0} value={f.areaMin} onChange={set("areaMin")} placeholder="VD: 50" />
-              </label>
-              <label className="block">
-                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phòng ngủ</span>
-                <select className={sel} value={f.bedrooms} onChange={set("bedrooms")}>
-                  <option value="">Tất cả</option>
-                  {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ phòng</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Hướng</span>
-                <select className={sel} value={f.direction} onChange={set("direction")}>
-                  <option value="">Tất cả</option>
-                  {["Đông", "Tây", "Nam", "Bắc", "Đông Nam", "Đông Bắc", "Tây Nam", "Tây Bắc"].map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Pháp lý</span>
-                <select className={sel} value={f.legal} onChange={set("legal")}>
-                  <option value="">Tất cả</option>
-                  <option value="sổ">Đã có sổ (hồng/đỏ)</option>
-                  <option value="hợp đồng">Hợp đồng mua bán</option>
-                  <option value="thổ cư">Thổ cư</option>
-                </select>
-              </label>
+          <button
+            role="switch" aria-checked={!!newAddr}
+            className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
+            onClick={() => push({ ...goc, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
+            title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 - chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
+          >
+            <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
+            </span>
+            Địa chỉ sau sáp nhập
+          </button>
+        </>}
+      />
+
+      {/* TÊN ĐƯỜNG: lọc theo địa chỉ (Enter để áp) */}
+      <form className="flex flex-wrap items-center gap-2 sm:gap-4 mb-5" onSubmit={(e) => { e.preventDefault(); push({ ...goc, street: f.street.trim() }); }}>
+        <span className="text-xs font-bold tracking-wide text-[var(--ink-soft)]">TÊN ĐƯỜNG</span>
+        <label className="h-10 w-full sm:w-[28rem] px-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] flex items-center gap-2 text-sm">
+          <svg className="w-4 h-4 text-[var(--ink-soft)] shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="9" cy="9" r="5.5" /><path d="M13.5 13.5L17 17" strokeLinecap="round" /></svg>
+          <input className="flex-1 min-w-0 bg-transparent outline-none" value={f.street} onChange={set("street")}
+            placeholder="Chọn hoặc gõ tên đường / khu vực..." />
+          {goc.street && <button type="button" aria-label="Bỏ lọc tên đường" className="text-[var(--ink-soft)]" onClick={() => push({ ...goc, street: "" })}>✕</button>}
+        </label>
+      </form>
+
+      {/* ===== POPUP "Bộ lọc" (giữa màn hình; điện thoại toàn màn hình) ===== */}
+      {showFilter && (
+        <div className="fixed inset-0 z-[60] bg-black/40 sm:grid sm:place-items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowFilter(false); }}>
+          <form
+            className="relative bg-[var(--surface)] w-full h-full sm:h-auto sm:max-h-[88vh] sm:max-w-[720px] sm:rounded-xl shadow-2xl flex flex-col"
+            onSubmit={(e) => { e.preventDefault(); setShowFilter(false); submit(); }}
+          >
+            <div className="flex items-center px-6 pt-5 pb-3 border-b border-[var(--line)]">
+              <h2 className="font-bold text-lg">Bộ lọc</h2>
+              <button type="button" className="ml-auto w-9 h-9 grid place-items-center rounded-lg hover:bg-[var(--surface-2)] text-lg" aria-label="Đóng bộ lọc" onClick={() => setShowFilter(false)}>✕</button>
             </div>
-          )}
-          <div className="fixed bottom-0 inset-x-0 z-[61] flex gap-3 p-4 border-t border-[var(--line)] bg-[var(--surface)]
-            sm:static sm:z-auto sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2 sm:p-0 sm:mt-4 sm:border-0 sm:bg-transparent">
-            <button className="btn sm:order-2" type="button" onClick={clear}>Xóa bộ lọc</button>
-            <button className="btn btn-primary flex-1 sm:flex-none px-8 sm:order-1" type="submit">
-              <span className="sm:hidden">Xem kết quả</span><span className="hidden sm:inline">Tìm kiếm</span>
-            </button>
-          </div>
-        </form>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+              <section>
+                <h3 className={TIEU_DE}>KHU VỰC</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <select className={o(f.province)} value={f.province} onChange={set("province")} aria-label="Tỉnh/Thành phố">
+                    <option value="">Tỉnh/Thành phố: Tất cả</option>
+                    {provinces.map((p) => <option key={p} value={p}>{p}</option>)}
+                    {f.province && !provinces.includes(f.province) && <option value={f.province}>{f.province}</option>}
+                  </select>
+                  {!newAddr ? (
+                    <>
+                      <select className={o(f.district)} value={f.district} onChange={set("district")} disabled={!districts.length} aria-label="Quận/Huyện">
+                        <option value="">Quận/Huyện (cũ): Tất cả</option>
+                        {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                      <select className={o(f.ward)} value={f.ward} onChange={set("ward")} disabled={!wards.length} aria-label="Phường/Xã">
+                        <option value="">Phường/Xã: Tất cả</option>
+                        {wards.map((w) => <option key={w} value={w}>{w}</option>)}
+                      </select>
+                    </>
+                  ) : (
+                    <select className={o(f.ward)} value={f.ward} onChange={(e) => setF((s) => ({ ...s, district: "", ward: e.target.value }))} disabled={!allWards.length} aria-label="Phường/Xã mới">
+                      <option value="">Phường/Xã mới: Tất cả</option>
+                      {allWards.map((w) => <option key={w} value={w}>{w}</option>)}
+                    </select>
+                  )}
+                  <input className={o(f.q)} value={f.q} onChange={set("q")} placeholder="Từ khoá: đường, dự án, khu vực..." />
+                </div>
+              </section>
+              <section>
+                <h3 className={TIEU_DE}>NHU CẦU & LOẠI</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <select className={o(f.deal)} value={f.deal} onChange={set("deal")} aria-label="Bán/Cho thuê">
+                    <option value="">Mua & thuê</option><option value="ban">Mua bán</option><option value="cho_thue">Cho thuê</option>
+                  </select>
+                  <select className={o(f.kind)} value={f.kind} onChange={set("kind")} aria-label="Loại bất động sản">
+                    <option value="">Loại: Tất cả</option>
+                    {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+              </section>
+              <section>
+                <h3 className={TIEU_DE}>KHOẢNG GIÁ & DIỆN TÍCH</h3>
+                <div className="grid gap-3 grid-cols-2">
+                  <select className={o(f.priceMin)} value={f.priceMin} onChange={set("priceMin")} aria-label="Giá từ">
+                    {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{v ? `Từ ${l}` : "Giá từ: Tất cả"}</option>)}
+                    {f.priceMin && !bangGia(f.deal).some(([v]) => v === f.priceMin) && <option value={f.priceMin}>Từ {shortPrice(Number(f.priceMin))}</option>}
+                  </select>
+                  <select className={o(f.priceMax)} value={f.priceMax} onChange={set("priceMax")} aria-label="Giá đến">
+                    {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{v ? `Đến ${l}` : "Giá đến: Tất cả"}</option>)}
+                    {f.priceMax && !bangGia(f.deal).some(([v]) => v === f.priceMax) && <option value={f.priceMax}>Đến {shortPrice(Number(f.priceMax))}</option>}
+                  </select>
+                  <input className={o(f.areaMin)} type="number" min={0} value={f.areaMin} onChange={set("areaMin")} placeholder="Diện tích từ (m²)" />
+                  <input className={o(f.areaMax)} type="number" min={0} value={f.areaMax} onChange={set("areaMax")} placeholder="Diện tích đến (m²)" />
+                </div>
+              </section>
+              <section>
+                <h3 className={TIEU_DE}>HÌNH ẢNH</h3>
+                <select className={o(f.anh)} value={f.anh} onChange={set("anh")} aria-label="Hình ảnh">
+                  <option value="">Tất cả</option><option value="co">Có hình ảnh</option><option value="khong">Chưa có hình ảnh</option>
+                </select>
+              </section>
+              <section>
+                <h3 className={TIEU_DE}>KHOẢNG CÁCH</h3>
+                <OKhoangCach gan={f.gan} bk={f.bk} onDoi={(gan, bk) => setF((s) => ({ ...s, gan, bk }))} />
+              </section>
+              <section>
+                <h3 className={TIEU_DE}>CHI TIẾT</h3>
+                <div className="grid gap-3 grid-cols-2">
+                  <select className={o(f.bedrooms)} value={f.bedrooms} onChange={set("bedrooms")} aria-label="Phòng ngủ">
+                    <option value="">Phòng ngủ: Tất cả</option>
+                    {[1, 2, 3, 4, 5].map((b) => <option key={b} value={b}>{b}+ phòng ngủ</option>)}
+                  </select>
+                  <select className={o(f.bathrooms)} value={f.bathrooms} onChange={set("bathrooms")} aria-label="Phòng tắm">
+                    <option value="">Phòng tắm: Tất cả</option>
+                    {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}+ phòng tắm</option>)}
+                  </select>
+                  <select className={o(f.direction)} value={f.direction} onChange={set("direction")} aria-label="Hướng">
+                    <option value="">Hướng: Tất cả</option>
+                    {["Đông", "Tây", "Nam", "Bắc", "Đông Nam", "Đông Bắc", "Tây Nam", "Tây Bắc"].map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <select className={o(f.legal)} value={f.legal} onChange={set("legal")} aria-label="Pháp lý">
+                    <option value="">Pháp lý: Tất cả</option>
+                    <option value="sổ">Đã có sổ (hồng/đỏ)</option>
+                    <option value="hợp đồng">Hợp đồng mua bán</option>
+                    <option value="thổ cư">Thổ cư</option>
+                  </select>
+                </div>
+              </section>
+              <section>
+                <h3 className={TIEU_DE}>TIỆN NGHI</h3>
+                <div className="flex flex-wrap gap-2">
+                  {TIEN_ICH.map((t) => {
+                    const on = f.ti.split(",").includes(t.k);
+                    return (
+                      <button key={t.k} type="button" aria-pressed={on} onClick={() => setF((s) => ({ ...s, ti: doiTi(s.ti, t.k) }))}
+                        className={`h-9 px-3 rounded-lg border text-sm flex items-center gap-1.5 transition
+                          ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] hover:border-brand"}`}>
+                        <span aria-hidden>{t.icon}</span>{t.ten}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+            <div className="grid grid-cols-2 gap-3 px-6 py-4 border-t border-[var(--line)]">
+              <button type="button" className="h-12 rounded-lg border border-[var(--line-strong)] font-semibold hover:bg-[var(--surface-2)]"
+                onClick={() => { setShowFilter(false); clear(); }}>Xoá tất cả</button>
+              <button type="submit" className="h-12 rounded-lg bg-brand text-white font-semibold hover:bg-brand-ink">Áp dụng</button>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* ===== Kết quả + bản đồ ===== */}
