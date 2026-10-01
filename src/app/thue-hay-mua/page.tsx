@@ -1,13 +1,14 @@
-export const dynamic = "force-dynamic";
+// 1/10: ISR 1 giờ thay vì force-dynamic - mỗi lượt xem (kể cả bot) từng kéo 3.000 dòng từ Supabase
+export const revalidate = 3600;
 
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";
 import { median } from "@/lib/gemini";
 import RentVsBuyCalc from "./RentVsBuyCalc";
 
 export const metadata = { title: "Thuê hay Mua? Tỷ suất cho thuê theo quận - NhaDat Radar" };
 
 export default async function RentVsBuyPage() {
-  const supabase = await createClient();
+  const supabase = createAnonClient();
   const { data } = await supabase
     .from("listings")
     .select("district,province,deal,price_per_m2")

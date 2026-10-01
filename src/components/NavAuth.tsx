@@ -21,9 +21,11 @@ export default function NavAuth() {
   useEffect(() => {
     const supabase = createClient();
     let huy = false;
-    supabase.auth.getUser().then(({ data }) => {
+    // getSession: đọc phiên trong cookie, không gọi mạng (getUser gọi Auth server mỗi trang - 1/10).
+    // Chỉ dùng để chọn nút hiển thị; quyền thật do server kiểm.
+    supabase.auth.getSession().then(({ data }) => {
       if (huy) return;
-      setEmail(data.user?.email ?? null);
+      setEmail(data.session?.user?.email ?? null);
       setXong(true);
     });
     // đăng nhập/đăng xuất ở tab khác -> nav tự cập nhật, không cần tải lại trang

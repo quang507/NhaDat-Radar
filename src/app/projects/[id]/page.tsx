@@ -1,8 +1,9 @@
-export const dynamic = "force-dynamic";
+// 1/10: ISR 10 phút, client ẩn danh (dữ liệu công khai) - trước đây mỗi lượt xem là 2-3 truy vấn
+export const revalidate = 600;
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";
 import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice, AMEN } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
@@ -19,7 +20,7 @@ export default async function ProjectDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createAnonClient();
   const { data: proj } = await supabase.from("projects").select("*").eq("id", id).single();
   if (!proj) notFound();
   const p = proj as Project;

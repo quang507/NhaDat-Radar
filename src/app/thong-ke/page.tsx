@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";
+import { unstable_cache } from "next/cache";
 import PriceMap, { type MapPoint } from "@/components/PriceMap";
 import type { Listing } from "@/lib/types";
 import { median } from "@/lib/gemini";
@@ -30,18 +31,7 @@ export default async function ThongKe({
   const deal = sp.deal === "cho_thue" ? "cho_thue" : "ban";
   const city = CITIES.includes(sp.city || "") ? sp.city! : "Hà Nội";
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("listings")
-    .select("id,title,price_vnd,area_m2,price_per_m2,district,lat,lng,kind,deal")
-    .eq("status", "published")
-    .eq("deal", deal)
-    .eq("province", city)
-    .not("lat", "is", null)
-    .not("price_vnd", "is", null)
-    .limit(1000);
-  if (error) console.error("thong-ke:", error.message); // đừng để lỗi DB đội lốt "chưa có dữ liệu"
-  const listings = (data ?? []) as Listing[];
+  const listings = await tinThongKe(city, deal).catch((e: Error) => { console.error(e.message); return [] as Listing[]; });
 
   const m: Record<string, { prices: number[]; lat: number; lng: number; n: number }> = {};
   for (const x of listings) {
@@ -135,27 +125,8 @@ export default async function ThongKe({
 
 // Biểu đồ lịch sử giá/m² trung vị toàn thành phố (từ bảng price_history, snapshot mỗi ngày 5h sáng).
 async function PriceHistoryChart({ city, deal }: { city: string; deal: string }) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("price_history")
-    .select("day,median_ppm2,n")
-    .eq("province", city).eq("deal", deal).eq("district", "").eq("kind", "all")
-    .order("day", { ascending: true })
-    .limit(120)
-    .then((r) => r, () => ({ data: null })); // bảng chưa tạo (chưa chạy migration 003) -> ẩn êm
+  const series = await chuoiGia(city, deal);
 
-  // Nếu chưa có dòng tổng hợp toàn tỉnh (district='') thì gộp theo ngày từ các quận
-  let series: { day: string; v: number }[] = (data ?? []).map((r) => ({ day: r.day, v: Number(r.median_ppm2) }));
-  if (!series.length) {
-    const { data: all } = await supabase
-      .from("price_history").select("day,median_ppm2")
-      .eq("province", city).eq("deal", deal)
-      .order("day", { ascending: true }).limit(2000)
-      .then((r) => r, () => ({ data: null }));
-    const byDay = new Map<string, number[]>();
-    for (const r of all ?? []) (byDay.get(r.day) ?? byDay.set(r.day, []).get(r.day)!).push(Number(r.median_ppm2));
-    series = [...byDay.entries()].map(([day, vs]) => ({ day, v: Math.round(vs.reduce((a, b) => a + b, 0) / vs.length) }));
-  }
   if (series.length < 2) {
     return (
       <p className="text-xs text-[var(--ink-faint)] mb-4 rounded-lg bg-[var(--surface-2)] p-2.5">
@@ -192,3 +163,52 @@ async function PriceHistoryChart({ city, deal }: { city: string; deal: string })
     </div>
   );
 }
+
+// 1/10: 2 truy vấn của trang thống kê cache 30 phút theo (tỉnh, mua/thuê). Dữ liệu chỉ đổi mỗi lượt crawl;
+// trước đây mỗi lượt xem kéo tới 1.000 tin + 2.000 dòng lịch sử giá.
+const tinThongKe = unstable_cache(
+  async (city: string, deal: string) => {
+    const { data, error } = await createAnonClient()
+      .from("listings")
+      .select("id,title,price_vnd,area_m2,price_per_m2,district,lat,lng,kind,deal")
+      .eq("status", "published")
+      .eq("deal", deal)
+      .eq("province", city)
+      .not("lat", "is", null)
+      .not("price_vnd", "is", null)
+      .limit(1000);
+    if (error) throw new Error("thong-ke: " + error.message); // lỗi thì KHÔNG cache, đừng để lỗi DB đội lốt "chưa có dữ liệu"
+    return (data ?? []) as Listing[];
+  },
+  ["thong-ke-tin"],
+  { revalidate: 1800 },
+);
+
+const chuoiGia = unstable_cache(
+  async (city: string, deal: string) => {
+    const supabase = createAnonClient();
+    const { data } = await supabase
+      .from("price_history")
+      .select("day,median_ppm2,n")
+      .eq("province", city).eq("deal", deal).eq("district", "").eq("kind", "all")
+      .order("day", { ascending: true })
+      .limit(120)
+      .then((r) => r, () => ({ data: null })); // bảng chưa tạo (chưa chạy migration 003) -> ẩn êm
+
+    // Nếu chưa có dòng tổng hợp toàn tỉnh (district='') thì gộp theo ngày từ các quận
+    let series: { day: string; v: number }[] = (data ?? []).map((r) => ({ day: r.day, v: Number(r.median_ppm2) }));
+    if (!series.length) {
+      const { data: all } = await supabase
+        .from("price_history").select("day,median_ppm2")
+        .eq("province", city).eq("deal", deal)
+        .order("day", { ascending: true }).limit(2000)
+        .then((r) => r, () => ({ data: null }));
+      const byDay = new Map<string, number[]>();
+      for (const r of all ?? []) (byDay.get(r.day) ?? byDay.set(r.day, []).get(r.day)!).push(Number(r.median_ppm2));
+      series = [...byDay.entries()].map(([day, vs]) => ({ day, v: Math.round(vs.reduce((a, b) => a + b, 0) / vs.length) }));
+    }
+    return series;
+  },
+  ["thong-ke-lich-su"],
+  { revalidate: 1800 },
+);
