@@ -386,6 +386,7 @@ export default function SearchClient({
                   <select className={o(f.province)} value={f.province} onChange={set("province")} aria-label="Tỉnh/Thành phố">
                     <option value="">Tỉnh/Thành phố: Tất cả</option>
                     {provinces.map((p) => <option key={p} value={p}>{p}</option>)}
+                    {f.province && !provinces.includes(f.province) && <option value={f.province}>{f.province}</option>}
                   </select>
                   {!newAddr ? (
                     <>
