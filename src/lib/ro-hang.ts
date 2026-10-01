@@ -65,3 +65,15 @@ export function tronRoHang<T extends { id: string }>(roHang: T[], khac: T[], moi
   }
   return out;
 }
+
+/**
+ * Link mở phòng gốc trên app EvoHome (1/10, chỉ admin thấy ở trang chi tiết tin).
+ * Đường dẫn trang chi tiết 1 phòng bên EvoHome CHƯA xác minh (cần đăng nhập mới xem được) ->
+ * đặt biến môi trường EVOHOME_UNIT_URL dạng ".../{id}" ({id} = id phòng EvoHome = source_post_id).
+ * Chưa đặt thì mở trang danh sách phòng trống, admin tra theo số phòng / toà nhà hiện kèm.
+ */
+export function linkGocEvohome(sourcePostId: string | null | undefined) {
+  const mau = process.env.EVOHOME_UNIT_URL;
+  if (mau && sourcePostId) return mau.replace("{id}", encodeURIComponent(sourcePostId));
+  return "https://app.evohome.it.com/re-selling-dashboard/real-estate/transaction-units?adminMode=old&status=VACANT&type=ROOM&view=all";
+}

@@ -39,10 +39,10 @@ const TRUONG_THE = ["id", "source", "source_site", "source_count", "source_sites
 const chiTruongThe = (x: Listing) =>
   Object.fromEntries(TRUONG_THE.filter((k) => x[k as keyof Listing] != null).map((k) => [k, x[k as keyof Listing]])) as unknown as Listing;
 
-const KHOA_LOC = ["deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "bedrooms", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
+const KHOA_LOC = ["deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
 const timKiemCoCache = unstable_cache(
   async (sp: Record<string, string | undefined>) => {
-  const { kind, province, district, ward, priceMin, priceMax, areaMin, bedrooms, q, sort, own, legal, direction, newAddr, agent } = sp;
+  const { kind, province, district, ward, priceMin, priceMax, areaMin, areaMax, bedrooms, q, sort, own, legal, direction, newAddr, agent } = sp;
   // URL có lọc giá mà không có deal (dán tay / link cũ): hiểu theo thang tỷ như UI đang hiện
   // (SearchClient.push cũng ép vậy) - không thì mọi tin thuê đều lọt lưới "dưới X tỷ".
   const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : priceMin || priceMax ? "ban" : undefined;
@@ -76,6 +76,7 @@ const timKiemCoCache = unstable_cache(
     if (priceMin && !Number.isNaN(Number(priceMin))) query = query.gte("price_vnd", Number(priceMin));
     if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
     if (areaMin && !Number.isNaN(Number(areaMin))) query = query.gte("area_m2", Number(areaMin));
+    if (areaMax && !Number.isNaN(Number(areaMax))) query = query.lte("area_m2", Number(areaMax));
     if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
     // bộ lọc nâng cao (NN/g #7): pháp lý & hướng - khớp chuỗi mềm vì nguồn ghi tự do ("Sổ hồng riêng", "Đông Nam")
     if (legal) query = query.ilike("legal_status", `%${clean(legal)}%`);

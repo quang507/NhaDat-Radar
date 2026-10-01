@@ -30,7 +30,8 @@ import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
-import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong } from "@/lib/ro-hang";
+import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong, linkGocEvohome } from "@/lib/ro-hang";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import ChiaSe from "@/components/ChiaSe";
@@ -173,6 +174,17 @@ export default async function ListingDetail({
     const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).single();
     isAdmin = prof?.role === "admin";
   }
+  // Rổ hàng: admin xem bản gốc (địa chỉ thật, số phòng, hoa hồng) + link mở phòng bên đối tác.
+  // Đọc bằng service role SAU khi đã xác nhận admin - source_post_id/listing_ro_hang không ra web công khai.
+  let goc: { partner: string; source_post_id: string | null; exact_address: string | null; unit_code: string | null; commission: string | null } | null = null;
+  if (isAdmin && laRoHang(data)) {
+    const admin = createAdminClient();
+    const [{ data: l }, { data: p }] = await Promise.all([
+      admin.from("listings").select("source_post_id").eq("id", id).maybeSingle(),
+      admin.from("listing_ro_hang").select("partner,exact_address,unit_code,commission").eq("listing_id", id).maybeSingle(),
+    ]);
+    goc = { partner: p?.partner || data.source_site || "", source_post_id: l?.source_post_id ?? null, exact_address: p?.exact_address ?? null, unit_code: p?.unit_code ?? null, commission: p?.commission ?? null };
+  }
   // SĐT thật: chỉ tải khi đã đăng nhập. Khách vãng lai chỉ cần biết "có SĐT" (has_contact_phone, trong cache)
   let coSdt = pub.coSdt;
   if (user) {
@@ -308,6 +320,18 @@ export default async function ListingDetail({
               <button className="btn !py-1 text-xs !text-red-600" type="submit">Xoá hẳn</button>
             </form>
           </span>
+          {goc && (
+            <div className="basis-full flex flex-wrap items-center gap-x-3 gap-y-1 pt-1.5 mt-0.5 border-t border-amber-400/30 text-[var(--ink)]">
+              <span>🔒 Gốc <b>{goc.partner}</b>:</span>
+              <span>{[goc.exact_address, goc.unit_code ? `P.${goc.unit_code}` : null, goc.commission ? `HH ${goc.commission}` : null].filter(Boolean).join(" · ") || "chưa có địa chỉ thật"}</span>
+              {goc.partner === "evohome" && (
+                <a href={linkGocEvohome(goc.source_post_id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 underline">
+                  Mở trên app.evohome.it.com ↗
+                </a>
+              )}
+              {goc.source_post_id && <span className="font-mono text-[var(--ink-soft)]">id: {goc.source_post_id}</span>}
+            </div>
+          )}
         </div>
       )}
 

@@ -8,6 +8,7 @@ import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import ChonSapXep from "@/components/ChonSapXep";
+import ChipLoc from "@/components/ChipLoc";
 import { PROP, shortPrice } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
@@ -39,9 +40,30 @@ const SORTS: [string, string][] = [
   ["ppm2_asc", "Giá/m² thấp đến cao"], ["ppm2_desc", "Giá/m² cao đến thấp"],
   ["area_asc", "Diện tích nhỏ đến lớn"], ["area_desc", "Diện tích lớn đến nhỏ"],
 ];
-const AREA_OPTS: [string, string][] = [
-  ["", "Diện tích"], ["30", "≥ 30 m²"], ["50", "≥ 50 m²"], ["80", "≥ 80 m²"], ["100", "≥ 100 m²"], ["150", "≥ 150 m²"],
+// Hàng chip lọc nhanh (1/10, kiểu EvoHome): chọn theo KHOẢNG "min-max" (1 đầu rỗng = dưới/trên),
+// thay cho "Dưới X" / "≥ X" - người tìm nhà nghĩ theo khoảng ("7 - 8 triệu", "20 - 30m²").
+const KHOANG_GIA_THUE: [string, string][] = [
+  ["", "Mọi mức giá"], ["-3000000", "Dưới 3 triệu"], ["3000000-5000000", "3 - 5 triệu"], ["5000000-7000000", "5 - 7 triệu"],
+  ["7000000-10000000", "7 - 10 triệu"], ["10000000-15000000", "10 - 15 triệu"], ["15000000-20000000", "15 - 20 triệu"],
+  ["20000000-50000000", "20 - 50 triệu"], ["50000000-", "Trên 50 triệu"],
 ];
+const KHOANG_GIA_BAN: [string, string][] = [
+  ["", "Mọi mức giá"], ["-1000000000", "Dưới 1 tỷ"], ["1000000000-2000000000", "1 - 2 tỷ"], ["2000000000-3000000000", "2 - 3 tỷ"],
+  ["3000000000-5000000000", "3 - 5 tỷ"], ["5000000000-10000000000", "5 - 10 tỷ"], ["10000000000-20000000000", "10 - 20 tỷ"],
+  ["20000000000-", "Trên 20 tỷ"],
+];
+const KHOANG_DT: [string, string][] = [
+  ["", "Mọi diện tích"], ["-20", "Dưới 20m²"], ["20-30", "20 - 30m²"], ["30-50", "30 - 50m²"], ["50-70", "50 - 70m²"],
+  ["70-100", "70 - 100m²"], ["100-150", "100 - 150m²"], ["150-", "Trên 150m²"],
+];
+const DEAL_OPTS: [string, string][] = [["", "Mua & thuê"], ["ban", "Mua bán"], ["cho_thue", "Cho thuê"]];
+/** nhãn chip cho khoảng đang áp (kể cả khoảng gõ tay không nằm trong mốc) */
+function nhanKhoang(min: string, max: string, fmt: (n: number) => string) {
+  if (min && max) return `${fmt(Number(min))} - ${fmt(Number(max))}`;
+  if (max) return `Dưới ${fmt(Number(max))}`;
+  if (min) return `Trên ${fmt(Number(min))}`;
+  return "";
+}
 
 
 export default function SearchClient({
@@ -56,13 +78,13 @@ export default function SearchClient({
 }) {
   const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(Boolean(params.legal || params.direction || params.areaMin || params.bedrooms)); // NN/g #7: nâng cao mở sẵn nếu đang dùng
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(params.legal || params.direction || params.areaMin || params.areaMax || params.bedrooms)); // NN/g #7: nâng cao mở sẵn nếu đang dùng
   const [showMap, setShowMap] = useState(false);
   const [f, setF] = useState({
     q: params.q || "", deal: params.deal || "", kind: params.kind || "",
     province: params.province || "", district: params.district || "", ward: params.ward || "",
     priceMin: params.priceMin || "", priceMax: params.priceMax || "",
-    areaMin: params.areaMin || "", bedrooms: params.bedrooms || "",
+    areaMin: params.areaMin || "", areaMax: params.areaMax || "", bedrooms: params.bedrooms || "",
     legal: params.legal || "", direction: params.direction || "",   // bộ lọc nâng cao (môi giới / nhà đầu tư)
   });
   const places = useMemo(() => buildPlaces(geo), [geo]);
@@ -83,7 +105,7 @@ export default function SearchClient({
     q: params.q || "", deal: params.deal || "", kind: params.kind || "",
     province: params.province || "", district: params.district || "", ward: params.ward || "",
     priceMin: params.priceMin || "", priceMax: params.priceMax || "",
-    areaMin: params.areaMin || "", bedrooms: params.bedrooms || "",
+    areaMin: params.areaMin || "", areaMax: params.areaMax || "", bedrooms: params.bedrooms || "",
     legal: params.legal || "", direction: params.direction || "",
   };
   // Tỉnh cũ được gộp thêm vào kết quả khi bật "Địa chỉ mới sau sáp nhập" (xem lib/sap-nhap)
@@ -137,7 +159,15 @@ export default function SearchClient({
     return () => { document.body.style.overflow = cu; };
   }, [showFilter]);
   // số bộ lọc ĐANG ÁP (theo URL) - badge "Lọc (n)"
-  const soLoc = [goc.province, goc.district, goc.ward, goc.kind, goc.priceMin, goc.priceMax, goc.areaMin, goc.bedrooms, goc.legal, goc.direction, own ? "1" : ""].filter(Boolean).length;
+  // khoảng giá / diện tích tính 1 bộ lọc dù có cả 2 đầu
+  const soLoc = [goc.province, goc.district, goc.ward, goc.kind, goc.priceMin || goc.priceMax, goc.areaMin || goc.areaMax, goc.bedrooms, goc.legal, goc.direction, own ? "1" : ""].filter(Boolean).length;
+  const khoangGia = goc.deal === "cho_thue" ? KHOANG_GIA_THUE : KHOANG_GIA_BAN;
+  const giaDangAp = goc.priceMin || goc.priceMax ? `${goc.priceMin}-${goc.priceMax}` : "";
+  const dtDangAp = goc.areaMin || goc.areaMax ? `${goc.areaMin}-${goc.areaMax}` : "";
+  const nhanGia = nhanKhoang(goc.priceMin, goc.priceMax, shortPrice);
+  const nhanDt = nhanKhoang(goc.areaMin, goc.areaMax, (n) => `${n}m²`);
+  // "a-b" -> {min, max}; chuỗi rỗng = bỏ lọc
+  const tachKhoang = (v: string) => { const [a = "", b = ""] = v.split("-"); return [a, b]; };
 
   const mapItems: MapItem[] = useMemo(
     () => listings
@@ -163,7 +193,7 @@ export default function SearchClient({
     router.push(href);
   }
   const submit = () => push({ ...f, sort });
-  const clear = () => { setNewAddr(false); setF({ q: "", deal: "", kind: "", province: "", district: "", ward: "", priceMin: "", priceMax: "", areaMin: "", bedrooms: "", legal: "", direction: "" }); router.push("/search"); };
+  const clear = () => { setNewAddr(false); setF({ q: "", deal: "", kind: "", province: "", district: "", ward: "", priceMin: "", priceMax: "", areaMin: "", areaMax: "", bedrooms: "", legal: "", direction: "" }); router.push("/search"); };
 
   const sel = "inp appearance-none pr-8 cursor-pointer";
   const set = (k: string) => (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
@@ -264,36 +294,43 @@ export default function SearchClient({
 
       {/* ===== Hàng chip lọc nhanh (cấp CƠ BẢN - người tìm nhà vãng lai) ===== */}
       <div className="hidden sm:flex flex-wrap items-center gap-2 mb-4 text-sm">
+        {/* 1/10 kiểu EvoHome: chip xổ xuống có ✓ + badge, khoảng đang áp hiện thành nhãn có ✕ để gỡ nhanh.
+            chip xuất phát từ goc (bộ đã áp), không phải f (còn lẫn lựa chọn gõ dở trong panel) */}
+        <ChipLoc label="Mua & thuê" options={DEAL_OPTS} value={goc.deal}
+          onChange={(v) => push({ ...goc, deal: v, priceMin: "", priceMax: "" })} />
+        <ChipLoc label="Loại nhà đất" options={[["", "Tất cả loại"], ...Object.entries(PROP)]} value={goc.kind}
+          onChange={(v) => push({ ...goc, kind: v })} />
+        <ChipLoc label="Diện tích" badge
+          options={dtDangAp && !KHOANG_DT.some(([v]) => v === dtDangAp) ? [...KHOANG_DT, [dtDangAp, nhanDt]] : KHOANG_DT}
+          value={dtDangAp}
+          onChange={(v) => { const [a, b] = tachKhoang(v); push({ ...goc, areaMin: a, areaMax: b }); }} />
+        <ChipLoc label={goc.deal === "cho_thue" ? "Giá thuê" : "Khoảng giá"} badge
+          options={giaDangAp && !khoangGia.some(([v]) => v === giaDangAp) ? [...khoangGia, [giaDangAp, nhanGia]] : khoangGia}
+          value={giaDangAp}
+          onChange={(v) => { const [a, b] = tachKhoang(v); push({ ...goc, priceMin: a, priceMax: b }); }} />
+        {(nhanDt || nhanGia) && (
+          <span className="flex items-center gap-1.5 text-xs text-[var(--ink-soft)]">
+            {[[nhanDt, { areaMin: "", areaMax: "" }], [nhanGia, { priceMin: "", priceMax: "" }]].filter(([n]) => n).map(([n, bo]) => (
+              <button key={n as string} type="button" title="Bỏ lọc này"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand/10 text-brand font-semibold hover:bg-brand/20"
+                onClick={() => push({ ...goc, ...(bo as Record<string, string>) })}>
+                {n as string} <span aria-hidden>✕</span>
+              </button>
+            ))}
+          </span>
+        )}
         <button
-          className={`btn text-sm ${showFilter ? "!border-brand !text-brand" : ""}`}
+          className={`h-10 px-4 rounded-lg border text-sm font-semibold flex items-center gap-2 transition
+            ${showFilter || soLoc ? "border-brand text-brand bg-brand/5" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
           aria-expanded={showFilter}
           onClick={() => setShowFilter((v) => !v)}
         >
-          Lọc{(() => { const n = [f.province, f.district, f.ward, f.kind, f.priceMin, f.priceMax, f.areaMin, f.bedrooms, f.legal, f.direction].filter(Boolean).length; return n ? ` (${n})` : ""; })()}
+          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <path d="M3 6h9M15 6h2M3 14h2M8 14h9" strokeLinecap="round" /><circle cx="13.5" cy="6" r="1.8" /><circle cx="6.5" cy="14" r="1.8" />
+          </svg>
+          Bộ lọc
+          {soLoc > 0 && <span className="grid place-items-center w-5 h-5 rounded-full bg-brand text-white text-[0.7rem] font-bold">{soLoc}</span>}
         </button>
-        {/* chip xuất phát từ goc (bộ đã áp), không phải f (còn lẫn lựa chọn gõ dở trong panel) */}
-        <select className={`${sel} !w-auto`} value={goc.kind}
-          onChange={(e) => push({ ...goc, kind: e.target.value })}>
-          <option value="">Loại nhà đất</option>
-          {Object.entries(PROP).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <select className={`${sel} !w-auto`} value={goc.priceMax}
-          onChange={(e) => push({ ...goc, priceMax: e.target.value })}>
-          <option value="">Khoảng giá</option>
-          {bangGia(goc.deal).slice(1).map(([v, l]) => <option key={v} value={v}>Dưới {l}</option>)}
-          {/* giá đang áp không nằm trong mốc (gõ tay ở ô nâng cao) -> vẫn phải hiện, không thì chip trống như chưa lọc */}
-          {goc.priceMax && !bangGia(goc.deal).some(([v]) => v === goc.priceMax) && (
-            <option value={goc.priceMax}>Dưới {shortPrice(Number(goc.priceMax))}</option>
-          )}
-        </select>
-        <select className={`${sel} !w-auto`} value={goc.areaMin}
-          onChange={(e) => push({ ...goc, areaMin: e.target.value })}>
-          {AREA_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          {/* diện tích gõ tay (VD 75) không có trong mốc -> thêm option động cho chip khỏi trống */}
-          {goc.areaMin && !AREA_OPTS.some(([v]) => v === goc.areaMin) && (
-            <option value={goc.areaMin}>≥ {goc.areaMin} m²</option>
-          )}
-        </select>
         <button
           role="switch" aria-checked={!!own}
           className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
@@ -413,12 +450,14 @@ export default function SearchClient({
               <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Giá từ</span>
               <select className={sel} value={f.priceMin} onChange={set("priceMin")}>
                 {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {f.priceMin && !bangGia(f.deal).some(([v]) => v === f.priceMin) && <option value={f.priceMin}>{shortPrice(Number(f.priceMin))}</option>}
               </select>
             </label>
             <label className="block">
               <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Giá đến</span>
               <select className={sel} value={f.priceMax} onChange={set("priceMax")}>
                 {bangGia(f.deal).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {f.priceMax && !bangGia(f.deal).some(([v]) => v === f.priceMax) && <option value={f.priceMax}>{shortPrice(Number(f.priceMax))}</option>}
               </select>
             </label>
           </div>
@@ -427,10 +466,14 @@ export default function SearchClient({
             {showAdvanced ? "▾" : "▸"} Bộ lọc nâng cao <span className="text-xs font-normal text-[var(--ink-soft)]">(diện tích, phòng ngủ, hướng, pháp lý)</span>
           </button>
           {showAdvanced && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mt-3 pt-3 border-t border-[var(--line)]">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 mt-3 pt-3 border-t border-[var(--line)]">
               <label className="block">
                 <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Diện tích tối thiểu (m²)</span>
                 <input className="inp" type="number" min={0} value={f.areaMin} onChange={set("areaMin")} placeholder="VD: 50" />
+              </label>
+              <label className="block">
+                <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Diện tích tối đa (m²)</span>
+                <input className="inp" type="number" min={0} value={f.areaMax} onChange={set("areaMax")} placeholder="VD: 100" />
               </label>
               <label className="block">
                 <span className="block text-xs font-semibold mb-1 text-[var(--ink-soft)]">Phòng ngủ</span>
