@@ -24,7 +24,7 @@ export default function MobileMenu() {
   useEffect(() => {
     const supabase = createClient();
     let huy = false;
-    supabase.auth.getUser().then(({ data }) => { if (!huy) setLoggedIn(!!data.user); });
+    supabase.auth.getSession().then(({ data }) => { if (!huy) setLoggedIn(!!data.session); });   // không gọi mạng (1/10)
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setLoggedIn(!!s?.user));
     return () => { huy = true; sub.subscription.unsubscribe(); };
   }, []);

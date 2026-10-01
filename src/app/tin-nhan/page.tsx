@@ -91,7 +91,8 @@ function Chat() {
           markConvSeen(sel, m.created_at);
         })
       .subscribe();
-    const t = setInterval(load, 15000);
+    // poll dự phòng cho realtime: chỉ khi tab đang xem (1/10 - tab nền từng gọi 4 lần/phút cả ngày)
+    const t = setInterval(() => { if (!document.hidden) load(); }, 30000);
     return () => { stop = true; supabase.removeChannel(ch); clearInterval(t); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sel]);

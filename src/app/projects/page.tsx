@@ -1,7 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/anon";
+import { unstable_cache } from "next/cache";
 import { fmtPrice } from "@/lib/format";
 import SafeImg from "@/components/SafeImg";
 import { tinhMoi } from "@/lib/sap-nhap";
@@ -15,6 +16,25 @@ const PER_PAGE = 24;
 // sự cố 17/8: trang này select("*") KHÔNG limit, với 700+ dự án là ~3MB đổ vào một trang.
 const CARD_COLS = "id,name,investor,province,district,images,price_min,price_max,is_partner,priority,handover";
 
+// 1/10: cache 10 phút theo (tỉnh, trang) - trang này còn động vì đọc searchParams
+const layDuAn = unstable_cache(
+  async (tinh: string, page: number) => {
+    const supabase = createAnonClient();
+    let q = supabase.from("projects").select(CARD_COLS, { count: "exact" }).eq("status", "published");
+    if (tinh) q = q.eq("province", tinh);
+    // Thứ tự PHẢI ổn định giữa các trang, không thì phân trang sẽ lặp/sót dự án:
+    // priority (đối tác lên đầu) -> tên. Không sắp lại ở client như bản cũ vì làm vậy chỉ đúng trong 1 trang.
+    const from = (page - 1) * PER_PAGE;
+    const [{ data, count }, { data: provRows }] = await Promise.all([
+      q.order("priority", { ascending: false }).order("name").range(from, from + PER_PAGE - 1),
+      supabase.from("projects").select("province").eq("status", "published").not("province", "is", null).limit(2000),
+    ]);
+    return { data, count, provRows };
+  },
+  ["projects-list"],
+  { revalidate: 600 },
+);
+
 export default async function ProjectsPage({
   searchParams,
 }: {
@@ -23,17 +43,7 @@ export default async function ProjectsPage({
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.p) || 1);
   const tinh = (sp.tinh || "").trim();
-  const supabase = await createClient();
-
-  let q = supabase.from("projects").select(CARD_COLS, { count: "exact" }).eq("status", "published");
-  if (tinh) q = q.eq("province", tinh);
-  // Thứ tự PHẢI ổn định giữa các trang, không thì phân trang sẽ lặp/sót dự án:
-  // priority (đối tác lên đầu) -> tên. Không sắp lại ở client như bản cũ vì làm vậy chỉ đúng trong 1 trang.
-  const from = (page - 1) * PER_PAGE;
-  const [{ data, count }, { data: provRows }] = await Promise.all([
-    q.order("priority", { ascending: false }).order("name").range(from, from + PER_PAGE - 1),
-    supabase.from("projects").select("province").eq("status", "published").not("province", "is", null).limit(2000),
-  ]);
+  const { data, count, provRows } = await layDuAn(tinh, page);
   const projects = (data ?? []) as unknown as Project[];
   const total = count ?? projects.length;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));

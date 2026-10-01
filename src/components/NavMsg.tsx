@@ -55,15 +55,17 @@ export default function NavMsg() {
     let timer: ReturnType<typeof setInterval> | null = null;
     let onSeen: (() => void) | null = null;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();   // không gọi mạng (1/10)
+      const user = session?.user;
       if (!active || !user) return;
       setUid(user.id);
       recompute(user.id);
-      // realtime (nếu publication bật) + poll dự phòng 20s
+      // realtime (nếu publication bật) + poll dự phòng. 1/10: 20s -> 90s và CHỈ khi tab đang xem - bản cũ
+      // mỗi tab mở (kể cả tab nền để quên) là 2 truy vấn / 20s = ~8.600 truy vấn/ngày/tab.
       ch = supabase.channel("nav-msg")
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => { if (active) recompute(user.id); })
         .subscribe();
-      timer = setInterval(() => { if (active) recompute(user.id); }, 20000);
+      timer = setInterval(() => { if (active && !document.hidden) recompute(user.id); }, 90000);
       onSeen = () => { if (active) recompute(user.id); };
       window.addEventListener("ndr:msgseen", onSeen);
     })();
