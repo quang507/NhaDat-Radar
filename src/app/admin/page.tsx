@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminShell from "@/components/admin/AdminShell";
 import DangBaiCard from "@/components/admin/DangBaiCard";
+import SanKhachCard from "@/components/admin/SanKhachCard";
+import { cauBinhLuan, tinNhanRieng, dieuKienQuan, type NhuCau, type PhongKhop } from "@/lib/san-khach";
 import { baiDangMotPhong, baiDangGomQuan } from "@/lib/bai-dang";
 import { maPhong, khoangIdTuMa } from "@/lib/ro-hang";
 import { fmtPrice } from "@/lib/format";
@@ -34,6 +36,7 @@ import {
   createReminder,
   completeReminder,
   deleteReminder,
+  danhDauSanKhach,
 } from "./crm/actions";
 import {
   IconCheck,
@@ -176,7 +179,7 @@ export default async function AdminPage({
         .order("created_at", { ascending: false })
         .limit(20),
       Promise.all([
-        admin.from("buyers").select("id", { count: "exact", head: true }),
+        admin.from("buyers").select("id", { count: "exact", head: true }).or("preferences->>loai.is.null,preferences->>loai.neq.san_khach"),
         admin.from("sellers").select("id", { count: "exact", head: true }),
         admin.from("deals").select("id", { count: "exact", head: true }).in("stage", ["lead", "viewing", "negotiating", "closing"]),
         admin.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"),
@@ -500,7 +503,7 @@ export default async function AdminPage({
     const crmFilter = sp.crm_filter || "all"; // 'all' | 'buyer' | 'seller' | 'dual'
 
     const [buyersRes, sellersRes, interestsRes, dealsRes, listingsRes] = await Promise.all([
-      admin.from("buyers").select("*").order("created_at", { ascending: false }).limit(100),
+      admin.from("buyers").select("*").or("preferences->>loai.is.null,preferences->>loai.neq.san_khach").order("created_at", { ascending: false }).limit(100),   // 2/10: bài săn khách FB ở tab riêng
       admin
         .from("sellers")
         .select("id, name, phone, seller_type, zalo_user_id, active_listing_id, xung_ho, created_at, listings:active_listing_id(id, title, price_vnd, deal)")
@@ -1128,6 +1131,87 @@ export default async function AdminPage({
   // Chọn quận muốn "đánh" hôm nay -> bài gom 5 phòng + bài lẻ từng phòng, chép 1 chạm + tải ảnh gốc.
   // Bài chỉ dùng dữ liệu CÔNG KHAI (địa chỉ đã che); địa chỉ thật chỉ hiện dòng 🔒 cho admin đọc.
   // ═════════════════════════════════════════════════════════════════════════════
+  // SĂN KHÁCH TÌM PHÒNG (2/10): bài khách đăng "cần tìm phòng" trên nhóm FB (facebook.mjs -> san-khach.mjs) +
+  // phòng rổ hàng khớp + câu bình luận / tin nhắn soạn sẵn. Mới nhất lên đầu - khách vừa đăng là dễ chốt nhất.
+  if (tab === "san-khach") {
+    const xem = sp.q === "da" ? "da" : "moi";
+    const tu = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+    let q = admin.from("buyers").select("id,name,phone,preferences,created_at").eq("preferences->>loai", "san_khach").gte("created_at", tu);
+    q = xem === "moi" ? q.is("preferences->>xu_ly", null) : q.not("preferences->>xu_ly", "is", null);
+    const { data: ds } = await q.order("created_at", { ascending: false }).limit(40);
+    const khachs = (ds ?? []) as { id: string; name: string | null; phone: string | null; preferences: Record<string, unknown>; created_at: string }[];
+    // phòng rổ hàng khớp từng khách (quận + ngân sách + loại) - admin ít người dùng, 1 truy vấn/khách là ổn
+    const khop = await Promise.all(khachs.map(async (k) => {
+      const nc = k.preferences as NhuCau & { deal?: string };
+      if (nc.deal === "mua") return [] as PhongKhop[];
+      let pq = admin.from("listings").select("id,title,price_vnd,deal,district").eq("source", "ro_hang").eq("status", "published").eq("deal", "cho_thue");
+      const dk = dieuKienQuan(nc.quan);
+      if (dk) pq = pq.or(dk);
+      if (nc.gia_den) pq = pq.lte("price_vnd", Math.round(nc.gia_den * 1.1));
+      if (nc.gia_tu) pq = pq.gte("price_vnd", Math.round(nc.gia_tu * 0.8));
+      if (nc.loai_phong === "can_ho" || nc.loai_phong === "phong_tro") pq = pq.eq("kind", nc.loai_phong);
+      const { data } = await pq.order("price_vnd", { ascending: false }).limit(4);   // sát ngân sách trước
+      return (data ?? []) as PhongKhop[];
+    }));
+    const tuoi = (iso: unknown) => {
+      const m = Math.round((Date.now() - new Date(String(iso || "")).getTime()) / 60000);
+      return !Number.isFinite(m) ? "" : m < 60 ? `${m} phút trước` : m < 1440 ? `${Math.round(m / 60)} giờ trước` : `${Math.round(m / 1440)} ngày trước`;
+    };
+    return (
+      <AdminShell>
+        <div className="mb-4">
+          <h1 className="text-lg font-bold text-slate-800">🎯 Săn khách tìm phòng</h1>
+          <p className="text-xs text-slate-500">Bài khách đăng tìm phòng trên nhóm Facebook (7 ngày). Mở bài → dán <b>bình luận</b> → nhắn riêng <b>tin nhắn</b> (kèm link phòng) → bấm Đã nhắn. Khách rep hay không cũng nhắn - làm bài mới nhất trước.</p>
+        </div>
+        <div className="mb-4 flex gap-1.5">
+          {([["moi", "Chưa xử lý"], ["da", "Đã xử lý"]] as const).map(([v, l]) => (
+            <Link key={v} href={`/admin?tab=san-khach${v === "da" ? "&q=da" : ""}`}
+              className={`rounded-lg px-3 py-1 text-xs font-semibold ${xem === v ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>{l}</Link>
+          ))}
+        </div>
+        {!khachs.length && (
+          <p className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            {xem === "moi" ? "Chưa có bài khách tìm phòng mới. Bài vào sau mỗi lượt cào Facebook ở máy nhà (CHAY.bat)." : "Chưa xử lý bài nào."}
+          </p>
+        )}
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(340px,1fr))]">
+          {khachs.map((k, i) => {
+            const nc = k.preferences as NhuCau & { noi_dung?: string; url?: string | null; tom_tat?: string; dang_luc?: string; xu_ly?: string };
+            const phong = khop[i];
+            return (
+              <div key={k.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <b className="text-slate-800">{k.name || "Khách"}</b>
+                  {k.phone && <a href={`tel:${k.phone}`} className="font-mono text-emerald-700">{k.phone}</a>}
+                  <span className="ml-auto">{tuoi(nc.dang_luc || k.created_at)}</span>
+                </div>
+                <p className="mt-1 font-semibold text-slate-800">{nc.tom_tat || "Khách tìm phòng"}</p>
+                <p className="mt-1 line-clamp-4 whitespace-pre-line text-xs text-slate-600">{nc.noi_dung}</p>
+                <div className="mt-2 rounded bg-slate-50 p-2 text-xs">
+                  <div className="mb-1 font-semibold text-slate-700">{phong.length ? `${phong.length} phòng rổ hàng khớp:` : "Chưa có phòng khớp đúng - tin nhắn dẫn về trang cho thuê"}</div>
+                  {phong.map((p) => (
+                    <div key={p.id} className="truncate">• <Link href={`/listings/${p.id}`} className="text-blue-700 underline" target="_blank">{fmtPrice(p.price_vnd, "cho_thue")}</Link> {p.title}</div>
+                  ))}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <SanKhachCard binhLuan={cauBinhLuan(nc, phong)} tinNhan={tinNhanRieng(k.name, nc, phong)} url={nc.url || null} />
+                  {xem === "moi" ? (
+                    <span className="ml-auto flex gap-1">
+                      <form action={danhDauSanKhach}><input type="hidden" name="id" value={k.id} /><input type="hidden" name="kq" value="da_nhan" />
+                        <button className="rounded bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white">✓ Đã nhắn</button></form>
+                      <form action={danhDauSanKhach}><input type="hidden" name="id" value={k.id} /><input type="hidden" name="kq" value="bo_qua" />
+                        <button className="rounded border border-slate-300 px-2.5 py-1.5 text-xs text-slate-600">Bỏ qua</button></form>
+                    </span>
+                  ) : <span className="ml-auto text-xs text-slate-500">{nc.xu_ly === "bo_qua" ? "Đã bỏ qua" : "Đã nhắn"}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </AdminShell>
+    );
+  }
+
   if (tab === "dang-bai") {
     const { data: dem } = await admin.from("listings").select("district").eq("source", "ro_hang").eq("status", "published").limit(5000);
     const soPhong = new Map<string, number>();
@@ -1625,7 +1709,7 @@ export default async function AdminPage({
   const [totalListings, totalPrices, totalBuyers, totalDeals, botErrorsRes] = await Promise.all([
     admin.from("listings").select("id", { count: "exact", head: true }),
     admin.from("price_history").select("id", { count: "exact", head: true }),
-    admin.from("buyers").select("id", { count: "exact", head: true }),
+    admin.from("buyers").select("id", { count: "exact", head: true }).or("preferences->>loai.is.null,preferences->>loai.neq.san_khach"),
     admin.from("deals").select("id", { count: "exact", head: true }),
     admin.from("bot_errors").select("id, at, source, detail").order("at", { ascending: false }).limit(10),
   ]);

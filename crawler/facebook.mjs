@@ -9,6 +9,7 @@ import fs from "node:fs";
 import { cleanFbText } from "./fb-clean.mjs";
 import { qualityGate, PHONE_RE, BDS_KEYWORD } from "./quality-gate.mjs";
 import { hash31 as hash, catChuoi, soNguyen, soThuc } from "./chung.mjs";
+import { laBaiTimPhong, chuanHoaNhuCau, SYS_TIM, SCHEMA_TIM } from "./khach-tim.mjs";
 
 // Xoay nhiều key Gemini (từ nhiều PROJECT/acc) để né 429. Cũng nhận GEMINI_API_KEYS="k1,k2,k3".
 const KEYS = [
@@ -40,11 +41,11 @@ const SCHEMA = `Trả về DUY NHẤT 1 JSON:
  "amenities":string[], "poster_type":"moi_gioi"|"ca_nhan"|"khong_ro","poster_reason":string,
  "scam_suspect":bool, "title_clean":string}`;
 
-async function gemini(text) {
+async function gemini(text, sys = SYS, schema = SCHEMA) {
   if (!KEYS.length) throw new Error("Thiếu GEMINI_API_KEY");
   const body = {
-    systemInstruction: { parts: [{ text: SYS }] },
-    contents: [{ parts: [{ text: SCHEMA + "\n\n--- BÀI ĐĂNG ---\n" + text }] }],
+    systemInstruction: { parts: [{ text: sys }] },
+    contents: [{ parts: [{ text: schema +"\n\n--- BÀI ĐĂNG ---\n" + text }] }],
     generationConfig: { responseMimeType: "application/json", temperature: 0 },
   };
   for (let attempt = 0; attempt < KEYS.length; attempt++) {
@@ -328,6 +329,8 @@ const DEMO = [
   { author: "Hùng BĐS", text: "🔥🔥 BÁN GẤP nhà hẻm xe hơi Gò Vấp 📍 4x15m, 1 trệt 2 lầu, sổ hồng riêng chính chủ. Giá chỉ 5.6 tỷ TL mạnh. Em Hùng hỗ trợ vay 70% ngân hàng, bên em còn nhiều căn khu vực Gò Vấp - Q12. Call/Zalo 0908xxxxxx 📞📞" },
   { author: "Shop Nội Thất", text: "Thanh lý bàn ghế văn phòng cũ, tủ hồ sơ, giá rẻ như cho. Nhận ký gửi thanh lý nội thất. Ai cần ib mình nha 093xxxxxxx" },
   { author: "Lan Anh", text: "Cần cho thuê căn hộ 2PN 2WC Vinhomes Grand Park Quận 9, 68m2 full nội thất cao cấp, view sông thoáng mát. 12 triệu/tháng bao phí quản lý. Ưu tiên khách ở lâu dài, dọn vào ở ngay." },
+  // 2/10: bài KHÁCH TÌM PHÒNG -> phải ra "★ khách tìm", không phải tin
+  { author: "Ngọc Hân", text: "Mình cần tìm phòng trọ khu Gò Vấp hoặc Bình Thạnh tầm 3tr5 đổ lại, có gác, máy lạnh, 2 người ở, dọn vào đầu tháng 11. Ai có ib mình với ạ" },
 ];
 
 async function run() {
@@ -338,8 +341,18 @@ async function run() {
   else { console.error("Dùng: --demo | --playwright"); process.exit(1); }
 
   const out = [];
+  const khach = [];   // 2/10: bài KHÁCH TÌM PHÒNG -> facebook-demand.json -> san-khach.mjs đẩy lên /admin?tab=san-khach
   for (const p of posts) {
     try {
+      if (laBaiTimPhong(p.text)) {
+        const nc = chuanHoaNhuCau(await gemini(p.text, SYS_TIM, SCHEMA_TIM));
+        if (nc) {
+          khach.push({ url: p.url && p.url !== "#" ? p.url : null, author: p.author || null, text: catChuoi(p.text || "", 600), time: p.time || null, nc });
+          console.error(`  ★ khách tìm: ${nc.tom_tat || (p.text || "").slice(0, 60)}`);
+          await sleep(1100);
+          continue;
+        }
+      }
       const l = await toListing(p);
       if (arg === "--demo") {
         console.error("\n■", (p.text || "").slice(0, 60).replace(/\n/g, " "));
@@ -350,11 +363,18 @@ async function run() {
     } catch (e) { console.error("  lỗi:", e.message); }
     await sleep(1100);
   }
+  if (arg !== "--demo") {
+    // ghi cả khi 0 bài (lượt sau không đẩy lại bài cũ); san-khach.mjs tự bỏ bài đã có trên DB
+    fs.writeFileSync(new URL("./facebook-demand.json", import.meta.url), JSON.stringify({ crawled_at: new Date().toISOString(), khach }, null, 0));
+    console.error(`Khách tìm phòng: ${khach.length} bài -> facebook-demand.json`);
+  }
   if (!out.length && arg !== "--demo") {
     // cookie chết / FB chặn -> KHÔNG ghi đè file cũ bằng 0 tin (audit 16/8); merge tự bỏ qua file quá 2 ngày
     console.error("\nFB: 0 tin -> giữ facebook.json cũ.");
     return;
   }
+  // --demo chỉ in ra màn hình: trước 2/10 nó ghi đè facebook.json bằng 3 tin MẪU - lượt seed sau có thể đẩy tin giả lên web
+  if (arg === "--demo") return;
   fs.writeFileSync(new URL("./facebook.json", import.meta.url), JSON.stringify({ summary: { source: "facebook", crawled_at: new Date().toISOString().slice(0, 10), total: out.length }, listings: out }, null, 0));
   console.error(`\nGiữ ${out.length}/${posts.length} bài là tin BĐS -> facebook.json (đã lọc rác + phân loại)`);
 }

@@ -7,6 +7,7 @@ node_modules
 # BÍ MẬT - KHÔNG BAO GIỜ commit (session FB sống + data cào FB)
 crawler/fb-cookies.json
 crawler/facebook.json
+crawler/facebook-demand.json
 crawler/apify-fb.json
 **/cookies.txt
 *.secret
