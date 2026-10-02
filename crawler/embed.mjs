@@ -49,7 +49,10 @@ const EMBED_DEADLINE = Date.now() + 6 * 60 * 1000;
 
 const { data, error } = await sb.from("listings")
   .select("id,title,description,district,province,kind,deal")
-  .eq("status", "published").is("embedding", null).limit(300);
+  // 2/10: bỏ rổ hàng - ~14.000 phòng mô tả theo khuôn (EvoHome/HiFriendz), tìm kiếm ngữ nghĩa gần như vô ích
+  // mà mỗi embedding ~3 KB + chỉ mục HNSW -> +90-120 MB, đẩy DB gói Free (500 MB) tới sát trần.
+  // Chatbot vẫn tìm rổ hàng bằng truy vấn thường (api/chat tronRoHang).
+  .eq("status", "published").neq("source", "ro_hang").is("embedding", null).limit(300);
 if (error) { console.error("embed:", error.message, "(đã chạy migration 003 chưa?)"); process.exit(0); }
 
 // Chạy theo lô 5 song song (audit 16/8: tuần tự + N+1 update -> không bao giờ hết 300 tin trong 6'); 1 tin lỗi không chặn cả batch

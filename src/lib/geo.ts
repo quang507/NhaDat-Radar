@@ -63,5 +63,5 @@ export const getAreas = unstable_cache(
     return { geo, counts, total: exactTotal ?? rows.length, sources: sources.size, districtCount };
   },
   ["areas-v3"],   // v3: thêm đếm theo loại BĐS (23/9)
-  { revalidate: 600, tags: ["areas"] },
+  { revalidate: 10800, tags: ["areas"] },   // 3 giờ (2/10, egress): mỗi lần làm mới quét ~22.000 dòng
 );

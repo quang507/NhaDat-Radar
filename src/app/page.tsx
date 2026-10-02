@@ -1,10 +1,10 @@
-export const revalidate = 300;   // 23/9: trang chủ cache 5 phút (dữ liệu chỉ đổi mỗi lượt crawl)
+export const revalidate = 1800;   // 23/9: trang chủ cache 5 phút (dữ liệu chỉ đổi mỗi lượt crawl)
 
 import fs from "node:fs";
 import path from "node:path";
 import Link from "next/link";
 import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
-import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
+import { LISTING_COLS, LISTING_THE_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen from "@/components/DaiDocQuyen";
 import HangVuot from "@/components/HangVuot";
@@ -29,7 +29,7 @@ const layTinTrangChu = unstable_cache(
     const supabase = createAnonClient();
     // builder của supabase-js bị MUTATE khi gọi filter -> mỗi truy vấn phải dựng mới từ hàm này
     const taoQuery = () => {
-      let query = supabase.from("listings").select(LISTING_CARD_COLS).eq("status", "published");
+      let query = supabase.from("listings").select(LISTING_THE_COLS).eq("status", "published");
       if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
       if (kind) query = query.eq("kind", kind);
       if (province) query = query.ilike("province", `%${province}%`);
@@ -48,8 +48,8 @@ const layTinTrangChu = unstable_cache(
     ]);
     return { data: tronRoHang((rhData ?? []) as { id: string }[], (data ?? []) as { id: string }[]), projData: projData ?? [], projectCount: projectCount ?? 0 };
   },
-  ["home-listings-v2"],
-  { revalidate: 300, tags: ["listings"] },
+  ["home-listings-v3"],
+  { revalidate: 1800, tags: ["listings"] },   // 30 phút (2/10, egress): mỗi lần làm mới kéo 250 tin
 );
 
 // Title/description có SỐ THẬT (số tin, số tỉnh) thay vì câu quảng cáo chung chung - dữ liệu lấy từ

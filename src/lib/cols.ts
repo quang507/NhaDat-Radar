@@ -21,5 +21,8 @@ export const LISTING_PUBLIC_COLS = "id,source,source_site,source_url,source_post
 // Bản GỌN cho danh sách/thẻ tin (trang chủ, /search, tin liên quan): bỏ các cột chỉ trang chi tiết
 // mới cần. /search tải 200 tin nên mỗi cột thừa đều nhân lên 200 lần.
 export const LISTING_CARD_COLS = "id,source,source_site,source_url,deal,kind,title,description,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,province,district,ward,lat,lng,images,ai_score,trust_score,poster_role_guess,price_flag,status,posted_at,first_seen_at,last_seen_at,created_at";
+// Thẻ DỌC (ListingCard: trang chủ, tin liên quan, dự án, yêu thích) KHÔNG hiện mô tả - bỏ description,
+// source_url và các mốc thời gian không dùng. EGRESS 2/10: mô tả là cột nặng nhất sau ảnh.
+export const LISTING_THE_COLS = "id,source,source_site,deal,kind,title,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,province,district,ward,lat,lng,images,ai_score,poster_role_guess,price_flag,status,first_seen_at";
 // + amenities: riêng trang tìm kiếm cần để nhận ra tiện ích cho thẻ phòng cho thuê (1/10) - server dùng xong bỏ, không gửi xuống trình duyệt
 export const LISTING_SEARCH_COLS = "id,source,source_site,source_url,deal,kind,title,description,amenities,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,province,district,ward,lat,lng,images,ai_score,trust_score,poster_role_guess,price_flag,status,posted_at,first_seen_at,last_seen_at,created_at";
