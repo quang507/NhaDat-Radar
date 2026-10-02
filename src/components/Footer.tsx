@@ -22,6 +22,7 @@ export default function Footer() {
             <li><Link className="hover:text-brand" href="/search?deal=cho_thue">Nhà đất cho thuê</Link></li>
             <li><Link className="hover:text-brand" href="/projects">Dự án nổi bật</Link></li>
             <li><Link className="hover:text-brand" href="/thong-ke">Phân tích thị trường</Link></li>
+            <li><Link className="hover:text-brand" href="/tin-tuc">Tin tức &amp; giá thuê phòng trọ</Link></li>
           </ul>
         </div>
         <div>

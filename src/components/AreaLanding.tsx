@@ -259,6 +259,14 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
         {newToday ? <> · <b className="text-emerald-600">{newToday} tin mới hôm nay</b></> : null}
         {" "}· tổng hợp từ {sources.length} nguồn, cập nhật hằng ngày.
       </p>
+      {/* 3/10 SEO: liên kết nội bộ sang báo cáo giá thuê của quận (trang tin tức) - chỉ trang phòng trọ cấp quận TP.HCM */}
+      {deal === "cho_thue" && district && kind === "phong_tro" && province === "Hồ Chí Minh" && total >= 30 && (
+        <p className="text-sm mt-1">
+          <Link href={`/tin-tuc/gia-thue-phong-tro-${slugify(district)}`} className="text-brand font-semibold hover:underline">
+            📊 Giá thuê phòng trọ {tenKhuVucGon(district)} tháng này: trung vị, theo diện tích, phường rẻ nhất ›
+          </Link>
+        </p>
+      )}
 
       {/* Dải độc quyền là KHỐI ĐẦU TIÊN sau tiêu đề - "vẫn nằm phía trên cùng" (21/8),
           đứng trên cả tóm tắt thị trường và danh sách quận */}
