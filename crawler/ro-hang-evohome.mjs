@@ -1,4 +1,4 @@
-// RỔ HÀNG EVOHOME / HIFRIENDZ (28/9) - phòng trống cho thuê Radar trực tiếp nắm -> listings (source='ro_hang').
+// RỔ HÀNG EVOHOME / HIFRIENDZ (28/9; HiFriendz chạy riêng từ 2/10 bằng RO_HANG_PARTNER=hifriendz) - phòng trống cho thuê Radar trực tiếp nắm -> listings (source='ro_hang').
 //
 //   node --env-file=.env.local crawler/ro-hang-evohome.mjs [crawler/private/evohome.json]
 //
@@ -22,10 +22,12 @@ import { smartGeocode, LOI } from "./geo.mjs";
 import { hash31, laAnh, laVideo } from "./chung.mjs";
 import { cheDiaChi } from "./che-dia-chi.mjs";
 
-const PARTNER = "evohome";
+// 2/10: dùng chung cho mọi đối tác rổ hàng cùng khuôn file - RO_HANG_PARTNER=hifriendz (crawler/hifriendz-fetch.mjs)
+const PARTNER = process.env.RO_HANG_PARTNER || "evohome";
+if (!/^[a-z0-9_]+$/.test(PARTNER)) { console.error(`RO_HANG_PARTNER không hợp lệ: ${PARTNER}`); process.exit(1); }
 const HOTLINE = "0346689460";
-const FILE = process.argv[2] || "crawler/private/evohome.json";
-const OUT = "crawler/private/evohome-rows.json";
+const FILE = process.argv[2] || `crawler/private/${PARTNER}.json`;
+const OUT = `crawler/private/${PARTNER}-rows.json`;
 
 const src = JSON.parse(fs.readFileSync(FILE, "utf8"));
 console.log(`Rổ hàng ${PARTNER}: ${src.length} phòng trong ${FILE}`);
@@ -151,7 +153,7 @@ for (const x of src) {
     description: moTa,
     price_vnd: x.price_vnd,
     area_m2: dt,
-    province: "Hồ Chí Minh",
+    province: x.province || "Hồ Chí Minh",   // HiFriendz có cả Bình Dương / BR-VT (hifriendz-fetch.mjs)
     district: quan,
     ward: x.ward || null,
     address: [diaChiChe, x.ward].filter(Boolean).join(", "),
@@ -161,7 +163,7 @@ for (const x of src) {
     // ảnh trước (thẻ tin dùng ảnh đầu), video (tối đa 2) nối cuối -> trang chi tiết phát được
     images: [...anh, ...(x.images || []).filter(laVideo).slice(0, 2)],
     amenities: Array.isArray(x.amenities) ? x.amenities : [],   // khoá TIEN_ICH (evohome-fetch.mjs)
-    specs: Object.fromEntries(Object.entries(specs).filter(([k]) => !/hoa hồng|số phòng/i.test(k))),
+    specs: Object.fromEntries(Object.entries(specs).filter(([k]) => !/hoa hồng|số phòng|^mã /i.test(k))),   // mã/số phòng/hoa hồng chỉ ở listing_ro_hang
     contact_name: "NhaDat Radar",
     contact_phone: HOTLINE,
     trust_score: 95,

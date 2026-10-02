@@ -30,7 +30,7 @@ import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
-import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong, linkGocEvohome } from "@/lib/ro-hang";
+import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong, linkGocEvohome, linkGocHifriendz } from "@/lib/ro-hang";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
@@ -328,6 +328,11 @@ export default async function ListingDetail({
               {goc.partner === "evohome" && (
                 <a href={linkGocEvohome(goc.source_post_id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 underline">
                   Mở trên app.evohome.it.com ↗
+                </a>
+              )}
+              {goc.partner === "hifriendz" && (
+                <a href={linkGocHifriendz(goc.source_post_id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 underline">
+                  Mở trên hifriendz.com ↗
                 </a>
               )}
               {goc.source_post_id && <span className="font-mono text-[var(--ink-soft)]">id: {goc.source_post_id}</span>}
