@@ -98,6 +98,16 @@ async function phongCuaToa(id, lan = 0) {
   }
 }
 
+/** loại tin Radar từ listingType HiFriendz (chữ tự do: "Studio", "Mặt bằng", "2PN 1PK 2WC", "Nhà nguyên căn"...).
+ *  Studio/Gác/Duplex/Phòng: như EvoHome - từ 35 m² tính căn hộ (dịch vụ), nhỏ hơn là phòng trọ. */
+function loaiTin(loai, dt) {
+  const t = String(loai || "");
+  if (/mặt bằng|kiot|kiốt/i.test(t)) return "mat_bang";
+  if (/nguyên căn|trệt/i.test(t)) return "nha";
+  if (/\dPN|phòng ngủ|căn hộ|penthouse|penthhouse|nguyên tầng/i.test(t)) return "can_ho";
+  return (dt || 0) >= 35 ? "can_ho" : "phong_tro";
+}
+
 /** tối đa n phòng trải đều khoảng giá (rẻ nhất, đắt nhất và các mức giữa) */
 function chonDeu(ds, n) {
   const s = [...ds].sort((a, b) => (a.price || 0) - (b.price || 0));
@@ -162,7 +172,7 @@ function chuanHoa(r, p) {
     description: moTa,
     price_vnd: r.price,
     area_m2: dt,
-    kind: /PN$/.test(r.listingType || "") || (dt || 0) >= 35 ? "can_ho" : "phong_tro",
+    kind: loaiTin(r.listingType, dt),
     province: tinh,
     district: quan,
     ward: phuong || null,
