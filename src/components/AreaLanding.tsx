@@ -49,10 +49,26 @@ export async function resolveArea(provinceSlug: string, districtSlug?: string): 
   return { province: provName, district: dist, area };
 }
 
+// SEO (2/10): tiêu đề theo CÁCH KHÁCH GÕ trên Google ("phòng trọ gò vấp giá rẻ", "cho thuê căn hộ dịch vụ quận 7")
+// thay vì "Cho thuê Phòng trọ Quận Gò Vấp, Hồ Chí Minh". Tên quận gọn ("Gò Vấp", giữ "Quận 7"), có số phòng thật
+// + ngày cập nhật (Google hay hiện nguyên tiêu đề, số + ngày làm tăng tỉ lệ bấm).
+export const tenKhuVucGon = (d: string) => d.replace(/^(Quận|Huyện|Thị xã|TP\.|Thành phố) (?=\D)/, "");
+const ngayVN = () => {
+  const [d, m] = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).split("/");
+  return `${d}/${m}`;
+};
+export function areaH1(deal: Deal, province: string, district: string | null, n: number, kind?: string | null) {
+  // trang quận: chỉ tên quận (khách gõ "phòng trọ gò vấp", không kèm tỉnh); trang tỉnh: tên tỉnh
+  const where = district ? tenKhuVucGon(district) : province;
+  const so = n.toLocaleString("vi-VN");
+  if (deal === "cho_thue" && kind === "phong_tro") return `Phòng trọ ${where} giá rẻ - ${so} phòng trống`;
+  if (deal === "cho_thue" && kind === "can_ho") return `Cho thuê căn hộ dịch vụ, studio ${where} - ${so} căn`;
+  if (deal === "cho_thue" && !kind) return `Cho thuê phòng trọ, căn hộ, nhà ${where} - ${so} tin`;
+  const what = kind ? (PROP[kind] || kind).toLowerCase() : "nhà đất";
+  return `${DEAL_WORD[deal]} ${what} ${where} - ${so} tin`;
+}
 export function areaTitle(deal: Deal, province: string, district: string | null, n: number, kind?: string | null) {
-  const where = district ? `${district}, ${province}` : province;
-  const what = kind ? (PROP[kind] || kind) : "nhà đất";
-  return `${DEAL_WORD[deal]} ${what} ${where} - ${n.toLocaleString("vi-VN")} tin mới nhất T${new Date().getMonth() + 1}/${new Date().getFullYear()} | NhaDat Radar`;
+  return `${areaH1(deal, province, district, n, kind)}, cập nhật ${ngayVN()} | NhaDat Radar`;
 }
 
 /** Số tin của một khu vực (có thể lọc theo loại BĐS) - dùng cho metadata + sitemap */
@@ -76,9 +92,13 @@ export async function areaMeta(deal: Deal, provinceSlug: string, districtSlug?: 
   const where = r.district ? `${r.district}, ${r.province}` : r.province;
   const what = kind ? (PROP[kind] || kind).toLowerCase() : "nhà đất";
   const hanhDong = deal === "ban" ? "bán" : "cho thuê";
+  const so = n.toLocaleString("vi-VN");
+  const description = deal === "cho_thue" && (kind === "phong_tro" || kind === "can_ho" || !kind)
+    ? `${so} ${kind === "can_ho" ? "căn hộ dịch vụ, studio" : "phòng trọ, căn hộ mini"} cho thuê tại ${where}: ảnh thật, giá rõ ràng, phòng trống đã xác thực. Studio, gác lửng, duplex, có máy lạnh, giờ tự do. Bấm xem số, hẹn xem phòng miễn phí - cập nhật mỗi ngày.`
+    : `${so} tin ${hanhDong} ${what} tại ${where}: giá phổ biến và trung vị theo m², xu hướng giá, cảnh báo giá lệch, dấu hiệu môi giới/chính chủ và nguồn của từng tin. Cập nhật hằng ngày trên NhaDat Radar.`;
   return {
     title: areaTitle(deal, r.province, r.district, n, kind),
-    description: `${n.toLocaleString("vi-VN")} tin ${hanhDong} ${what} tại ${where}: giá phổ biến và trung vị theo m², xu hướng giá, cảnh báo giá lệch, dấu hiệu môi giới/chính chủ và nguồn của từng tin. Cập nhật hằng ngày trên NhaDat Radar.`,
+    description,
     alternates: { canonical: areaPath(deal, r.province, r.district, kind) },
   };
 }
@@ -175,7 +195,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
 
   const where = district ? `${district}, ${province}` : province;
   const dealWord = DEAL_WORD[deal];
-  const h1 = `${dealWord} ${kindWord || "nhà đất"} ${where}`;
+  const h1 = areaH1(deal, province, district, total, kind);
   const monthLabel = `tháng ${new Date().getMonth() + 1}/${new Date().getFullYear()}`;
   // tin độc quyền hiện ở dải riêng đầu danh sách -> loại khỏi list thường cho khỏi lặp
   const idsDocQuyen = new Set(locDocQuyen(hienRows, 6).map((t) => t.id));

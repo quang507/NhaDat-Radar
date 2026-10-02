@@ -10,13 +10,13 @@ test("trang chủ -> chi tiết tin: đủ gallery, form liên hệ", async ({ p
   await first.click();
   await page.waitForURL(/\/listings\//);
 
-  // Có tiêu đề + khối liên hệ. Tin crawl hiện link "Xem bài gốc & liên hệ",
-  // tin người bán tự đăng mới có form lead — chấp nhận một trong hai.
+  // Có tiêu đề + khối liên hệ. Tin crawl hiện link "Xem bài gốc & liên hệ", tin người bán tự đăng có form lead,
+  // rổ hàng Radar (2/10) có nút "Bấm để hiện số" (đã đăng nhập: link gọi hotline) - chấp nhận một trong các cách.
   await expect(page.locator("h1").first()).toBeVisible();
   await expect(page.locator('h3:has-text("Liên hệ")').first(), "phải có khối Liên hệ").toBeVisible();
   await expect(
-    page.locator('form:visible, a:has-text("Xem bài gốc")').first(),
-    "phải có form lead hoặc link bài gốc"
+    page.locator('form:visible, a:has-text("Xem bài gốc"), button:has-text("Bấm để hiện số"), a[href^="tel:"]').first(),
+    "phải có cách liên hệ: form lead, link bài gốc, nút hiện số hoặc link gọi"
   ).toBeVisible();
 });
 
