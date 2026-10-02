@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { baoGA } from "@/lib/su-kien-client";
 import { createLead, type LeadState } from "../actions";
 
 const initial: LeadState = { ok: false };
@@ -17,6 +18,10 @@ export default function ContactForm({
   datLich?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(createLead, initial);
+  // chuyển đổi chính của web (2/10): báo GA khi gửi THÀNH CÔNG - đánh dấu "sự kiện chính" trong GA
+  useEffect(() => {
+    if (state.ok) baoGA(datLich ? "ndr_dat_lich" : "ndr_de_lai_sdt", { listing_id: listingId, kieu: datLich ? "ro_hang" : viaRadar ? "tin_cao" : "tin_tu_dang" });
+  }, [state.ok, datLich, viaRadar, listingId]);
 
   if (state.ok) {
     return (

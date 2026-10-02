@@ -8,10 +8,11 @@
 // Hiện cho MỌI khách (kể cả chưa đăng nhập): đây là kênh nhận lead chính, chặn sau đăng nhập
 // là tự bóp số cuộc gọi. Thứ bị chặn sau đăng nhập là SĐT người đăng (xem DangNhapDeXem).
 
-export const HOTLINE = "0346689460";
-export const HOTLINE_ZALO = `https://zalo.me/${HOTLINE}`;
-
+import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import { LinkTheoDoi } from "./TheoDoi";
+import HienSoRadar from "./HienSoRadar";
+
+export { HOTLINE, HOTLINE_ZALO };
 
 export default function TuVanRadar({ listingId }: { listingId?: string }) {
   // có listingId (trang chi tiết tin) -> ghi sự kiện gọi/Zalo; nơi khác dùng <a> thường
@@ -23,9 +24,8 @@ export default function TuVanRadar({ listingId }: { listingId?: string }) {
         Cần tư vấn nhanh tin này? Gọi <b>Radar</b> - miễn phí, không phải người đăng tin.
       </div>
       <div className="flex gap-2">
-        <A loai="goi" href={`tel:${HOTLINE}`} className="btn btn-primary flex-1 text-center whitespace-nowrap">
-          📞 {HOTLINE}
-        </A>
+        {/* 2/10: "Bấm để hiện số" - đăng nhập hoặc để lại SĐT mới hiện số (ra lead) */}
+        <HienSoRadar listingId={listingId} className="flex-1 !w-auto" />
         <A
           loai="zalo"
           href={HOTLINE_ZALO}

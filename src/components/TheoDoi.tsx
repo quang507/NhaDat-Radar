@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type AnchorHTMLAttributes } from "react";
+import { useEffect, useState, type AnchorHTMLAttributes } from "react";
 import { baoSuKien } from "@/lib/su-kien-client";
 
 // Theo dõi quan tâm (30/9) - xem lib/su-kien-client + migration 031.
@@ -21,4 +21,30 @@ export function GhiXemTin({ listingId }: { listingId: string }) {
 /** <a> ghi sự kiện khi bấm (gọi / Zalo) - thay cho <a href="tel:..."> trong server component */
 export function LinkTheoDoi({ loai, listingId, ...a }: AnchorHTMLAttributes<HTMLAnchorElement> & { loai: "goi" | "zalo"; listingId: string }) {
   return <a {...a} onClick={(e) => { baoSuKien(loai, listingId); a.onClick?.(e); }} />;
+}
+
+/**
+ * Nút Zalo CHÉP SẴN TIN NHẮN (2/10): zalo.me/<số> không điền sẵn nội dung được, khách mở ra khung chat trống
+ * rồi không biết hỏi gì / quên mã phòng -> Radar không biết khách hỏi phòng nào. Bấm là chép sẵn
+ * "Chào Radar, em muốn xem phòng RH1A2B3C ..." vào bộ nhớ tạm + nhắc "dán vào Zalo", rồi mở Zalo như cũ.
+ */
+export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttributes<HTMLAnchorElement> & { listingId: string; tinNhan: string }) {
+  const [daChep, setDaChep] = useState(false);
+  return (
+    <>
+      <a {...a} onClick={(e) => {
+        baoSuKien("zalo", listingId);
+        try {
+          const tn = `${tinNhan}\n${location.origin}${location.pathname}`;
+          void navigator.clipboard?.writeText(tn).then(() => { setDaChep(true); setTimeout(() => setDaChep(false), 6000); });
+        } catch { /* trình duyệt chặn clipboard: vẫn mở Zalo */ }
+        a.onClick?.(e);
+      }}>{children}</a>
+      {daChep && (
+        <span role="status" className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 max-w-[90vw] px-4 py-2.5 rounded-xl bg-[#0068ff] text-white text-sm font-semibold shadow-2xl text-center">
+          ✓ Đã chép tin nhắn kèm mã phòng - mở Zalo rồi bấm giữ ô chat để <b>Dán</b> và gửi
+        </span>
+      )}
+    </>
+  );
 }

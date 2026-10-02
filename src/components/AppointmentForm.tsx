@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { baoGA } from "@/lib/su-kien-client";
 
 // Đặt lịch xem nhà (chỉ tin người bán tự đăng - cần agent_id).
 export default function AppointmentForm({ listingId, agentId }: { listingId: string; agentId: string }) {
@@ -25,7 +26,7 @@ export default function AppointmentForm({ listingId, agentId }: { listingId: str
       slot: new Date(slot).toISOString(), note: note.slice(0, 500) || null,
     });
     if (error) { console.error("appointment:", error.message); setErr("Chưa đặt được lịch - thử lại hoặc liên hệ trực tiếp người đăng."); setState("idle"); }
-    else setState("done");
+    else { setState("done"); baoGA("ndr_dat_lich", { listing_id: listingId, kieu: "tin_tu_dang" }); }
   }
 
   if (state === "done") {

@@ -27,6 +27,7 @@ import Gallery from "@/components/Gallery";
 import PhoneReveal from "@/components/PhoneReveal";
 import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
+import HienSoRadar from "@/components/HienSoRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
@@ -36,7 +37,7 @@ import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import ChiaSe from "@/components/ChiaSe";
-import { GhiXemTin, LinkTheoDoi } from "@/components/TheoDoi";
+import { GhiXemTin, LinkTheoDoi, NutZalo } from "@/components/TheoDoi";
 import MoTaThuGon from "@/components/MoTaThuGon";
 import HangVuot from "@/components/HangVuot";
 import AppointmentForm from "@/components/AppointmentForm";
@@ -68,6 +69,8 @@ async function phuTroTin(sb: Sb, x: Listing) {
       ? sb.from("listings").select(LISTING_THE_COLS)
           .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
           .eq(x.district ? "district" : "province", x.district || x.province!)
+          // 2/10: tin rổ hàng -> "liên quan" là phòng rổ hàng khác (hàng mình), không dẫn khách sang tin Chợ Tốt
+          .eq(x.source === "ro_hang" ? "source" : "status", x.source === "ro_hang" ? "ro_hang" : "published")
           .not("images", "eq", "{}")
           .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
       : Promise.resolve({ data: [] as Listing[] }),
@@ -102,7 +105,7 @@ const layTinCongKhai = unstable_cache(
     if (!data) return null;
     return phuTroTin(sb, data as unknown as Listing);
   },
-  ["listing-detail-v2"],
+  ["listing-detail-v3"],
   { revalidate: 10800, tags: ["listings"] },   // 3 giờ (2/10, egress): ~22.000 trang tin bị bot quét
 );
 
@@ -214,6 +217,10 @@ export default async function ListingDetail({
   const isCrawl = x.source === "crawl";
   // RỔ HÀNG RADAR (28/9): hàng mình nắm - không link gốc, không tên đối tác, CTA chỉ về Radar (lib/ro-hang)
   const roHang = laRoHang(x);
+  // tin nhắn Zalo chép sẵn (2/10) - khách khỏi gõ, Radar biết ngay khách hỏi phòng/tin nào
+  const tinNhanZalo = roHang
+    ? `Chào Radar, em muốn xem phòng ${maPhong(x.id)} - ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Em xem được lúc:`
+    : `Chào Radar, em quan tâm tin: ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Nhờ Radar tư vấn giúp em.`;
   const giuPhong = tagGiuPhong(x);
   const reasons = (x.poster_reasons || []).map(posterReasonText);
   const fmtDT = (iso: string | null | undefined) =>
@@ -425,7 +432,9 @@ export default async function ListingDetail({
             </MoTaThuGon>
           </div>
           {/* So sánh giá với mặt bằng khu vực (data thật) */}
-          {diffPct != null && med && (
+          {/* 2/10: phòng rổ hàng (hàng mình bán) không tự dán nhãn "Cao hơn mặt bằng ~147%": mẫu so là phòng trọ
+              Chợ Tốt giá rẻ, không cùng hạng (studio full nội thất Q1). Chỉ hiện khi RẺ hơn - là lợi thế bán hàng. */}
+          {diffPct != null && med && (!roHang || diffPct <= -5) && (
             <div className={`card rounded-lg p-4 text-sm ${
               diffPct <= -5 ? "border-emerald-500/40 bg-emerald-500/5"
               : diffPct >= 10 ? "border-red-500/40 bg-red-500/5"
@@ -448,7 +457,7 @@ export default async function ListingDetail({
               </p>
             </div>
           )}
-          {!enoughComps && myPpm2 && x.district ? (
+          {!enoughComps && !roHang && myPpm2 && x.district ? (
             <div className="card rounded-lg p-4 text-sm text-[var(--ink-soft)]">
               <b className="text-[var(--ink)]">So sánh giá:</b> chưa đủ dữ liệu - mới có {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} khác tại {x.district} (cần ≥{MIN_COMPS}). Radar không đưa ra kết luận khi mẫu quá nhỏ.
             </div>
@@ -583,8 +592,8 @@ export default async function ListingDetail({
                   <div className="text-xs text-[var(--ink-soft)]">Mã phòng - gửi kèm khi nhắn Zalo</div>
                   <div className="font-mono text-xl font-extrabold tracking-wider select-all">{maPhong(x.id)}</div>
                 </div>
-                <LinkTheoDoi loai="goi" listingId={x.id} href={`tel:${HOTLINE}`} className="btn btn-primary w-full text-center">📞 Gọi Hotline {HOTLINE}</LinkTheoDoi>
-                <LinkTheoDoi loai="zalo" listingId={x.id} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">💬 Nhắn Zalo hẹn xem phòng</LinkTheoDoi>
+                <HienSoRadar listingId={x.id} />
+                <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">💬 Nhắn Zalo hẹn xem phòng</NutZalo>
                 {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
                 <div className="hidden lg:flex items-center gap-3 rounded-lg border border-[var(--line)] p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -636,12 +645,8 @@ export default async function ListingDetail({
                 Nhắn tin với người bán
               </Link>
             )}
-            {roHang ? (
-              <div className="mt-1 pt-3 border-t border-[var(--line)]">
-                <div className="font-bold text-sm mb-2">📅 Đặt lịch xem phòng</div>
-                <ContactForm listingId={x.id} listingTitle={x.title} datLich />
-              </div>
-            ) : isCrawl ? (
+            {/* 2/10: rổ hàng bỏ form đặt lịch nhiều ô (tên/ngày/buổi) - thay bằng "Bấm để hiện số" ở trên */}
+            {roHang ? null : isCrawl ? (
               <details className="mt-1">
                 <summary className="text-sm font-semibold cursor-pointer text-brand">Nhờ Radar hỗ trợ tìm/định giá tin tương tự</summary>
                 <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT - Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp trong khu vực.</p>
@@ -707,12 +712,17 @@ export default async function ListingDetail({
           <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[roHang ? `Mã ${maPhong(x.id)}` : null, x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
         </div>
         {roHang ? (
-          <span className="ml-auto flex gap-2">
-            <LinkTheoDoi loai="goi" listingId={x.id} href={`tel:${HOTLINE}`} className="btn btn-primary whitespace-nowrap min-h-12 px-4">📞 Gọi</LinkTheoDoi>
-            <LinkTheoDoi loai="zalo" listingId={x.id} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 px-4 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</LinkTheoDoi>
+          <span className="ml-auto flex gap-1.5">
+            <HienSoRadar listingId={x.id} nho />
+            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</NutZalo>
           </span>
-        ) : isCrawl && x.source_url && x.source_url !== "#" ? (
-          <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Xem bài gốc ›</a>
+        ) : isCrawl ? (
+          // 2/10: trước đây nút chính là "Xem bài gốc ›" -> khách muốn liên hệ là bị đẩy sang trang khác.
+          // Giờ giữ khách ở Radar (gọi/Zalo tư vấn); "Xem bài gốc" vẫn có trong khối liên hệ.
+          <span className="ml-auto flex gap-1.5">
+            <HienSoRadar listingId={x.id} nho />
+            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</NutZalo>
+          </span>
         ) : (
           <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Liên hệ</a>
         )}

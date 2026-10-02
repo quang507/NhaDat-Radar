@@ -55,6 +55,24 @@ export async function createLead(
   return { ok: true };
 }
 
+/**
+ * "Bấm để hiện số" (2/10): khách chưa đăng nhập nhập SĐT để xem hotline Radar -> 1 lead (không cần tên).
+ * Thay form đặt lịch nhiều ô (tên, ngày, buổi...) - ít ô hơn = nhiều khách để lại số hơn.
+ */
+export async function deLaiSdt(listingId: string | null, phone: string): Promise<LeadState> {
+  const sdt = String(phone || "").replace(/[\s.-]/g, "");
+  if (!PHONE_RE.test(sdt)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
+  const lid = listingId && UUID_RE.test(listingId) ? listingId : null;
+  if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút." };
+  const supabase = await createClient();
+  const row = { listing_id: lid, name: "Khách bấm hiện số", phone: sdt, message: "Bấm 'hiện số' hotline Radar - gọi lại tư vấn/hẹn xem" };
+  const { error } = await supabase.from("leads").insert(row);
+  if (error) { console.error("deLaiSdt error:", error.message); return { ok: false, error: "Chưa gửi được, thử lại giúp Radar." }; }
+  after(() => baoLeadMoi({ listing_id: lid, name: row.name, phone: sdt, message: row.message }));
+  after(() => ghiSuKien({ loai: "dat_lich", listingId: lid }));
+  return { ok: true };
+}
+
 // Báo tin xấu -> bảng listing_reports (anon insert được phép qua RLS, migration 010). Admin xử lý ở /admin?tab=reports.
 export async function reportListing(_prev: LeadState, formData: FormData): Promise<LeadState> {
   const listing_id = String(formData.get("listing_id") || "");
