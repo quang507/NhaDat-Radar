@@ -11,6 +11,7 @@ const LINKS: [string, string][] = [
   ["/projects", "🏙 Dự án"],
   ["/agents", "🧑‍💼 Người Bán"],
   ["/thong-ke", "📊 Thống kê"],
+  ["/tin-tuc", "📰 Tin tức & giá thuê"],
   ["/dinh-gia", "🤖 Định Giá AI"],
   ["/tinh-lai-vay", "🧮 Lãi Vay"],
   ["/thue-hay-mua", "⚖️ Thuê hay Mua"],

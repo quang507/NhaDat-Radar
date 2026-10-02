@@ -25,6 +25,7 @@ export default function Nav() {
           <Link href="/projects" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Dự án</Link>
           <Link href="/agents" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Người Bán</Link>
           <Link href="/thong-ke" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Thống kê</Link>
+          <Link href="/tin-tuc" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Tin tức</Link>
           <Link href="/dinh-gia" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Định Giá AI</Link>
           <Link href="/tinh-lai-vay" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Lãi Vay</Link>
         </nav>

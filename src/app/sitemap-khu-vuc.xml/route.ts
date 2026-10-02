@@ -4,13 +4,15 @@ import { createAnonClient } from "@/lib/supabase/anon";
 import { areaPath, KIND_SLUG } from "@/lib/slug";
 import { getAreas } from "@/lib/geo";
 import { SITE, xmlSitemap, xmlResponse, type MucSitemap } from "@/lib/sitemap";
+import { dsQuanBaoCao } from "@/lib/bao-cao-gia";
+import { BAI_VIET } from "@/lib/bai-viet";
 
 export const revalidate = 3600;
 
 export async function GET() {
   const muc: MucSitemap[] = [
     "", "/search", "/projects", "/agents", "/thong-ke", "/dinh-gia", "/tinh-lai-vay",
-    "/thue-hay-mua", "/ban", "/huong-dan/mua", "/huong-dan/ban", "/nha-dat-ban", "/nha-dat-cho-thue",
+    "/thue-hay-mua", "/ban", "/huong-dan/mua", "/huong-dan/ban", "/nha-dat-ban", "/nha-dat-cho-thue", "/tin-tuc",
   ].map((p) => ({ url: SITE + p, changefreq: "daily", priority: p === "" ? 1 : 0.7 }));
 
   try {
@@ -29,6 +31,9 @@ export async function GET() {
         }
       }
     }
+    // tin tức (3/10): báo cáo giá thuê theo quận (đổi mỗi ngày) + bài hướng dẫn
+    for (const q of await dsQuanBaoCao()) muc.push({ url: `${SITE}/tin-tuc/gia-thue-phong-tro-${q.slug}`, changefreq: "daily", priority: 0.8 });
+    for (const b of BAI_VIET) muc.push({ url: `${SITE}/tin-tuc/${b.slug}`, lastmod: b.ngay, changefreq: "monthly", priority: 0.6 });
     const { data: ps } = await createAnonClient().from("projects").select("id").eq("status", "published").limit(1000);
     for (const p of ps ?? []) muc.push({ url: `${SITE}/projects/${p.id}`, priority: 0.5 });
   } catch { /* DB lỗi -> ít nhất vẫn có trang tĩnh */ }
