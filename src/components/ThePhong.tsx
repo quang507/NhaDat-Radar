@@ -74,7 +74,7 @@ export default function ThePhong({ x }: { x: Listing }) {
           </div>
         )}
 
-        {ageMin != null && <div className="text-[0.66rem] text-[var(--ink-faint)]">Đăng: {fresh(ageMin)}</div>}
+        {ageMin != null && <div suppressHydrationWarning className="text-[0.66rem] text-[var(--ink-faint)]">Đăng: {fresh(ageMin)}</div>}
 
         <div className="mt-auto pt-1.5 flex gap-1.5">
           <button type="button" onClick={chep} title="Sao chép thông tin" aria-label="Sao chép thông tin"

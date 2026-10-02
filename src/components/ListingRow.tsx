@@ -92,7 +92,8 @@ export default function ListingRow({ x }: { x: Listing }) {
           )}
           <span className="text-[var(--ink-faint)]">{PROP[x.kind]}</span>
           {x.ai_score ? <span className="text-[var(--ink-faint)]" title="Điểm đầy đủ thông tin tin đăng (0-100)">{x.ai_score}/100</span> : null}
-          {ago && <span className="text-emerald-600 font-medium" title={x.first_seen_at ? `Radar thấy tin: ${new Date(x.first_seen_at).toLocaleString("vi-VN")}` : undefined}>{ago}</span>}
+          {/* suppressHydrationWarning: "x phút trước" server dựng (HTML cache vài phút) khác lúc trình duyệt hydrate -> React #418 (2/10) */}
+          {ago && <span suppressHydrationWarning className="text-emerald-600 font-medium" title={x.first_seen_at ? `Radar thấy tin: ${new Date(x.first_seen_at).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}` : undefined}>{ago}</span>}
           <span className="ml-auto"><FavButton id={x.id} /></span>
         </div>
       </div>

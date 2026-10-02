@@ -23,7 +23,7 @@ export default function SourceBadge({ source, sourceSite, sourceUrl, postedAt, f
   const info = own ? null : sourceInfo(sourceSite);
   const when = postedAt || firstSeenAt;
   const ageMin = when ? Math.round((Date.now() - new Date(when).getTime()) / 60000) : null;
-  const dt = when ? new Date(when).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : null;
+  const dt = when ? new Date(when).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : null;   // server Vercel chạy UTC
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--ink-soft)] mt-1.5">
       {own ? (
