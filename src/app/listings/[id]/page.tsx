@@ -2,12 +2,13 @@ export const dynamic = "force-dynamic";
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { getAreas } from "@/lib/geo";
 import { createClient } from "@/lib/supabase/server";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { unstable_cache } from "next/cache";
 import { LISTING_PUBLIC_COLS, LISTING_THE_COLS } from "@/lib/cols";
-import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb, catChu } from "@/lib/format";
+import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb, catChu, canonDistrict } from "@/lib/format";
 import { cleanImages, layVideo } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
 import { posterReasonText, type Listing } from "@/lib/types";
@@ -109,6 +110,23 @@ const layTinCongKhai = unstable_cache(
   { revalidate: 10800, tags: ["listings"] },   // 3 giờ (2/10, egress): ~22.000 trang tin bị bot quét
 );
 
+/** Trang khu vực sâu nhất CÒN TIN cho tin đã gỡ: tỉnh/quận/loại -> tỉnh/quận -> tỉnh -> trang mua/thuê */
+async function khuVucCuaTin(x: Listing): Promise<string> {
+  const deal = x.deal === "cho_thue" ? "cho_thue" : "ban";
+  const goc = deal === "ban" ? "/nha-dat-ban" : "/nha-dat-cho-thue";
+  if (!x.province) return goc;
+  const { counts } = await getAreas();
+  const tinh = counts[x.province];
+  if (!tinh || !tinh[deal]) return goc;
+  const d = x.district ? canonDistrict(x.district) : "";
+  const quan = d ? tinh.districts[d] : undefined;
+  if (quan && quan[deal] > 0) {
+    if (x.kind && (quan.kinds?.[x.kind]?.[deal] ?? 0) > 0) return areaPath(deal, x.province, d, x.kind);
+    return areaPath(deal, x.province, d);
+  }
+  return areaPath(deal, x.province);
+}
+
 function agoMin(iso: string | null): number | null {
   if (!iso) return null;
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -160,6 +178,9 @@ export default async function ListingDetail({
   }
   if (!pub) notFound();
   const data = pub.tin;
+  // SEO (2/10): tin ĐÃ GỠ -> 301 về trang khu vực cùng loại (khách từ Google thấy phòng/nhà còn trống thay vì
+  // trang chết; Google dồn uy tín link cũ sang trang khu vực). Người đã đăng nhập (admin, chủ tin) vẫn xem được.
+  if (data.status === "gone" && !user) permanentRedirect(await khuVucCuaTin(data));
   // contact_phone không có trong LISTING_PUBLIC_COLS -> gán sau (chỉ khi đã đăng nhập)
   const x = { ...data, contact_phone: null } as Listing;
   // FB + Zalo = tin ĐỘC QUYỀN (21/8): giấu SĐT mọi nơi, liên hệ qua Cầu Nối - xem lib/doc-quyen

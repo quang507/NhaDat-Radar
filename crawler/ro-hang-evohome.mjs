@@ -258,12 +258,16 @@ if (rows.length < dangHien * 0.5) { console.warn(`Chỉ ${rows.length}/${dangHie
 for (let i = 0; i < het.length; i += 100) {
   await sb.from("listings").update({ status: "gone" }).in("id", het.slice(i, i + 100));
 }
-// phòng đã cho thuê quá 30 ngày -> xoá hẳn (db-prune.mjs chỉ dọn tin crawl; rổ hàng HiFriendz xoay vòng
-// hàng nghìn phòng, không xoá thì DB phình mãi). listing_ro_hang xoá theo (on delete cascade).
+// phòng đã cho thuê quá 30 ngày -> "dòng mộ" (2/10): bỏ phần nặng (mô tả, ảnh...), giữ id/khu vực để URL cũ
+// chuyển hướng 301 về trang khu vực thay vì 404 (db-prune.mjs làm tương tự cho tin crawl). Bản gốc riêng
+// (listing_ro_hang: số nhà, hoa hồng) thì xoá hẳn - không còn cần.
 const NGUONG_XOA = Date.now() - 30 * 24 * 3600 * 1000;
 const xoa = [...cu.values()].filter((r) => r.status === "gone" && !conLai.has(r.source_post_id) && Date.parse(r.last_seen_at || 0) < NGUONG_XOA).map((r) => r.id);
+const MO = { description: null, images: [], amenities: [], specs: null, address: null };
 for (let i = 0; i < xoa.length; i += 100) {
-  const { error } = await sb.from("listings").delete().in("id", xoa.slice(i, i + 100));
-  if (error) console.warn("Xoá phòng cũ lỗi:", error.message);
+  const lo = xoa.slice(i, i + 100);
+  const { error } = await sb.from("listings").update(MO).in("id", lo).or("description.not.is.null,images.neq.{}");
+  if (error) console.warn("Chuyển dòng mộ lỗi:", error.message);
+  await sb.from("listing_ro_hang").delete().in("listing_id", lo);
 }
-console.log(`✓ ${rows.length} phòng trong rổ · hạ ${het.length} phòng đã cho thuê · xoá ${xoa.length} phòng cho thuê quá 30 ngày`);
+console.log(`✓ ${rows.length} phòng trong rổ · hạ ${het.length} phòng đã cho thuê · ${xoa.length} phòng cho thuê quá 30 ngày thành dòng mộ`);

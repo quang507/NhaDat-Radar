@@ -41,19 +41,26 @@ for (const locNhom of nhomGone) {
 }
 console.log(`✓ Đã chuyển sang 'gone': ${markGone} tin`);
 
-// 3. Xoá cứng các tin crawl cũ hơn 45 ngày không thấy lại
-const hardCutoff = new Date(Date.now() - 45 * 24 * 3600 * 1000).toISOString();   // 23/9: nới 21 -> 45 ngày (cùng luật daily.mjs)
-const { count: purgedHard, error: e2 } = await sb.from("listings").delete({ count: "exact" })
-  .eq("source", "crawl").lt("last_seen_at", hardCutoff);
-if (e2) console.error("Lỗi xoá cứng >45 ngày:", e2.message);
-else console.log(`✓ Đã xoá vĩnh viễn tin quá 45 ngày: ${purgedHard || 0} tin`);
-
-// 4. Xoá các tin đã 'gone' quá 21 ngày
-const gonePurgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();   // 23/9: nới 7 -> 21 ngày
-const { count: purgedGone, error: e3 } = await sb.from("listings").delete({ count: "exact" })
-  .eq("source", "crawl").eq("status", "gone").lt("last_seen_at", gonePurgeCutoff);
-if (e3) console.error("Lỗi xoá tin gone >21 ngày:", e3.message);
-else console.log(`✓ Đã xoá vĩnh viễn tin gone quá 21 ngày: ${purgedGone || 0} tin`);
+// 3+4. TIN CŨ -> "DÒNG MỘ" thay vì XOÁ CỨNG (2/10, SEO). Xoá hẳn thì URL /listings/<id> thành 404 - Search
+//    Console đo 2/10: 3.876 trang 404. Giờ giữ dòng nhẹ (id, deal, kind, tỉnh, quận, tiêu đề) và bỏ phần nặng
+//    (mô tả, ảnh, specs, embedding...) -> trang tin chuyển hướng 301 về trang khu vực (listings/[id]/page.tsx).
+//    Mỗi dòng mộ ~0,5 KB - vài nghìn dòng/tháng không đáng kể so với trần 500 MB.
+//    Luật thời gian giữ nguyên: không thấy lại > 45 ngày, hoặc đã 'gone' > 21 ngày.
+const hardCutoff = new Date(Date.now() - 45 * 24 * 3600 * 1000).toISOString();
+const gonePurgeCutoff = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
+const MO = { status: "gone", description: null, images: [], amenities: [], specs: null, embedding: null,
+  address: null, contact_phone: null, phone_masked: null, poster_reasons: null };
+const conNang = "description.not.is.null,images.neq.{}";   // chưa thành dòng mộ -> khỏi ghi lại mỗi lượt
+let soMo = 0;
+for (const loc of [
+  (q) => q.lt("last_seen_at", hardCutoff),
+  (q) => q.eq("status", "gone").lt("last_seen_at", gonePurgeCutoff),
+]) {
+  const { count, error } = await loc(sb.from("listings").update(MO, { count: "exact" }).eq("source", "crawl").or(conNang));
+  if (error) console.error("Lỗi chuyển dòng mộ:", error.message);
+  else soMo += count || 0;
+}
+console.log(`✓ Chuyển ${soMo} tin cũ thành dòng mộ (giữ URL để chuyển hướng 301, bỏ phần nặng)`);
 
 // 5. Giải phóng embedding vector(768) cho các tin đã 'gone' còn lại (giảm tải HNSW / RAM)
 let nullEmbedding = 0;
