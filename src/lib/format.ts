@@ -75,3 +75,13 @@ export const coLinkThat = (u: string | null | undefined): boolean =>
  */
 export const escHtml = (s: unknown): string =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/**
+ * Cắt chuỗi tối đa n KÝ TỰ thật (code point), không chẻ đôi emoji. String.slice đếm theo UTF-16: emoji
+ * (🏠 ✨ 💬) là 2 đơn vị, cắt giữa chừng còn nửa cặp surrogate -> server in "�", trình duyệt giữ nguyên ->
+ * React #418 trên /search (2/10, lộ ra khi mô tả rổ hàng HiFriendz nhiều emoji).
+ */
+export function catChu(s: string, n: number): string {
+  if (s.length <= n) return s;
+  return Array.from(s).slice(0, n).join("");
+}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { fmtPrice, shortPrice, fmtPpm2, canonDistrict, fresh } from "../../src/lib/format";
+import { fmtPrice, shortPrice, fmtPpm2, canonDistrict, fresh, catChu } from "../../src/lib/format";
 import { hiRes, cleanImages } from "../../src/lib/img";
 
 // Unit test các hàm thuần — chạy không cần mạng/trình duyệt.
@@ -79,5 +79,20 @@ test.describe("cleanImages (lọc ảnh rác)", () => {
       null,
     ];
     expect(cleanImages(input as unknown[])).toEqual(["https://ok.com/a.jpg", "https://ok.com/b.jpg"]);
+  });
+});
+
+// 2/10: String.slice chẻ đôi emoji -> nửa cặp surrogate -> server in "�", client giữ nguyên -> React #418 trên /search
+test.describe("catChu (cắt chữ không chẻ emoji)", () => {
+  test("không để lại nửa cặp surrogate", () => {
+    const s = "Phòng đẹp 🏠✨💬 rõ ràng 🏠 sạch sẽ";
+    for (let n = 0; n <= s.length; n++) {
+      const c = catChu(s, n);
+      expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(c), `n=${n}: ${c}`).toBe(false);
+    }
+  });
+  test("chuỗi ngắn giữ nguyên, đếm theo ký tự thật", () => {
+    expect(catChu("abc", 10)).toBe("abc");
+    expect(catChu("🏠🏠🏠", 2)).toBe("🏠🏠");
   });
 });

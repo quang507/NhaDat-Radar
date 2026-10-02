@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 // Tải ảnh gốc rổ hàng về máy admin (nút "Tải ảnh" ở /admin?tab=dang-bai) - 28/9.
 // Chỉ admin, chỉ domain ảnh của đối tác rổ hàng: không thành proxy mở cho ai cũng gọi.
 const HOST_CHO_PHEP = ["media.evohome.it.com"];
+// HiFriendz (2/10) để ảnh trên Firebase Storage - host dùng chung cho mọi app Firebase nên khoá thêm đúng bucket
+const FIREBASE_HIFRIENDZ = { host: "firebasestorage.googleapis.com", path: "/v0/b/hifriendz-agent.firebasestorage.app/" };
+const choPhep = (u: URL) => HOST_CHO_PHEP.includes(u.hostname)
+  || (u.hostname === FIREBASE_HIFRIENDZ.host && u.pathname.startsWith(FIREBASE_HIFRIENDZ.path));
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   let url: URL;
   try { url = new URL(req.nextUrl.searchParams.get("u") || ""); } catch { return new NextResponse("Bad url", { status: 400 }); }
-  if (url.protocol !== "https:" || !HOST_CHO_PHEP.includes(url.hostname)) return new NextResponse("Host not allowed", { status: 400 });
+  if (url.protocol !== "https:" || !choPhep(url)) return new NextResponse("Host not allowed", { status: 400 });
 
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok || !res.body) return new NextResponse("Upstream error", { status: 502 });

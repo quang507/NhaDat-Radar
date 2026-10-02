@@ -103,8 +103,9 @@ export default function ListingCard({ x }: { x: Listing }) {
           ) : null}
           {ageMin != null && (
             <span
+              suppressHydrationWarning   // "x phút trước": HTML cache vài phút -> lệch lúc hydrate (React #418, 2/10)
               className="ml-auto font-medium text-emerald-600"
-              title={`Radar thấy tin: ${new Date(x.first_seen_at!).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}`}
+              title={`Radar thấy tin: ${new Date(x.first_seen_at!).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" })}`}
             >
               {fresh(ageMin)}
             </span>

@@ -7,7 +7,7 @@
 //   - CTA duy nhất: gọi hotline · nhắn Zalo hẹn xem · đặt lịch xem
 //   - không ghi hợp đồng, không nhận bớt giá qua tin nhắn -> mời qua xem rồi thương lượng
 //   - cuối tháng: tag giữ phòng sang đầu tháng sau
-export const DOI_TAC_RO_HANG = ["evohome", "thienkhoi"];
+export const DOI_TAC_RO_HANG = ["evohome", "hifriendz", "thienkhoi"];
 
 export function laRoHang(x: { source?: string | null; source_site?: string | null }) {
   return x.source === "ro_hang" || DOI_TAC_RO_HANG.includes(x.source_site || "");
@@ -77,6 +77,13 @@ export function linkGocEvohome(sourcePostId: string | null | undefined) {
   if (!sourcePostId) return DS_PHONG_EVOHOME;
   const mau = process.env.EVOHOME_UNIT_URL || `${DS_PHONG_EVOHOME}&sheet=transaction-unit%3A{id}%3Adetail`;
   return mau.replace("{id}", encodeURIComponent(sourcePostId));
+}
+
+/** Link mở phòng gốc trên hifriendz.com (2/10, chỉ admin thấy) - trang công khai /phong/<mã tin LST-...> */
+export function linkGocHifriendz(sourcePostId: string | null | undefined) {
+  return sourcePostId && /^LST-[\w-]+$/.test(sourcePostId)
+    ? `https://hifriendz.com/phong/${sourcePostId}`
+    : "https://hifriendz.com/tim-kiem";
 }
 
 /**

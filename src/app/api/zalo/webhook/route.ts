@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { classifyAndExtract } from "@/lib/ai";
 import { verifyZaloSignature, sendZaloText } from "@/lib/zalo";
-import { fmtPrice, PROP } from "@/lib/format";
+import { fmtPrice, PROP, catChu } from "@/lib/format";
 import { qualityGate } from "@/lib/quality-gate";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     const { error: insErr } = await admin.from("listings").insert({
       source: "zalo_oa",
       source_site: "zalo_oa",
-      title: L.title || text.slice(0, 80),
+      title: L.title || catChu(text, 80),
       description: text,
       price_vnd: L.price_vnd ?? null,
       area_m2: L.area_m2 ?? null,
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
     if (data && data.length) {
       const lines = data.map(
         (x, i) =>
-          `${i + 1}. ${x.title?.slice(0, 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}`,
+          `${i + 1}. ${catChu(x.title || "", 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}`,
       );
       await sendZaloText(userId, `🔎 Tìm thấy ${data.length} tin phù hợp:\n\n${lines.join("\n\n")}\n\nNhắn tiếp để lọc thêm nhé!`);
     } else {

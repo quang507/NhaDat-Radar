@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { unstable_cache } from "next/cache";
 import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "@/lib/cols";
-import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb } from "@/lib/format";
+import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb, catChu } from "@/lib/format";
 import { cleanImages, layVideo } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
 import { posterReasonText, type Listing } from "@/lib/types";
@@ -30,7 +30,7 @@ import TuVanRadar from "@/components/TuVanRadar";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
-import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong, linkGocEvohome } from "@/lib/ro-hang";
+import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong, linkGocEvohome, linkGocHifriendz } from "@/lib/ro-hang";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
@@ -123,7 +123,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const docQuyen = laTinDocQuyen(data);
   const title = `${docQuyen ? cheSoVanBan(data.title) : data.title} - ${fmtPrice(data.price_vnd, data.deal)}`;
   const moTa = docQuyen ? cheSoVanBan(data.description) : data.description || "";
-  const description = moTa.slice(0, 160) ||
+  const description = catChu(moTa, 160) ||
     `${[data.district, data.province].filter(Boolean).join(", ")} · NhaDat Radar`;
   const img = cleanImages(data.images || [])[0];
   return {
@@ -217,7 +217,7 @@ export default async function ListingDetail({
   const giuPhong = tagGiuPhong(x);
   const reasons = (x.poster_reasons || []).map(posterReasonText);
   const fmtDT = (iso: string | null | undefined) =>
-    iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "-";
+    iso ? new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : "-";
 
   // Chỉ hiện ô CÓ dữ liệu. Trước đây danh sách cứng 6 ô nên tin đất nền hiện "Nội thất -",
   // "Số tầng -", "Chỗ đậu xe -" - vừa vô nghĩa vừa làm tin trông thiếu thốn. Mỗi loại BĐS
@@ -270,7 +270,7 @@ export default async function ListingDetail({
     {
       "@context": "https://schema.org", "@type": "RealEstateListing",
       name: x.title, url: `${SITE_URL}/listings/${x.id}`,
-      ...(x.description ? { description: x.description.slice(0, 500) } : {}),
+      ...(x.description ? { description: catChu(x.description, 500) } : {}),
       ...(images.length ? { image: images.slice(0, 5) } : {}),
       ...(x.first_seen_at ? { datePosted: x.first_seen_at } : {}),
       ...(x.price_vnd ? { offers: { "@type": "Offer", price: x.price_vnd, priceCurrency: "VND",
@@ -328,6 +328,11 @@ export default async function ListingDetail({
               {goc.partner === "evohome" && (
                 <a href={linkGocEvohome(goc.source_post_id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 underline">
                   Mở trên app.evohome.it.com ↗
+                </a>
+              )}
+              {goc.partner === "hifriendz" && (
+                <a href={linkGocHifriendz(goc.source_post_id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 underline">
+                  Mở trên hifriendz.com ↗
                 </a>
               )}
               {goc.source_post_id && <span className="font-mono text-[var(--ink-soft)]">id: {goc.source_post_id}</span>}

@@ -55,7 +55,7 @@ export default async function Dashboard() {
           <div className="space-y-2 text-sm">
             {appointments.map((a) => (
               <div key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 border-b border-[var(--line)] last:border-0">
-                <span className="font-semibold">{new Date(a.slot).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}</span>
+                <span className="font-semibold">{new Date(a.slot).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" })}</span>
                 <Link href={`/listings/${a.listing_id}`} className="text-brand truncate max-w-[280px]">{titleMap.get(a.listing_id) || "Tin đã gỡ"}</Link>
                 <span className="text-xs text-[var(--ink-soft)]">{a.agent_id === user.id ? "· khách đặt xem tin của bạn" : "· bạn đặt xem"}</span>
                 {a.note && <span className="text-xs text-[var(--ink-soft)] italic truncate max-w-[220px]">“{a.note}”</span>}
