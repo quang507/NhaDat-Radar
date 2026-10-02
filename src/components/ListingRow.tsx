@@ -140,7 +140,7 @@ function MobileBody({ x, ago, isNew }: { x: Listing; ago: string | null; isNew: 
       <div className="mt-auto flex items-center gap-1.5 text-[0.68rem]">
         {isNew && <span className="font-bold px-1 rounded bg-emerald-500 text-white">Mới</span>}
         {x.price_flag && <span className="font-bold px-1 rounded bg-red-500/90 text-white">⚠ giá lệch</span>}
-        {ago && <span className="text-[var(--ink-faint)]">{ago}</span>}
+        {ago && <span suppressHydrationWarning className="text-[var(--ink-faint)]">{ago}</span>}
         <span className="ml-auto"><FavButton id={x.id} /></span>
       </div>
     </div>

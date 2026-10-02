@@ -1,3 +1,4 @@
+import { catChu } from "./format";
 // Nâng ảnh crawl lên bản phân giải cao (nguồn lưu thumbnail nhỏ -> đổi URL sang bản lớn).
 export function hiRes(u: string): string {
   if (!u) return u;
@@ -33,7 +34,7 @@ export function gonChoDanhSach<T extends { description?: string | null; images?:
     so_anh: x.so_anh ?? anh.length,
     co_video: x.co_video ?? anh.length < (x.images || []).length,
     images: anh.slice(0, 4),
-    description: x.description ? x.description.slice(0, 160) : x.description,   // thẻ ngang desktop hiện 2 dòng ~150 ký tự
+    description: x.description ? catChu(x.description, 160) : x.description,   // thẻ ngang desktop hiện 2 dòng ~150 ký tự
   };
 }
 

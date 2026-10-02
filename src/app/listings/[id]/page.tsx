@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { unstable_cache } from "next/cache";
 import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "@/lib/cols";
-import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb } from "@/lib/format";
+import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb, catChu } from "@/lib/format";
 import { cleanImages, layVideo } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
 import { posterReasonText, type Listing } from "@/lib/types";
@@ -123,7 +123,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const docQuyen = laTinDocQuyen(data);
   const title = `${docQuyen ? cheSoVanBan(data.title) : data.title} - ${fmtPrice(data.price_vnd, data.deal)}`;
   const moTa = docQuyen ? cheSoVanBan(data.description) : data.description || "";
-  const description = moTa.slice(0, 160) ||
+  const description = catChu(moTa, 160) ||
     `${[data.district, data.province].filter(Boolean).join(", ")} · NhaDat Radar`;
   const img = cleanImages(data.images || [])[0];
   return {
@@ -270,7 +270,7 @@ export default async function ListingDetail({
     {
       "@context": "https://schema.org", "@type": "RealEstateListing",
       name: x.title, url: `${SITE_URL}/listings/${x.id}`,
-      ...(x.description ? { description: x.description.slice(0, 500) } : {}),
+      ...(x.description ? { description: catChu(x.description, 500) } : {}),
       ...(images.length ? { image: images.slice(0, 5) } : {}),
       ...(x.first_seen_at ? { datePosted: x.first_seen_at } : {}),
       ...(x.price_vnd ? { offers: { "@type": "Offer", price: x.price_vnd, priceCurrency: "VND",
