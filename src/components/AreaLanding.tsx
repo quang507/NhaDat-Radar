@@ -103,20 +103,45 @@ const layTinKhuVuc = unstable_cache(
       if (kind) q = q.eq("kind", kind);
       return q;
     };
+    const COT_TK = "id,source,source_site,kind,district,price_vnd,price_per_m2,poster_role_guess";
+    const taoTk = () => {
+      let q = supabase.from("listings").select(COT_TK).eq("status", "published").eq("deal", deal).eq("province", province);
+      if (district) q = q.eq("district", district);
+      if (kind) q = q.eq("kind", kind);
+      return q;
+    };
+    const taoDem = () => {
+      let q = supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).eq("province", province);
+      if (district) q = q.eq("district", district);
+      if (kind) q = q.eq("kind", kind);
+      return q;
+    };
     let c = supabase.from("listings").select("id", { count: "exact", head: true })
       .eq("status", "published").eq("deal", deal).eq("province", province).gte("first_seen_at", startOfDayVN());
     if (district) c = c.eq("district", district);
     if (kind) c = c.eq("kind", kind);
     // 28/9: rổ hàng Radar trộn 2:1 với tin còn lại (lib/ro-hang)
-    const [{ data: rh }, { data }, { count }] = await Promise.all([
-      taoQ().eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(120),
-      taoQ().neq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(300),
+    // EGRESS (2/10): trước đây kéo 420 tin ĐẦY ĐỦ (mô tả + mảng ảnh) mỗi khu vực mỗi 10 phút để hiện 20 tin -
+    // bot quét ~7.400 trang khu vực là vài GB. Giờ tách: 40 tin đầy đủ để HIỂN THỊ + 420 tin chỉ cột số liệu
+    // (giá, loại, quận, nguồn) để tính thống kê + đếm tin có ảnh bằng count (không tải ảnh).
+    const moi = { ascending: false } as const;
+    const [{ data: rh }, { data }, { data: rhTk }, { data: tkData }, { count }, { count: coAnh }] = await Promise.all([
+      taoQ().eq("source", "ro_hang").order("first_seen_at", moi).limit(30),
+      taoQ().neq("source", "ro_hang").order("first_seen_at", moi).limit(40),
+      taoTk().eq("source", "ro_hang").order("first_seen_at", moi).limit(120),
+      taoTk().neq("source", "ro_hang").order("first_seen_at", moi).limit(300),
       c,
+      taoDem().neq("images", "{}"),
     ]);
-    return { data: tronRoHang((rh ?? []) as { id: string }[], (data ?? []) as { id: string }[]).slice(0, 300), newToday: count ?? 0 };
+    return {
+      hien: tronRoHang((rh ?? []) as { id: string }[], (data ?? []) as { id: string }[]).slice(0, 40),
+      data: tronRoHang((rhTk ?? []) as { id: string }[], (tkData ?? []) as { id: string }[]).slice(0, 300),
+      newToday: count ?? 0,
+      coAnh: coAnh ?? 0,
+    };
   },
-  ["area-listings-v2"],
-  { revalidate: 600, tags: ["listings"] },
+  ["area-listings-v3"],
+  { revalidate: 10800, tags: ["listings"] },   // 3 giờ: dữ liệu chỉ đổi mỗi lượt crawl (4 tiếng)
 );
 
 export default async function AreaLanding({ deal, provinceSlug, districtSlug, kind }: { deal: Deal; provinceSlug: string; districtSlug?: string; kind?: string | null }) {
@@ -126,8 +151,9 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
   // trang theo loại BĐS chỉ tồn tại khi khu vực đó thực sự có tin loại đó (tránh đẻ URL rỗng)
   if (kind && areaCount(area, deal, district, kind) < 1) notFound();
   const kindWord = kind ? (PROP[kind] || kind) : null;
-  const { data, newToday } = await layTinKhuVuc(deal, province, district, kind ?? null);
-  const rows = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
+  const { data, hien, newToday, coAnh } = await layTinKhuVuc(deal, province, district, kind ?? null);
+  const rows = (data ?? []) as Listing[];                               // cột số liệu - để tính thống kê
+  const hienRows = ((hien ?? []) as Listing[]).map(cheTinDocQuyen);     // tin đầy đủ - để hiển thị
   // tổng THẬT từ cây đếm (cache) - audit: bản cũ dùng rows.length bị cap 300 cho cấp quận
   const total = areaCount(area, deal, district, kind) || rows.length;
 
@@ -144,7 +170,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
   const distStats = [...byDist.entries()].map(([d, arr]) => ({ d, n: arr.length, med: median(arr)! })).filter((s) => s.n >= 3).sort((a, b) => a.med - b.med);
   const cheapest = distStats.slice(0, 3), priciest = distStats.slice(-3).reverse();
   const brokers = rows.filter((x) => x.poster_role_guess === "moi_gioi").length, owners = rows.filter((x) => x.poster_role_guess === "chu_nha").length;
-  const withImg = rows.filter((x) => x.images?.length).length;
+  const withImg = coAnh;
   const sources = [...new Set(rows.map((x) => x.source === "agent" ? "tự đăng" : x.source_site).filter(Boolean))];
 
   const where = district ? `${district}, ${province}` : province;
@@ -152,8 +178,8 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
   const h1 = `${dealWord} ${kindWord || "nhà đất"} ${where}`;
   const monthLabel = `tháng ${new Date().getMonth() + 1}/${new Date().getFullYear()}`;
   // tin độc quyền hiện ở dải riêng đầu danh sách -> loại khỏi list thường cho khỏi lặp
-  const idsDocQuyen = new Set(locDocQuyen(rows, 6).map((t) => t.id));
-  const show = rows.filter((r) => !idsDocQuyen.has(r.id)).slice(0, 20);
+  const idsDocQuyen = new Set(locDocQuyen(hienRows, 6).map((t) => t.id));
+  const show = hienRows.filter((r) => !idsDocQuyen.has(r.id)).slice(0, 20);
   const searchHref = `/search?deal=${deal}&province=${encodeURIComponent(province)}${district ? `&district=${encodeURIComponent(district)}` : ""}${kind ? `&kind=${kind}` : ""}`;
   const otherDeal: Deal = deal === "ban" ? "cho_thue" : "ban";
   const districts = Object.entries(area.districts).filter(([, c]) => c[deal] > 0).sort((a, b) => b[1][deal] - a[1][deal]);
@@ -216,7 +242,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
 
       {/* Dải độc quyền là KHỐI ĐẦU TIÊN sau tiêu đề - "vẫn nằm phía trên cùng" (21/8),
           đứng trên cả tóm tắt thị trường và danh sách quận */}
-      <div className="mt-5"><DaiDocQuyen listings={rows} /></div>
+      <div className="mt-5"><DaiDocQuyen listings={hienRows} /></div>
 
       {/* Tóm tắt thị trường (số thật) */}
       {medPrice ? (
@@ -225,7 +251,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
           <div className="grid gap-3 sm:grid-cols-3 text-sm">
             <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Giá phổ biến</div><div className="font-bold">{fmtP(p25!, deal)} - {fmtP(p75!, deal)}</div></div>
             <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Trung vị</div><div className="font-bold">{fmtP(medPrice, deal)}{medPpm2 ? <span className="text-[var(--ink-soft)] font-normal"> · {fmtPpm2(medPpm2)}</span> : null}</div></div>
-            <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Tin có ảnh</div><div className="font-bold">{withImg}/{rows.length}</div></div>
+            <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Tin có ảnh</div><div className="font-bold">{withImg.toLocaleString("vi-VN")}/{total.toLocaleString("vi-VN")}</div></div>
           </div>
           {kindStats.length ? (
             <p className="text-sm text-[var(--ink-soft)] mt-3">

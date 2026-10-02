@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { unstable_cache } from "next/cache";
-import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "@/lib/cols";
+import { LISTING_PUBLIC_COLS, LISTING_THE_COLS } from "@/lib/cols";
 import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb, catChu } from "@/lib/format";
 import { cleanImages, layVideo } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
@@ -65,14 +65,14 @@ async function phuTroTin(sb: Sb, x: Listing) {
       : Promise.resolve({ data: [] as { price_per_m2: number }[] }),
     // audit 16/8: thiếu cả quận lẫn tỉnh thì ilike "%%" trả tin toàn quốc -> chỉ hỏi khi có khu vực; ảnh không rỗng lọc ở DB
     (x.district || x.province)
-      ? sb.from("listings").select(LISTING_CARD_COLS)
+      ? sb.from("listings").select(LISTING_THE_COLS)
           .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
           .eq(x.district ? "district" : "province", x.district || x.province!)
           .not("images", "eq", "{}")
           .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
       : Promise.resolve({ data: [] as Listing[] }),
     x.poster_key
-      ? sb.from("listings").select(LISTING_CARD_COLS, { count: "exact" })
+      ? sb.from("listings").select(LISTING_THE_COLS, { count: "exact" })
           .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
           .order("first_seen_at", { ascending: false }).limit(6)
       : Promise.resolve({ data: [] as Listing[], count: 0 }),
@@ -102,8 +102,8 @@ const layTinCongKhai = unstable_cache(
     if (!data) return null;
     return phuTroTin(sb, data as unknown as Listing);
   },
-  ["listing-detail-v1"],
-  { revalidate: 1800, tags: ["listings"] },
+  ["listing-detail-v2"],
+  { revalidate: 10800, tags: ["listings"] },   // 3 giờ (2/10, egress): ~22.000 trang tin bị bot quét
 );
 
 function agoMin(iso: string | null): number | null {

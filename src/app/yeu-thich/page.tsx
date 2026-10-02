@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { LISTING_CARD_COLS } from "@/lib/cols";
+import { LISTING_THE_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import { getFavs, pullDbFavs } from "@/components/FavButton";
 import { fmtPrice, fmtPpm2, PROP } from "@/lib/format";
@@ -23,7 +23,7 @@ export default function FavouritesPage() {
       if (!ids.length) return setItems([]);
       const supabase = createClient();
       const { data } = await supabase
-        .from("listings").select(LISTING_CARD_COLS).in("id", ids).eq("status", "published");
+        .from("listings").select(LISTING_THE_COLS).in("id", ids).eq("status", "published");
       const order = new Map(ids.map((id, i) => [id, i]));
       setItems(((data ?? []) as Listing[]).map(cheTinDocQuyen).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)));
     };

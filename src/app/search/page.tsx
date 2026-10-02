@@ -203,7 +203,7 @@ const timKiemCoCache = unstable_cache(
   return { listings, newToday: newToday ?? 0, total: total ?? listings.length, trang };
   },
   ["search-v7"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10)
-  { revalidate: 300, tags: ["listings"] },
+  { revalidate: 900, tags: ["listings"] },   // 15 phút (2/10, egress)
 );
 
 export default async function SearchPage({

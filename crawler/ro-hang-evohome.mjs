@@ -61,7 +61,7 @@ const giaTrieu = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1).replace(/\.0$/, "").
 const cu = new Map();
 if (sb) {
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from("listings").select("id,source_post_id,first_seen_at,crawl_count,status")
+    const { data, error } = await sb.from("listings").select("id,source_post_id,first_seen_at,last_seen_at,crawl_count,status")
       .eq("source", "ro_hang").eq("source_site", PARTNER).order("id").range(from, from + 999);   // order bắt buộc: thiếu thì các trang chồng nhau, sót phòng cũ -> tạo id mới -> trùng khoá (2/10)
     if (error) throw error;
     for (const r of data) cu.set(r.source_post_id, r);
@@ -185,7 +185,7 @@ for (const x of dsNhap) {
     // không còn ảnh nào (EvoHome không có ảnh, hoặc chỉ có video) -> tạm ẩn: thẻ không ảnh khó bán
     // và trông như tin lỗi. Lượt sau đối tác bổ sung ảnh thì tự hiện lại.
     status: anh.length ? "published" : "hidden",
-    posted_at: x.posted_at || now,
+    posted_at: x.posted_at || cuRow?.first_seen_at || now,   // HiFriendz không có ngày đăng: giữ cố định, đừng đổi mỗi lượt
     first_seen_at: cuRow?.first_seen_at || now,
     last_seen_at: now,
     last_confirmed_at: now,
@@ -214,12 +214,39 @@ if (!sb) {
 }
 
 // ---- ghi DB ---------------------------------------------------------------------------------
-for (let i = 0; i < rows.length; i += 200) {
-  const { error } = await sb.from("listings").upsert(rows.slice(i, i + 200), { onConflict: "id" });
+// 2/10 (DB gói Free 500 MB): trước đây mỗi lượt ghi đè CẢ ~14.000 phòng dù không đổi gì -> mỗi lần ghi
+// Postgres giữ bản cũ tới khi autovacuum dọn, bảng phình ~1,5-2 lần dữ liệu thật. Giờ:
+//   - chỉ ghi phòng MỚI / đổi NỘI DUNG (so dấu vân tay lưu ở crawler/private/<đối tác>-hash.json) / đổi TRẠNG THÁI
+//   - phòng không đổi: chỉ làm mới last_seen_at (= "ngày xác nhận còn trống" trên trang tin) khi đã quá 3 ngày
+//   - không có file dấu vân tay (máy khác / lần đầu) thì ghi hết như cũ - an toàn, chỉ tốn hơn
+const HASH_FILE = `crawler/private/${PARTNER}-hash.json`;
+let vanTayCu = {};
+try { vanTayCu = JSON.parse(fs.readFileSync(HASH_FILE, "utf8")); } catch { /* lần đầu */ }
+const BIEN_DONG = new Set(["last_seen_at", "last_confirmed_at", "crawl_count", "first_seen_at", "updated_at"]);
+const vanTay = (r, p) => crypto.createHash("sha1")
+  .update(JSON.stringify([r, p], (k, v) => (BIEN_DONG.has(k) ? undefined : v))).digest("base64");
+const LAM_MOI_SAU = 3 * 24 * 3600 * 1000;
+const ghi = [], ghiPriv = [], lamMoi = [], vanTayMoi = {};
+rows.forEach((r, i) => {
+  const vt = vanTay(r, priv[i]);
+  vanTayMoi[r.source_post_id] = vt;
+  const cuRow = cu.get(r.source_post_id);
+  if (!cuRow || cuRow.status !== r.status || vanTayCu[r.source_post_id] !== vt) { ghi.push(r); ghiPriv.push(priv[i]); }
+  else if (Date.now() - Date.parse(cuRow.last_seen_at || 0) > LAM_MOI_SAU) lamMoi.push(r.id);
+});
+for (let i = 0; i < ghi.length; i += 200) {
+  const { error } = await sb.from("listings").upsert(ghi.slice(i, i + 200), { onConflict: "id" });
   if (error) throw error;
-  const { error: e2 } = await sb.from("listing_ro_hang").upsert(priv.slice(i, i + 200), { onConflict: "listing_id" });
+  const { error: e2 } = await sb.from("listing_ro_hang").upsert(ghiPriv.slice(i, i + 200), { onConflict: "listing_id" });
   if (e2) throw e2;
 }
+for (let i = 0; i < lamMoi.length; i += 200) {
+  const { error } = await sb.from("listings").update({ last_seen_at: now, last_confirmed_at: now }).in("id", lamMoi.slice(i, i + 200));
+  if (error) throw error;
+}
+// ghi dấu vân tay SAU khi DB thành công - lỗi giữa chừng thì lượt sau ghi lại hết, không sót
+fs.writeFileSync(HASH_FILE, JSON.stringify(vanTayMoi));
+console.log(`Ghi ${ghi.length} phòng mới/đổi · làm mới ngày ${lamMoi.length} · bỏ qua ${rows.length - ghi.length - lamMoi.length} phòng không đổi`);
 // phòng đã hết (không còn trong file) -> gone
 const conLai = new Set(rows.map((r) => r.source_post_id));
 // chỉ tính phòng CHƯA hạ (bản cũ đếm lại cả phòng đã "gone" từ lượt trước -> lượt nào cũng báo "hạ 30")
@@ -231,4 +258,12 @@ if (rows.length < dangHien * 0.5) { console.warn(`Chỉ ${rows.length}/${dangHie
 for (let i = 0; i < het.length; i += 100) {
   await sb.from("listings").update({ status: "gone" }).in("id", het.slice(i, i + 100));
 }
-console.log(`✓ Ghi ${rows.length} phòng · hạ ${het.length} phòng đã cho thuê`);
+// phòng đã cho thuê quá 30 ngày -> xoá hẳn (db-prune.mjs chỉ dọn tin crawl; rổ hàng HiFriendz xoay vòng
+// hàng nghìn phòng, không xoá thì DB phình mãi). listing_ro_hang xoá theo (on delete cascade).
+const NGUONG_XOA = Date.now() - 30 * 24 * 3600 * 1000;
+const xoa = [...cu.values()].filter((r) => r.status === "gone" && !conLai.has(r.source_post_id) && Date.parse(r.last_seen_at || 0) < NGUONG_XOA).map((r) => r.id);
+for (let i = 0; i < xoa.length; i += 100) {
+  const { error } = await sb.from("listings").delete().in("id", xoa.slice(i, i + 100));
+  if (error) console.warn("Xoá phòng cũ lỗi:", error.message);
+}
+console.log(`✓ ${rows.length} phòng trong rổ · hạ ${het.length} phòng đã cho thuê · xoá ${xoa.length} phòng cho thuê quá 30 ngày`);

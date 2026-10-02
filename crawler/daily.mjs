@@ -127,10 +127,13 @@ const CO_GEO_PRECISION = !loiCotGeo;
 if (!CO_GEO_PRECISION) console.error("⚠ DB chưa có cột listings.geo_precision (migration 029) -> toạ độ vẫn ghi theo quy tắc cũ:", loiCotGeo.message);
 const COT_DE_RONG = "lat,lng,images,description,specs,phone_masked,poster_key,address,posted_at,direction,legal_status,furnishing,floors,bedrooms,bathrooms,amenities"
   + (CO_GEO_PRECISION ? ",geo_precision" : "");
+// EGRESS (2/10): trước đây đọc MỌI tin crawl (~16.500, cả tin đã gỡ) KÈM cột rộng (mô tả, ảnh, specs...)
+// mỗi lượt - ~80 MB x 6 lượt/ngày ≈ 14 GB/tháng, gần gấp 3 hạn mức egress 5 GB gói Free.
+// Giờ 2 bước: (1) cột nhận diện cho mọi tin (~2 MB), (2) cột rộng CHỈ cho tin xuất hiện lại trong lượt này.
 const oldRows = [];
 for (let from = 0; ; from += 1000) {
   const { data, error } = await sb.from("listings")
-    .select(`id,source_site,source_post_id,first_seen_at,crawl_count,status,${COT_DE_RONG}`).eq("source", "crawl").not("source_post_id", "is", null)
+    .select("id,source_site,source_post_id,first_seen_at,crawl_count,status").eq("source", "crawl").not("source_post_id", "is", null)
     .order("id").range(from, from + 999);
   if (error) { console.error("Đọc tin cũ lỗi:", error.message); process.exit(1); }
   oldRows.push(...(data || []));
@@ -138,6 +141,32 @@ for (let from = 0; ; from += 1000) {
 }
 const oldMap = new Map(oldRows.map((r) => [r.source_site + "|" + r.source_post_id, r]));
 console.log(`(DB đang có ${oldRows.length} tin crawl)`);
+{
+  // mô tả + ảnh là 2 cột NẶNG nhất: chỉ cần bản cũ khi lượt này lấy về rỗng (giuNeuTrong giữ bản cũ);
+  // lượt này có sẵn thì bản cũ không dùng tới -> khỏi tải
+  const COT_NANG = ["description", "images"];
+  const COT_NHE = COT_DE_RONG.split(",").filter((c) => !COT_NANG.includes(c)).join(",");
+  const trong = (v) => v == null || v === "" || (Array.isArray(v) && v.length === 0);
+  const nhe = new Set(), nang = new Set();
+  for (const x of comb.listings) {
+    const id = oldMap.get(x.source_site + "|" + (x.source_post_id || x.id))?.id;
+    if (!id) continue;
+    nhe.add(id);
+    if (trong(x.description) || trong(x.images)) nang.add(id);
+  }
+  const theoId = new Map(oldRows.map((r) => [r.id, r]));
+  const doc = async (ids, cot) => {
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data, error } = await sb.from("listings").select(`id,${cot}`).in("id", ids.slice(i, i + 200));
+      // thiếu bản cũ thì giuNeuTrong không giữ được giá trị tốt -> dừng hẳn, đừng ghi đè rỗng lên dữ liệu tốt
+      if (error) { console.error("Đọc cột rộng tin cũ lỗi:", error.message); process.exit(1); }
+      for (const w of data || []) Object.assign(theoId.get(w.id) || {}, w);
+    }
+  };
+  await doc([...nhe], COT_NHE);
+  await doc([...nang], COT_NANG.join(","));
+  console.log(`(tin xuất hiện lại: ${nhe.size} · cần mô tả/ảnh cũ: ${nang.size})`);
+}
 
 // ---- KHÔNG GHI RỖNG ĐÈ LÊN DỮ LIỆU TỐT (review /ultrareview) ----
 // Payload upsert trước đây gán thẳng giá trị lượt hiện tại cho MỌI cột, không COALESCE. Bất kỳ
