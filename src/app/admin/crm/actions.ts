@@ -325,3 +325,21 @@ export async function deleteReminder(formData: FormData) {
   await admin.from("reminders").delete().eq("id", id);
   revalidatePath("/admin");
 }
+
+// ── SĂN KHÁCH (2/10) ─────────────────────────────────────────────────────────
+/** Đánh dấu bài khách tìm phòng đã bình luận/nhắn (hoặc bỏ qua) - /admin?tab=san-khach */
+export async function danhDauSanKhach(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("id") || "");
+  const kq = String(formData.get("kq") || "da_nhan");   // da_nhan | bo_qua
+  if (!/^[0-9a-f-]{36}$/i.test(id) || !["da_nhan", "bo_qua"].includes(kq)) return;
+  const admin = createAdminClient();
+  const { data: b } = await admin.from("buyers").select("preferences").eq("id", id).maybeSingle();
+  if (!b) return;
+  const now = new Date().toISOString();
+  await admin.from("buyers").update({
+    preferences: { ...(b.preferences as Record<string, unknown> || {}), xu_ly: kq, xu_ly_luc: now },
+    ...(kq === "da_nhan" ? { last_contact_at: now } : {}),
+  }).eq("id", id);
+  revalidatePath("/admin");
+}

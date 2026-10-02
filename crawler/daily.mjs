@@ -91,6 +91,7 @@ if (!SEED_ONLY) {
     console.log("↷ Bỏ qua Facebook trên CI (IP datacenter bị chặn) - chạy crawl-local.bat trên máy nhà để lấy tin FB.");
   } else if (fs.existsSync(new URL("./fb-cookies.json", import.meta.url)) && process.env.FB_GROUP_URLS) {
     step("node facebook.mjs --playwright");   // 17/8: bỏ hẳn nhánh Apify (tốn phí) - chỉ còn Playwright miễn phí
+    step("node san-khach.mjs");               // 2/10: bài KHÁCH TÌM PHÒNG -> /admin?tab=san-khach (lỗi không chặn seed)
   }
 }
 // `--no-merge`: seed thẳng combined.json đang có, KHÔNG dựng lại. Cần khi đã chạy tay merge + geocode-all:
