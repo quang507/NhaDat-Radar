@@ -179,7 +179,7 @@ export default async function AdminPage({
         .order("created_at", { ascending: false })
         .limit(20),
       Promise.all([
-        admin.from("buyers").select("id", { count: "exact", head: true }).or("preferences->>loai.is.null,preferences->>loai.neq.san_khach"),
+        admin.from("buyers").select("id", { count: "exact", head: true }),
         admin.from("sellers").select("id", { count: "exact", head: true }),
         admin.from("deals").select("id", { count: "exact", head: true }).in("stage", ["lead", "viewing", "negotiating", "closing"]),
         admin.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"),
@@ -503,7 +503,7 @@ export default async function AdminPage({
     const crmFilter = sp.crm_filter || "all"; // 'all' | 'buyer' | 'seller' | 'dual'
 
     const [buyersRes, sellersRes, interestsRes, dealsRes, listingsRes] = await Promise.all([
-      admin.from("buyers").select("*").or("preferences->>loai.is.null,preferences->>loai.neq.san_khach").order("created_at", { ascending: false }).limit(100),   // 2/10: bài săn khách FB ở tab riêng
+      admin.from("buyers").select("*").order("created_at", { ascending: false }).limit(100),
       admin
         .from("sellers")
         .select("id, name, phone, seller_type, zalo_user_id, active_listing_id, xung_ho, created_at, listings:active_listing_id(id, title, price_vnd, deal)")
@@ -1136,13 +1136,13 @@ export default async function AdminPage({
   if (tab === "san-khach") {
     const xem = sp.q === "da" ? "da" : "moi";
     const tu = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-    let q = admin.from("buyers").select("id,name,phone,preferences,created_at").eq("preferences->>loai", "san_khach").gte("created_at", tu);
-    q = xem === "moi" ? q.is("preferences->>xu_ly", null) : q.not("preferences->>xu_ly", "is", null);
-    const { data: ds } = await q.order("created_at", { ascending: false }).limit(40);
-    const khachs = (ds ?? []) as { id: string; name: string | null; phone: string | null; preferences: Record<string, unknown>; created_at: string }[];
+    let q = admin.from("khach_tim").select("id,ten,sdt,url,noi_dung,nhu_cau,dang_luc,xu_ly,created_at").gte("created_at", tu);
+    q = xem === "moi" ? q.is("xu_ly", null) : q.not("xu_ly", "is", null);
+    const { data: ds, error: loiKt } = await q.order("created_at", { ascending: false }).limit(40);
+    const khachs = (ds ?? []) as { id: string; ten: string | null; sdt: string | null; url: string | null; noi_dung: string | null; nhu_cau: NhuCau & { tom_tat?: string; deal?: string }; dang_luc: string | null; xu_ly: string | null; created_at: string }[];
     // phòng rổ hàng khớp từng khách (quận + ngân sách + loại) - admin ít người dùng, 1 truy vấn/khách là ổn
     const khop = await Promise.all(khachs.map(async (k) => {
-      const nc = k.preferences as NhuCau & { deal?: string };
+      const nc = k.nhu_cau || {};
       if (nc.deal === "mua") return [] as PhongKhop[];
       let pq = admin.from("listings").select("id,title,price_vnd,deal,district").eq("source", "ro_hang").eq("status", "published").eq("deal", "cho_thue");
       const dk = dieuKienQuan(nc.quan);
@@ -1169,24 +1169,25 @@ export default async function AdminPage({
               className={`rounded-lg px-3 py-1 text-xs font-semibold ${xem === v ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>{l}</Link>
           ))}
         </div>
-        {!khachs.length && (
+        {loiKt && <p className="mb-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">Chưa đọc được bảng khach_tim ({loiKt.message}) - cần chạy migration supabase/migrations/032_khach_tim.sql.</p>}
+        {!khachs.length && !loiKt && (
           <p className="rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
             {xem === "moi" ? "Chưa có bài khách tìm phòng mới. Bài vào sau mỗi lượt cào Facebook ở máy nhà (CHAY.bat)." : "Chưa xử lý bài nào."}
           </p>
         )}
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(340px,1fr))]">
           {khachs.map((k, i) => {
-            const nc = k.preferences as NhuCau & { noi_dung?: string; url?: string | null; tom_tat?: string; dang_luc?: string; xu_ly?: string };
+            const nc = k.nhu_cau || {};
             const phong = khop[i];
             return (
               <div key={k.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
                 <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <b className="text-slate-800">{k.name || "Khách"}</b>
-                  {k.phone && <a href={`tel:${k.phone}`} className="font-mono text-emerald-700">{k.phone}</a>}
-                  <span className="ml-auto">{tuoi(nc.dang_luc || k.created_at)}</span>
+                  <b className="text-slate-800">{k.ten || "Khách"}</b>
+                  {k.sdt && <a href={`tel:${k.sdt}`} className="font-mono text-emerald-700">{k.sdt}</a>}
+                  <span className="ml-auto">{tuoi(k.dang_luc || k.created_at)}</span>
                 </div>
                 <p className="mt-1 font-semibold text-slate-800">{nc.tom_tat || "Khách tìm phòng"}</p>
-                <p className="mt-1 line-clamp-4 whitespace-pre-line text-xs text-slate-600">{nc.noi_dung}</p>
+                <p className="mt-1 line-clamp-4 whitespace-pre-line text-xs text-slate-600">{k.noi_dung}</p>
                 <div className="mt-2 rounded bg-slate-50 p-2 text-xs">
                   <div className="mb-1 font-semibold text-slate-700">{phong.length ? `${phong.length} phòng rổ hàng khớp:` : "Chưa có phòng khớp đúng - tin nhắn dẫn về trang cho thuê"}</div>
                   {phong.map((p) => (
@@ -1194,7 +1195,7 @@ export default async function AdminPage({
                   ))}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <SanKhachCard binhLuan={cauBinhLuan(nc, phong)} tinNhan={tinNhanRieng(k.name, nc, phong)} url={nc.url || null} />
+                  <SanKhachCard binhLuan={cauBinhLuan(nc, phong)} tinNhan={tinNhanRieng(k.ten, nc, phong)} url={k.url || null} />
                   {xem === "moi" ? (
                     <span className="ml-auto flex gap-1">
                       <form action={danhDauSanKhach}><input type="hidden" name="id" value={k.id} /><input type="hidden" name="kq" value="da_nhan" />
@@ -1202,7 +1203,7 @@ export default async function AdminPage({
                       <form action={danhDauSanKhach}><input type="hidden" name="id" value={k.id} /><input type="hidden" name="kq" value="bo_qua" />
                         <button className="rounded border border-slate-300 px-2.5 py-1.5 text-xs text-slate-600">Bỏ qua</button></form>
                     </span>
-                  ) : <span className="ml-auto text-xs text-slate-500">{nc.xu_ly === "bo_qua" ? "Đã bỏ qua" : "Đã nhắn"}</span>}
+                  ) : <span className="ml-auto text-xs text-slate-500">{k.xu_ly === "bo_qua" ? "Đã bỏ qua" : "Đã nhắn"}</span>}
                 </div>
               </div>
             );
@@ -1709,7 +1710,7 @@ export default async function AdminPage({
   const [totalListings, totalPrices, totalBuyers, totalDeals, botErrorsRes] = await Promise.all([
     admin.from("listings").select("id", { count: "exact", head: true }),
     admin.from("price_history").select("id", { count: "exact", head: true }),
-    admin.from("buyers").select("id", { count: "exact", head: true }).or("preferences->>loai.is.null,preferences->>loai.neq.san_khach"),
+    admin.from("buyers").select("id", { count: "exact", head: true }),
     admin.from("deals").select("id", { count: "exact", head: true }),
     admin.from("bot_errors").select("id, at, source, detail").order("at", { ascending: false }).limit(10),
   ]);
