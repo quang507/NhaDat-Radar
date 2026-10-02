@@ -83,11 +83,14 @@ export async function signUp(formData: FormData) {
   );
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData?: FormData) {
   const supabase = await createClient();
+  // 2/10: nút "Bấm để hiện số" ở trang tin gửi kèm next=<trang đang xem> -> đăng nhập xong quay về đúng tin
+  const nextRaw = String(formData?.get?.("next") || "");
+  const next = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "";
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${await siteUrl()}/auth/callback` },
+    options: { redirectTo: `${await siteUrl()}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}` },
   });
   if (error) redirect("/auth?error=" + encodeURIComponent(viErr(error.message)));
   if (data.url) redirect(data.url);

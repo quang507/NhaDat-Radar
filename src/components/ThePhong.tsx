@@ -10,9 +10,10 @@ import { thongTinAnh } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, maPhong, tagGiuPhong } from "@/lib/ro-hang";
 import { tienIchTheoKhoa } from "@/lib/tien-ich";
+import { baoGA } from "@/lib/su-kien-client";
 
 // THẺ PHÒNG CHO THUÊ kiểu EvoHome (1/10): thẻ dọc xếp lưới - ảnh, [mã] giá đ/tháng, địa chỉ, chip
-// Loại · m² · Trống, icon tiện ích "+N tiện ích", thời gian đăng, [sao chép] [Đặt lịch], "Xem chi tiết".
+// Loại · m² · Trống, icon tiện ích "+N tiện ích", thời gian đăng, [sao chép] [Liên hệ], "Xem chi tiết".
 // Màu theo brand Radar. Trang mua bán vẫn dùng ListingRow (thẻ ngang kiểu batdongsan).
 
 const LOAI_NGAN: Record<string, string> = { phong_tro: "Phòng", can_ho: "Căn hộ", nha: "Nhà", mat_bang: "Mặt bằng", dat: "Đất", khac: "Khác" };
@@ -36,7 +37,7 @@ export default function ThePhong({ x }: { x: Listing }) {
     const dong = [ma ? `[${ma}] ${tieuDe}` : tieuDe, `💰 ${giaThang(x.price_vnd)}`, `📍 ${diaChi}`,
       x.area_m2 ? `📐 ${x.area_m2} m²` : "", ti.length ? `✨ ${ti.map((t) => t.ten).join(", ")}` : "",
       `${location.origin}${href}`].filter(Boolean).join("\n");
-    try { await navigator.clipboard.writeText(dong); setDaChep(true); setTimeout(() => setDaChep(false), 1500); } catch { /* trình duyệt chặn clipboard */ }
+    try { await navigator.clipboard.writeText(dong); setDaChep(true); baoGA("ndr_chep_tin", { listing_id: x.id }); setTimeout(() => setDaChep(false), 1500); } catch { /* trình duyệt chặn clipboard */ }
   }
 
   return (
@@ -85,9 +86,9 @@ export default function ThePhong({ x }: { x: Listing }) {
               </svg>
             )}
           </button>
-          <Link href={`${href}#lien-he`} className="flex-1 h-9 rounded-lg bg-brand text-white text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-brand-ink">
+          <Link href={`${href}#lien-he`} onClick={() => baoGA("ndr_bam_lien_he_the", { listing_id: x.id })} className="flex-1 h-9 rounded-lg bg-brand text-white text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-brand-ink">
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><rect x="3" y="4.5" width="14" height="12" rx="2" /><path d="M3 8.5h14M7 3v3M13 3v3" strokeLinecap="round" /></svg>
-            Đặt lịch
+            Liên hệ
           </Link>
         </div>
         <Link href={href} className="text-center text-[0.72rem] text-[var(--ink-soft)] hover:text-brand py-0.5">👁 Xem chi tiết</Link>
