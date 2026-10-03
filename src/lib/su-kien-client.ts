@@ -15,6 +15,7 @@ function maKhach(): string | null {
 
 export function baoSuKien(loai: Loai, listingId?: string | null) {
   try {
+    if (navigator.webdriver) return;   // bộ test E2E / bot trình duyệt: không đếm (3/10)
     const body = JSON.stringify({ loai, listingId: listingId || null, khach: maKhach() });
     if (!navigator.sendBeacon?.("/api/su-kien", new Blob([body], { type: "application/json" }))) {
       void fetch("/api/su-kien", { method: "POST", body, keepalive: true, headers: { "Content-Type": "application/json" } });
