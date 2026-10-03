@@ -12,7 +12,9 @@ export default function GoogleAnalytics() {
     <>
       <Script src={`https://www.googletagmanager.com/gtag/js?id=${ids[0]}`} strategy="afterInteractive" />
       <Script id="ga4" strategy="afterInteractive">
-        {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());${ids.map((id) => `gtag('config','${id}');`).join("")}`}
+        {/* 3/10: trình duyệt TỰ ĐỘNG (Playwright/Selenium - navigator.webdriver) không tính vào GA. Bộ test E2E chạy từ
+            GitHub Actions (máy Azure ở Phoenix/Boydton/Des Moines) chiếm 182/196 "người dùng" tuần đầu, làm sai hết số liệu. */}
+        {`if(navigator.webdriver){${ids.map((id) => `window['ga-disable-${id}']=true;`).join("")}}window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());${ids.map((id) => `gtag('config','${id}');`).join("")}`}
       </Script>
     </>
   );
