@@ -51,46 +51,67 @@ import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin
 // Phần này giống nhau với MỌI khách nên cache 30 phút theo id (client anon, không cookie). Dữ liệu chỉ
 // đổi mỗi lượt crawl (4 tiếng). Chỉ phần theo người xem (admin, SĐT sau đăng nhập) còn gọi thẳng DB.
 type Sb = ReturnType<typeof createAnonClient> | Awaited<ReturnType<typeof createClient>>;
-async function phuTroTin(sb: Sb, x: Listing) {
-  const [du, dem, hd, co, comp, rel, poster] = await Promise.all([
+
+// 3/10 (egress, bot quét ~500 trang tin/giờ): so giá / tin liên quan / tin cùng người đăng GIỐNG NHAU với
+// mọi tin cùng nhóm -> cache theo NHÓM (quận+loại, người đăng) thay vì theo từng tin. Tin cùng quận dùng
+// chung 1 lần đọc. Lấy dư 1 dòng rồi bỏ chính tin đang xem ở server.
+const soGiaNhom = unstable_cache(
+  async (deal: string, kind: string, district: string) => {
+    const { data } = await createAnonClient().from("listings").select("price_per_m2")
+      .eq("status", "published").eq("deal", deal).eq("kind", kind).eq("district", district)
+      .not("price_per_m2", "is", null).gt("price_per_m2", 0).limit(300);
+    return (data ?? []) as { price_per_m2: number }[];
+  },
+  ["so-gia-nhom-v1"], { revalidate: 86400, tags: ["listings"] },
+);
+const lienQuanNhom = unstable_cache(
+  async (kind: string, cot: "district" | "province", khuVuc: string, roHang: boolean) => {
+    const { data } = await createAnonClient().from("listings").select(LISTING_THE_COLS)
+      .eq("status", "published").eq("kind", kind).eq(cot, khuVuc)
+      // 2/10: tin rổ hàng -> "liên quan" là phòng rổ hàng khác (hàng mình), không dẫn khách sang tin Chợ Tốt
+      .eq(roHang ? "source" : "status", roHang ? "ro_hang" : "published")
+      .not("images", "eq", "{}")
+      .order("ai_score", { ascending: false, nullsFirst: false }).limit(7);
+    return (data ?? []) as unknown as Listing[];
+  },
+  ["lien-quan-nhom-v1"], { revalidate: 43200, tags: ["listings"] },
+);
+const cungNguoiDang = unstable_cache(
+  async (posterKey: string) => {
+    const { data, count } = await createAnonClient().from("listings").select(LISTING_THE_COLS, { count: "exact" })
+      .eq("status", "published").eq("poster_key", posterKey)
+      .order("first_seen_at", { ascending: false }).limit(7);
+    return { rows: (data ?? []) as unknown as Listing[], count: count ?? 0 };
+  },
+  ["cung-nguoi-dang-v1"], { revalidate: 43200, tags: ["listings"] },
+);
+
+async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
+  const [du, dem, hd, comp, rel, poster] = await Promise.all([
     x.project_id ? sb.from("projects").select("id,name,investor").eq("id", x.project_id).maybeSingle() : Promise.resolve({ data: null }),
     x.project_id ? sb.from("listings").select("id", { count: "exact", head: true }).eq("project_id", x.project_id).eq("status", "published") : Promise.resolve({ count: 0 }),
     // Hỏi đáp tích luỹ từ Cầu Nối (listing_facts đọc công khai qua RLS facts_read)
     sb.from("listing_facts").select("id,question,answer").eq("listing_id", x.id).order("created_at", { ascending: false }).limit(8),
-    // has_contact_phone - cột sinh ở migration 026; chưa có cột thì coi như không biết, không làm hỏng trang
-    sb.from("listings").select("has_contact_phone").eq("id", x.id).maybeSingle(),
     // So sánh giá cùng loại + cùng quận
-    x.district
-      ? sb.from("listings").select("price_per_m2")
-          .eq("status", "published").eq("deal", x.deal).eq("kind", x.kind).eq("district", x.district)
-          .not("price_per_m2", "is", null).gt("price_per_m2", 0).neq("id", x.id).limit(300)
-      : Promise.resolve({ data: [] as { price_per_m2: number }[] }),
+    x.district ? soGiaNhom(x.deal, x.kind, x.district).catch(() => []) : Promise.resolve([]),
     // audit 16/8: thiếu cả quận lẫn tỉnh thì ilike "%%" trả tin toàn quốc -> chỉ hỏi khi có khu vực; ảnh không rỗng lọc ở DB
     (x.district || x.province)
-      ? sb.from("listings").select(LISTING_THE_COLS)
-          .eq("status", "published").eq("kind", x.kind).neq("id", x.id)
-          .eq(x.district ? "district" : "province", x.district || x.province!)
-          // 2/10: tin rổ hàng -> "liên quan" là phòng rổ hàng khác (hàng mình), không dẫn khách sang tin Chợ Tốt
-          .eq(x.source === "ro_hang" ? "source" : "status", x.source === "ro_hang" ? "ro_hang" : "published")
-          .not("images", "eq", "{}")
-          .order("ai_score", { ascending: false, nullsFirst: false }).limit(12)
-      : Promise.resolve({ data: [] as Listing[] }),
-    x.poster_key
-      ? sb.from("listings").select(LISTING_THE_COLS, { count: "exact" })
-          .eq("status", "published").eq("poster_key", x.poster_key).neq("id", x.id)
-          .order("first_seen_at", { ascending: false }).limit(6)
-      : Promise.resolve({ data: [] as Listing[], count: 0 }),
+      ? lienQuanNhom(x.kind, x.district ? "district" : "province", (x.district || x.province)!, x.source === "ro_hang").catch(() => [])
+      : Promise.resolve([] as Listing[]),
+    x.poster_key ? cungNguoiDang(x.poster_key).catch(() => ({ rows: [] as Listing[], count: 0 })) : Promise.resolve({ rows: [] as Listing[], count: 0 }),
   ]);
+  const posterRows = poster.rows.filter((r) => r.id !== x.id).slice(0, 6);
   return {
     tin: x,
     duAn: (du.data ?? null) as { id: string; name: string; investor: string | null } | null,
     tinCungDuAn: ("count" in dem ? dem.count : 0) ?? 0,
     hoiDap: (hd.data ?? []) as { id: string; question: string; answer: string | null }[],
-    coSdt: !!(co.data as { has_contact_phone?: boolean } | null)?.has_contact_phone,
-    compRows: (comp.data ?? []) as { price_per_m2: number }[],
-    relRows: (rel.data ?? []) as unknown as Listing[],
-    posterRows: (poster.data ?? []) as unknown as Listing[],
-    posterCount: ("count" in poster ? poster.count : 0) ?? 0,
+    // has_contact_phone (cột sinh, migration 026) đọc chung trong select chính, không tốn request riêng
+    coSdt: !!x.has_contact_phone,
+    compRows: comp,
+    relRows: rel.filter((r) => r.id !== x.id),
+    posterRows,
+    posterCount: Math.max(0, poster.count - (x.status === "published" ? 1 : 0)),   // count gồm cả chính tin này
   };
 }
 type TinCongKhai = Awaited<ReturnType<typeof phuTroTin>>;
@@ -99,15 +120,15 @@ const layTinCongKhai = unstable_cache(
   async (id: string): Promise<TinCongKhai | null> => {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
     const sb = createAnonClient();
-    const { data, error } = await sb.from("listings").select(LISTING_PUBLIC_COLS).eq("id", id).maybeSingle();
+    const { data, error } = await sb.from("listings").select(`${LISTING_PUBLIC_COLS},has_contact_phone`).eq("id", id).maybeSingle();
     // 42703 (cột trong LISTING_PUBLIC_COLS chưa có migration - đã xảy ra, xem 015) mà nuốt im lặng thì
     // MỌI tin ra 404, SEO de-index. NÉM lỗi: unstable_cache không cache lỗi, trang log lại.
     if (error) throw new Error(`listing detail ${id}: ${error.code} ${error.message}`);
     if (!data) return null;
     return phuTroTin(sb, data as unknown as Listing);
   },
-  ["listing-detail-v3"],
-  { revalidate: 10800, tags: ["listings"] },   // 3 giờ (2/10, egress): ~22.000 trang tin bị bot quét
+  ["listing-detail-v4"],
+  { revalidate: 43200, tags: ["listings"] },   // 12 giờ (3/10, egress): ~22.000 trang tin bị bot quét; admin gỡ tin vẫn revalidateTag ngay
 );
 
 /** Trang khu vực sâu nhất CÒN TIN cho tin đã gỡ: tỉnh/quận/loại -> tỉnh/quận -> tỉnh -> trang mua/thuê */
