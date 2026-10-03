@@ -18,50 +18,64 @@ export type AreaTree = {
   districtCount: number;
 };
 
+type Nhom = { province: string | null; district: string | null; deal: string; kind: string | null; n: number };
+type PhuongRow = { province: string | null; district: string | null; ward: string | null };
+
+/** Dựng cây từ các nhóm đếm (đã gộp ở DB) + danh sách phường riêng */
+function dungCay(nhom: Nhom[], phuong: PhuongRow[], srcs: Iterable<string>, total: number): AreaTree {
+  const geo: AreaTree["geo"] = {};
+  const counts: AreaTree["counts"] = {};
+  for (const r of nhom) {
+    const p = (r.province || "").trim(); if (!p) continue;
+    const deal = (r.deal === "cho_thue" ? "cho_thue" : "ban") as Deal;
+    const n = Number(r.n) || 0;
+    geo[p] ??= {}; counts[p] ??= { ban: 0, cho_thue: 0, kinds: {}, districts: {} };
+    counts[p][deal] += n;
+    const kind = (r.kind || "").trim();
+    if (kind) { counts[p].kinds[kind] ??= { ban: 0, cho_thue: 0 }; counts[p].kinds[kind][deal] += n; }
+    const d = canonDistrict((r.district || "").trim());
+    if (!d) continue;
+    geo[p][d] ??= [];
+    counts[p].districts[d] ??= { ban: 0, cho_thue: 0, kinds: {} };
+    counts[p].districts[d][deal] += n;
+    if (kind) { counts[p].districts[d].kinds[kind] ??= { ban: 0, cho_thue: 0 }; counts[p].districts[d].kinds[kind][deal] += n; }
+  }
+  // CHỈ lấy phường từ cột ward thật (soát 21/8: phường "chế" từ hậu tố district làm dropdown mọc phường ảo)
+  for (const r of phuong) {
+    const p = (r.province || "").trim(), d = canonDistrict((r.district || "").trim()), w = (r.ward || "").trim();
+    if (!p || !d || !w || !geo[p]?.[d]) continue;
+    if (!geo[p][d].includes(w)) geo[p][d].push(w);
+  }
+  let districtCount = 0;
+  for (const p of Object.keys(geo)) for (const d of Object.keys(geo[p])) { geo[p][d].sort(); districtCount++; }
+  return { geo, counts, total, sources: new Set(srcs).size, districtCount };
+}
+
 export const getAreas = unstable_cache(
   async (): Promise<AreaTree> => {
     const sb = createAdminClient(); // chỉ đọc published, không phụ thuộc user -> cache chung an toàn
-    // Đếm tổng số tin chính xác 100% bằng count exact (head: true không truyền dữ liệu dòng, chạy tức thì trong vài ms)
-    const { count: exactTotal } = await sb
-      .from("listings")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "published");
-
+    // 3/10 (egress): đếm sẵn ở DB bằng rpc cay_khu_vuc (migration 033) - ~12KB gzip thay vì ~22 trang x 1000 dòng
+    const { data: cay, error } = await sb.rpc("cay_khu_vuc");
+    if (!error && cay && Array.isArray(cay.c)) {
+      const c = cay as { c: [string, string, string, string, number][]; w: [string, string, string][]; s: string[]; t: number };
+      return dungCay(
+        c.c.map(([province, district, deal, kind, n]) => ({ province, district, deal, kind, n })),
+        c.w.map(([province, district, ward]) => ({ province, district, ward })),
+        c.s, Number(c.t) || 0,
+      );
+    }
+    // Dự phòng (rpc chưa có / lỗi): quét phân trang như cũ
     const rows: { province: string | null; district: string | null; ward: string | null; deal: string; kind: string | null; source: string; source_site: string | null }[] = [];
     for (let from = 0; ; from += 1000) {
       const { data } = await sb.from("listings").select("province,district,ward,deal,kind,source,source_site").eq("status", "published").order("id").range(from, from + 999);
       rows.push(...(data ?? []));
       if (!data || data.length < 1000) break;
     }
-    const geo: AreaTree["geo"] = {};
-    const counts: AreaTree["counts"] = {};
-    const sources = new Set<string>();
-    for (const r of rows) {
-      sources.add(r.source === "crawl" ? (r.source_site || "crawl") : r.source);
-      const p = (r.province || "").trim(); if (!p) continue;
-      const deal = (r.deal === "cho_thue" ? "cho_thue" : "ban") as Deal;
-      geo[p] ??= {}; counts[p] ??= { ban: 0, cho_thue: 0, kinds: {}, districts: {} };
-      counts[p][deal] += 1;
-      const kind = (r.kind || "").trim();
-      if (kind) { counts[p].kinds[kind] ??= { ban: 0, cho_thue: 0 }; counts[p].kinds[kind][deal] += 1; }
-      const raw = (r.district || "").trim();
-      const d = canonDistrict(raw);
-      if (!d) continue;
-      geo[p][d] ??= [];
-      counts[p].districts[d] ??= { ban: 0, cho_thue: 0, kinds: {} };
-      counts[p].districts[d][deal] += 1;
-      if (kind) { counts[p].districts[d].kinds[kind] ??= { ban: 0, cho_thue: 0 }; counts[p].districts[d].kinds[kind][deal] += 1; }
-      // CHỈ lấy phường từ cột ward thật. Bản cũ còn "chế" phường từ hậu tố "(P. X mới)" của
-      // district - nhưng merge.mjs đã chuyển hậu tố đó vào ward từ lâu, hàng nào tới đây mà
-      // ward vẫn null thì phường chế ra không khớp cột ward của bất kỳ hàng nào -> dropdown
-      // mọc phường ảo, chọn là "Không tìm thấy bất động sản" (soát 21/8)
-      const w = (r.ward || "").trim();
-      if (w && !geo[p][d].includes(w)) geo[p][d].push(w);
-    }
-    let districtCount = 0;
-    for (const p of Object.keys(geo)) for (const d of Object.keys(geo[p])) { geo[p][d].sort(); districtCount++; }
-    return { geo, counts, total: exactTotal ?? rows.length, sources: sources.size, districtCount };
+    return dungCay(
+      rows.map((r) => ({ ...r, n: 1 })), rows,
+      rows.map((r) => (r.source === "crawl" ? (r.source_site || "crawl") : r.source)), rows.length,
+    );
   },
-  ["areas-v3"],   // v3: thêm đếm theo loại BĐS (23/9)
-  { revalidate: 10800, tags: ["areas"] },   // 3 giờ (2/10, egress): mỗi lần làm mới quét ~22.000 dòng
+  ["areas-v4"],   // v4: đếm ở DB qua rpc cay_khu_vuc (3/10)
+  { revalidate: 10800, tags: ["areas"] },
 );
