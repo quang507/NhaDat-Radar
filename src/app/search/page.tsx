@@ -74,6 +74,8 @@ const MOI_TRANG = 20;
 const TRANG_TOI_DA = 500;
 const soTrang = (p?: string) => Math.min(TRANG_TOI_DA, Math.max(1, parseInt(p || "1", 10) || 1));
 
+const khongDau = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase().replace(/^(thanh pho|tp\.?|tinh)\s+/, "").trim();
+
 const KHOA_LOC = ["page", "deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "bathrooms", "ti", "project", "street", "anh", "gan", "bk", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
 const timKiemCoCache = unstable_cache(
   async (sp: Record<string, string | undefined>) => {
@@ -86,6 +88,15 @@ const timKiemCoCache = unstable_cache(
 
   // Làm sạch input trước khi đưa vào ilike/or của PostgREST: %/_ là wildcard, ",()" phá cú pháp .or() (audit 16/8: province/district/ward từng đưa thẳng)
   const clean = (s: string) => s.replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
+  // 3/10: lọc tỉnh bằng .in(tên tỉnh CÓ THẬT trong DB) thay cho ilike "%...%" (quét cả bảng, đếm HEAD từng mất 4s/500).
+  // Tên tỉnh lấy từ cây khu vực đã cache; gộp biến thể nguồn ghi ("Thành phố Hồ Chí Minh", "TP.HCM").
+  const tenTinh = Object.keys((await getAreas()).counts);
+  const khopTinh = (p: string): string[] => {
+    const k = khongDau(p);
+    if (!k) return [];
+    const bd = k === "ho chi minh" || k === "tp.hcm" || k === "hcm" ? ["ho chi minh", "tp.hcm", "tphcm"] : [k];
+    return tenTinh.filter((t) => { const n = khongDau(t); return bd.some((b) => n.includes(b)); });
+  };
   // Bộ lọc dùng chung cho danh sách + đếm (cùng điều kiện)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any; in: any }>(query: T): T => {
@@ -103,11 +114,10 @@ const timKiemCoCache = unstable_cache(
     // TẮT (mặc định) -> đúng tên tỉnh như nguồn ghi, giữ thói quen tìm của thị trường.
     if (province) {
       const cu = newAddr === "1" ? tinhCuGopVao(province) : [];
-      if (cu.length) {
-        query = query.or([province, ...cu].map((p) => `province.ilike.%${clean(p)}%`).join(","));
-      } else {
-        query = query.ilike("province", `%${clean(province)}%`);
-      }
+      const ds = [...new Set([province, ...cu].flatMap(khopTinh))];
+      if (ds.length) query = query.in("province", ds);
+      else if (cu.length) query = query.or([province, ...cu].map((p) => `province.ilike.%${clean(p)}%`).join(","));
+      else query = query.ilike("province", `%${clean(province)}%`);
     }
     // district trong DB đã chuẩn hoá (merge.mjs canonDistrict + UPDATE 16/8) -> so KHỚP CHÍNH XÁC, không còn prefix + post-filter
     if (district) query = query.eq("district", canonDistrict(district));
@@ -202,7 +212,7 @@ const timKiemCoCache = unstable_cache(
   const listings = gon(xepTheoThuTu(o.thuTu, (rh ?? []) as Listing[], (khac ?? []) as Listing[]));
   return { listings, newToday: newToday ?? 0, total: total ?? listings.length, trang };
   },
-  ["search-v7"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10)
+  ["search-v8"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10)
   { revalidate: 900, tags: ["listings"] },   // 15 phút (2/10, egress)
 );
 
