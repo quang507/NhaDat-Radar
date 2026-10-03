@@ -147,6 +147,11 @@ function BaiHuongDan({ b }: { b: BaiViet }) {
           <h2 className="font-bold text-lg mb-2">{m.h2}</h2>
           {m.doan?.map((d, i) => <p key={i} className="mb-2">{d}</p>)}
           {m.ds && <ul className="list-disc pl-5 flex flex-col gap-1">{m.ds.map((d) => <li key={d}>{d}</li>)}</ul>}
+          {m.lienKet && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {m.lienKet.map((l) => <Link key={l.href} href={l.href} className="text-sm px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand">{l.nhan} ›</Link>)}
+            </div>
+          )}
         </section>
       ))}
       <section className="card rounded-xl p-5 border-brand/40 bg-brand/5">
