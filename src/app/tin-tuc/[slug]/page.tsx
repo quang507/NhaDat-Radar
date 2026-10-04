@@ -5,6 +5,7 @@ import { BAI_VIET, type BaiViet } from "@/lib/bai-viet";
 import { tenKhuVucGon } from "@/components/AreaLanding";
 import { areaPath } from "@/lib/slug";
 import { ldJson, SITE_URL } from "@/lib/ld";
+import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 
 // /tin-tuc/gia-thue-phong-tro-<quận> : báo cáo giá từ số liệu thật (lib/bao-cao-gia)
 // /tin-tuc/<slug bài>               : bài hướng dẫn cố định (lib/bai-viet)
@@ -30,11 +31,41 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         ? `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam}: phổ biến ${trieu(bc.p25)} - ${trieu(bc.p75)}/tháng, trung vị ${trieu(bc.trungVi)}, từ ${bc.n.toLocaleString("vi-VN")} phòng đang cho thuê. Giá theo diện tích, phường rẻ nhất, xu hướng 30 ngày.`
         : `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam} từ dữ liệu NhaDat Radar.`,
       alternates: { canonical: `/tin-tuc/${slug}` },
+      openGraph: {
+        type: "article",
+        title: `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam} | NhaDat Radar`,
+        description: `Báo cáo giá thuê phòng trọ ${ten} mới nhất: trung vị ${bc ? trieu(bc.trungVi) : ""}, tổng hợp từ dữ liệu thật trên NhaDat Radar.`,
+        url: `${SITE_URL}/tin-tuc/${slug}`,
+        images: [{ url: "/logo.svg", width: 900, height: 900, alt: `Giá thuê phòng trọ ${ten}` }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam}`,
+        description: `Báo cáo giá thuê phòng trọ ${ten} từ dữ liệu NhaDat Radar.`,
+        images: ["/logo.svg"],
+      },
     };
   }
   const b = BAI_VIET.find((x) => x.slug === slug);
   if (!b) return { title: "Không tìm thấy bài viết - NhaDat Radar" };
-  return { title: `${b.tieuDe} | NhaDat Radar`, description: b.moTa, alternates: { canonical: `/tin-tuc/${slug}` } };
+  return {
+    title: `${b.tieuDe} | NhaDat Radar`,
+    description: b.moTa,
+    alternates: { canonical: `/tin-tuc/${slug}` },
+    openGraph: {
+      type: "article",
+      title: `${b.tieuDe} | NhaDat Radar`,
+      description: b.moTa,
+      url: `${SITE_URL}/tin-tuc/${slug}`,
+      images: [{ url: "/logo.svg", width: 900, height: 900, alt: b.tieuDe }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: b.tieuDe,
+      description: b.moTa,
+      images: ["/logo.svg"],
+    },
+  };
 }
 
 export default async function BaiPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -51,10 +82,13 @@ export default async function BaiPage({ params }: { params: Promise<{ slug: stri
   return <BaiHuongDan b={b} />;
 }
 
-function KhungBai({ tieuDe, ngay, moTa, children, ld }: { tieuDe: string; ngay: string; moTa: string; children: React.ReactNode; ld: unknown }) {
+function KhungBai({ tieuDe, ngay, moTa, children, ld }: { tieuDe: string; ngay: string; moTa: string; children: React.ReactNode; ld: unknown | unknown[] }) {
+  const ldArr = Array.isArray(ld) ? ld : [ld];
   return (
     <article className="max-w-3xl mx-auto">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(ld) }} />
+      {ldArr.filter(Boolean).map((item, idx) => (
+        <script key={idx} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(item) }} />
+      ))}
       <nav className="text-xs text-[var(--ink-soft)] mb-2"><Link href="/" className="hover:text-brand">Trang chủ</Link> / <Link href="/tin-tuc" className="hover:text-brand">Tin tức</Link></nav>
       <h1 className="prata text-2xl md:text-3xl leading-snug">{tieuDe}</h1>
       <p className="text-xs text-[var(--ink-faint)] mt-1">NhaDat Radar · cập nhật {new Date(ngay).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}</p>
@@ -70,13 +104,21 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
   const tieuDe = `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam}`;
   const moTa = `Tổng hợp từ ${bc.n.toLocaleString("vi-VN")} phòng trọ đang cho thuê tại ${bc.quan} trên NhaDat Radar: phần lớn phòng có giá ${trieu(bc.p25)} - ${trieu(bc.p75)}/tháng, giá giữa (trung vị) là ${trieu(bc.trungVi)}.`;
   const linkPhong = areaPath("cho_thue", TINH_BAO_CAO, bc.quan, "phong_tro");
-  const ld = {
+  const ldArticle = {
     "@context": "https://schema.org", "@type": "Article", headline: tieuDe, description: moTa,
     dateModified: bc.capNhat, author: { "@type": "Organization", name: "NhaDat Radar" },
     publisher: { "@type": "Organization", name: "NhaDat Radar" }, mainEntityOfPage: `${SITE_URL}/tin-tuc/${slug}`,
   };
+  const ldBreadcrumb = {
+    "@context": "https://schema.org", "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Tin tức", item: `${SITE_URL}/tin-tuc` },
+      { "@type": "ListItem", position: 3, name: tieuDe, item: `${SITE_URL}/tin-tuc/${slug}` },
+    ],
+  };
   return (
-    <KhungBai tieuDe={tieuDe} ngay={bc.capNhat} moTa={moTa} ld={ld}>
+    <KhungBai tieuDe={tieuDe} ngay={bc.capNhat} moTa={moTa} ld={[ldArticle, ldBreadcrumb]}>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[["Giá trung vị", trieu(bc.trungVi)], ["Phổ biến", `${trieu(bc.p25)} - ${trieu(bc.p75)}`], ["Giá/m²", bc.giaM2 ? `${Math.round(bc.giaM2 / 1000).toLocaleString("vi-VN")}k` : "-"], ["Số phòng", bc.n.toLocaleString("vi-VN")]].map(([k, v]) => (
           <div key={k} className="card rounded-lg p-3"><div className="text-xs text-[var(--ink-soft)]">{k}</div><div className="font-bold text-brand text-lg">{v}</div></div>
@@ -113,8 +155,13 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
 
       <section className="card rounded-xl p-5 border-brand/40 bg-brand/5">
         <h2 className="font-bold text-lg">Xem {bc.n.toLocaleString("vi-VN")} phòng trọ {ten} đang trống</h2>
-        <p className="text-sm text-[var(--ink-soft)] mt-1">Ảnh thật, giá rõ ràng, phòng rổ hàng đã xác thực còn trống - bấm xem số và hẹn xem phòng miễn phí.</p>
-        <Link href={linkPhong} className="btn btn-primary mt-3 inline-block">Xem phòng trọ {ten} ›</Link>
+        <p className="text-sm text-[var(--ink-soft)] mt-1">Ảnh thật, giá rõ ràng, phòng rổ hàng đã xác thực còn trống - hẹn xem phòng miễn phí.</p>
+        <div className="flex flex-wrap gap-2 mt-3 items-center">
+          <Link href={linkPhong} className="btn btn-primary">Xem phòng trọ {ten} ›</Link>
+          <a href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" className="btn border-emerald-600 text-emerald-700 hover:bg-emerald-50">
+            💬 Nhắn Zalo xem phòng ({HOTLINE})
+          </a>
+        </div>
       </section>
 
       <section>
@@ -135,13 +182,32 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
 }
 
 function BaiHuongDan({ b }: { b: BaiViet }) {
-  const ld = {
+  const ldArticle = {
     "@context": "https://schema.org", "@type": "Article", headline: b.tieuDe, description: b.moTa,
     datePublished: b.ngay, dateModified: b.ngay, author: { "@type": "Organization", name: "NhaDat Radar" },
     publisher: { "@type": "Organization", name: "NhaDat Radar" }, mainEntityOfPage: `${SITE_URL}/tin-tuc/${b.slug}`,
   };
+  const ldBreadcrumb = {
+    "@context": "https://schema.org", "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Tin tức", item: `${SITE_URL}/tin-tuc` },
+      { "@type": "ListItem", position: 3, name: b.tieuDe, item: `${SITE_URL}/tin-tuc/${b.slug}` },
+    ],
+  };
+  const ldFaq = {
+    "@context": "https://schema.org", "@type": "FAQPage",
+    mainEntity: b.muc.map((m) => ({
+      "@type": "Question",
+      name: m.h2.replace(/^\d+\.\s*/, ""),
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: [...(m.doan || []), ...(m.ds ? [m.ds.join(". ")] : [])].join(" "),
+      },
+    })),
+  };
   return (
-    <KhungBai tieuDe={b.tieuDe} ngay={b.ngay} moTa={b.moTa} ld={ld}>
+    <KhungBai tieuDe={b.tieuDe} ngay={b.ngay} moTa={b.moTa} ld={[ldArticle, ldBreadcrumb, ldFaq]}>
       {b.muc.map((m) => (
         <section key={m.h2}>
           <h2 className="font-bold text-lg mb-2">{m.h2}</h2>
@@ -156,9 +222,12 @@ function BaiHuongDan({ b }: { b: BaiViet }) {
       ))}
       <section className="card rounded-xl p-5 border-brand/40 bg-brand/5">
         <h2 className="font-bold text-lg">Tìm phòng trọ đã xác thực</h2>
-        <p className="text-sm text-[var(--ink-soft)] mt-1">Hàng nghìn phòng trống có ảnh thật, giá rõ ràng - xem giá thuê từng quận ở mục tin tức.</p>
-        <div className="flex flex-wrap gap-2 mt-3">
+        <p className="text-sm text-[var(--ink-soft)] mt-1">Hơn 14.000 phòng trống có ảnh thật, giá rõ ràng - hẹn xem phòng và hỗ trợ thương lượng trực tiếp chủ nhà.</p>
+        <div className="flex flex-wrap gap-2 mt-3 items-center">
           <Link href="/nha-dat-cho-thue" className="btn btn-primary">Xem phòng cho thuê ›</Link>
+          <a href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" className="btn border-emerald-600 text-emerald-700 hover:bg-emerald-50">
+            💬 Nhắn Zalo tư vấn ({HOTLINE})
+          </a>
           <Link href="/tin-tuc" className="btn">Giá thuê theo quận</Link>
         </div>
       </section>
