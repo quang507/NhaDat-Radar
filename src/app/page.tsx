@@ -131,7 +131,7 @@ export default async function Home({
           Tìm nhà đất bán &amp; cho thuê trên khắp Việt Nam
         </h1>
         <p className="text-sm text-[var(--ink-soft)] mb-4 max-w-2xl">
-          Tổng hợp tin nhiều nguồn, so giá với mặt bằng khu vực - và phòng trống Radar dẫn đi xem tận nơi.
+          Tổng hợp tin tức mua bán cho thuê bất động sản được làm mới mỗi ngày.
         </p>
         <HeroTimKiem chip={chip} />
         <div className="flex gap-6 mt-4 overflow-x-auto [scrollbar-width:none]">

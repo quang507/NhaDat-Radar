@@ -22,11 +22,27 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description: "Tổng hợp tin nhà đất bán và cho thuê từ nhiều nguồn, chuẩn hoá bằng AI, kèm giá trung vị theo quận, xu hướng giá và cảnh báo giá lệch.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
   alternates: { canonical: "/" },
   openGraph: {
     type: "website", siteName: "NhaDat Radar", locale: "vi_VN", url: SITE_URL,
     title: "NhaDat Radar - Sàn nhà đất bán & cho thuê",
     description: "Tin nhà đất nhiều nguồn, giá trung vị theo khu vực, cảnh báo giá lệch.",
+    images: [{ url: "/logo.svg", width: 900, height: 900, alt: "NhaDat Radar" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NhaDat Radar - Sàn nhà đất bán & cho thuê",
+    description: "Tin nhà đất nhiều nguồn, giá trung vị theo khu vực, cảnh báo giá lệch.",
+    images: ["/logo.svg"],
   },
   robots: { index: true, follow: true },
 };
