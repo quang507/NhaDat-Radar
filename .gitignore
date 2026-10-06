@@ -35,3 +35,5 @@ New Bitmap image.bmp
 
 # RỔ HÀNG (28/9): data đối tác có SỐ NHÀ THẬT + HOA HỒNG - repo public, tuyệt đối không commit
 crawler/private/
+supabase/DB/
+public/listings/

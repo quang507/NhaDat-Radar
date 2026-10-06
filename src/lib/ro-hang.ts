@@ -46,7 +46,10 @@ export function khoangIdTuMa(ma: string): [string, string] | null {
 }
 
 /** Câu chốt khi khách hỏi giá / bớt / hợp đồng một tin rổ hàng (web + chatbot dùng chung) */
-export function cauChotXemPhong(giaHienThi: string) {
+export function cauChotXemPhong(giaHienThi: string, deal: string = "cho_thue") {
+  if (deal === "ban") {
+    return `Dạ nhà giá chào bán ${giaHienThi}, nhưng anh/chị cứ qua xem nhà thực tế ưng ý thì em sẽ trực tiếp hỗ trợ làm việc giá và thương lượng bớt lộc tốt nhất với chính chủ cho mình nhé! Anh/chị ghé xem được sáng hay chiều nay ạ?`;
+  }
   return `Dạ phòng giá niêm yết ${giaHienThi}, nhưng anh/chị cứ qua xem phòng thực tế ưng ý thì em sẽ trực tiếp hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà cho mình nhé! Anh/chị ghé xem được sáng hay chiều nay ạ?`;
 }
 

@@ -261,7 +261,7 @@ export default async function ListingDetail({
   const roHang = laRoHang(x);
   // tin nhắn Zalo chép sẵn (2/10) - khách khỏi gõ, Radar biết ngay khách hỏi phòng/tin nào
   const tinNhanZalo = roHang
-    ? `Chào Radar, em muốn xem phòng ${maPhong(x.id)} - ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Em xem được lúc:`
+    ? `Chào Radar, em muốn xem ${x.deal === "ban" ? "căn" : "phòng"} ${maPhong(x.id)} - ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Em xem được lúc:`
     : `Chào Radar, em quan tâm tin: ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Nhờ Radar tư vấn giúp em.`;
   const giuPhong = tagGiuPhong(x);
   const reasons = (x.poster_reasons || []).map(posterReasonText);
@@ -413,7 +413,9 @@ export default async function ListingDetail({
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
           {roHang ? (
             <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
-              <span className="font-semibold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-full">★ Rổ hàng Radar · phòng trống đã xác thực</span>
+              <span className="font-semibold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                ★ {x.deal === "ban" ? "Hàng độc quyền Radar · nhà phố đã xác thực sổ hồng" : "Rổ hàng Radar · phòng trống đã xác thực"}
+              </span>
               {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded-full">{giuPhong}</span>}
             </div>
           ) : (
@@ -608,7 +610,7 @@ export default async function ListingDetail({
         {/* lg: dính theo khi cuộn; khung liên hệ rổ hàng (QR + form đặt lịch) cao hơn màn hình -> cuộn trong */}
         <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]">
           <div className="card rounded-lg p-5" id="lien-he">
-            <h3 className="font-bold mb-3">{roHang ? "Liên hệ xem phòng" : isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
+            <h3 className="font-bold mb-3">{roHang ? (x.deal === "ban" ? "Liên hệ xem nhà" : "Liên hệ xem phòng") : isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
             <div className="flex items-center gap-3 mb-3">
               <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#16233a] text-xs">
                 {x.source === "agent" ? "BÁN" : "TIN"}
@@ -626,23 +628,25 @@ export default async function ListingDetail({
             {roHang ? (
               <div className="mb-3 flex flex-col gap-2">
                 <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-[var(--ink-soft)]">
-                  <div className="font-bold text-sm text-[var(--ink)] mb-1">★ Rổ hàng Radar</div>
-                  {cauChotXemPhong(fmtPrice(x.price_vnd, x.deal))}
+                  <div className="font-bold text-sm text-[var(--ink)] mb-1">★ {x.deal === "ban" ? "Hàng độc quyền Radar" : "Rổ hàng Radar"}</div>
+                  {cauChotXemPhong(fmtPrice(x.price_vnd, x.deal), x.deal)}
                 </div>
-                {/* mã phòng: zalo.me không điền sẵn tin nhắn -> khách gửi mã để biết hỏi phòng nào */}
+                {/* mã phòng / mã căn: zalo.me không điền sẵn tin nhắn -> khách gửi mã để biết hỏi căn nào */}
                 <div className="rounded-lg border border-dashed border-[var(--line)] p-3 text-center">
-                  <div className="text-xs text-[var(--ink-soft)]">Mã phòng - gửi kèm khi nhắn Zalo</div>
+                  <div className="text-xs text-[var(--ink-soft)]">{x.deal === "ban" ? "Mã căn" : "Mã phòng"} - gửi kèm khi nhắn Zalo</div>
                   <div className="font-mono text-xl font-extrabold tracking-wider select-all">{maPhong(x.id)}</div>
                 </div>
                 <HienSoRadar listingId={x.id} />
-                <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">💬 Nhắn Zalo hẹn xem phòng</NutZalo>
+                <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">
+                  {x.deal === "ban" ? "💬 Nhắn Zalo hẹn xem nhà" : "💬 Nhắn Zalo hẹn xem phòng"}
+                </NutZalo>
                 {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
                 <div className="hidden lg:flex items-center gap-3 rounded-lg border border-[var(--line)] p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/zalo-qr.svg" alt={`QR Zalo ${HOTLINE}`} width={96} height={96} className="rounded bg-white p-1 shrink-0" />
                   <div className="text-xs text-[var(--ink-soft)]">
                     <div className="font-bold text-sm text-[var(--ink)] mb-1">Quét để nhắn Zalo</div>
-                    Mở camera điện thoại quét mã, gửi <b className="font-mono text-[var(--ink)]">{maPhong(x.id)}</b> để được tư vấn &amp; hẹn xem phòng.
+                    Mở camera điện thoại quét mã, gửi <b className="font-mono text-[var(--ink)]">{maPhong(x.id)}</b> để được tư vấn &amp; hẹn xem {x.deal === "ban" ? "nhà" : "phòng"}.
                   </div>
                 </div>
               </div>
