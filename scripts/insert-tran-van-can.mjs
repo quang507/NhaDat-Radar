@@ -124,6 +124,8 @@ const roHangData = {
     ngay_cap: "10/07/2026",
     dia_chi_cu: "MPN 137/5 Lương Thế Vinh",
     hoa_hong: "1% (80.000.000 VNĐ)",
+    chu_nha_phone: "0903778817",
+    contact_real: "0903778817",
     nguon: "Chính chủ gửi độc quyền - Radar ăn hoa hồng"
   },
   updated_at: now

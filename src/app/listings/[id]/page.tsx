@@ -222,14 +222,16 @@ export default async function ListingDetail({
   }
   // Rổ hàng: admin xem bản gốc (địa chỉ thật, số phòng, hoa hồng) + link mở phòng bên đối tác.
   // Đọc bằng service role SAU khi đã xác nhận admin - source_post_id/listing_ro_hang không ra web công khai.
-  let goc: { partner: string; source_post_id: string | null; exact_address: string | null; unit_code: string | null; commission: string | null } | null = null;
+  let goc: { partner: string; source_post_id: string | null; exact_address: string | null; unit_code: string | null; commission: string | null; chu_nha_phone: string | null } | null = null;
   if (isAdmin && laRoHang(data)) {
     const admin = createAdminClient();
     const [{ data: l }, { data: p }] = await Promise.all([
       admin.from("listings").select("source_post_id").eq("id", id).maybeSingle(),
-      admin.from("listing_ro_hang").select("partner,exact_address,unit_code,commission").eq("listing_id", id).maybeSingle(),
+      admin.from("listing_ro_hang").select("partner,exact_address,unit_code,commission,raw").eq("listing_id", id).maybeSingle(),
     ]);
-    goc = { partner: p?.partner || data.source_site || "", source_post_id: l?.source_post_id ?? null, exact_address: p?.exact_address ?? null, unit_code: p?.unit_code ?? null, commission: p?.commission ?? null };
+    const raw = (p?.raw || {}) as Record<string, unknown>;
+    const phone = (raw.chu_nha_phone || raw.contact_real) ? String(raw.chu_nha_phone || raw.contact_real) : null;
+    goc = { partner: p?.partner || data.source_site || "", source_post_id: l?.source_post_id ?? null, exact_address: p?.exact_address ?? null, unit_code: p?.unit_code ?? null, commission: p?.commission ?? null, chu_nha_phone: phone };
   }
   // SĐT thật: chỉ tải khi đã đăng nhập. Khách vãng lai chỉ cần biết "có SĐT" (has_contact_phone, trong cache)
   let coSdt = pub.coSdt;
@@ -373,7 +375,7 @@ export default async function ListingDetail({
           {goc && (
             <div className="basis-full flex flex-wrap items-center gap-x-3 gap-y-1 pt-1.5 mt-0.5 border-t border-amber-400/30 text-[var(--ink)]">
               <span>🔒 Gốc <b>{goc.partner}</b>:</span>
-              <span>{[goc.exact_address, goc.unit_code ? `P.${goc.unit_code}` : null, goc.commission ? `HH ${goc.commission}` : null].filter(Boolean).join(" · ") || "chưa có địa chỉ thật"}</span>
+              <span>{[goc.exact_address, goc.unit_code ? `P.${goc.unit_code}` : null, goc.commission ? `HH ${goc.commission}` : null, goc.chu_nha_phone ? `📞 SĐT chủ: ${goc.chu_nha_phone}` : null].filter(Boolean).join(" · ") || "chưa có địa chỉ thật"}</span>
               {goc.partner === "evohome" && (
                 <a href={linkGocEvohome(goc.source_post_id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 underline">
                   Mở trên app.evohome.it.com ↗
