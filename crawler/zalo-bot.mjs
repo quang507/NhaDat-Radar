@@ -510,64 +510,10 @@ async function baoTinMoiZalo() {
     }
   } catch (e) { console.error("baoTinMoiZalo:", e.message); }
 }
-setInterval(baoTinMoiZalo, 30 * 60_000);
-
-// ---- F2: HỎI LẠI "CÒN BÁN KHÔNG" + ESCALATE VIỆC TỒN ĐỌNG (25/8) ----
-// Tin đăng QUA ZALO quá 7 ngày chưa chốt lại -> bot PM người bán hỏi còn bán không (lọc tin
-// ma). Người bán "còn" -> giữ; "đã bán" -> gỡ (handler sold đã có). Kèm: câu hỏi Cầu Nối
-// chuyển seller mà quá 48h không trả lời -> đẩy status 'admin' để baoAdmin nhắn Zalo chính
-// của mày vào xử tay (đúng ý "hứa suông thì cứ hứa, nhưng đẩy về Zalo tao").
-const choXacNhan = new Map(); // sellerThread -> { listingId, luc }
-async function quanLyTonDong() {
-  try {
-    // 1. F2 - hỏi lại tin Zalo cũ quá 7 ngày
-    const nguong7 = new Date(Date.now() - 7 * 24 * 3600_000).toISOString();
-    const { data: canHoi } = await sb.from("listings")
-      .select("id,title,deal,zalo_thread")
-      .in("source", ["zalo_oa", "zalo_miniapp"]).eq("status", "published")
-      .not("zalo_thread", "is", null)
-      .or(`last_confirmed_at.is.null,last_confirmed_at.lt.${nguong7}`)
-      .limit(15);
-    for (const tin of canHoi ?? []) {
-      const dm = tin.zalo_thread && !tin.zalo_thread.includes("|") ? tin.zalo_thread : null;
-      if (!dm) continue;
-      // đóng dấu ĐÃ hỏi (đặt last_confirmed_at = now) -> không hỏi lại trong 7 ngày dù seller
-      // chưa trả lời; nếu vẫn im, 7 ngày sau hỏi tiếp
-      await sb.from("listings").update({ last_confirmed_at: new Date().toISOString() }).eq("id", tin.id);
-      choXacNhan.set(dm, { listingId: tin.id, luc: Date.now() });
-      sendReply(dm, `Dạ căn "${(tin.title || "").slice(0, 50)}" của anh/chị còn ${tin.deal === "cho_thue" ? "cho thuê" : "bán"} không ạ? Nhắn "còn" để em giữ tin trên sàn, hoặc "đã bán / cho thuê rồi" để em gỡ giúp 🙏`);
-      console.log(`  🔄 F2: hỏi lại còn bán không - tin ${tin.id.slice(0, 8)}`);
-    }
-    // 2. Escalate câu hỏi Cầu Nối treo quá 48h (seller không trả lời) -> đẩy admin
-    const nguong48 = new Date(Date.now() - 48 * 3600_000).toISOString();
-    const { data: treo } = await sb.from("info_requests")
-      .update({ status: "admin", notified_at: null }).eq("status", "pending").lt("created_at", nguong48).select("id");
-    if (treo?.length) console.log(`  ⏫ escalate ${treo.length} câu hỏi treo >48h -> Zalo admin`);
-  } catch (e) { console.error("quanLyTonDong:", e.message); }
-}
-setInterval(quanLyTonDong, 6 * 60 * 60_000);
-
-// Báo admin qua Zalo: lead mới từ web (form tư vấn, popup SĐT) + câu hỏi cần người thật.
-// ZALO_ADMIN_ID đặt trong .env.local - nhắn thử cho bot rồi xem log "← [id]" để lấy id mình.
-const ADMIN_ID = process.env.ZALO_ADMIN_ID || "";
-if (!ADMIN_ID) console.log("(chưa đặt ZALO_ADMIN_ID trong .env.local - bot sẽ không nhắn báo lead/câu hỏi cho admin)");
-async function baoAdmin() {
-  if (!ADMIN_ID) return;
-  try {
-    const { data: ls } = await sb.from("leads").select("id,name,phone,message,listing_id").is("notified_at", null).order("created_at").limit(10);
-    for (const l of ls ?? []) {
-      sendReply(ADMIN_ID, `🔥 LEAD MỚI\n👤 ${l.name} · 📞 ${l.phone}${l.message ? `\n💬 ${l.message.slice(0, 200)}` : ""}${l.listing_id ? `\n🔗 ${SITE}/listings/${l.listing_id}` : ""}`);
-      await sb.from("leads").update({ notified_at: new Date().toISOString() }).eq("id", l.id);
-    }
-    const { data: rq } = await sb.from("info_requests").select("id,question,listing_id").eq("status", "admin").is("notified_at", null).order("created_at").limit(10);
-    for (const r of rq ?? []) {
-      const { data: t } = await sb.from("listings").select("title,contact_phone,phone_masked").eq("id", r.listing_id).single();
-      sendReply(ADMIN_ID, `❓ KHÁCH HỎI SÂU (tin cào - cần người thật)\n🏠 ${(t?.title || "").slice(0, 60)}\n💬 "${r.question.slice(0, 200)}"\n📞 chủ tin: ${t?.contact_phone || t?.phone_masked || "không có"}\n🔗 ${SITE}/listings/${r.listing_id}\n→ Gọi chủ tin xong, trả lời khách bằng CHÍNH tài khoản Zalo này (hội thoại gần nhất).`);
-      await sb.from("info_requests").update({ notified_at: new Date().toISOString() }).eq("id", r.id);
-    }
-  } catch (e) { console.error("baoAdmin:", e.message); }
-}
-setInterval(baoAdmin, 60_000);
+// TẮT TẤT CẢ TỰ ĐỘNG GỬI TIN ĐỊNH KỲ THEO YÊU CẦU:
+// setInterval(baoTinMoiZalo, 30 * 60_000);
+// setInterval(quanLyTonDong, 6 * 60 * 60_000);
+// setInterval(baoAdmin, 60_000);
 
 // ---- Xử lý DM (chat 1-1) -> trả về text để gửi lại ----
 async function handle(text, anh = [], khoaAnh = null) {
@@ -866,13 +812,10 @@ async function handle(text, anh = [], khoaAnh = null) {
 //  Xem lệnh thật: `zalo-agent --help`, `zalo-agent message --help`
 // ============================================================================
 
-// Gửi tin nhắn trả lời (cú pháp thật: zalo-agent msg send -t 0|1 <threadId> <message>)
+// Gửi tin nhắn trả lời (ĐÃ KHÓA HOÀN TOÀN THEO YÊU CẦU: tài khoản dùng cho việc kinh doanh khác)
 function sendReply(toId, text, { group = false } = {}) {
-  try {
-    execFileSync(CLI, [...ZALO.pre, "msg", "send", "-t", group ? "1" : "0", String(toId), text], { stdio: "ignore", windowsHide: true });
-  } catch (e) {
-    console.error("Gửi Zalo lỗi:", e.message);
-  }
+  // TUYỆT ĐỐI KHÔNG gửi bất kỳ tin nhắn nào ra ngoài bằng tài khoản này.
+  return;
 }
 
 // Lắng nghe tin nhắn đến (stream JSON qua stdout)
@@ -882,9 +825,8 @@ function startListener() {
   // --auto-accept: tự đồng ý kết bạn để người lạ nhắn được cho bot
   // windowsHide: chưa `zalo-agent login` thì listen chết ngay -> vòng restart 5s, mỗi lần spawn bật 1 cửa sổ
   // CMD nảy lên màn hình liên tục (sự cố 17/8). Ẩn cửa sổ để lỗi chỉ nằm trong log pm2.
-  // -e phải gồm cả "friend": handler auto-accept của CLI nằm TRONG nhánh sự kiện friend,
-  // chỉ nghe "message" thì cờ --auto-accept là no-op im lặng (người lạ kết bạn không được duyệt)
-  const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message,friend", "-f", "all", "--no-self", "--auto-accept"], { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
+  // -e chỉ nghe "message", bỏ auto-accept và không tự động duyệt bạn
+  const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message", "-f", "all", "--no-self"], { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
   child.on("error", (e) => console.error("spawn zalo-agent lỗi:", e.message)); // CLI thiếu/ENOENT -> không văng uncaught (audit 16/8)
 
   // Xử lý 1 event (async). Chạy TUẦN TỰ qua hàng đợi promise - handler 'data' cũ là async + await trong vòng lặp
@@ -908,14 +850,15 @@ function startListener() {
     const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
     const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
     if (!fromId || isSelf) return;
+
+    // YÊU CẦU ĐẶC BIỆT: Tài khoản này dùng cho business khác của chủ tài khoản
+    // -> BỎ QUA HOÀN TOÀN TIN NHẮN RIÊNG 1-1, KHÔNG ĐỤNG VÀO, KHÔNG TRẢ LỜI
+    if (!isGroup) return;
+
     // Khoá ghép ảnh-với-chữ: group phải kèm NGƯỜI GỬI (uidFrom) - không thì ảnh của người A
-    // đang chat cùng lúc bị ghép vào tin của người B. DM thì thread chính là người gửi.
-    // group mà CLI không đưa uidFrom thì thà không ghép ảnh còn hơn cả group dùng chung một
-    // khoá "groupId|" - ảnh người A dính vào tin người B
-    const khoaAnh = isGroup ? (d.uidFrom ? `${fromId}|${d.uidFrom}` : null) : String(fromId);
-    // UX audit 16/8: khách gửi ẢNH nhà / file / sticker mà không kèm chữ -> bot im lặng -> tưởng bot chết.
-    // DM: trả lời hướng dẫn 1 lần cho tin không có chữ (ảnh/file), bỏ qua sticker/thiệp; group: bỏ qua.
-    const msgType = msgType0;
+    // đang chat cùng lúc bị ghép vào tin của người B.
+    const khoaAnh = d.uidFrom ? `${fromId}|${d.uidFrom}` : null;
+
     // Sự kiện ẢNH: nhớ lại BẤT KỂ có chú thích hay không (bản cũ chỉ nhớ khi không có chữ).
     // Nếu là ảnh về MUỘN của tin vừa lưu (Zalo gửi chữ trước, album sau) thì đắp thẳng vào tin.
     if (laAnh && khoaAnh) {
@@ -925,29 +868,11 @@ function startListener() {
         console.log(`← [${khoaAnh}] +1 ảnh (đang giữ chờ ghép)`);
       }
     }
-    if (!text) {
-      if (!isGroup && /photo|image|file|video|chat\.(photo|file|video)/i.test(msgType)) {
-        // Sự cố 17/8: album 5 ảnh về thành 5 event riêng -> bot lặp câu hướng dẫn 5 lần liền
-        // (khách tưởng bot lỗi, Zalo dễ gắn cờ spam). Nhớ mốc nhắc gần nhất theo fromId,
-        // trong HINT_GAP_MS chỉ nhắc 1 lần cho cả album.
-        const now = Date.now();
-        if (now - (photoHintAt.get(fromId) || 0) < HINT_GAP_MS) return;
-        photoHintAt.set(fromId, now);
-        const hint = "Em nhận được ảnh rồi ạ 📷. Để đăng tin, anh/chị nhắn kèm 1 dòng: loại BĐS + diện tích + giá + khu vực + SĐT (VD: \"Bán nhà 4x15 Q7 5,2 tỷ, 0909xxxxxx\"). Em ghép với ảnh và đăng ngay.";
-        sendReply(fromId, hint);
-        console.log(`← [${fromId}] (${msgType}, không chữ) → hướng dẫn`);
-      }
-      return;
-    }
-    if (isGroup) {
-      console.log(`← (group ${fromId}) ${text.slice(0, 60)}`);
-      await harvestGroup(text, layAnh(khoaAnh), khoaAnh); // chỉ bóc data, không trả lời trong group
-    } else {
-      console.log(`← [${fromId}] ${text.slice(0, 60)}`);
-      const reply = await handle(text, layAnh(khoaAnh), khoaAnh);
-      sendReply(fromId, reply);
-      console.log(`→ [${fromId}] ${reply.slice(0, 60)}`);
-    }
+    if (!text) return;
+
+    // CHỈ CÀO TIN TỪ GROUP:
+    console.log(`← (group ${fromId}) ${text.slice(0, 60)}`);
+    await harvestGroup(text, layAnh(khoaAnh), khoaAnh); // chỉ bóc data, không trả lời trong group
   }
 
   let buf = "", queue = Promise.resolve();
