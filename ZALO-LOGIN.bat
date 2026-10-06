@@ -59,7 +59,12 @@ if not exist "%PM2%" (
   pause
   exit /b 0
 )
-call "%PM2%" start zalo-bot
+call "%PM2%" describe zalo-bot >nul 2>&1
+if errorlevel 1 (
+  call "%PM2%" start ecosystem.config.cjs
+) else (
+  call "%PM2%" restart zalo-bot
+)
 call "%PM2%" save
 call "%PM2%" status
 

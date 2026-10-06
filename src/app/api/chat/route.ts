@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { ghiSuKien } from "@/lib/su-kien";
+import { baoLeadMoi } from "@/lib/bao-lead";
 import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
 import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
@@ -38,16 +39,16 @@ const PARSE_PROMPT = `Bạn là trợ lý AI của sàn nhà đất NhaDat Radar
    // chat: chào hỏi, hỏi cách dùng web, khác
  "deal": "ban"|"cho_thue"|null,
  "kind": "nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|null,
- "province": string|null,   // chuẩn hoá: "Hà Nội", "Hồ Chí Minh", "Đà Nẵng"...
+ "province": string|null,   // chuẩn hoá: "Hồ Chí Minh", "Hà Nội", "Đà Nẵng"... Mặc định ưu tiên Hồ Chí Minh nếu người dùng nhắc các quận như Tân Phú, Bình Tân, Quận 12, Gò Vấp, Tân Bình...
  "district": string|null,
  "price_min": number|null,  // VND: "2 tỷ"=2000000000, "5tr/tháng"=5000000
  "price_max": number|null,
  "bedrooms": number|null,
  "keyword": string|null,   // tên đường / dự án / địa danh nhỏ hơn quận. VIẾT CÓ DẤU CHUẨN kể cả khi người dùng gõ không dấu ("pham huu lau" -> "Phạm Hữu Lầu"); KHÔNG kèm chữ "đường", "phố", "hẻm", "gần"
- "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời thân thiện ngắn tiếng Việt. Gợi ý được: tìm kiếm /search, AI định giá /dinh-gia, tính lãi vay /tinh-lai-vay, đăng tin cần đăng nhập /auth rồi vào /dashboard/new, lưu tin bằng nút ♥.
+ "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời thân thiện ngắn tiếng Việt. Gợi ý được: tìm kiếm /search, Hotline/Zalo 0346 689 460 để xem nhà thực tế, AI định giá /dinh-gia, tính lãi vay /tinh-lai-vay, đăng tin cần đăng nhập /auth rồi vào /dashboard/new, lưu tin bằng nút ♥.
 }
 Không bịa. Giá quy về VND.
-Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu") -> mode "chat", small_talk_reply trả lời từ thông tin tin đó (không bịa thêm), mời gọi/nhắn Zalo hotline để hẹn xem.`;
+Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu") -> mode "chat", small_talk_reply trả lời từ thông tin tin đó (không bịa thêm), mời gọi/nhắn Zalo hotline ${HOTLINE} để hẹn xem thực tế.`;
 
 function fallbackParse(text: string): Parsed {
   const t = text.toLowerCase();
@@ -121,6 +122,39 @@ export async function POST(req: NextRequest) {
     .slice(-8);
   const last = messages.filter((m) => m.role === "user").pop()?.text?.slice(0, 1000);
   if (!last) return NextResponse.json({ reply: "Bạn muốn tìm nhà đất như thế nào ạ?" });
+
+  // Thu thập lead tự động khi khách để lại SĐT trong chat
+  const phoneMatch = last.match(/(?:(?:\+84|0)[35789]\d{8})/);
+  let daLuuLead = false;
+  if (phoneMatch) {
+    const rawPhone = phoneMatch[0];
+    const sdt = rawPhone.replace(/^\+84/, "0");
+    const lid = typeof body.dangXem === "string" && /^[0-9a-f-]{36}$/i.test(body.dangXem) ? body.dangXem : null;
+    const leadRow = {
+      listing_id: lid,
+      name: "Khách chat Web AI",
+      phone: sdt,
+      message: `[AI Chat] "${last}"`,
+    };
+    try {
+      const { error: errLead } = await createAnonClient().from("leads").insert(leadRow);
+      if (!errLead) {
+        daLuuLead = true;
+        after(() => baoLeadMoi({ listing_id: lid, name: leadRow.name, phone: sdt, message: leadRow.message }));
+        after(() => ghiSuKien({ loai: "dat_lich", listingId: lid }));
+      }
+    } catch (err) {
+      console.error("Loi luu lead tu chat:", err);
+    }
+  }
+
+  // Nếu khách CHỈ để lại SĐT hoặc câu quá ngắn chỉ để liên hệ
+  if (daLuuLead && last.length < 50 && !/(tìm|mua|thuê|cần|quận|giá|tỷ|triệu|bán)/i.test(last)) {
+    return NextResponse.json({
+      reply: `Dạ em đã ghi nhận số điện thoại ${phoneMatch![0]} của anh/chị rồi ạ! Chuyên viên NhaDat Radar sẽ liên hệ qua Điện thoại/Zalo để tư vấn và hỗ trợ xem nhà sớm nhất nhé 🏠\n\n📞 Cần hỗ trợ gấp: ${HOTLINE} (Hotline/Zalo)`,
+      listings: [],
+    });
+  }
 
   // Quy tắc bán hàng (28/9): KHÔNG nhận bớt giá / không nói thời hạn hợp đồng qua tin nhắn -> mời qua xem
   // phòng rồi thương lượng trực tiếp. Chặn trước Gemini để câu chốt luôn đúng kịch bản.

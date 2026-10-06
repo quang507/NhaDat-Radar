@@ -37,14 +37,28 @@ export default function Footer() {
           </ul>
         </div>
         <div>
-          <div className="font-bold mb-3">Dành cho người bán</div>
-          <ul className="space-y-2 text-[var(--ink-soft)]">
-            <li><Link className="hover:text-brand" href="/ban">Đăng bán bất động sản</Link></li>
-            <li><Link className="hover:text-brand" href="/dashboard">Quản lý tin đăng</Link></li>
-            <li><Link className="hover:text-brand" href="/tin-nhan">Tin nhắn 💬</Link></li>
-            <li><Link className="hover:text-brand" href="/auth">Đăng nhập / Đăng ký</Link></li>
-            <li><Link className="hover:text-brand" href="/yeu-thich">Tin đã lưu ♥</Link></li>
-          </ul>
+          <div className="font-bold mb-3 text-brand">Hỗ trợ &amp; Hotline</div>
+          <div className="space-y-2.5 text-[var(--ink-soft)]">
+            <div>
+              <span className="text-xs text-[var(--ink-faint)] block">Hotline tư vấn 24/7:</span>
+              <a href="tel:0346689460" className="text-base font-extrabold text-brand hover:underline">
+                0346 689 460
+              </a>
+            </div>
+            <div>
+              <a
+                href="https://zalo.me/0346689460"
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0068ff] text-white text-xs font-semibold hover:opacity-90 transition shadow-sm"
+              >
+                💬 Chat Zalo Chuyên Viên
+              </a>
+            </div>
+            <p className="text-xs text-[var(--ink-faint)] leading-relaxed pt-1">
+              Hỗ trợ kiểm tra pháp lý, trích lục sổ hồng, thẩm định giá &amp; dẫn xem nhà trực tiếp miễn phí.
+            </p>
+          </div>
         </div>
       </div>
       <div className="border-t border-[var(--line)] py-4 text-center text-xs text-[var(--ink-faint)]">

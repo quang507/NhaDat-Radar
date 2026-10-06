@@ -4,6 +4,8 @@ import NavAuth from "./NavAuth";
 import MobileMenu from "./MobileMenu";
 import LanguageSwitcher from "./LanguageSwitcher";
 
+import { HOTLINE_ZALO } from "@/lib/hotline";
+
 // Nav KHÔNG đọc cookie nữa (23/9): nó nằm trong layout gốc nên mỗi lần gọi auth.getUser() là ép
 // toàn bộ site render động, không trang nào được cache. Trạng thái đăng nhập do NavAuth (client) lo.
 export default function Nav() {
@@ -31,6 +33,15 @@ export default function Nav() {
           <Link href="/tinh-lai-vay" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Lãi Vay</Link>
         </nav>
         <div className="ml-auto flex items-center gap-2 shrink-0">
+          <a
+            href={HOTLINE_ZALO}
+            target="_blank"
+            rel="noopener"
+            className="hidden xl:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white bg-[#0068ff] hover:opacity-90 transition shadow-sm"
+            title="Chat Zalo hỗ trợ: 0346 689 460"
+          >
+            <span>💬 Zalo: 0346 689 460</span>
+          </a>
           <LanguageSwitcher />
           <NavFav />
           <NavAuth />

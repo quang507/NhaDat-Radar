@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
+import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 
 const LINKS: [string, string][] = [
   ["/search?deal=ban", "🏷 Mua Bán"],
@@ -49,6 +50,27 @@ export default function MobileMenu() {
                 {label}
               </Link>
             ))}
+            {/* Hotline & Zalo hỗ trợ nhanh */}
+            <div className="py-3 border-b border-[var(--line)]">
+              <div className="text-xs text-[var(--ink-soft)] font-medium mb-2">📞 Hotline &amp; Zalo hỗ trợ 24/7:</div>
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={`tel:${HOTLINE}`}
+                  className="btn btn-primary !py-2 text-center text-xs font-bold"
+                >
+                  📞 {HOTLINE}
+                </a>
+                <a
+                  href={HOTLINE_ZALO}
+                  target="_blank"
+                  rel="noopener"
+                  className="btn !py-2 text-center text-xs font-bold bg-[#0068ff] text-white border-0"
+                >
+                  💬 Chat Zalo
+                </a>
+              </div>
+            </div>
+
             {/* Tài khoản: nav mobile đã ẩn nút Đăng ký/Đăng xuất để không tràn -> đưa vào đây */}
             {loggedIn ? (
               <>
