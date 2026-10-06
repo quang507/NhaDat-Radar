@@ -168,3 +168,29 @@ img { transition: opacity .3s ease; }
 /* Track vuốt ảnh (Gallery): ẩn thanh cuộn nhưng vẫn cuộn được */
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Ẩn banner thanh công cụ Google Translate và giữ giao diện sạch */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-banner-frame {
+  display: none !important;
+}
+body {
+  top: 0px !important;
+}
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+.goog-text-highlight {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+}
+.skiptranslate iframe {
+  display: none !important;
+}
+

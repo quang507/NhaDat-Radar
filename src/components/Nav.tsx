@@ -2,6 +2,7 @@ import Link from "next/link";
 import NavFav from "./NavFav";
 import NavAuth from "./NavAuth";
 import MobileMenu from "./MobileMenu";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 // Nav KHÔNG đọc cookie nữa (23/9): nó nằm trong layout gốc nên mỗi lần gọi auth.getUser() là ép
 // toàn bộ site render động, không trang nào được cache. Trạng thái đăng nhập do NavAuth (client) lo.
@@ -30,6 +31,7 @@ export default function Nav() {
           <Link href="/tinh-lai-vay" className="navlink px-2.5 py-1.5 rounded-lg hover:text-brand whitespace-nowrap">Lãi Vay</Link>
         </nav>
         <div className="ml-auto flex items-center gap-2 shrink-0">
+          <LanguageSwitcher />
           <NavFav />
           <NavAuth />
         </div>
