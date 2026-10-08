@@ -13,7 +13,7 @@ export function laRoHang(x: { source?: string | null; source_site?: string | nul
   return x.source === "ro_hang" || DOI_TAC_RO_HANG.includes(x.source_site || "");
 }
 
-export const NHAN_RO_HANG = "Rổ hàng Radar";
+export const NHAN_RO_HANG = "Đã xác minh";
 
 /** Tên nguồn để HIỂN THỊ - rổ hàng không bao giờ lộ tên đối tác */
 export function tenNguon(x: { source?: string | null; source_site?: string | null }) {

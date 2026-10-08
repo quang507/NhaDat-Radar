@@ -42,9 +42,9 @@ export default function ListingCard({ x }: { x: Listing }) {
         <span className="absolute top-2 left-2 flex items-center gap-1">
           {/* tag kiểu batdongsan (21/8): tin độc quyền FB/Zalo - Radar giữ kênh liên hệ trực tiếp với nguồn */}
           {xacThuc && (
-            roHang
-              ? <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500 text-white" title="Hàng Radar trực tiếp nắm - phòng trống đã xác thực">★ RỔ HÀNG RADAR</span>
-              : <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white" title="Tin độc quyền - Radar liên hệ trực tiếp nguồn đăng, SĐT được bảo vệ">✓ XÁC THỰC</span>
+            <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white" title="Tin đăng đã xác minh thông tin & pháp lý thực tế">
+              ✓ ĐÃ XÁC MINH
+            </span>
           )}
           <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded-md bg-black/55 text-white backdrop-blur-sm">
             {x.deal === "ban" ? "Để bán" : "Cho thuê"}

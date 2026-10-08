@@ -46,7 +46,7 @@ export default function ThePhong({ x }: { x: Listing }) {
         {x.images?.[0]
           ? <SafeImg src={x.images[0]} alt={tieuDe} className="w-full h-full object-cover" />
           : <span className="absolute inset-0 grid place-items-center text-3xl text-white/90">{t.icon}</span>}
-        {roHang && <span className="absolute top-2 left-2 text-[0.62rem] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500 text-white">★ RỔ HÀNG RADAR</span>}
+        {roHang && <span className="absolute top-2 left-2 text-[0.62rem] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white">✓ ĐÃ XÁC MINH</span>}
         {anh.so > 1 && <span className="absolute bottom-2 right-2 text-[0.62rem] font-bold px-1.5 py-0.5 rounded-md bg-black/55 text-white">{anh.so} ảnh{anh.video ? " · ▶" : ""}</span>}
         {giuPhong && <span className="absolute bottom-2 left-2 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-md bg-red-600 text-white" title={giuPhong}>🔥 Giữ phòng</span>}
       </Link>
