@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 3600; // Cache ISR 1 giờ trên CDN Vercel - bot cào không tốn egress Supabase
 
 import type { ReactNode } from "react";
 import Link from "next/link";
