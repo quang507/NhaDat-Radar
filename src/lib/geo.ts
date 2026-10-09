@@ -76,6 +76,6 @@ export const getAreas = unstable_cache(
       rows.map((r) => (r.source === "crawl" ? (r.source_site || "crawl") : r.source)), rows.length,
     );
   },
-  ["areas-v4"],   // v4: đếm ở DB qua rpc cay_khu_vuc (3/10)
-  { revalidate: 10800, tags: ["areas"] },
+  ["areas-v5"],   // v5: làm mới sau khi nạp rổ hàng EvoHome
+  { revalidate: 1800, tags: ["areas"] },
 );

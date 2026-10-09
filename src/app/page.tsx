@@ -49,7 +49,7 @@ const layTinTrangChu = unstable_cache(
     ]);
     return { data: tronRoHang((rhData ?? []) as { id: string }[], (data ?? []) as { id: string }[]), projData: projData ?? [], projectCount: projectCount ?? 0 };
   },
-  ["home-listings-v5"],
+  ["home-listings-v6"],
   { revalidate: 1800, tags: ["listings"] },   // 30 phút (2/10, egress): mỗi lần làm mới kéo 250 tin
 );
 
