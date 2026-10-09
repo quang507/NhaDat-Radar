@@ -28,8 +28,8 @@ export default function BuyerGuidePage() {
           title: "Tìm Người Bán Uy Tín",
           desc: "Làm việc với người bán / môi giới am hiểu thị trường khu vực.",
           items: ["Chọn người bán", "Chuyên môn thị trường", "Phong cách giao tiếp"],
-          legal: "Kiểm tra thông tin người bán, ưu tiên tin có nhãn “chính chủ” và điểm tin cậy AI cao.",
-          tip: "NhaDat Radar tự phân loại tin chính chủ / môi giới và cảnh báo giá ảo - hãy để ý các nhãn trên thẻ tin.",
+          legal: "Kiểm tra thông tin người bán, ưu tiên tin có nhãn “✓ ĐÃ XÁC MINH” và điểm tin cậy cao.",
+          tip: "NhaDat Radar ưu tiên các tin đã xác minh thực tế và cảnh báo giá ảo - hãy để ý các nhãn trên thẻ tin.",
         },
         {
           title: "Bắt Đầu Tìm Kiếm",

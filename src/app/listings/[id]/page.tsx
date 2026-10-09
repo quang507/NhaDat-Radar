@@ -620,7 +620,7 @@ export default async function ListingDetail({
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (coSdt || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
+                  {docQuyen ? "Tin đã xác minh - liên hệ qua Radar" : (coSdt || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
                 </div>
               </div>
             </div>
@@ -653,11 +653,11 @@ export default async function ListingDetail({
                 </div>
               </div>
             ) : docQuyen ? (
-              <div className="mb-3 rounded-lg border border-brand/40 bg-brand/5 p-3 text-sm">
-                <div className="font-bold mb-1">⭐ Tin độc quyền Radar</div>
+              <div className="mb-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
+                <div className="font-bold mb-1 text-emerald-700 flex items-center gap-1.5"><span>✓</span> Tin đã xác minh</div>
                 <p className="text-xs text-[var(--ink-soft)]">
-                  Tin này không có trên các trang BĐS khác. Radar kết nối trực tiếp với người đăng:
-                  gọi/Zalo bên dưới, hoặc hỏi chi tiết và hẹn xem nhà - miễn phí cho người mua.
+                  Tin này đã được Radar xác minh thực tế và pháp lý. Radar hỗ trợ kết nối trực tiếp:
+                  gọi hotline bên dưới, hoặc hỏi chi tiết và hẹn xem nhà - hoàn toàn miễn phí.
                 </p>
               </div>
             ) : (

@@ -21,8 +21,8 @@ export default function DaiDocQuyen({ listings, toiDa = 6 }: { listings: Listing
   return (
     <div className="mb-5">
       <div className="flex items-baseline gap-2 mb-2 flex-wrap">
-        <h2 className="font-bold">⭐ Tin độc quyền Radar</h2>
-        <span className="text-xs text-[var(--ink-soft)]">không có trên các trang BĐS khác · liên hệ qua Radar</span>
+        <h2 className="font-bold text-emerald-700 flex items-center gap-1.5"><span>✓</span> Tin đã xác minh</h2>
+        <span className="text-xs text-[var(--ink-soft)]">thông tin & pháp lý đã được Radar xác minh thực tế</span>
       </div>
       {/* không đè thêm badge - ListingCard tự gắn tag "✓ XÁC THỰC" cho tin độc quyền */}
       {/* điện thoại: hàng vuốt ngang (thay 6 thẻ xếp dọc ~6 màn); sm+: lưới */}

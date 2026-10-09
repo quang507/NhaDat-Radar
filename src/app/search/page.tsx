@@ -101,7 +101,7 @@ const timKiemCoCache = unstable_cache(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any; in: any }>(query: T): T => {
     if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
-    if (own === "1") query = query.eq("source", "agent"); // chỉ tin chính chủ tự đăng trên sàn
+    if (own === "1") query = query.in("source", ["ro_hang", "agent"]); // chỉ tin đã xác minh (hoặc tự đăng trên sàn)
     // ?agent=<uuid> từ nút "Xem tin đăng" trang /agents - trước đây link đó truyền ?q=<tên
     // người bán> mà q chỉ tìm trong tiêu đề/địa chỉ nên luôn 0 kết quả
     if (agent && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agent)) query = query.eq("agent_id", agent);
@@ -212,7 +212,7 @@ const timKiemCoCache = unstable_cache(
   const listings = gon(xepTheoThuTu(o.thuTu, (rh ?? []) as Listing[], (khac ?? []) as Listing[]));
   return { listings, newToday: newToday ?? 0, total: total ?? listings.length, trang };
   },
-  ["search-v8"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10)
+  ["search-v9"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10); v9: tin da xac minh
   { revalidate: 900, tags: ["listings"] },   // 15 phút (2/10, egress)
 );
 

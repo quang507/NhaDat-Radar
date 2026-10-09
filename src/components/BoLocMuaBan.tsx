@@ -181,7 +181,7 @@ function ThanKhoang({ loai, min, max, dong, onApDung }: {
   );
 }
 
-/** Công tắc trong hàng lọc ("Tin chính chủ", "Địa chỉ sau sáp nhập") - khung viền như nút, kiểu "Tin xác thực" */
+/** Công tắc trong hàng lọc ("Tin đã xác minh", "Địa chỉ sau sáp nhập") - khung viền như nút, kiểu "Tin xác thực" */
 export function CongTac({ bat, onDoi, icon, children, title }: {
   bat: boolean; onDoi: () => void; icon?: React.ReactNode; children: React.ReactNode; title?: string;
 }) {

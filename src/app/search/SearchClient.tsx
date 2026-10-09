@@ -106,7 +106,7 @@ export default function SearchClient({
   // Công tắc "địa chỉ mới sau sáp nhập" (kiểu batdongsan): BẬT = duyệt Tỉnh -> Phường mới
   // (hệ 2 cấp, bỏ quận); TẮT = duyệt theo quận cũ như thói quen thị trường.
   const [newAddr, setNewAddr] = useState(params.newAddr === "1");
-  const own = params.own === "1"; // chỉ tin chính chủ tự đăng
+  const own = params.own === "1"; // chỉ tin đã xác minh
   // Bộ lọc ĐÃ ÁP (đúng theo URL = đúng theo kết quả đang hiển thị). Chip/toggle/sort và nút
   // 🔔 phải xuất phát từ đây chứ KHÔNG phải từ f: f còn chứa những gì đang chọn dở trong
   // panel chưa bấm "Tìm kiếm" - bản cũ đổi sắp xếp là âm thầm áp luôn bộ lọc gõ dở, và
@@ -325,7 +325,7 @@ export default function SearchClient({
   );
 
   // ===== HÀNG LỌC MUA BÁN (kiểu batdongsan.com.vn/nha-dat-ban, 1/10) =====
-  // [Lọc (n)] [Tin chính chủ] [Loại nhà đất ▾] [Khoảng giá ▾] [Diện tích ▾] [Địa chỉ sau sáp nhập]
+  // [Lọc (n)] [Tin đã xác minh] [Loại nhà đất ▾] [Khoảng giá ▾] [Diện tích ▾] [Địa chỉ sau sáp nhập]
   // Popover chọn xong mới "Áp dụng"; mọi giá trị xuất phát từ goc (bộ ĐÃ ÁP theo URL).
   const hangLocMua = (
     <div className="flex items-center gap-2 pb-4 mb-4 border-b border-[var(--line)] text-sm overflow-x-auto sm:overflow-visible sm:flex-wrap -mx-5 px-5 sm:mx-0 sm:px-0 [scrollbar-width:none]">
@@ -342,8 +342,9 @@ export default function SearchClient({
         {soLoc > 0 && <span className="grid place-items-center min-w-5 h-5 px-1 rounded-full bg-brand text-white text-[0.7rem] font-bold">{soLoc}</span>}
       </button>
       <CongTac bat={own} onDoi={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
-        icon={<span className="grid place-items-center w-4 h-4 rounded bg-brand text-white text-[0.6rem]" aria-hidden>✓</span>}>
-        Tin chính chủ
+        title="Chỉ hiển thị các tin đã được Radar xác minh thực tế & pháp lý"
+        icon={<span className="grid place-items-center w-4 h-4 rounded bg-emerald-600 text-white text-[0.6rem]" aria-hidden>✓</span>}>
+        Tin đã xác minh
       </CongTac>
       <PopLoai kind={goc.kind} onApDung={(k) => push({ ...goc, kind: k })} />
       <PopKhoang loai="gia" min={goc.priceMin} max={goc.priceMax} nhanDangAp={KHOANG_GIA_MUA.find(([v]) => v === giaDangAp)?.[1] || nhanGia}
@@ -443,11 +444,12 @@ export default function SearchClient({
             role="switch" aria-checked={!!own}
             className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
             onClick={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
+            title="Chỉ hiển thị các tin đã được Radar xác minh thực tế & pháp lý"
           >
-            <span className={`w-9 h-5 rounded-full transition relative ${own ? "bg-emerald-500" : "bg-[var(--line-strong)]"}`}>
+            <span className={`w-9 h-5 rounded-full transition relative ${own ? "bg-emerald-600" : "bg-[var(--line-strong)]"}`}>
               <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
             </span>
-            Tin chính chủ
+            Tin đã xác minh
           </button>
           <button
             role="switch" aria-checked={!!newAddr}
