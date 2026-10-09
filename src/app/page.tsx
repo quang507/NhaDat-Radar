@@ -243,7 +243,7 @@ export default async function Home({
                     <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span className="text-[0.68rem] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-faint)]">
+                    <span className="text-[0.68rem] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-slate-700 dark:text-slate-200">
                       {tag}
                     </span>
                   </div>
@@ -341,8 +341,8 @@ export default async function Home({
                       </span>
                     </div>
                     <div className="p-4">
-                      <div className="flex items-center gap-2 text-[0.7rem] text-slate-400 mb-1.5">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {b.readTime}</span>
+                      <div className="flex items-center gap-2 text-[0.7rem] text-slate-600 dark:text-slate-300 mb-1.5 font-medium">
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-500" /> {b.readTime}</span>
                         <span>·</span>
                         <span>{b.ngay}</span>
                       </div>

@@ -50,7 +50,7 @@ export default function ListingCard({ x }: { x: Listing }) {
             {x.deal === "ban" ? "Bán" : "Cho thuê"}
           </span>
           {isNew && !xacThuc && (
-            <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-sm">
+            <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-amber-600 text-white shadow-sm">
               Mới
             </span>
           )}
@@ -102,7 +102,7 @@ export default function ListingCard({ x }: { x: Listing }) {
           {x.bedrooms ? <span>{x.bedrooms} PN</span> : null}
           {x.bedrooms && x.bathrooms ? <span className="text-slate-300">•</span> : null}
           {x.bathrooms ? <span>{x.bathrooms} WC</span> : null}
-          <span className="ml-auto text-[0.68rem] text-slate-400 font-semibold">{PROP[x.kind]}</span>
+          <span className="ml-auto text-[0.68rem] text-slate-600 dark:text-slate-300 font-semibold">{PROP[x.kind]}</span>
         </div>
 
         {/* Footer Meta */}

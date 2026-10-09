@@ -138,7 +138,7 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                     href={qs({ deal, province: c.province, district: c.district })}
                     className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--surface-2)] text-[var(--ink-soft)] hover:text-brand transition whitespace-nowrap"
                   >
-                    {tenGon(c.district)} <span className="text-[var(--ink-faint)] font-mono text-[0.7rem]">{c.n.toLocaleString("vi-VN")}</span>
+                    {tenGon(c.district)} <span className="text-[var(--ink-soft)] font-mono text-[0.7rem] font-medium">{c.n.toLocaleString("vi-VN")}</span>
                   </Link>
                 ))}
               </div>

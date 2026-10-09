@@ -22,10 +22,10 @@ export default function DaiDocQuyen({ listings, toiDa = 6 }: { listings: Listing
   return (
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/40">
+        <h2 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/40">
           <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           Tin đã xác minh
-        </div>
+        </h2>
         <span className="text-xs text-[var(--ink-soft)]">
           Thông tin và pháp lý đã được Radar kiểm tra thực tế
         </span>
