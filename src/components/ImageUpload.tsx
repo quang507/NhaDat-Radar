@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { X, Camera } from "lucide-react";
 
 // Upload ảnh lên Supabase Storage (bucket 'uploads', thư mục theo uid).
 // Giá trị = JSON array URL, đưa vào <input hidden name={name}>.
@@ -55,8 +56,10 @@ export default function ImageUpload({
               type="button"
               aria-label="Xoá ảnh này"
               onClick={() => setUrls((x) => x.filter((v) => v !== u))}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs grid place-items-center"
-            >✕</button>
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white grid place-items-center shadow"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         ))}
         {urls.length < max && (
@@ -64,9 +67,14 @@ export default function ImageUpload({
             type="button"
             disabled={busy}
             onClick={() => inputRef.current?.click()}
-            className="w-24 h-20 rounded-lg border-2 border-dashed border-[var(--line-strong)] grid place-items-center text-[var(--ink-soft)] text-xs font-semibold hover:border-brand hover:text-brand transition"
+            className="w-24 h-20 rounded-lg border-2 border-dashed border-[var(--line-strong)] flex flex-col items-center justify-center text-[var(--ink-soft)] text-xs font-semibold hover:border-brand hover:text-brand transition"
           >
-            {busy ? "Đang tải…" : <>📷<br />Thêm ảnh</>}
+            {busy ? "Đang tải…" : (
+              <>
+                <Camera className="w-5 h-5 mb-0.5 text-slate-400" />
+                <span>Thêm ảnh</span>
+              </>
+            )}
           </button>
         )}
       </div>

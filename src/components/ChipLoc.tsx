@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
 
 // Chip lọc xổ xuống (1/10, kiểu EvoHome): nút viền bo tròn, đang lọc thì viền + chữ màu brand,
 // kèm badge số; menu tự vẽ có dấu ✓ ở mục đang chọn. Thay các <select> trần ở hàng lọc nhanh
@@ -60,7 +61,7 @@ export default function ChipLoc({
                 onClick={() => { onChange(v); setMo(false); }}
               >
                 {l}
-                {v === value && <span aria-hidden>✓</span>}
+                {v === value && <Check className="w-4 h-4 text-brand shrink-0" aria-hidden />}
               </button>
             </li>
           ))}

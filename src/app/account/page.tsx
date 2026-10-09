@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ImageUpload from "@/components/ImageUpload";
 import { updateProfile } from "./actions";
+import { User, Briefcase } from "lucide-react";
 
 export const metadata = { title: "Tài khoản của tôi - NhaDat Radar" };
 
@@ -30,7 +31,10 @@ export default async function AccountPage({
       <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
         <div>
           <h1 className="prata text-2xl">Tài khoản của tôi</h1>
-          <p className="text-[var(--ink-soft)] text-sm">👤 {user.email}</p>
+          <p className="text-[var(--ink-soft)] text-sm flex items-center gap-1.5 mt-0.5">
+            <User className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>{user.email}</span>
+          </p>
         </div>
         <Link href="/dashboard" className="btn">Kênh người bán ›</Link>
       </div>
@@ -55,7 +59,10 @@ export default async function AccountPage({
         </div>
 
         <div className="rounded-xl border border-brand/30 bg-brand/5 p-4">
-          <h2 className="font-bold text-sm mb-1">🧑‍💼 Hồ sơ người bán</h2>
+          <h2 className="font-bold text-sm mb-1 flex items-center gap-1.5 text-brand">
+            <Briefcase className="w-4 h-4 shrink-0" />
+            <span>Hồ sơ người bán</span>
+          </h2>
           <p className="text-xs text-[var(--ink-soft)] mb-3">
             Điền phần này để xuất hiện trên trang <Link href="/agents" className="text-brand font-semibold">Người bán chuyên nghiệp</Link> - khách mua sẽ tìm thấy bạn.
           </p>

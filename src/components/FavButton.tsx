@@ -1,7 +1,8 @@
 "use client";
 
-import { baoSuKien } from "@/lib/su-kien-client";
 import { useEffect, useState } from "react";
+import { Heart } from "lucide-react";
+import { baoSuKien } from "@/lib/su-kien-client";
 import { createClient } from "@/lib/supabase/client";
 
 const KEY = "ndr_favs";
@@ -88,10 +89,10 @@ export default function FavButton({ id, className = "" }: { id: string; classNam
         if (!on) baoSuKien("luu", id);
         void syncDb(id, !on);
       }}
-      className={`w-8 h-8 rounded-full grid place-items-center text-base transition shadow
-        ${on ? "bg-red-500 text-white" : "bg-white/90 text-[#333] hover:bg-white"} ${className}`}
+      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shadow-sm backdrop-blur-md
+        ${on ? "bg-red-500 text-white shadow-red-500/30" : "bg-white/85 text-slate-700 hover:bg-white hover:text-red-500 hover:shadow-md"} ${className}`}
     >
-      {on ? "♥" : "♡"}
+      <Heart className={`w-4 h-4 transition-transform duration-200 ${on ? "fill-white text-white scale-110" : "stroke-[2.2]"}`} />
     </button>
   );
 }

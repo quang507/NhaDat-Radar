@@ -9,6 +9,7 @@ import { getFavs, pullDbFavs } from "@/components/FavButton";
 import { fmtPrice, fmtPpm2, PROP } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { Heart, LayoutGrid, Scale, Sparkles, Check } from "lucide-react";
 
 // Trang tin đã lưu ♥ - id lưu ở localStorage, không cần đăng nhập.
 export default function FavouritesPage() {
@@ -38,12 +39,22 @@ export default function FavouritesPage() {
         <div>
           <h1 className="prata text-2xl mb-1">Tin đã lưu</h1>
           <p className="text-[var(--ink-soft)] text-sm">
-            Bấm ♥ trên bất kỳ tin nào để lưu lại đây và so sánh cạnh nhau.
+            Lưu lại các bất động sản bạn quan tâm để dễ dàng theo dõi và so sánh cạnh nhau.
           </p>
         </div>
         {!!items?.length && items.length >= 2 && (
-          <button className={`btn text-sm ${compare ? "!border-brand !text-brand" : ""}`} onClick={() => setCompare((v) => !v)}>
-            {compare ? "▦ Xem dạng thẻ" : "⚖ So sánh"}
+          <button className={`btn text-sm inline-flex items-center gap-1.5 ${compare ? "!border-brand !text-brand" : ""}`} onClick={() => setCompare((v) => !v)}>
+            {compare ? (
+              <>
+                <LayoutGrid className="w-4 h-4" />
+                <span>Xem dạng thẻ</span>
+              </>
+            ) : (
+              <>
+                <Scale className="w-4 h-4" />
+                <span>So sánh</span>
+              </>
+            )}
           </button>
         )}
       </div>
@@ -60,9 +71,9 @@ export default function FavouritesPage() {
         )
       ) : (
         <div className="card rounded-lg p-10 text-center">
-          <div className="text-4xl mb-3">♡</div>
+          <Heart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
           <h3 className="font-bold text-lg mb-1">Chưa có tin nào được lưu</h3>
-          <p className="text-[var(--ink-soft)] text-sm mb-4">Khám phá bất động sản và bấm ♥ để lưu tin bạn thích.</p>
+          <p className="text-[var(--ink-soft)] text-sm mb-4">Khám phá bất động sản và bấm nút yêu thích để lưu tin bạn thích.</p>
           <Link href="/search" className="btn btn-primary inline-block">Tìm kiếm ngay</Link>
         </div>
       )}
@@ -94,7 +105,18 @@ function CompareTable({ items }: { items: Listing[] }) {
     { label: "Loại", cell: (x) => PROP[x.kind] },
     { label: "Khu vực", cell: (x) => [x.district, x.province].filter(Boolean).join(", ") || "-" },
     { label: "Pháp lý", cell: (x) => x.legal_status || "-" },
-    { label: "Điểm AI", cell: (x) => (x.ai_score ? `★ ${x.ai_score}/100` : "-"), best: (x) => (x.ai_score ?? 0) === maxScore && maxScore > 0 },
+    {
+      label: "Điểm AI",
+      cell: (x) => (
+        x.ai_score ? (
+          <span className="inline-flex items-center gap-1 font-semibold text-brand">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{x.ai_score}/100</span>
+          </span>
+        ) : "-"
+      ),
+      best: (x) => (x.ai_score ?? 0) === maxScore && maxScore > 0,
+    },
   ];
 
   return (
@@ -120,7 +142,10 @@ function CompareTable({ items }: { items: Listing[] }) {
                 const best = r.best?.(x);
                 return (
                   <td key={x.id} className={`p-2 border-t border-[var(--line)] ${best ? "font-bold text-brand" : ""}`}>
-                    {r.cell(x)}{best ? " ✓" : ""}
+                    <span className="inline-flex items-center gap-1">
+                      {r.cell(x)}
+                      {best ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : null}
+                    </span>
                   </td>
                 );
               })}

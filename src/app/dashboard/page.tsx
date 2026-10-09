@@ -7,6 +7,7 @@ import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import { setAppointmentStatus } from "./actions";
 import type { Listing } from "@/lib/types";
+import { Plus, MessageSquare, User } from "lucide-react";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -43,9 +44,18 @@ export default async function Dashboard() {
           <p className="text-[var(--ink-soft)] text-sm">{user.email}</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/tin-nhan" className="btn">Tin nhắn</Link>
-          <Link href="/account" className="btn">Hồ sơ</Link>
-          <Link href="/dashboard/new" className="btn btn-primary">+ Đăng tin mới</Link>
+          <Link href="/tin-nhan" className="btn inline-flex items-center gap-1.5 text-sm">
+            <MessageSquare className="w-4 h-4 text-slate-500" />
+            <span>Tin nhắn</span>
+          </Link>
+          <Link href="/account" className="btn inline-flex items-center gap-1.5 text-sm">
+            <User className="w-4 h-4 text-slate-500" />
+            <span>Hồ sơ</span>
+          </Link>
+          <Link href="/dashboard/new" className="btn btn-primary inline-flex items-center gap-1.5 text-sm">
+            <Plus className="w-4 h-4" />
+            <span>Đăng tin mới</span>
+          </Link>
         </div>
       </div>
 

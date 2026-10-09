@@ -8,6 +8,7 @@ import { signInWithGoogle } from "@/app/auth/actions";
 import { LinkTheoDoi } from "./TheoDoi";
 import { baoGA } from "@/lib/su-kien-client";
 import { HOTLINE } from "@/lib/hotline";
+import { Phone, X } from "lucide-react";
 
 // "BẤM ĐỂ HIỆN SỐ" (2/10, kiểu batdongsan/Chợ Tốt): số hotline Radar hiện dạng 0346 689 xxx. Bấm -> bảng
 // "Đăng ký / đăng nhập để tiếp tục": đăng nhập Google HOẶC nhập SĐT -> hiện số + ghi lead (SĐT khách) để
@@ -36,16 +37,30 @@ export default function HienSoRadar({ listingId, nho = false, className = "" }: 
   if (daHien) {
     return (
       <LinkTheoDoi loai="goi" listingId={listingId || ""} href={`tel:${HOTLINE}`}
-        className={`btn btn-primary text-center whitespace-nowrap ${nho ? "min-h-12 !px-3" : "w-full"} ${className}`}>
-        📞 {nho ? "Gọi" : `Gọi ${SO_DEP}`}
+        className={`btn btn-primary text-center whitespace-nowrap inline-flex items-center justify-center gap-1.5 ${nho ? "min-h-12 !px-3" : "w-full"} ${className}`}>
+        <Phone className="w-4 h-4 shrink-0" />
+        <span>{nho ? "Gọi" : `Gọi ${SO_DEP}`}</span>
       </LinkTheoDoi>
     );
   }
   return (
     <>
       <button type="button" onClick={() => { setMo(true); baoGA("ndr_bam_hien_so", { listing_id: listingId }); }}
-        className={`btn whitespace-nowrap font-bold ${nho ? "btn-primary min-h-12 !px-3" : "text-left w-full flex items-center justify-between gap-2 border-2 border-brand text-brand bg-brand/5"} ${className}`}>
-        {nho ? "📞 Hiện số" : (<><span>📞 {SO_AN}</span><span className="text-sm font-semibold">Bấm để hiện số</span></>)}
+        className={`btn whitespace-nowrap font-bold ${nho ? "btn-primary min-h-12 !px-3 inline-flex items-center justify-center gap-1.5" : "text-left w-full flex items-center justify-between gap-2 border-2 border-brand text-brand bg-brand/5"} ${className}`}>
+        {nho ? (
+          <>
+            <Phone className="w-4 h-4 shrink-0" />
+            <span>Hiện số</span>
+          </>
+        ) : (
+          <>
+            <span className="inline-flex items-center gap-1.5">
+              <Phone className="w-4 h-4 text-brand shrink-0" />
+              <span>{SO_AN}</span>
+            </span>
+            <span className="text-sm font-semibold">Bấm để hiện số</span>
+          </>
+        )}
       </button>
       {/* portal ra body: thanh dính đáy có backdrop-blur -> tạo khối chứa riêng, bảng nằm trong đó bị kẹt dưới bong bóng chat */}
       {mo && createPortal(<BangTiepTuc listingId={listingId} onDong={() => setMo(false)} onXong={() => {
@@ -88,7 +103,9 @@ function BangTiepTuc({ listingId, onDong, onXong }: { listingId?: string; onDong
       onMouseDown={(e) => { if (e.target === e.currentTarget) onDong(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="hien-so-tieu-de"
         className="relative w-full sm:max-w-md bg-[var(--surface)] rounded-t-2xl sm:rounded-2xl shadow-2xl px-6 pt-6 pb-8">
-        <button type="button" onClick={onDong} aria-label="Đóng" className="absolute right-4 top-4 w-8 h-8 grid place-items-center rounded-lg text-[var(--ink-soft)] hover:bg-[var(--surface-2)] text-lg">✕</button>
+        <button type="button" onClick={onDong} aria-label="Đóng" className="absolute right-4 top-4 w-8 h-8 grid place-items-center rounded-lg text-[var(--ink-soft)] hover:bg-[var(--surface-2)]">
+          <X className="w-5 h-5" />
+        </button>
         <p className="text-sm text-[var(--ink-soft)]">Xin chào bạn!</p>
         <h2 id="hien-so-tieu-de" className="text-xl font-bold mt-0.5">Đăng ký / đăng nhập để tiếp tục</h2>
         <p className="text-sm text-[var(--ink-soft)] mt-1 mb-5">Xem số Radar và được hỗ trợ xem phòng miễn phí.</p>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hiRes } from "@/lib/img";
+import { Play, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 
 // Gallery kiểu iPhone Photos: vuốt trực tiếp trên ảnh chính (CSS scroll-snap = quán tính
 // native, mượt), bấm ảnh mở lightbox toàn màn hình cũng vuốt được, phím ←/→/Esc vẫn chạy.
@@ -118,12 +119,15 @@ export default function Gallery({ images, title, videos = [] }: { images: string
         </div>
         {videos.length > 0 && (
           <button type="button" onClick={() => setVideo(videos[0])}
-            className="absolute top-3 left-3 flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg bg-black/70 text-white hover:bg-black/85">
-            ▶ Video
+            className="absolute top-3 left-3 flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm text-white hover:bg-black/85 transition">
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Video</span>
           </button>
         )}
-        <span className="absolute bottom-3 right-3 text-xs font-bold px-2.5 py-1 rounded-lg bg-black/60 text-white pointer-events-none">
-          {heroIdx + 1}/{n} · vuốt để xem - bấm phóng to 🔍
+        <span className="absolute bottom-3 right-3 text-xs font-medium px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white pointer-events-none flex items-center gap-1.5">
+          <span>{heroIdx + 1}/{n}</span>
+          <span className="text-white/40">·</span>
+          <span className="flex items-center gap-1"><Maximize2 className="w-3 h-3 text-white/80" /> Phóng to</span>
         </span>
         {n > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none">
@@ -138,7 +142,10 @@ export default function Gallery({ images, title, videos = [] }: { images: string
           {videos.map((v) => (
             <button key={v} type="button" onClick={() => setVideo(v)} aria-label="Xem video phòng"
               className="aspect-[4/3] w-full rounded-lg bg-[#16233a] text-white grid place-items-center hover:opacity-90 transition">
-              <span className="flex flex-col items-center gap-0.5"><span className="text-2xl leading-none">▶</span><span className="text-[0.7rem] font-semibold">Video</span></span>
+              <span className="flex flex-col items-center gap-1">
+                <Play className="w-5 h-5 fill-current" />
+                <span className="text-[0.7rem] font-semibold">Video</span>
+              </span>
             </button>
           ))}
           {images.slice(1, 6 - videos.length).map((img, i) => (
@@ -165,7 +172,9 @@ export default function Gallery({ images, title, videos = [] }: { images: string
       {video && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onClick={() => setVideo(null)}>
           <div className="flex justify-end px-4 py-3">
-            <button aria-label="Đóng video" className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white text-lg" onClick={() => setVideo(null)}>✕</button>
+            <button aria-label="Đóng video" className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white grid place-items-center transition" onClick={() => setVideo(null)}>
+              <X className="w-5 h-5" />
+            </button>
           </div>
           <div className="flex-1 min-h-0 grid place-items-center px-2 pb-4" onClick={(e) => e.stopPropagation()}>
             {/* .mov (iPhone) phát được trên Safari/iOS và phần lớn Chrome; lỗi thì còn link mở trực tiếp */}
@@ -180,7 +189,9 @@ export default function Gallery({ images, title, videos = [] }: { images: string
         <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 text-white text-sm">
             <span className="font-semibold">{idx + 1} / {n}</span>
-            <button aria-label="Đóng thư viện ảnh" className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-lg" onClick={() => setOpen(false)}>✕</button>
+            <button aria-label="Đóng thư viện ảnh" className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white grid place-items-center transition" onClick={() => setOpen(false)}>
+              <X className="w-5 h-5" />
+            </button>
           </div>
           <div className="flex-1 relative min-h-0">
             <div
@@ -204,13 +215,17 @@ export default function Gallery({ images, title, videos = [] }: { images: string
                 <button
                   aria-label="Ảnh trước"
                   onClick={() => go(-1)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white text-xl max-sm:hidden"
-                >‹</button>
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white grid place-items-center max-sm:hidden transition"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
                 <button
                   aria-label="Ảnh sau"
                   onClick={() => go(1)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white text-xl max-sm:hidden"
-                >›</button>
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/15 hover:bg-white/30 text-white grid place-items-center max-sm:hidden transition"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
               </>
             )}
           </div>

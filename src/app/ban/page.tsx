@@ -1,12 +1,13 @@
 import Link from "next/link";
+import { CircleDollarSign, Megaphone, Handshake } from "lucide-react";
 
 export const metadata = { title: "Đăng bán bất động sản - NhaDat Radar" };
 
 const WHY = [
-  ["💰", "Giá trị tối đa", "Thống kê giá theo khu vực và AI định giá giúp bạn đặt giá tốt nhất cho bất động sản."],
-  ["📣", "Tiếp cận rộng rãi", "Tin của bạn hiển thị cạnh hàng trăm tin đa nguồn - nơi người mua thực sự đang tìm kiếm."],
-  ["🤝", "Hỗ trợ toàn diện", "Từ đăng tin đến nhận liên hệ người mua, mọi thứ trong một trang quản lý đơn giản."],
-] as const;
+  { icon: CircleDollarSign, title: "Giá trị tối đa", desc: "Thống kê giá theo khu vực và AI định giá giúp bạn đặt giá tốt nhất cho bất động sản." },
+  { icon: Megaphone, title: "Tiếp cận rộng rãi", desc: "Tin của bạn hiển thị cạnh hàng trăm tin đa nguồn - nơi người mua thực sự đang tìm kiếm." },
+  { icon: Handshake, title: "Hỗ trợ toàn diện", desc: "Từ đăng tin đến nhận liên hệ người mua, mọi thứ trong một trang quản lý đơn giản." },
+];
 
 const STEPS = [
   ["Tạo tin đăng", "Điền thông tin bất động sản và dán link ảnh dễ dàng - chỉ mất vài phút."],
@@ -31,13 +32,18 @@ export default function SellLandingPage() {
       <section className="mt-12">
         <h2 className="prata text-2xl text-center mb-7">Vì sao nên bán với chúng tôi</h2>
         <div className="grid gap-4 md:grid-cols-3">
-          {WHY.map(([icon, t, d]) => (
-            <div key={t} className="card rounded-lg p-6 text-center">
-              <div className="text-3xl mb-2">{icon}</div>
-              <h3 className="font-bold mb-1">{t}</h3>
-              <p className="text-sm text-[var(--ink-soft)]">{d}</p>
-            </div>
-          ))}
+          {WHY.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.title} className="card rounded-lg p-6 text-center flex flex-col items-center">
+                <div className="w-12 h-12 rounded-xl bg-brand/10 text-brand flex items-center justify-center mb-3">
+                  <Icon className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold mb-1">{item.title}</h3>
+                <p className="text-sm text-[var(--ink-soft)]">{item.desc}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 

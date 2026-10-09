@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Globe } from "lucide-react";
 
 export default function LanguageSwitcher() {
   const [currentLang, setCurrentLang] = useState<"vi" | "en">("vi");
@@ -71,29 +72,32 @@ export default function LanguageSwitcher() {
   return (
     <div className="flex items-center text-xs font-semibold rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-0.5 shrink-0">
       <div id="google_translate_element" className="hidden" aria-hidden="true" />
+      <span className="pl-1.5 pr-0.5 text-[var(--ink-faint)]" aria-hidden>
+        <Globe className="w-3.5 h-3.5" />
+      </span>
       <button
         type="button"
         onClick={() => changeLanguage("vi")}
-        className={`px-2 py-1 rounded transition-colors ${
+        className={`px-1.5 py-0.5 rounded transition-colors ${
           currentLang === "vi"
             ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm font-bold"
             : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
         }`}
         title="Tiếng Việt"
       >
-        🇻🇳 VI
+        VI
       </button>
       <button
         type="button"
         onClick={() => changeLanguage("en")}
-        className={`px-2 py-1 rounded transition-colors ${
+        className={`px-1.5 py-0.5 rounded transition-colors ${
           currentLang === "en"
             ? "bg-[var(--surface)] text-[var(--ink)] shadow-sm font-bold"
             : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
         }`}
         title="English"
       >
-        🇬🇧 EN
+        EN
       </button>
     </div>
   );

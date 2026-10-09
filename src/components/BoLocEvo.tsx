@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { TIEN_ICH } from "@/lib/tien-ich";
 import { toaDoTuLink } from "@/lib/maps-link";
+import { X, Check, MapPin } from "lucide-react";
 
 // Các mảnh bộ lọc trang tìm kiếm dựng theo giao diện EvoHome (1/10): hàng tick tiện ích, ô chọn dự án,
 // chip tỉnh + dải chip quận, ô khoảng cách theo link Google Maps. SearchClient ghép lại + giữ state.
@@ -27,7 +28,7 @@ export function HangTienIch({ ti, onDoi }: { ti: string; onDoi: (k: string) => v
               className={`shrink-0 flex items-center gap-2 h-9 pl-2.5 pr-4 rounded-full border text-sm whitespace-nowrap transition
                 ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] bg-[var(--surface)] hover:border-brand"}`}>
               <span className={`grid place-items-center w-4 h-4 rounded border text-[0.65rem] leading-none
-                ${on ? "bg-brand border-brand text-white" : "border-[var(--line-strong)]"}`}>{on ? "✓" : ""}</span>
+                ${on ? "bg-brand border-brand text-white" : "border-[var(--line-strong)]"}`}>{on ? <Check className="w-3 h-3 text-white" /> : ""}</span>
               {t.ten}
             </button>
           );
@@ -58,7 +59,7 @@ export function ChonDuAn({ duAn, value, onChon }: { duAn: { id: string; name: st
         {dangChon ? (
           <button type="button" onClick={() => onChon("")} title="Bỏ chọn dự án"
             className="h-10 w-full px-3 rounded-lg border border-brand bg-brand/5 text-brand text-sm font-semibold flex items-center gap-2">
-            <span className="truncate">{dangChon.name}</span><span className="ml-auto" aria-hidden>✕</span>
+            <span className="truncate">{dangChon.name}</span><X className="w-4 h-4 ml-auto" />
           </button>
         ) : (
           <label className="h-10 w-full px-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] flex items-center gap-2 text-sm">
@@ -95,7 +96,7 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
     <div className="mb-3">
       <div className="flex flex-wrap items-center gap-2 mb-2">
         {province ? (
-          <button type="button" className={pill(true)} onClick={() => onTinh("")} title="Bỏ chọn tỉnh">{province} <span aria-hidden>✕</span></button>
+          <button type="button" className={pill(true)} onClick={() => onTinh("")} title="Bỏ chọn tỉnh">{province} <X className="w-3.5 h-3.5 ml-1 inline" /></button>
         ) : tinhs.slice(0, 8).map((p) => (
           <button key={p} type="button" className={pill(false)} onClick={() => onTinh(p)}>{p}</button>
         ))}
@@ -160,12 +161,15 @@ export function OKhoangCach({ gan, bk, onDoi }: { gan: string; bk: string; onDoi
       {loi && <p className="text-xs text-red-600 mt-1">{loi}</p>}
       {gan && (
         <div className="flex flex-wrap items-center gap-2 mt-2 text-sm">
-          <span className="px-2.5 py-1 rounded-full bg-brand/10 text-brand font-semibold">📍 {gan}</span>
+          <span className="px-2.5 py-1 rounded-full bg-brand/10 text-brand font-semibold inline-flex items-center gap-1">
+            <MapPin className="w-3.5 h-3.5" />
+            <span>{gan}</span>
+          </span>
           <span className="text-[var(--ink-soft)]">trong bán kính</span>
           <select className="inp !w-auto !py-1" value={bk || "2"} onChange={(e) => onDoi(gan, e.target.value)}>
             {["0.5", "1", "2", "3", "5", "10", "20"].map((k) => <option key={k} value={k}>{k.replace(".", ",")} km</option>)}
           </select>
-          <button type="button" className="text-xs text-[var(--ink-soft)] underline" onClick={() => onDoi("", "")}>Bỏ</button>
+          <button type="button" className="text-xs text-[var(--ink-soft)] underline hover:text-red-500" onClick={() => onDoi("", "")}>Bỏ</button>
         </div>
       )}
     </div>

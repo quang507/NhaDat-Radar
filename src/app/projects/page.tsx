@@ -7,6 +7,7 @@ import { fmtPrice } from "@/lib/format";
 import SafeImg from "@/components/SafeImg";
 import { tinhMoi } from "@/lib/sap-nhap";
 import type { Project } from "@/lib/types";
+import { Building2, ChevronLeft, ChevronRight } from "lucide-react";
 
 export const metadata = { title: "Dự án bất động sản - NhaDat Radar" };
 
@@ -104,10 +105,12 @@ export default async function ProjectsPage({
                 className="reveal group card rounded-lg overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col"
                 style={{ animationDelay: `${Math.min(i, 12) * 40}ms` }}
               >
-                <div className="aspect-[16/10] bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white text-3xl overflow-hidden relative">
+                <div className="aspect-[16/10] bg-gradient-to-br from-brand to-brand-2 grid place-items-center text-white overflow-hidden relative">
                   {p.images?.[0] ? (
                     <SafeImg src={p.images[0]} alt={p.name} className="lc-img w-full h-full object-cover" />
-                  ) : "🏙️"}
+                  ) : (
+                    <Building2 className="w-12 h-12 text-white/50" />
+                  )}
                   <span className={`absolute top-2 left-2 text-[0.65rem] font-bold px-2 py-0.5 rounded-md text-white backdrop-blur-sm ${p.is_partner ? "bg-brand" : "bg-black/55"}`}>{p.is_partner ? "Đối tác Radar" : "Dự án"}</span>
                   {p.handover ? (
                     <span className="absolute bottom-2 right-2 text-[0.62rem] font-semibold px-1.5 py-0.5 rounded bg-black/55 text-white">Bàn giao {p.handover}</span>
@@ -148,7 +151,7 @@ function Pager({ page, totalPages, href }: { page: number; totalPages: number; h
   const cls = "min-w-9 h-9 px-2 grid place-items-center rounded-lg border text-sm transition";
   return (
     <nav className="flex flex-wrap items-center justify-center gap-1.5 mt-8" aria-label="Phân trang dự án">
-      {page > 1 && <Link href={href(page - 1)} className={`${cls} border-[var(--line)] hover:border-brand`} rel="prev" aria-label="Trang trước">‹</Link>}
+      {page > 1 && <Link href={href(page - 1)} className={`${cls} border-[var(--line)] hover:border-brand`} rel="prev" aria-label="Trang trước"><ChevronLeft className="w-4 h-4" /></Link>}
       {list.map((n, i) => (
         <span key={n} className="contents">
           {i > 0 && n - list[i - 1] > 1 && <span className="px-1 text-[var(--ink-faint)]">…</span>}
@@ -159,7 +162,7 @@ function Pager({ page, totalPages, href }: { page: number; totalPages: number; h
           )}
         </span>
       ))}
-      {page < totalPages && <Link href={href(page + 1)} className={`${cls} border-[var(--line)] hover:border-brand`} rel="next" aria-label="Trang sau">›</Link>}
+      {page < totalPages && <Link href={href(page + 1)} className={`${cls} border-[var(--line)] hover:border-brand`} rel="next" aria-label="Trang sau"><ChevronRight className="w-4 h-4" /></Link>}
     </nav>
   );
 }

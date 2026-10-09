@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Scale, Home, KeyRound } from "lucide-react";
 
 const VND = new Intl.NumberFormat("vi-VN");
 const money = (v: number) => (v >= 1e9 ? (v / 1e9).toFixed(2).replace(/\.?0+$/, "") + " tỷ" : VND.format(Math.round(v)) + " ₫");
@@ -42,7 +43,10 @@ export default function RentVsBuyCalc() {
 
   return (
     <div className="card rounded-lg p-5">
-      <h2 className="font-bold mb-4">⚖️ Máy so sánh Thuê vs Mua</h2>
+      <h2 className="font-bold mb-4 flex items-center gap-2">
+        <Scale className="w-5 h-5 text-brand shrink-0" />
+        <span>So sánh Thuê vs Mua</span>
+      </h2>
       <div className="grid grid-cols-2 gap-3">
         <label className="block col-span-2">
           <span className="lbl">Giá nhà muốn mua: {money(price)}</span>
@@ -72,8 +76,18 @@ export default function RentVsBuyCalc() {
 
       <div className={`mt-4 rounded-xl p-4 text-center border ${r.better === "mua" ? "border-brand/40 bg-brand/5" : "border-emerald-500/40 bg-emerald-500/5"}`}>
         <div className="text-sm text-[var(--ink-soft)] mb-1">Sau {years} năm, phương án có lợi hơn là</div>
-        <div className={`text-2xl font-extrabold ${r.better === "mua" ? "text-brand" : "text-emerald-600"}`}>
-          {r.better === "mua" ? "🏠 MUA NHÀ" : "🔑 THUÊ NHÀ"}
+        <div className={`text-2xl font-extrabold flex items-center justify-center gap-2 ${r.better === "mua" ? "text-brand" : "text-emerald-600"}`}>
+          {r.better === "mua" ? (
+            <>
+              <Home className="w-6 h-6 shrink-0" />
+              <span>MUA NHÀ</span>
+            </>
+          ) : (
+            <>
+              <KeyRound className="w-6 h-6 shrink-0" />
+              <span>THUÊ NHÀ</span>
+            </>
+          )}
         </div>
         <div className="text-xs text-[var(--ink-soft)] mt-2">
           Góp hàng tháng nếu mua: <b>{money(r.monthly)}</b> · chênh lệch tài sản ròng ước tính:{" "}

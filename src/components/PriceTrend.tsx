@@ -16,6 +16,7 @@ const layChuoiGia = unstable_cache(
   { revalidate: 3600, tags: ["price-history"] },
 );
 import { canonDistrict, fmtPpm2 } from "@/lib/format";
+import { TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 type Row = { day: string; median_ppm2: number; n: number };
 
@@ -37,8 +38,9 @@ export default async function PriceTrend({ province, district, kind, deal, compa
   }
   if (series.length < 2) {
     return compact ? null : (
-      <p className="text-xs text-[var(--ink-faint)] rounded-lg bg-[var(--surface-2)] p-2.5">
-        📈 Lịch sử giá tại {d || province} đang được tích luỹ mỗi ngày - biểu đồ sẽ hiện sau vài ngày dữ liệu.
+      <p className="text-xs text-[var(--ink-faint)] rounded-lg bg-[var(--surface-2)] p-2.5 flex items-center gap-2">
+        <TrendingUp className="w-4 h-4 text-brand shrink-0" />
+        <span>Lịch sử giá tại {d || province} đang được tích luỹ mỗi ngày - biểu đồ sẽ hiện sau vài ngày dữ liệu.</span>
       </p>
     );
   }
@@ -65,7 +67,10 @@ export default async function PriceTrend({ province, district, kind, deal, compa
     <div className="rounded-xl border border-[var(--line)] p-3">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
         {enoughDays ? (
-          <span className={`font-extrabold ${changePct >= 0 ? "text-emerald-600" : "text-red-600"}`}>{changePct >= 0 ? "↑" : "↓"} {Math.abs(changePct)}%</span>
+          <span className={`font-extrabold inline-flex items-center gap-0.5 ${changePct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            {changePct >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+            <span>{Math.abs(changePct)}%</span>
+          </span>
         ) : (
           <span className="font-bold text-[var(--ink-soft)]">Đang tích luỹ ({series.length}/{MIN_DAYS_FOR_PCT} ngày)</span>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Check } from "lucide-react";
 
 // Dropdown sắp xếp TỰ VẼ thay cho <select> trần (20/8, người dùng chê "UI xổ xuống chưa ok"):
 // danh sách option của <select> do trình duyệt/HĐH vẽ, không nhận CSS của web nên lạc quẻ
@@ -35,7 +36,7 @@ export default function ChonSapXep({
         onClick={() => setMo((v) => !v)}
       >
         {nhan}
-        <span className={`text-[0.6rem] transition-transform ${mo ? "rotate-180" : ""}`}>▼</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${mo ? "rotate-180" : ""}`} />
       </button>
 
       {mo && (
@@ -51,7 +52,7 @@ export default function ChonSapXep({
                 onClick={() => { onChange(v); setMo(false); }}
               >
                 {l}
-                {v === value && <span aria-hidden>✓</span>}
+                {v === value && <Check className="w-4 h-4 text-brand shrink-0" aria-hidden />}
               </button>
             </li>
           ))}

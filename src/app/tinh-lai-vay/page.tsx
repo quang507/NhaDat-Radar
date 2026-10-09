@@ -2,6 +2,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Lightbulb } from "lucide-react";
 
 const VND = new Intl.NumberFormat("vi-VN");
 function money(v: number): string {
@@ -141,7 +142,10 @@ function MortgageCalc() {
         <div className="grid gap-4 sm:grid-cols-2">
           {TIPS.map(([t, d]) => (
             <div key={t} className="card rounded-lg p-5">
-              <h3 className="font-bold mb-1">💡 {t}</h3>
+              <h3 className="font-bold mb-1 flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>{t}</span>
+              </h3>
               <p className="text-sm text-[var(--ink-soft)]">{d}</p>
             </div>
           ))}

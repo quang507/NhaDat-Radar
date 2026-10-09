@@ -6,6 +6,7 @@ import SafeImg from "./SafeImg";
 import { thongTinAnh, layVideo } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon } from "@/lib/ro-hang";
+import { ShieldCheck } from "lucide-react";
 
 // Dòng kết quả kiểu batdongsan.com.vn: ảnh lớn + dải ảnh nhỏ bên trái,
 // giá + giá/m² + diện tích + PN, mô tả 2 dòng, chân tin nguồn + thời gian.
@@ -45,19 +46,22 @@ export default function ListingRow({ x }: { x: Listing }) {
         ) : (
           <div className="h-44 sm:h-52 grid place-items-center text-white text-3xl" style={{ background: t.bg }}>{t.icon}</div>
         )}
-        <span className="absolute top-2 left-2 flex items-center gap-1">
+        <span className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {laTinDocQuyen(x) && (
-            <span className="text-[0.65rem] font-extrabold px-1.5 py-0.5 rounded bg-emerald-600 text-white" title="Tin đăng đã xác minh thông tin & pháp lý thực tế">✓ ĐÃ XÁC MINH</span>
+            <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-emerald-600/95 text-white shadow-sm backdrop-blur-sm flex items-center gap-1" title="Tin đăng đã xác minh thông tin & pháp lý thực tế">
+              <ShieldCheck className="w-3 h-3 shrink-0" />
+              <span>ĐÃ XÁC MINH</span>
+            </span>
           )}
-          <span className="text-[0.7rem] font-bold px-2 py-0.5 rounded bg-black/55 text-white">
-            {x.deal === "ban" ? "Để bán" : "Cho thuê"}
+          <span className="text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-md">
+            {x.deal === "ban" ? "Bán" : "Cho thuê"}
           </span>
-          {isNew && <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-emerald-500 text-white" title="Radar thấy tin trong 24 giờ qua">Mới</span>}
-          {x.price_flag && <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-red-500/90 text-white">⚠ giá lệch</span>}
+          {isNew && <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-sm">Mới</span>}
+          {x.price_flag && <span className="text-[0.62rem] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Lệch giá</span>}
         </span>
         {imgs.length > 0 && (
-          <span className="absolute bottom-2 right-2 text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-black/55 text-white">
-            {thongTinAnh(x).so} ảnh{thongTinAnh(x).video ? " · ▶" : ""}
+          <span className="absolute bottom-2.5 right-2.5 text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-md">
+            {thongTinAnh(x).so} ảnh
           </span>
         )}
       </div>
@@ -115,12 +119,13 @@ function MobileThumb({ x }: { x: Listing }) {
         <div className="w-full h-full grid place-items-center text-2xl opacity-60">{t.icon}</div>
       )}
       {docQuyen && (
-        <span className={`absolute top-1 left-1 text-[0.6rem] font-extrabold px-1 py-px rounded text-white ${laRoHang(x) ? "bg-amber-500" : "bg-emerald-600"}`}>
-          {laRoHang(x) ? "★ Radar" : "✓ Xác thực"}
+        <span className="absolute top-1.5 left-1.5 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full text-white bg-emerald-600 shadow-sm flex items-center gap-0.5">
+          <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
+          <span>ĐÃ XÁC MINH</span>
         </span>
       )}
       {thongTinAnh(x).so > 1 && (
-        <span className="absolute bottom-1 right-1 text-[0.6rem] font-bold px-1 py-px rounded bg-black/55 text-white">{thongTinAnh(x).so} ảnh{thongTinAnh(x).video ? " · ▶" : ""}</span>
+        <span className="absolute bottom-1 right-1 text-[0.6rem] font-semibold px-1.5 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm">{thongTinAnh(x).so} ảnh</span>
       )}
     </div>
   );
@@ -136,8 +141,8 @@ function MobileBody({ x, ago, isNew }: { x: Listing; ago: string | null; isNew: 
       <div className="text-xs text-[var(--ink-soft)] truncate tabular-nums">{specs}</div>
       <div className="text-brand font-extrabold leading-tight tabular-nums">{fmtPrice(x.price_vnd, x.deal)}</div>
       <div className="mt-auto flex items-center gap-1.5 text-[0.68rem]">
-        {isNew && <span className="font-bold px-1 rounded bg-emerald-500 text-white">Mới</span>}
-        {x.price_flag && <span className="font-bold px-1 rounded bg-red-500/90 text-white">⚠ giá lệch</span>}
+        {isNew && <span className="font-bold px-1 rounded bg-amber-500 text-white">Mới</span>}
+        {x.price_flag && <span className="font-bold px-1 rounded bg-amber-50 text-amber-700 border border-amber-200">Lệch giá</span>}
         {ago && <span suppressHydrationWarning className="text-[var(--ink-faint)]">{ago}</span>}
         <span className="ml-auto"><FavButton id={x.id} /></span>
       </div>

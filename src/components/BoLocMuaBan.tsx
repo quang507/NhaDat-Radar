@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { PROP } from "@/lib/format";
+import { X, Check, Building2, Home, LandPlot, Store, Building, LayoutGrid } from "lucide-react";
 
 // BỘ LỌC MUA BÁN dựng theo batdongsan.com.vn/nha-dat-ban (1/10): hàng [Lọc] [công tắc] [Loại nhà đất ▾]
 // [Khoảng giá ▾] [Diện tích ▾] [công tắc]; mỗi nút mở popover có tiêu đề + ✕, chọn xong bấm "Áp dụng"
@@ -21,10 +22,19 @@ export const KHOANG_DT_MUA: [string, string][] = [
   ["100-150", "100 - 150 m²"], ["150-200", "150 - 200 m²"], ["200-250", "200 - 250 m²"], ["250-300", "250 - 300 m²"],
   ["300-500", "300 - 500 m²"], ["500-", "Trên 500 m²"],
 ];
-// Loại cho mua bán (bỏ "Phòng trọ" - không ai rao bán phòng trọ lẻ), kèm icon như batdongsan
+
+export const ICON_LOAI: Record<string, ComponentType<{ className?: string }>> = {
+  can_ho: Building2,
+  nha: Home,
+  dat: LandPlot,
+  mat_bang: Store,
+  khac: Building,
+};
+
+// Loại cho mua bán (bỏ "Phòng trọ" - không ai rao bán phòng trọ lẻ), kèm icon
 export const LOAI_MUA: [string, string, string][] = [
-  ["can_ho", "Căn hộ chung cư", "🏢"], ["nha", "Nhà riêng, nhà phố, biệt thự", "🏠"], ["dat", "Đất nền, đất thổ cư", "🌱"],
-  ["mat_bang", "Mặt bằng, shophouse", "🏬"], ["khac", "Bất động sản khác", "🏗️"],
+  ["can_ho", "Căn hộ chung cư", ""], ["nha", "Nhà riêng, nhà phố, biệt thự", ""], ["dat", "Đất nền, đất thổ cư", ""],
+  ["mat_bang", "Mặt bằng, shophouse", ""], ["khac", "Bất động sản khác", ""],
 ];
 
 export const tachDs = (s: string) => s.split(",").filter(Boolean);
@@ -36,10 +46,10 @@ function Popover({ tieuDe, onDong, onDatLai, onApDung, children }: {
 }) {
   return (
     // điện thoại: tấm trượt đáy màn hình (fixed) - hàng lọc cuộn ngang sẽ cắt mất popover absolute
-    <div className={`fixed inset-x-0 bottom-0 z-[60] rounded-t-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-2 sm:z-50 sm:w-[22rem] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl border border-[var(--line)] bg-[var(--surface)] shadow-2xl flex flex-col`}>
+    <div className={`fixed inset-x-0 bottom-0 z-[60] rounded-t-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-2 sm:z-50 sm:w-[22rem] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-2xl flex flex-col overflow-hidden`}>
       <div className="relative flex items-center justify-center px-4 py-3.5 border-b border-[var(--line)]">
         <h3 className="font-bold text-base">{tieuDe}</h3>
-        <button type="button" onClick={onDong} aria-label="Đóng" className="absolute right-3 w-8 h-8 grid place-items-center rounded-lg hover:bg-[var(--surface-2)] text-lg">✕</button>
+        <button type="button" onClick={onDong} aria-label="Đóng" className="absolute right-3 w-8 h-8 grid place-items-center rounded-lg hover:bg-[var(--surface-2)] text-[var(--ink-soft)]"><X className="w-5 h-5" /></button>
       </div>
       <div className="max-h-[22rem] overflow-y-auto px-4 py-3">{children}</div>
       <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--line)]">
@@ -98,19 +108,19 @@ export function PopLoai({ kind, onApDung }: { kind: string; onApDung: (kind: str
 function ThanLoai({ kind, dong, onApDung }: { kind: string; dong: () => void; onApDung: (kind: string) => void }) {
   const [chon, setChon] = useState(tachDs(kind));
   const doi = (k: string) => setChon((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]));
-  const dong1 = (on: boolean, icon: string, ten: string, onClick: () => void, key?: string) => (
+  const dong1 = (on: boolean, Icon: ComponentType<{ className?: string }>, ten: string, onClick: () => void, key?: string) => (
     <button key={key} type="button" role="checkbox" aria-checked={on} onClick={onClick}
       className="w-full flex items-center gap-3 py-2.5 text-left text-sm hover:text-brand">
-      <span className="w-5 text-center" aria-hidden>{icon}</span>
+      <span className="w-5 text-center text-[var(--ink-soft)]" aria-hidden><Icon className="w-4 h-4 inline" /></span>
       <span className={`flex-1 ${on ? "font-semibold text-brand" : ""}`}>{ten}</span>
-      <span className={oVuong(on)}>{on ? "✓" : ""}</span>
+      <span className={oVuong(on)}>{on ? <Check className="w-3 h-3 text-white" /> : ""}</span>
     </button>
   );
   return (
     <Popover tieuDe="Loại nhà đất" onDong={dong} onDatLai={() => setChon([])}
       onApDung={() => { onApDung(chon.length === LOAI_MUA.length ? "" : chon.join(",")); dong(); }}>
-      {dong1(chon.length === 0, "🏘️", "Tất cả nhà đất", () => setChon([]))}
-      {LOAI_MUA.map(([k, ten, icon]) => dong1(chon.includes(k), icon, ten, () => doi(k), k))}
+      {dong1(chon.length === 0, LayoutGrid, "Tất cả nhà đất", () => setChon([]))}
+      {LOAI_MUA.map(([k, ten]) => dong1(chon.includes(k), ICON_LOAI[k] || Building, ten, () => doi(k), k))}
     </Popover>
   );
 }

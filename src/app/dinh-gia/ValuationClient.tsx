@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PROP } from "@/lib/format";
+import { Tag, Bot, BarChart3, Sparkles } from "lucide-react";
 
 const VND = new Intl.NumberFormat("vi-VN");
 function money(v: number, monthly = false): string {
@@ -135,8 +136,9 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
               <textarea className="inp" rows={2} value={f.note} onChange={set("note")} placeholder="VD: mặt tiền đường 8m, full nội thất" />
             </label>
           </div>
-          <button className="btn btn-primary w-full mt-4" disabled={busy} type="submit">
-            {busy ? "AI đang định giá…" : "Định giá ngay"}
+          <button className="btn btn-primary w-full mt-4 flex items-center justify-center gap-2" disabled={busy} type="submit">
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span>{busy ? "AI đang định giá…" : "Định giá ngay"}</span>
           </button>
           {err && <p className="text-sm text-red-600 mt-3 text-center">{err}</p>}
         </form>
@@ -145,14 +147,14 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
         <div className="space-y-4">
           {!r && !busy && (
             <div className="card rounded-lg p-10 text-center text-[var(--ink-soft)]">
-              <div className="text-4xl mb-3">🏷️</div>
+              <Tag className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
               <p className="text-sm">Điền thông tin bên trái và bấm <b>Định giá ngay</b>.<br />
                 Kết quả dựa trên các tin rao thật cùng khu vực + phân tích AI.</p>
             </div>
           )}
           {busy && (
             <div className="card rounded-lg p-10 text-center text-[var(--ink-soft)] animate-pulse">
-              <div className="text-4xl mb-3">🤖</div>
+              <Bot className="w-12 h-12 text-brand mx-auto mb-3 animate-pulse" />
               <p className="text-sm">Đang so sánh với các tin cùng khu vực…</p>
             </div>
           )}
@@ -188,7 +190,10 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
               </div>
 
               <div className="card rounded-lg p-5">
-                <h3 className="font-bold mb-2 text-sm">📊 Dữ liệu so sánh</h3>
+                <h3 className="font-bold mb-2 text-sm flex items-center gap-1.5">
+                  <BarChart3 className="w-4 h-4 text-brand shrink-0" />
+                  <span>Dữ liệu so sánh</span>
+                </h3>
                 <div className="grid grid-cols-2 gap-y-1.5 text-sm">
                   <span className="text-[var(--ink-soft)]">Khu vực so sánh</span><span className="font-semibold text-right">{r.comps.scope}</span>
                   <span className="text-[var(--ink-soft)]">Số tin so sánh</span><span className="font-semibold text-right">{r.comps.count} tin</span>

@@ -13,6 +13,7 @@ import ProjectContact from "./ProjectContact";
 import RichText from "@/components/RichText";
 import type { Project, Listing } from "@/lib/types";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { ChevronLeft, Building2, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 
 export default async function ProjectDetail({
   params,
@@ -48,7 +49,10 @@ export default async function ProjectDetail({
 
   return (
     <div>
-      <Link href="/projects" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Về danh sách dự án</Link>
+      <Link href="/projects" className="inline-flex items-center gap-1.5 text-sm text-[var(--ink-soft)] hover:text-brand font-semibold transition">
+        <ChevronLeft className="w-4 h-4" />
+        <span>Về danh sách dự án</span>
+      </Link>
 
       <div className="my-4">
         {(() => {
@@ -56,7 +60,9 @@ export default async function ProjectDetail({
           return imgs.length ? (
             <Gallery images={imgs} title={p.name} />
           ) : (
-            <div className="rounded-lg overflow-hidden aspect-[21/9] max-h-[420px] grid place-items-center text-white text-5xl bg-gradient-to-br from-brand to-brand-2">🏙️</div>
+            <div className="rounded-lg overflow-hidden aspect-[21/9] max-h-[420px] grid place-items-center text-white bg-gradient-to-br from-brand to-brand-2">
+              <Building2 className="w-16 h-16 text-white/50" />
+            </div>
           );
         })()}
       </div>
@@ -67,12 +73,13 @@ export default async function ProjectDetail({
           <div className="text-brand font-semibold">{p.investor}</div>
           {/* address của nguồn thường ĐÃ chứa quận/tỉnh -> chỉ nối thêm phần chưa có, không thì ra
               "Lê Cơ, Phường An Lạc, Quận Bình Tân, TPHCM, Quận Bình Tân, Hồ Chí Minh" (17/8) */}
-          <div className="text-sm text-[var(--ink-soft)] mt-1">
-            📍 {(() => {
+          <div className="text-sm text-[var(--ink-soft)] mt-1 flex items-start gap-1.5">
+            <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+            <span>{(() => {
               const co = (s?: string | null) => !!s && (p.address || "").toLowerCase().includes(s.toLowerCase());
               const phan = [p.address, co(p.district) ? null : p.district, co(p.province) ? null : p.province];
               return phan.filter(Boolean).join(", ") || "-";
-            })()}
+            })()}</span>
           </div>
 
           {/* Bảng thông số (migration 013): tổng DT, DT xây dựng, DT căn từ-đến, ngày khởi công/hoàn
@@ -113,9 +120,9 @@ export default async function ProjectDetail({
                   <details className="group mt-2">
                     {/* chỉ chữ "Xem đầy đủ" nằm trong summary - để cả đoạn văn vào đây thì bôi đen
                         chọn chữ cũng vô tình đóng/mở, và nội dung sẽ hiện lặp hai lần khi mở */}
-                    <summary className="cursor-pointer list-none text-sm font-semibold text-brand">
-                      <span className="group-open:hidden">Xem đầy đủ ↓</span>
-                      <span className="hidden group-open:inline">Thu gọn ↑</span>
+                    <summary className="cursor-pointer list-none text-sm font-semibold text-brand inline-flex items-center gap-1">
+                      <span className="group-open:hidden inline-flex items-center gap-1">Xem đầy đủ <ChevronDown className="w-4 h-4" /></span>
+                      <span className="hidden group-open:inline-flex items-center gap-1">Thu gọn <ChevronUp className="w-4 h-4" /></span>
                     </summary>
                     <div className="mt-3">
                       <RichText text={con} />

@@ -1,68 +1,72 @@
 import Link from "next/link";
+import { Phone, Mail, Clock, ShieldCheck, Compass } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="mt-16 border-t border-[var(--line)] bg-[var(--surface)]">
-      <div className="max-w-6xl mx-auto px-5 py-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+    <footer className="mt-20 border-t border-[var(--line)] bg-[var(--surface)]">
+      <div className="max-w-6xl mx-auto px-5 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 text-sm">
         <div>
           <div className="flex items-center gap-2 font-extrabold tracking-tight mb-3">
-            <span className="w-7 h-7 rounded-lg grid place-items-center text-white text-sm bg-gradient-to-br from-brand to-brand-2">◎</span>
+            <span className="w-7 h-7 rounded-lg grid place-items-center text-white text-xs bg-brand shadow-sm font-black">
+              RD
+            </span>
             NhaDat<span className="text-brand">Radar</span>
           </div>
-          <p className="text-[var(--ink-soft)]">
-            Sàn nhà đất bán &amp; cho thuê: tổng hợp tin đa nguồn, AI chuẩn hoá, chấm điểm tin cậy
-            và cảnh báo giá ảo - giúp bạn tìm ngôi nhà mơ ước nhanh hơn.
+          <p className="text-[var(--ink-soft)] leading-relaxed">
+            Nền tảng tìm kiếm và so sánh bất động sản minh bạch: tổng hợp đa nguồn, kiểm tra giá lệch theo khu vực và xác minh dữ liệu thực tế.
           </p>
+          <div className="mt-4 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+            <ShieldCheck className="w-4 h-4" />
+            <span>Dữ liệu xác minh &amp; cập nhật liên tục</span>
+          </div>
         </div>
+
         <div>
           <div className="font-bold mb-3">Khám phá</div>
           <ul className="space-y-2 text-[var(--ink-soft)]">
-            <li><Link className="hover:text-brand" href="/search">Tìm kiếm bất động sản</Link></li>
-            <li><Link className="hover:text-brand" href="/search?deal=ban">Nhà đất bán</Link></li>
-            <li><Link className="hover:text-brand" href="/search?deal=cho_thue">Nhà đất cho thuê</Link></li>
-            <li><Link className="hover:text-brand" href="/projects">Dự án nổi bật</Link></li>
-            <li><Link className="hover:text-brand" href="/thong-ke">Phân tích thị trường</Link></li>
-            <li><Link className="hover:text-brand" href="/tin-tuc">Tin tức &amp; giá thuê phòng trọ</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/search">Tìm kiếm bất động sản</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/search?deal=ban">Nhà đất bán</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/search?deal=cho_thue">Nhà đất cho thuê</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/projects">Dự án nổi bật</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/thong-ke">Bản đồ giá thị trường</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/tin-tuc">Tin tức &amp; xu hướng</Link></li>
           </ul>
         </div>
+
         <div>
-          <div className="font-bold mb-3">Hướng dẫn</div>
+          <div className="font-bold mb-3">Công cụ &amp; Hướng dẫn</div>
           <ul className="space-y-2 text-[var(--ink-soft)]">
-            <li><Link className="hover:text-brand" href="/huong-dan/mua">Hướng dẫn mua &amp; thuê</Link></li>
-            <li><Link className="hover:text-brand" href="/huong-dan/ban">Hướng dẫn bán</Link></li>
-            <li><Link className="hover:text-brand" href="/dinh-gia">AI định giá bất động sản</Link></li>
-            <li><Link className="hover:text-brand" href="/tinh-lai-vay">Máy tính lãi vay</Link></li>
-            <li><Link className="hover:text-brand" href="/thue-hay-mua">Thuê hay mua?</Link></li>
-            <li><Link className="hover:text-brand" href="/agents">Người bán chuyên nghiệp</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/dinh-gia">AI Định giá bất động sản</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/tinh-lai-vay">Máy tính lãi vay ngân hàng</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/thue-hay-mua">So sánh Thuê hay Mua</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/huong-dan/mua">Kinh nghiệm mua &amp; thuê</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/huong-dan/ban">Kinh nghiệm bán nhà</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/agents">Mạng lưới môi giới uy tín</Link></li>
           </ul>
         </div>
+
         <div>
-          <div className="font-bold mb-3 text-brand">Hỗ trợ &amp; Hotline</div>
-          <div className="space-y-2.5 text-[var(--ink-soft)]">
+          <div className="font-bold mb-3 text-brand">Trung tâm tư vấn</div>
+          <div className="space-y-3 text-[var(--ink-soft)]">
             <div>
-              <span className="text-xs text-[var(--ink-faint)] block">Hotline tư vấn 24/7:</span>
-              <a href="tel:0346689460" className="text-base font-extrabold text-brand hover:underline">
+              <span className="text-xs text-[var(--ink-faint)] block mb-0.5">Hotline hỗ trợ (8:00 - 21:00):</span>
+              <a href="tel:0346689460" className="inline-flex items-center gap-2 text-base font-extrabold text-brand hover:underline">
+                <Phone className="w-4 h-4" />
                 0346 689 460
               </a>
             </div>
-            <div>
-              <a
-                href="https://zalo.me/0346689460"
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0068ff] text-white text-xs font-semibold hover:opacity-90 transition shadow-sm"
-              >
-                💬 Chat Zalo Chuyên Viên
-              </a>
+            <div className="flex items-center gap-2 text-xs">
+              <Clock className="w-4 h-4 text-[var(--ink-faint)] shrink-0" />
+              <span>Hỗ trợ các ngày trong tuần (T2 - CN)</span>
             </div>
-            <p className="text-xs text-[var(--ink-faint)] leading-relaxed pt-1">
-              Hỗ trợ kiểm tra pháp lý, trích lục sổ hồng, thẩm định giá &amp; dẫn xem nhà trực tiếp miễn phí.
+            <p className="text-xs text-[var(--ink-faint)] leading-relaxed pt-1 border-t border-[var(--line)]">
+              Tư vấn kiểm tra pháp lý, quy hoạch, thẩm định giá và đặt lịch dẫn xem nhà thực tế miễn phí.
             </p>
           </div>
         </div>
       </div>
       <div className="border-t border-[var(--line)] py-4 text-center text-xs text-[var(--ink-faint)]">
-        © {new Date().getFullYear()} NhaDat Radar. Dữ liệu tổng hợp từ nhiều nguồn công khai, chỉ mang tính tham khảo.
+        © {new Date().getFullYear()} NhaDat Radar. Dữ liệu tổng hợp từ các nguồn công khai, chỉ mang tính chất tham khảo.
       </div>
     </footer>
   );

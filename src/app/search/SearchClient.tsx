@@ -18,7 +18,8 @@ import PlaceSuggest, { buildPlaces, type Place } from "@/components/PlaceSuggest
 import RecentlyViewed, { RecentSearches, rememberSearch } from "@/components/RecentlyViewed";
 import { SidebarKhuVuc, type DieuHuong } from "@/components/DieuHuongKhuVuc";
 import { HangTienIch, ChonDuAn, KhuVucChip, OKhoangCach, doiTi } from "@/components/BoLocEvo";
-import { PopLoai, PopKhoang, CongTac, NhomNut, SidebarKhoang, KHOANG_GIA_MUA, KHOANG_DT_MUA, LOAI_MUA, tachDs } from "@/components/BoLocMuaBan";
+import { PopLoai, PopKhoang, CongTac, NhomNut, SidebarKhoang, KHOANG_GIA_MUA, KHOANG_DT_MUA, LOAI_MUA, ICON_LOAI, tachDs } from "@/components/BoLocMuaBan";
+import { Search, SearchX, Check, MapPin, Map, LayoutList, X, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 
 const TIEU_DE = "text-xs font-bold tracking-wide text-[var(--ink)] mb-2.5";
 
@@ -228,8 +229,8 @@ export default function SearchClient({
   const phanTrang = (lop: string) => totalPages > 1 && (
     <nav className={`flex items-center justify-center gap-1.5 ${lop}`} aria-label="Phân trang">
       {trang > 1
-        ? <Link className="btn !px-3 text-sm" href={linkTrang(trang - 1)} rel="prev" aria-label="Trang trước">‹</Link>
-        : <span className="btn !px-3 text-sm opacity-40" aria-hidden>‹</span>}
+        ? <Link className="btn !px-3 text-sm flex items-center justify-center" href={linkTrang(trang - 1)} rel="prev" aria-label="Trang trước"><ChevronLeft className="w-4 h-4" /></Link>
+        : <span className="btn !px-3 text-sm opacity-40 flex items-center justify-center" aria-hidden><ChevronLeft className="w-4 h-4" /></span>}
       {Array.from({ length: totalPages }, (_, i) => i + 1)
         .filter((n) => n === 1 || n === totalPages || Math.abs(n - trang) <= 2)
         .map((n, i, arr) => (
@@ -242,8 +243,8 @@ export default function SearchClient({
           </span>
         ))}
       {trang < totalPages
-        ? <Link className="btn !px-3 text-sm" href={linkTrang(trang + 1)} rel="next" aria-label="Trang sau">›</Link>
-        : <span className="btn !px-3 text-sm opacity-40" aria-hidden>›</span>}
+        ? <Link className="btn !px-3 text-sm flex items-center justify-center" href={linkTrang(trang + 1)} rel="next" aria-label="Trang sau"><ChevronRight className="w-4 h-4" /></Link>
+        : <span className="btn !px-3 text-sm opacity-40 flex items-center justify-center" aria-hidden><ChevronRight className="w-4 h-4" /></span>}
     </nav>
   );
   const dauTrang = (
@@ -308,17 +309,19 @@ export default function SearchClient({
           />
           {/* NN/g #5: gợi ý địa danh thật, nhận cả viết tắt Q7 -> Quận 7 */}
           <PlaceSuggest value={f.q} places={places} onPick={pickPlace} />
-          <button className="bg-brand text-white font-semibold text-sm px-4 sm:px-6 hover:bg-brand-ink transition whitespace-nowrap rounded-r-lg" type="submit" aria-label="Tìm kiếm">
-            <span className="sm:hidden">🔍</span><span className="hidden sm:inline">Tìm kiếm</span>
+          <button className="bg-brand text-white font-semibold text-sm px-4 sm:px-6 hover:bg-brand-ink transition whitespace-nowrap rounded-r-lg flex items-center justify-center gap-1.5" type="submit" aria-label="Tìm kiếm">
+            <Search className="w-4 h-4" />
+            <span className="hidden sm:inline">Tìm kiếm</span>
           </button>
         </form>
         {/* Bản đồ chỉ render ở lg+ (MapResults hidden lg:block) -> ẩn nút ở màn nhỏ, tránh nút bấm không có tác dụng (UX audit) */}
         <button
-          className={`hidden lg:inline-flex btn text-sm font-semibold whitespace-nowrap ${showMap ? "!bg-[var(--accent)] !border-[var(--accent)] !text-white" : "!text-[var(--accent)] !border-[var(--accent)]"}`}
+          className={`hidden lg:inline-flex btn text-sm font-semibold whitespace-nowrap items-center gap-1.5 ${showMap ? "!bg-[var(--accent)] !border-[var(--accent)] !text-white" : "!text-[var(--accent)] !border-[var(--accent)]"}`}
           aria-pressed={showMap}
           onClick={() => setShowMap((v) => !v)}
         >
-          {showMap ? "Đóng bản đồ" : "Xem bản đồ"}
+          <Map className="w-4 h-4" />
+          <span>{showMap ? "Đóng bản đồ" : "Xem bản đồ"}</span>
         </button>
       </div>
     </>
@@ -343,7 +346,7 @@ export default function SearchClient({
       </button>
       <CongTac bat={own} onDoi={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
         title="Chỉ hiển thị các tin đã được Radar xác minh thực tế & pháp lý"
-        icon={<span className="grid place-items-center w-4 h-4 rounded bg-emerald-600 text-white text-[0.6rem]" aria-hidden>✓</span>}>
+        icon={<ShieldCheck className="w-4 h-4 text-emerald-600" />}>
         Tin đã xác minh
       </CongTac>
       <PopLoai kind={goc.kind} onApDung={(k) => push({ ...goc, kind: k })} />
@@ -353,7 +356,7 @@ export default function SearchClient({
         onApDung={(a, b) => push({ ...goc, areaMin: a, areaMax: b })} />
       <CongTac bat={newAddr} onDoi={() => push({ ...goc, district: "", ward: "", newAddr: newAddr ? "" : "1" })}
         title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 - chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
-        icon={<span aria-hidden>📍</span>}>
+        icon={<MapPin className="w-4 h-4 text-brand" />}>
         Địa chỉ sau sáp nhập
       </CongTac>
     </div>
@@ -376,9 +379,12 @@ export default function SearchClient({
         <div className="hidden lg:flex items-center gap-3 mb-3 text-sm">
           <span className="text-xs font-semibold text-[var(--ink-soft)]">Chế độ xem</span>
           <div className="flex rounded-lg border border-[var(--line-strong)] overflow-hidden">
-            {([[false, "▦ Danh sách"], [true, "📍 Bản đồ"]] as const).map(([v, l]) => (
+            {([[false, "Danh sách", LayoutList], [true, "Bản đồ", Map]] as const).map(([v, l, Icon]) => (
               <button key={l} type="button" aria-pressed={showMap === v} onClick={() => setShowMap(v)}
-                className={`h-9 px-4 font-semibold transition ${showMap === v ? "bg-brand text-white" : "bg-[var(--surface)] hover:bg-[var(--surface-2)]"}`}>{l}</button>
+                className={`h-9 px-3.5 font-semibold text-xs transition inline-flex items-center gap-1.5 ${showMap === v ? "bg-brand text-white" : "bg-[var(--surface)] hover:bg-[var(--surface-2)]"}`}>
+                <Icon className="w-3.5 h-3.5" />
+                <span>{l}</span>
+              </button>
             ))}
           </div>
         </div>
@@ -406,7 +412,7 @@ export default function SearchClient({
               1 mức giá
               <button type="button" title="Bỏ lọc giá" onClick={() => push({ ...goc, priceMin: "", priceMax: "" })}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand/10 text-brand font-semibold hover:bg-brand/20">
-                {nhanGia} <span aria-hidden>✕</span>
+                {nhanGia} <X className="w-3 h-3" />
               </button>
             </span>
           )}
@@ -472,7 +478,7 @@ export default function SearchClient({
           <svg className="w-4 h-4 text-[var(--ink-soft)] shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="9" cy="9" r="5.5" /><path d="M13.5 13.5L17 17" strokeLinecap="round" /></svg>
           <input className="flex-1 min-w-0 bg-transparent outline-none" value={f.street} onChange={set("street")}
             placeholder="Chọn hoặc gõ tên đường / khu vực..." />
-          {goc.street && <button type="button" aria-label="Bỏ lọc tên đường" className="text-[var(--ink-soft)]" onClick={() => push({ ...goc, street: "" })}>✕</button>}
+          {goc.street && <button type="button" aria-label="Bỏ lọc tên đường" className="text-[var(--ink-soft)] hover:text-red-500 transition" onClick={() => push({ ...goc, street: "" })}><X className="w-4 h-4" /></button>}
         </label>
       </form>
 
@@ -483,12 +489,12 @@ export default function SearchClient({
       {showFilter && (
         <div className="fixed inset-0 z-[60] bg-black/40 sm:grid sm:place-items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowFilter(false); }}>
           <form
-            className="relative bg-[var(--surface)] w-full h-full sm:h-auto sm:max-h-[88vh] sm:max-w-[720px] sm:rounded-xl shadow-2xl flex flex-col"
+            className="relative bg-[var(--surface)] w-full h-full sm:h-auto sm:max-h-[88vh] sm:max-w-[720px] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
             onSubmit={(e) => { e.preventDefault(); setShowFilter(false); submit(); }}
           >
             <div className="flex items-center px-6 pt-5 pb-3 border-b border-[var(--line)]">
-              <h2 className="font-bold text-lg">Bộ lọc</h2>
-              <button type="button" className="ml-auto w-9 h-9 grid place-items-center rounded-lg hover:bg-[var(--surface-2)] text-lg" aria-label="Đóng bộ lọc" onClick={() => setShowFilter(false)}>✕</button>
+              <h2 className="font-bold text-lg">Bộ lọc tìm kiếm</h2>
+              <button type="button" className="ml-auto w-9 h-9 grid place-items-center rounded-lg hover:bg-[var(--surface-2)] text-lg" aria-label="Đóng bộ lọc" onClick={() => setShowFilter(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               <section>
@@ -529,14 +535,16 @@ export default function SearchClient({
                   <section>
                     <h3 className={TIEU_DE}>LOẠI NHÀ ĐẤT</h3>
                     <div className="flex flex-wrap gap-2">
-                      {LOAI_MUA.map(([k, ten, icon]) => {
+                      {LOAI_MUA.map(([k, ten]) => {
                         const on = tachDs(f.kind).includes(k);
+                        const Icon = ICON_LOAI[k];
                         return (
                           <button key={k} type="button" aria-pressed={on}
                             onClick={() => setF((s) => { const a = tachDs(s.kind); return { ...s, kind: (on ? a.filter((x) => x !== k) : [...a, k]).join(",") }; })}
                             className={`h-9 px-3 rounded-full border text-sm flex items-center gap-1.5 transition
                               ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] hover:border-brand"}`}>
-                            <span aria-hidden>{icon}</span>{ten}
+                            {Icon && <Icon className="w-3.5 h-3.5" />}
+                            <span>{ten}</span>
                           </button>
                         );
                       })}
@@ -698,13 +706,15 @@ export default function SearchClient({
               {phanTrang("mt-5")}
             </>
           ) : (
-            <div className="card rounded-lg p-10 text-center">
-              <div className="text-4xl mb-3">🔍</div>
-              <h3 className="font-bold text-lg mb-1">Không tìm thấy bất động sản</h3>
-              <p className="text-[var(--ink-soft)] text-sm mb-4">
-                Hãy thử điều chỉnh bộ lọc tìm kiếm để tìm thêm bất động sản.
+            <div className="card rounded-2xl p-10 sm:p-14 text-center border border-[var(--line)] shadow-sm max-w-md mx-auto my-6">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-4">
+                <SearchX className="w-7 h-7" />
+              </div>
+              <h3 className="font-bold text-lg mb-1 text-[var(--ink)]">Không tìm thấy bất động sản</h3>
+              <p className="text-[var(--ink-soft)] text-sm mb-5 leading-relaxed">
+                Không có tin nào khớp với điều kiện lọc hiện tại. Hãy thử mở rộng khu vực hoặc xóa bớt tiêu chí tìm kiếm.
               </p>
-              <button className="btn btn-primary" onClick={clear}>Xóa bộ lọc</button>
+              <button className="btn btn-primary rounded-xl px-5" onClick={clear}>Xóa toàn bộ bộ lọc</button>
             </div>
           )}
         </div>

@@ -11,6 +11,7 @@ import HangVuot from "@/components/HangVuot";
 import HeroTimKiem, { type ChipKhuVuc } from "@/components/HeroTimKiem";
 import { laTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang, laRoHang } from "@/lib/ro-hang";
+import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Building2, LandPlot, Store, ArrowRight } from "lucide-react";
 
 // thứ hạng ưu tiên trong lưới kết quả: tin Zalo (0) -> rổ hàng Radar (1) -> tin FB (2) -> nguồn web (3)
 const uuTienDocQuyen = (x: Listing) =>
@@ -224,48 +225,83 @@ export default async function Home({
 
           {/* ===== Micro: bộ công cụ ===== */}
           <section className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {([
-              ["/dinh-gia", "🏷️", "AI Định Giá", "Biết giá trị nhà trong 10 giây"],
-              ["/tinh-lai-vay", "🧮", "Tính Lãi Vay", "Ước tính khoản góp hàng tháng"],
-              ["/thue-hay-mua", "⚖️", "Thuê hay Mua?", "So sánh + yield từng quận"],
-              ["/thong-ke", "📊", "Bản Đồ Giá", "Giá trung vị theo khu vực"],
-            ] as const).map(([href, , t, d]) => (
-              <Link key={href} href={href} className="card rounded-xl p-4 hover:border-[var(--line-strong)] hover:shadow-md transition-all group/t">
-                <span className="block font-bold text-sm group-hover/t:text-brand transition-colors">{t} ›</span>
-                <span className="block text-xs text-[var(--ink-soft)] mt-0.5">{d}</span>
+            {[
+              { href: "/dinh-gia", icon: Sparkles, t: "AI Định Giá", d: "Biết giá trị nhà trong 10 giây", tag: "AI Realtime" },
+              { href: "/tinh-lai-vay", icon: Calculator, t: "Tính Lãi Vay", d: "Ước tính khoản góp hàng tháng", tag: "Tài chính" },
+              { href: "/thue-hay-mua", icon: Scale, t: "Thuê hay Mua?", d: "So sánh + tỷ suất sinh lời từng quận", tag: "Phân tích" },
+              { href: "/thong-ke", icon: BarChart3, t: "Bản Đồ Giá", d: "Giá trung vị theo khu vực", tag: "Dữ liệu thật" },
+            ].map(({ href, icon: Icon, t, d, tag }) => (
+              <Link
+                key={href}
+                href={href}
+                className="card rounded-2xl p-5 hover:border-brand/60 hover:shadow-lg transition-all group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="text-[0.68rem] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--ink-faint)]">
+                      {tag}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-sm text-[var(--ink)] group-hover:text-brand transition-colors">
+                    {t}
+                  </h3>
+                  <p className="text-xs text-[var(--ink-soft)] mt-1 leading-relaxed">
+                    {d}
+                  </p>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-brand">
+                  <span>Trải nghiệm ngay</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
               </Link>
             ))}
           </section>
 
           {/* ===== Micro: nhận email tin mới ===== */}
-          <section className="mt-10 card rounded-xl p-8 flex flex-col sm:flex-row items-center gap-5 border-l-2 !border-l-brand/60">
+          <section className="mt-10 card rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 border border-[var(--line)] bg-gradient-to-r from-brand/5 via-transparent to-transparent">
+            <div className="w-12 h-12 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+              <BellRing className="w-6 h-6" />
+            </div>
             <div className="flex-1 text-center sm:text-left">
               <h2 className="font-bold text-lg">Đừng bỏ lỡ căn nhà ưng ý</h2>
-              <p className="text-sm text-[var(--ink-soft)]">
+              <p className="text-sm text-[var(--ink-soft)] mt-0.5">
                 Lưu bộ lọc tìm kiếm của bạn - mỗi sáng có tin mới khớp, chúng tôi gửi thẳng vào email.
               </p>
             </div>
-            <Link href="/search" className="btn btn-primary whitespace-nowrap">Tạo thông báo ngay</Link>
+            <Link href="/search" className="btn btn-primary whitespace-nowrap rounded-xl px-5">
+              Tạo thông báo ngay
+            </Link>
           </section>
 
           {/* ===== Duyệt theo danh mục ===== */}
           <section className="mt-16">
-            <h2 className="prata text-xl mb-4 border-l-[3px] border-brand pl-3">Duyệt theo danh mục</h2>
+            <h2 className="prata text-xl md:text-2xl mb-4 border-l-[3px] border-brand pl-3">Duyệt theo danh mục</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {([
-                ["nha", "Nhà Riêng", "Tìm ngôi nhà hoàn hảo cho gia đình"],
-                ["can_ho", "Căn Hộ", "Cuộc sống đô thị tiện nghi"],
-                ["dat", "Đất Nền", "Đầu tư cho tương lai vững chắc"],
-                ["mat_bang", "Mặt Bằng", "Không gian kinh doanh chuyên nghiệp"],
-              ] as const).map(([kind, t, d]) => (
+              {[
+                { kind: "nha", t: "Nhà Riêng", d: "Tìm ngôi nhà hoàn hảo cho gia đình", icon: HomeIcon },
+                { kind: "can_ho", t: "Căn Hộ", d: "Cuộc sống đô thị tiện nghi & an ninh", icon: Building2 },
+                { kind: "dat", t: "Đất Nền", d: "Đầu tư cho tương lai vững chắc", icon: LandPlot },
+                { kind: "mat_bang", t: "Mặt Bằng", d: "Không gian kinh doanh chuyên nghiệp", icon: Store },
+              ].map(({ kind, t, d, icon: Icon }) => (
                 <Link
                   key={kind}
                   href={`/search?kind=${kind}`}
-                  className="rounded-xl p-6 bg-[#16233a] text-white hover:bg-[#1c2c48] transition group/c"
+                  className="rounded-2xl p-6 bg-[#16233a] text-white hover:bg-[#1c2c48] transition-all group flex flex-col justify-between"
                 >
-                  <h3 className="prata text-xl mb-1 group-hover/c:text-white/90">{t}</h3>
-                  <p className="text-sm text-white/60">{d}</p>
-                  <span className="inline-block mt-4 text-xs font-semibold text-white/70 group-hover/c:text-white transition">Xem tin ›</span>
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="prata text-xl mb-1 text-white group-hover:text-emerald-300 transition-colors">{t}</h3>
+                    <p className="text-sm text-white/70 leading-relaxed">{d}</p>
+                  </div>
+                  <div className="mt-6 flex items-center gap-1.5 text-xs font-semibold text-white/80 group-hover:text-white transition-colors">
+                    <span>Xem danh sách</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
                 </Link>
               ))}
             </div>
@@ -284,10 +320,13 @@ export default async function Home({
 
 function Section({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
   return (
-    <section className="mt-10">
+    <section className="mt-12">
       <div className="flex items-baseline gap-3 mb-4">
         <h2 className="prata text-xl md:text-2xl border-l-[3px] border-brand pl-3">{title}</h2>
-        <Link href={href} className="text-sm text-brand font-semibold ml-auto whitespace-nowrap">Xem tất cả ›</Link>
+        <Link href={href} className="group text-sm text-brand font-semibold ml-auto whitespace-nowrap inline-flex items-center gap-1">
+          <span>Xem tất cả</span>
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
       </div>
       {children}
     </section>
@@ -297,9 +336,9 @@ function Section({ title, href, children }: { title: string; href: string; child
 function Stat({ n, label }: { n: number; label: string }) {
   // "+" chỉ hợp lý với số lớn xấp xỉ; số nhỏ/đếm chính xác hiện đúng giá trị.
   return (
-    <div>
-      <div className="text-xl font-extrabold text-brand">{n.toLocaleString("vi-VN")}</div>
-      <div className="text-xs text-[var(--ink-soft)]">{label}</div>
+    <div className="px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--line)] shadow-sm shrink-0">
+      <div className="text-lg sm:text-xl font-extrabold text-brand tabular-nums">{n.toLocaleString("vi-VN")}</div>
+      <div className="text-[0.7rem] sm:text-xs text-[var(--ink-soft)]">{label}</div>
     </div>
   );
 }

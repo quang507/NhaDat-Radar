@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PROP } from "@/lib/format";
+import { Bell, CheckCircle2 } from "lucide-react";
 
 type Filters = {
   deal?: string; kind?: string; province?: string; district?: string; ward?: string;
@@ -80,7 +81,19 @@ export default function SaveSearchButton({ filters, compact = false }: { filters
         aria-label={compact ? (state === "done" ? "Đã đăng ký email tin mới" : "Nhận email tin mới") : undefined}
         title={compact ? "Nhận email khi có tin mới khớp bộ lọc" : undefined}
       >
-        {compact ? (state === "done" ? "✅" : "🔔") : state === "done" ? "✅ Sẽ email khi có tin mới" : "🔔 Nhận email tin mới"}
+        {compact ? (
+          state === "done" ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Bell className="w-4 h-4" />
+        ) : state === "done" ? (
+          <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>Sẽ email khi có tin mới</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5">
+            <Bell className="w-4 h-4 shrink-0" />
+            <span>Nhận email tin mới</span>
+          </span>
+        )}
       </button>
 
       {(state === "open" || state === "busy") && (

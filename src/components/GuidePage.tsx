@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Scale, Lightbulb, ShieldCheck } from "lucide-react";
 
 export type GuideStep = {
   title: string;
@@ -44,11 +45,17 @@ export default function GuidePage({
             </div>
             <div className="grid gap-3 md:grid-cols-2 text-[0.95rem] leading-relaxed">
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
-                <div className="font-bold text-amber-600 mb-1">⚖️ Lưu ý pháp lý</div>
+                <div className="font-bold text-amber-600 mb-1 flex items-center gap-1.5">
+                  <Scale className="w-4 h-4 shrink-0" />
+                  <span>Lưu ý pháp lý</span>
+                </div>
                 <p className="text-[var(--ink-soft)]">{s.legal}</p>
               </div>
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
-                <div className="font-bold text-emerald-600 mb-1">💡 Mẹo chuyên gia</div>
+                <div className="font-bold text-emerald-600 mb-1 flex items-center gap-1.5">
+                  <Lightbulb className="w-4 h-4 shrink-0" />
+                  <span>Mẹo chuyên gia</span>
+                </div>
                 <p className="text-[var(--ink-soft)]">{s.tip}</p>
               </div>
             </div>
@@ -64,7 +71,10 @@ export default function GuidePage({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {legalPoints.map(([t, d]) => (
             <div key={t} className="card rounded-lg p-5">
-              <h3 className="font-bold mb-1">🛡️ {t}</h3>
+              <h3 className="font-bold mb-1 flex items-center gap-1.5 text-brand">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>{t}</span>
+              </h3>
               <p className="text-[0.95rem] leading-relaxed text-[var(--ink-soft)]">{d}</p>
             </div>
           ))}

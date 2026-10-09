@@ -11,6 +11,7 @@ import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, maPhong, tagGiuPhong } from "@/lib/ro-hang";
 import { tienIchTheoKhoa } from "@/lib/tien-ich";
 import { baoGA } from "@/lib/su-kien-client";
+import { ShieldCheck, Eye } from "lucide-react";
 
 // THẺ PHÒNG CHO THUÊ kiểu EvoHome (1/10): thẻ dọc xếp lưới - ảnh, [mã] giá đ/tháng, địa chỉ, chip
 // Loại · m² · Trống, icon tiện ích "+N tiện ích", thời gian đăng, [sao chép] [Liên hệ], "Xem chi tiết".
@@ -46,9 +47,13 @@ export default function ThePhong({ x }: { x: Listing }) {
         {x.images?.[0]
           ? <SafeImg src={x.images[0]} alt={tieuDe} className="w-full h-full object-cover" />
           : <span className="absolute inset-0 grid place-items-center text-3xl text-white/90">{t.icon}</span>}
-        {roHang && <span className="absolute top-2 left-2 text-[0.62rem] font-extrabold px-1.5 py-0.5 rounded-md bg-emerald-600 text-white">✓ ĐÃ XÁC MINH</span>}
-        {anh.so > 1 && <span className="absolute bottom-2 right-2 text-[0.62rem] font-bold px-1.5 py-0.5 rounded-md bg-black/55 text-white">{anh.so} ảnh{anh.video ? " · ▶" : ""}</span>}
-        {giuPhong && <span className="absolute bottom-2 left-2 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-md bg-red-600 text-white" title={giuPhong}>🔥 Giữ phòng</span>}
+        {roHang && (
+          <span className="absolute top-2 left-2 text-[0.62rem] font-bold px-2 py-0.5 rounded-full bg-emerald-600/95 text-white shadow-sm backdrop-blur-sm flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3 shrink-0" />
+            <span>ĐÃ XÁC MINH</span>
+          </span>
+        )}
+        {anh.so > 1 && <span className="absolute bottom-2 right-2 text-[0.62rem] font-semibold px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-md">{anh.so} ảnh</span>}
       </Link>
       <FavButton id={x.id} className="absolute top-2 right-2" />
 
@@ -91,7 +96,10 @@ export default function ThePhong({ x }: { x: Listing }) {
             Liên hệ
           </Link>
         </div>
-        <Link href={href} className="text-center text-[0.72rem] text-[var(--ink-soft)] hover:text-brand py-0.5">👁 Xem chi tiết</Link>
+        <Link href={href} className="text-center text-[0.72rem] text-[var(--ink-soft)] hover:text-brand py-0.5 inline-flex items-center justify-center gap-1">
+          <Eye className="w-3.5 h-3.5" />
+          <span>Xem chi tiết</span>
+        </Link>
       </div>
     </div>
   );

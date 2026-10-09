@@ -17,6 +17,7 @@ import PriceTrend from "@/components/PriceTrend";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang } from "@/lib/ro-hang";
 import { ldJson } from "@/lib/ld";
+import { BarChart3 } from "lucide-react";
 
 type Deal = "ban" | "cho_thue";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
@@ -262,8 +263,9 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
       {/* 3/10 SEO: liên kết nội bộ sang báo cáo giá thuê của quận (trang tin tức) - chỉ trang phòng trọ cấp quận TP.HCM */}
       {deal === "cho_thue" && district && kind === "phong_tro" && province === "Hồ Chí Minh" && total >= 30 && (
         <p className="text-sm mt-1">
-          <Link href={`/tin-tuc/gia-thue-phong-tro-${slugify(district)}`} className="text-brand font-semibold hover:underline">
-            📊 Giá thuê phòng trọ {tenKhuVucGon(district)} tháng này: trung vị, theo diện tích, phường rẻ nhất ›
+          <Link href={`/tin-tuc/gia-thue-phong-tro-${slugify(district)}`} className="text-brand font-semibold hover:underline inline-flex items-center gap-1.5">
+            <BarChart3 className="w-4 h-4 shrink-0" />
+            <span>Giá thuê phòng trọ {tenKhuVucGon(district)} tháng này: trung vị, theo diện tích, phường rẻ nhất ›</span>
           </Link>
         </p>
       )}

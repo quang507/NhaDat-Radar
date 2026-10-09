@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn, signUp, signInWithGoogle, resetPassword } from "./actions";
 import Turnstile from "@/components/Turnstile";
+import { ChevronLeft } from "lucide-react";
 
 type Mode = "login" | "register" | "forgot";
 
@@ -41,8 +42,14 @@ export default function AuthForm({
       {mode !== "forgot" && (
         <>
           <form action={signInWithGoogle}>
-            <button className="btn w-full flex items-center justify-center gap-2" type="submit">
-              <span className="text-[#EA4335] font-bold">G</span> Tiếp Tục Với Google
+            <button className="btn w-full flex items-center justify-center gap-2.5 min-h-12 border border-[var(--line)] hover:bg-[var(--surface-2)]" type="submit">
+              <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48" aria-hidden>
+                <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+                <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+                <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+                <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
+              </svg>
+              <span>Tiếp Tục Với Google</span>
             </button>
           </form>
           <div className="text-center text-xs text-[var(--ink-soft)] my-4">- HOẶC -</div>
@@ -80,9 +87,9 @@ export default function AuthForm({
           </p>
           <Field label="Email" name="email" type="email" placeholder="your@email.com" />
           <Turnstile />
-          <button className="btn btn-primary w-full mt-1" type="submit">Gửi Link Đặt Lại</button>
-          <button type="button" onClick={() => setMode("login")} className="text-xs text-[var(--ink-soft)] font-semibold text-center">
-            ‹ Quay lại đăng nhập
+          <button type="button" onClick={() => setMode("login")} className="text-xs text-[var(--ink-soft)] hover:text-brand font-semibold text-center flex items-center justify-center gap-1 transition">
+            <ChevronLeft className="w-4 h-4" />
+            <span>Quay lại đăng nhập</span>
           </button>
         </form>
       )}

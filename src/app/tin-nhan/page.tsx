@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { markConvSeen } from "@/components/NavMsg";
+import { MessageSquare, Send } from "lucide-react";
 
 type Conv = { id: string; listing_id: string | null; buyer_id: string; agent_id: string; created_at: string; title?: string; other?: string };
 type Msg = { id: string; conversation_id: string; sender_id: string; body: string; created_at: string };
@@ -116,7 +117,7 @@ function Chat() {
   if (!loaded) return <p className="text-center py-16 text-[var(--ink-soft)]">Đang tải…</p>;
   if (!uid) return (
     <div className="card rounded-lg p-10 text-center max-w-md mx-auto mt-8">
-      <div className="text-4xl mb-3">💬</div>
+      <MessageSquare className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
       <p className="text-sm text-[var(--ink-soft)] mb-4">Đăng nhập để nhắn tin với người bán.</p>
       <Link href="/auth" className="btn btn-primary inline-block">Đăng nhập</Link>
     </div>
@@ -138,7 +139,7 @@ function Chat() {
               <div className="text-xs text-[var(--ink-soft)] truncate">{c.title}</div>
             </button>
           )) : (
-            <p className="p-5 text-sm text-[var(--ink-soft)]">Chưa có hội thoại nào. Bấm “💬 Nhắn tin” trên tin đăng của người bán để bắt đầu.</p>
+            <p className="p-5 text-sm text-[var(--ink-soft)]">Chưa có hội thoại nào. Bấm “Nhắn tin” trên tin đăng của người bán để bắt đầu.</p>
           )}
         </div>
 
@@ -157,11 +158,13 @@ function Chat() {
                     m.sender_id === uid ? "ml-auto bg-brand text-white rounded-br-sm" : "bg-[var(--surface-2)] rounded-bl-sm"
                   }`}>{m.body}</div>
                 ))}
-                {!msgs.length && <p className="text-xs text-[var(--ink-faint)] text-center py-6">Gửi tin nhắn đầu tiên 👋</p>}
+                {!msgs.length && <p className="text-xs text-[var(--ink-faint)] text-center py-6">Chưa có tin nhắn nào. Bắt đầu cuộc trò chuyện ngay!</p>}
               </div>
               <form className="p-2 border-t border-[var(--line)] flex gap-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
                 <input className="inp !py-2 text-sm" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Nhập tin nhắn…" />
-                <button className="btn btn-primary !px-4" type="submit" aria-label="Gửi tin nhắn">➤</button>
+                <button className="btn btn-primary !px-4 flex items-center justify-center" type="submit" aria-label="Gửi tin nhắn">
+                  <Send className="w-4 h-4" />
+                </button>
               </form>
             </>
           ) : (

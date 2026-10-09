@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Lock } from "lucide-react";
 
 // Cổng "đăng nhập để xem SĐT người đăng" - mô hình Homigo nhưng KHÔNG thu tiền:
 // khách vãng lai bấm nút thì mở popup mời đăng nhập/đăng ký, đăng nhập xong thấy số.
@@ -19,9 +20,10 @@ export default function DangNhapDeXem() {
     <>
       <button
         onClick={() => setMo(true)}
-        className="btn w-full text-center border border-[var(--line)] font-semibold"
+        className="btn w-full text-center border border-[var(--line)] font-semibold inline-flex items-center justify-center gap-1.5"
       >
-        🔒 Đăng nhập để xem SĐT người đăng
+        <Lock className="w-4 h-4 text-slate-500" />
+        <span>Đăng nhập để xem SĐT người đăng</span>
       </button>
 
       {mo && (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { MessageSquare } from "lucide-react";
 
 // Theo dõi tin đã đọc bằng localStorage (map convId -> ISO thời điểm tin mới nhất đã xem).
 const KEY = "ndr:msgseen";
@@ -81,8 +82,8 @@ export default function NavMsg() {
 
   if (!uid) return null;
   return (
-    <Link href="/tin-nhan" className="relative btn !px-3" aria-label="Tin nhắn">
-      💬
+    <Link href="/tin-nhan" className="relative btn !px-2.5 flex items-center justify-center" aria-label="Tin nhắn">
+      <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-300" />
       {count > 0 && (
         <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[0.65rem] font-bold grid place-items-center">
           {count > 99 ? "99+" : count}

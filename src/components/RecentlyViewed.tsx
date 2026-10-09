@@ -28,17 +28,22 @@ export function rememberSearch(label: string, href: string) {
   } catch { /* ignore */ }
 }
 
+import { History } from "lucide-react";
+
 export function RecentSearches() {
   const [items, setItems] = useState<{ label: string; href: string }[]>([]);
   useEffect(() => { try { setItems(JSON.parse(localStorage.getItem(KEY_Q) || "[]")); } catch { /* ignore */ } }, []);
   if (!items.length) return null;
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs mb-3">
-      <span className="text-[var(--ink-soft)]">Tìm gần đây:</span>
+      <span className="text-[var(--ink-soft)] font-medium">Tìm gần đây:</span>
       {items.map((s) => (
-        <Link key={s.href} href={s.href} className="px-2.5 py-1 rounded-full border border-[var(--line)] hover:border-brand hover:text-brand transition">🕘 {s.label}</Link>
+        <Link key={s.href} href={s.href} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] hover:border-brand hover:text-brand transition">
+          <History className="w-3 h-3 text-slate-400" />
+          <span>{s.label}</span>
+        </Link>
       ))}
-      <button className="text-[var(--ink-faint)] underline-offset-2 hover:underline" onClick={() => { try { localStorage.removeItem(KEY_Q); } catch { /* ignore */ } setItems([]); }}>xoá</button>
+      <button className="text-[var(--ink-faint)] underline-offset-2 hover:underline hover:text-red-500" onClick={() => { try { localStorage.removeItem(KEY_Q); } catch { /* ignore */ } setItems([]); }}>xoá</button>
     </div>
   );
 }

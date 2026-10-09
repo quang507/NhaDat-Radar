@@ -4,23 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
+import { Bot, Sparkles, X, Send, PhoneCall, Home } from "lucide-react";
 
 type MiniListing = { id: string; title: string; price: string; meta: string; image: string | null };
 type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[] };
 
 const GREET: Msg = {
   role: "bot",
-  text: "Xin chào! Mình là trợ lý AI của NhaDat Radar 🏠\n\nMình có thể hỗ trợ bạn:\n• Tìm nhà bán/thuê theo tầm giá & khu vực\n• Xem nhà rổ hàng ưu tiên, kiểm tra pháp lý\n• Đặt lịch hẹn xem nhà thực tế với chuyên viên\n\nBạn đang quan tâm nhà ở khu vực nào?",
+  text: "Xin chào! Mình là trợ lý AI của NhaDat Radar.\n\nMình có thể hỗ trợ bạn:\n• Tìm nhà bán / cho thuê theo tầm giá & khu vực\n• Kiểm tra tin đã xác minh, tư vấn pháp lý\n• Đặt lịch hẹn xem nhà thực tế với chuyên viên\n\nBạn đang quan tâm bất động sản ở khu vực nào?",
 };
 
 const CHIPS = [
-  "🏡 Nhà Tân Phú dưới 8 tỷ",
-  "🔑 Nhà Bình Tân 3 - 4 tỷ",
-  "📑 Cần xem sổ hồng & tư vấn",
-  "📞 Gặp chuyên viên Zalo",
+  "Nhà Tân Phú dưới 8 tỷ",
+  "Nhà Bình Tân 3 - 4 tỷ",
+  "Cần xem sổ hồng & tư vấn",
+  "Liên hệ Hotline hỗ trợ",
 ];
 
-// Chatbot nổi góc phải: hỏi đáp tìm nhà bằng AI, thu thập lead và kết nối Hotline/Zalo
+// Chatbot nổi góc phải: hỏi đáp tìm nhà bằng AI, thu thập lead và kết nối chuyên viên
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([GREET]);
@@ -39,15 +40,14 @@ export default function ChatWidget() {
     if (!trimmed || busy) return;
     setInput("");
 
-    // Nếu bấm chip Zalo
-    if (trimmed === "📞 Gặp chuyên viên Zalo") {
-      window.open(HOTLINE_ZALO, "_blank", "noopener");
+    // Nếu bấm chip Hotline
+    if (trimmed === "Liên hệ Hotline hỗ trợ") {
       setMsgs((m) => [
         ...m,
         { role: "user", text: trimmed },
         {
           role: "bot",
-          text: `Dạ em đã mở cửa sổ chat Zalo để anh/chị trao đổi trực tiếp với Chuyên viên (Hotline: ${HOTLINE}). Nếu cần tìm thêm căn nào, anh/chị cứ nhắn ở đây nhé!`,
+          text: `Bạn có thể liên hệ trực tiếp với Chuyên viên tư vấn Radar qua Hotline ${HOTLINE} để được hỗ trợ nhanh nhất. Nếu cần tìm thêm căn nào, bạn cứ nhắn mình ở đây nhé!`,
         },
       ]);
       return;
@@ -77,62 +77,50 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Nút Zalo người thật */}
-      <a
-        href={HOTLINE_ZALO}
-        target="_blank"
-        rel="noopener"
-        aria-label="Chat Zalo Hotline"
-        title="Chat Zalo Chuyên Viên: 0346 689 460"
-        className="fixed bottom-36 lg:bottom-24 right-4 lg:right-5 z-40 w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg grid place-items-center bg-[#0068ff] text-white hover:scale-110 active:scale-95 transition"
-      >
-        <span className="font-extrabold text-xs lg:text-sm tracking-tight">Zalo</span>
-      </a>
-
-      {/* Nút mở trợ lý AI */}
+      {/* Nút mở trợ lý AI (không chèn thêm nút Zalo nổi riêng để giữ giao diện thanh lịch) */}
       <button
         aria-label="Mở trợ lý AI"
         onClick={() => setOpen((v) => !v)}
-        className={`fixed bottom-20 lg:bottom-5 right-4 lg:right-5 z-50 w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg text-2xl grid place-items-center
-                   bg-gradient-to-br from-brand to-brand-2 text-white hover:scale-110 active:scale-95 transition ${open ? "" : "float-cta"}`}
+        className={`fixed bottom-20 lg:bottom-5 right-4 lg:right-5 z-50 w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg grid place-items-center
+                   bg-brand text-white hover:scale-105 active:scale-95 transition ${open ? "" : "float-cta"}`}
       >
-        {open ? "✕" : "🤖"}
+        {open ? <X className="w-5 h-5" /> : <Sparkles className="w-6 h-6" />}
       </button>
 
       {open && (
         <div className="fixed bottom-36 lg:bottom-24 right-4 lg:right-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[560px] max-h-[75vh]
                         card rounded-xl shadow-2xl flex flex-col overflow-hidden border border-[var(--line)]">
           {/* Header */}
-          <div className="px-4 py-3 bg-gradient-to-r from-brand to-brand-2 text-white flex items-center justify-between">
+          <div className="px-4 py-3 bg-brand text-white flex items-center justify-between">
             <div>
-              <div className="font-bold flex items-center gap-1.5">
-                <span>🤖 Trợ lý AI Radar</span>
+              <div className="font-bold flex items-center gap-1.5 text-sm">
+                <Bot className="w-4 h-4" />
+                <span>Trợ lý AI Radar</span>
                 <span className="text-[0.65rem] bg-white/20 px-1.5 py-0.5 rounded-full font-normal">24/7</span>
               </div>
-              <div className="text-xs opacity-90">Tìm nhà nhanh · Đặt lịch xem trực tiếp</div>
+              <div className="text-xs text-white/80">Tìm nhà nhanh · Kiểm tra giá thật</div>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="text-white/80 hover:text-white text-lg p-1"
+              className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
               aria-label="Đóng chat"
             >
-              ✕
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Sub-bar Hotline & Zalo */}
+          {/* Sub-bar Hotline */}
           <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span>Trực tuyến</span>
             </div>
             <a
-              href={HOTLINE_ZALO}
-              target="_blank"
-              rel="noopener"
-              className="font-bold text-[#0068ff] hover:underline flex items-center gap-1"
+              href={`tel:${HOTLINE}`}
+              className="font-semibold text-brand hover:underline flex items-center gap-1"
             >
-              <span>💬 Zalo: {HOTLINE}</span>
+              <PhoneCall className="w-3 h-3" />
+              <span>Hotline: {HOTLINE}</span>
             </a>
           </div>
 
@@ -160,7 +148,9 @@ export default function ChatWidget() {
                           {l.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={l.image} alt="" className="w-full h-full object-cover" />
-                          ) : "🏠"}
+                          ) : (
+                            <Home className="w-6 h-6 text-slate-400" />
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-semibold leading-snug line-clamp-2">{l.title}</div>
@@ -169,16 +159,6 @@ export default function ChatWidget() {
                         </div>
                       </Link>
                     ))}
-                    <div className="pt-1 text-center">
-                      <a
-                        href={HOTLINE_ZALO}
-                        target="_blank"
-                        rel="noopener"
-                        className="inline-flex items-center gap-1 text-xs font-bold text-[#0068ff] bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 transition"
-                      >
-                        💬 Nhắn Zalo hẹn xem nhà hoặc xem sổ hồng →
-                      </a>
-                    </div>
                   </div>
                 )}
               </div>
@@ -187,7 +167,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Quick chips gợi ý */}
-          <div className="px-3 py-1.5 bg-[var(--surface)] border-t border-[var(--line)] overflow-x-auto flex gap-1.5 no-scrollbar">
+          <div className="px-3 py-1.5 bg-[var(--surface)] border-t border-[var(--line)] overflow-x-auto flex gap-1.5 [scrollbar-width:none]">
             {CHIPS.map((chip, idx) => (
               <button
                 key={idx}
@@ -212,8 +192,8 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Hỏi AI: 'nhà Tân Phú dưới 8 tỷ', để lại SĐT…"
             />
-            <button className="btn btn-primary !px-4" type="submit" disabled={busy || !input.trim()} aria-label="Gửi câu hỏi">
-              ➤
+            <button className="btn btn-primary !px-3.5 flex items-center justify-center" type="submit" disabled={busy || !input.trim()} aria-label="Gửi câu hỏi">
+              <Send className="w-4 h-4" />
             </button>
           </form>
         </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { baoGA } from "@/lib/su-kien-client";
+import { CheckCircle2, Calendar } from "lucide-react";
 
 // Đặt lịch xem nhà (chỉ tin người bán tự đăng - cần agent_id).
 export default function AppointmentForm({ listingId, agentId }: { listingId: string; agentId: string }) {
@@ -30,11 +31,19 @@ export default function AppointmentForm({ listingId, agentId }: { listingId: str
   }
 
   if (state === "done") {
-    return <p className="text-sm text-emerald-600 font-semibold">✅ Đã gửi yêu cầu xem nhà - người bán sẽ xác nhận, theo dõi tại Kênh người bán.</p>;
+    return (
+      <p className="text-sm text-emerald-600 font-semibold flex items-center gap-1.5">
+        <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <span>Đã gửi yêu cầu xem nhà - người bán sẽ xác nhận, theo dõi tại Kênh người bán.</span>
+      </p>
+    );
   }
   return (
     <form onSubmit={submit} className="flex flex-col gap-2">
-      <span className="lbl">📅 Đặt lịch xem nhà</span>
+      <span className="lbl flex items-center gap-1.5">
+        <Calendar className="w-4 h-4 text-brand shrink-0" />
+        <span>Đặt lịch xem nhà</span>
+      </span>
       <input className="inp" type="datetime-local" value={slot} onChange={(e) => setSlot(e.target.value)} required />
       <input className="inp" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú (tuỳ chọn)" />
       <button className="btn w-full" type="submit" disabled={state !== "idle"}>

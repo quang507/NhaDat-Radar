@@ -11,6 +11,7 @@
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import { LinkTheoDoi } from "./TheoDoi";
 import HienSoRadar from "./HienSoRadar";
+import { MessageCircle } from "lucide-react";
 
 export { HOTLINE, HOTLINE_ZALO };
 
@@ -31,9 +32,10 @@ export default function TuVanRadar({ listingId }: { listingId?: string }) {
           href={HOTLINE_ZALO}
           target="_blank"
           rel="noopener"
-          className="btn flex-1 text-center whitespace-nowrap border border-[#0068ff] text-[#0068ff] font-semibold"
+          className="btn flex-1 text-center whitespace-nowrap border border-[#0068ff] text-[#0068ff] font-semibold flex items-center justify-center gap-1.5"
         >
-          Chat Zalo
+          <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+          <span>Chat Zalo</span>
         </A>
       </div>
     </div>

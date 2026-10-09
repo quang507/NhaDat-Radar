@@ -43,6 +43,7 @@ import MoTaThuGon from "@/components/MoTaThuGon";
 import HangVuot from "@/components/HangVuot";
 import AppointmentForm from "@/components/AppointmentForm";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
+import { MapPin, ShieldCheck, Building2, AlertTriangle, HelpCircle, MessageSquare, MessageCircle, ChevronLeft } from "lucide-react";
 
 // ---- DỮ LIỆU CÔNG KHAI CỦA TRANG TIN, CÓ CACHE (28/9) ----------------------------------------------
 // Trang tin là trang bị bot gọi nhiều nhất (~10.000 URL trong sitemap). Trước đây MỖI lượt xem gọi
@@ -349,7 +350,10 @@ export default async function ListingDetail({
     <div>
       {ldTin.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(o) }} />)}
       <div className="flex items-center gap-3">
-        <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold">‹ Quay lại</Link>
+        <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold inline-flex items-center gap-1 hover:text-brand transition-colors">
+          <ChevronLeft className="w-4 h-4" />
+          <span>Quay lại</span>
+        </Link>
         <span className="ml-auto flex items-center gap-2">
           <ChiaSe url={`${SITE_URL}/listings/${x.id}`} title={x.title} listingId={x.id} />
           <FavButton id={x.id} />
@@ -409,14 +413,16 @@ export default async function ListingDetail({
       <div className="flex flex-wrap justify-between gap-4 items-start mt-2">
         <div className="min-w-0">
           <h1 className="prata text-xl md:text-3xl leading-tight">{x.title}</h1>
-          <div className="text-[var(--ink-soft)] text-sm mt-1">
-            📍 {diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}
+          <div className="text-[var(--ink-soft)] text-sm mt-1 flex items-center gap-1">
+            <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+            <span>{diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}</span>
           </div>
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
           {roHang ? (
-            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
-              <span className="font-semibold text-amber-700 bg-amber-500/10 px-2 py-0.5 rounded-full">
-                ★ {x.deal === "ban" ? "Hàng độc quyền Radar · nhà phố đã xác thực sổ hồng" : "Rổ hàng Radar · phòng trống đã xác thực"}
+            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
+              <span className="font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 border border-emerald-500/20">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                {x.deal === "ban" ? "Tin đã xác minh · nhà phố đã xác thực sổ hồng" : "Tin đã xác minh · phòng trống thực tế"}
               </span>
               {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded-full">{giuPhong}</span>}
             </div>
@@ -516,7 +522,7 @@ export default async function ListingDetail({
             <div className="card rounded-lg p-4 text-sm flex items-center gap-3 flex-wrap">
               <div>
                 <div className="text-xs text-[var(--ink-soft)] mb-0.5">Thông tin dự án</div>
-                <div className="font-bold">🏙 {duAn.name}</div>
+                <div className="font-bold flex items-center gap-1.5"><Building2 className="w-4 h-4 text-brand" /> {duAn.name}</div>
                 {duAn.investor && <div className="text-xs text-[var(--ink-soft)]">Chủ đầu tư: {duAn.investor}</div>}
               </div>
               <Link href={`/projects/${duAn.id}`} className="btn text-sm ml-auto whitespace-nowrap">
@@ -547,8 +553,12 @@ export default async function ListingDetail({
             </div>
           )}
           {x.price_flag ? (
-            <div className="card rounded-lg p-4 border-red-500/40 text-red-600 text-sm">
-              ⚠️ Cảnh báo giá: tin này {x.price_flag.reason === "cao_hon" ? "cao" : "thấp"} hơn{" "}
+            <div className="card rounded-lg p-4 border-amber-500/40 bg-amber-500/5 text-amber-700 text-sm">
+              <div className="font-bold flex items-center gap-1.5 mb-1">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                Cảnh báo mức giá
+              </div>
+              tin này {x.price_flag.reason === "cao_hon" ? "cao" : "thấp"} hơn{" "}
               {Math.abs(x.price_flag.deviation_pct)}% so với trung vị {x.price_flag.cluster_size} tin cùng loại trong quận
               ({x.price_flag.distinct_posters} người đăng khác nhau, so theo {x.price_flag.basis === "gia" ? "giá" : "giá/m²"}). Nên kiểm tra kỹ.
             </div>
@@ -564,12 +574,12 @@ export default async function ListingDetail({
               <div className="flex flex-col gap-3 text-sm">
                 {hoiDap.map((f) => (
                   <div key={f.id}>
-                    <div className="font-semibold">❓ {cheSoVanBan(f.question)}</div>
-                    <div className="text-[var(--ink-soft)] mt-0.5">💬 {cheSoVanBan(f.answer)}</div>
+                    <div className="font-semibold flex items-center gap-1.5"><HelpCircle className="w-4 h-4 text-slate-400" /> {cheSoVanBan(f.question)}</div>
+                    <div className="text-[var(--ink-soft)] mt-0.5 ml-5.5 flex items-start gap-1.5"><MessageSquare className="w-3.5 h-3.5 text-slate-400 mt-1 shrink-0" /> {cheSoVanBan(f.answer)}</div>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-[var(--ink-faint)] mt-3">Muốn hỏi thêm hoặc hẹn xem: nhắn Zalo Radar ở khung liên hệ.</p>
+              <p className="text-xs text-[var(--ink-faint)] mt-3">Muốn hỏi thêm hoặc hẹn xem: liên hệ với chuyên viên Radar ở khung bên cạnh.</p>
             </div>
           )}
           {x.amenities?.length ? (
@@ -586,8 +596,9 @@ export default async function ListingDetail({
           ) : null}
           <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-2">Vị trí</h3>
-            <div className="text-sm text-[var(--ink-soft)] mb-3">
-              📍 {diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}
+            <div className="text-sm text-[var(--ink-soft)] mb-3 flex items-center gap-1">
+              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+              <span>{diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}</span>
             </div>
             {x.lat != null && x.lng != null ? (
               <>
@@ -603,7 +614,7 @@ export default async function ListingDetail({
               </>
             ) : (
               <div className="h-56 rounded-xl grid place-items-center text-[var(--ink-soft)] bg-[var(--bg)] border border-[var(--line)] text-sm">
-                📍 Tin này chưa có toạ độ chính xác
+                <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-slate-400" /> Tin này chưa có toạ độ chính xác</span>
               </div>
             )}
           </div>
@@ -629,8 +640,11 @@ export default async function ListingDetail({
                 SĐT hiện sau đăng nhập (mô hình Homigo), hotline Radar không chặn ai. */}
             {roHang ? (
               <div className="mb-3 flex flex-col gap-2">
-                <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-[var(--ink-soft)]">
-                  <div className="font-bold text-sm text-[var(--ink)] mb-1">★ {x.deal === "ban" ? "Hàng độc quyền Radar" : "Rổ hàng Radar"}</div>
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-[var(--ink-soft)]">
+                  <div className="font-bold text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 mb-1">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>{x.deal === "ban" ? "Tin đã xác minh Radar" : "Tin phòng đã xác minh"}</span>
+                  </div>
                   {cauChotXemPhong(fmtPrice(x.price_vnd, x.deal), x.deal)}
                 </div>
                 {/* mã phòng / mã căn: zalo.me không điền sẵn tin nhắn -> khách gửi mã để biết hỏi căn nào */}
@@ -639,8 +653,9 @@ export default async function ListingDetail({
                   <div className="font-mono text-xl font-extrabold tracking-wider select-all">{maPhong(x.id)}</div>
                 </div>
                 <HienSoRadar listingId={x.id} />
-                <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold">
-                  {x.deal === "ban" ? "💬 Nhắn Zalo hẹn xem nhà" : "💬 Nhắn Zalo hẹn xem phòng"}
+                <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold flex items-center justify-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+                  <span>{x.deal === "ban" ? "Nhắn Zalo hẹn xem nhà" : "Nhắn Zalo hẹn xem phòng"}</span>
                 </NutZalo>
                 {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
                 <div className="hidden lg:flex items-center gap-3 rounded-lg border border-[var(--line)] p-3">
@@ -654,7 +669,10 @@ export default async function ListingDetail({
               </div>
             ) : docQuyen ? (
               <div className="mb-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
-                <div className="font-bold mb-1 text-emerald-700 flex items-center gap-1.5"><span>✓</span> Tin đã xác minh</div>
+                <div className="font-bold mb-1 text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Tin đã xác minh</span>
+                </div>
                 <p className="text-xs text-[var(--ink-soft)]">
                   Tin này đã được Radar xác minh thực tế và pháp lý. Radar hỗ trợ kết nối trực tiếp:
                   gọi hotline bên dưới, hoặc hỏi chi tiết và hẹn xem nhà - hoàn toàn miễn phí.
@@ -762,14 +780,20 @@ export default async function ListingDetail({
         {roHang ? (
           <span className="ml-auto flex gap-1.5">
             <HienSoRadar listingId={x.id} nho />
-            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</NutZalo>
+            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold inline-flex items-center gap-1.5">
+              <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+              <span>Zalo</span>
+            </NutZalo>
           </span>
         ) : isCrawl ? (
           // 2/10: trước đây nút chính là "Xem bài gốc ›" -> khách muốn liên hệ là bị đẩy sang trang khác.
           // Giờ giữ khách ở Radar (gọi/Zalo tư vấn); "Xem bài gốc" vẫn có trong khối liên hệ.
           <span className="ml-auto flex gap-1.5">
             <HienSoRadar listingId={x.id} nho />
-            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold">💬 Zalo</NutZalo>
+            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold inline-flex items-center gap-1.5">
+              <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+              <span>Zalo</span>
+            </NutZalo>
           </span>
         ) : (
           <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Liên hệ</a>

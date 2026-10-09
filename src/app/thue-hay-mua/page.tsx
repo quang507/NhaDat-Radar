@@ -4,6 +4,7 @@ export const revalidate = 3600;
 import { createAnonClient } from "@/lib/supabase/anon";
 import { median } from "@/lib/gemini";
 import RentVsBuyCalc from "./RentVsBuyCalc";
+import { TrendingUp } from "lucide-react";
 
 export const metadata = { title: "Thuê hay Mua? Tỷ suất cho thuê theo quận - NhaDat Radar" };
 
@@ -53,7 +54,10 @@ export default async function RentVsBuyPage() {
         <RentVsBuyCalc />
 
         <div className="card rounded-lg p-5">
-          <h2 className="font-bold mb-1">📈 Tỷ suất cho thuê theo quận</h2>
+          <h2 className="font-bold mb-1 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>Tỷ suất cho thuê theo quận</span>
+          </h2>
           <p className="text-xs text-[var(--ink-soft)] mb-3">
             Yield gộp/năm = (giá thuê/m²/tháng × 12) ÷ giá bán/m². Trên 4%/năm thường được coi là tốt tại VN.
           </p>

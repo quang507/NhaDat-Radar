@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { ShieldCheck, MapPin, Handshake, Award, Network, Zap, Users } from "lucide-react";
 
 export const metadata = { title: "Người bán chuyên nghiệp - NhaDat Radar" };
 
@@ -12,13 +13,13 @@ type AgentRow = {
 };
 
 const WHY = [
-  ["✅", "Chuyên gia đã xác minh", "Người bán trải qua xác minh hồ sơ và duy trì tiêu chuẩn chuyên nghiệp cao"],
-  ["📍", "Am hiểu thị trường địa phương", "Kiến thức sâu về thị trường, pháp lý và thông tin khu vực tại Việt Nam"],
-  ["🤝", "Hỗ trợ toàn diện", "Đồng hành từ tìm kiếm bất động sản đến hoàn thành thủ tục pháp lý"],
-  ["🏆", "Dịch vụ chất lượng", "Được ghi nhận về sự hài lòng của khách hàng và giao dịch thành công"],
-  ["🔗", "Đối tác đáng tin cậy", "Quan hệ chặt chẽ với chủ đầu tư, ngân hàng và chuyên gia pháp lý"],
-  ["⚡", "Phản hồi nhanh", "Cam kết giao tiếp nhanh chóng, xử lý giao dịch hiệu quả"],
-] as const;
+  { icon: ShieldCheck, title: "Chuyên gia đã xác minh", desc: "Người bán trải qua xác minh hồ sơ và duy trì tiêu chuẩn chuyên nghiệp cao" },
+  { icon: MapPin, title: "Am hiểu thị trường địa phương", desc: "Kiến thức sâu về thị trường, pháp lý và thông tin khu vực tại Việt Nam" },
+  { icon: Handshake, title: "Hỗ trợ toàn diện", desc: "Đồng hành từ tìm kiếm bất động sản đến hoàn thành thủ tục pháp lý" },
+  { icon: Award, title: "Dịch vụ chất lượng", desc: "Được ghi nhận về sự hài lòng của khách hàng và giao dịch thành công" },
+  { icon: Network, title: "Đối tác đáng tin cậy", desc: "Quan hệ chặt chẽ với chủ đầu tư, ngân hàng và chuyên gia pháp lý" },
+  { icon: Zap, title: "Phản hồi nhanh", desc: "Cam kết giao tiếp nhanh chóng, xử lý giao dịch hiệu quả" },
+];
 
 export default async function AgentsPage() {
   const supabase = await createClient();
@@ -84,8 +85,15 @@ export default async function AgentsPage() {
                       <img src={a.avatar_url} alt={name} className="w-full h-full object-cover" />
                     ) : initials}
                   </div>
-                  <div className="text-[0.65rem] font-bold uppercase tracking-wide text-brand mb-1">
-                    {a.is_verified ? "Đã xác minh" : "Người bán"}
+                  <div className={`text-[0.65rem] font-bold uppercase tracking-wide mb-1 inline-flex items-center gap-1 ${a.is_verified ? "text-emerald-600" : "text-brand"}`}>
+                    {a.is_verified ? (
+                      <>
+                        <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                        <span>Đã xác minh</span>
+                      </>
+                    ) : (
+                      <span>Người bán</span>
+                    )}
                   </div>
                   <h3 className="font-bold leading-snug">{name}</h3>
                   {a.agency_name && <div className="text-xs text-[var(--ink-soft)] mt-0.5">{a.agency_name}</div>}
@@ -114,7 +122,7 @@ export default async function AgentsPage() {
           </div>
         ) : (
           <div className="card rounded-lg p-10 text-center">
-            <div className="text-4xl mb-3">🧑‍💼</div>
+            <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <h3 className="font-bold text-lg mb-1">Chưa có người bán nào đăng ký</h3>
             <p className="text-[var(--ink-soft)] text-sm mb-4">
               Hãy là người bán đầu tiên trên NhaDat Radar - đăng ký miễn phí và đăng tin ngay hôm nay.
@@ -132,12 +140,20 @@ export default async function AgentsPage() {
           và cam kết dịch vụ xuất sắc.
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {WHY.map(([, t, d]) => (
-            <div key={t} className="card rounded-xl p-5 border-l-2 !border-l-brand/60">
-              <h3 className="font-bold mb-1">{t}</h3>
-              <p className="text-sm text-[var(--ink-soft)]">{d}</p>
-            </div>
-          ))}
+          {WHY.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.title} className="card rounded-xl p-5 border-l-2 !border-l-brand/60 flex flex-col gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-bold text-sm">{item.title}</h3>
+                </div>
+                <p className="text-sm text-[var(--ink-soft)]">{item.desc}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

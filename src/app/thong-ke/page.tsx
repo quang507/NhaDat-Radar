@@ -6,6 +6,7 @@ import { unstable_cache } from "next/cache";
 import PriceMap, { type MapPoint } from "@/components/PriceMap";
 import type { Listing } from "@/lib/types";
 import { median } from "@/lib/gemini";
+import { TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 const CITIES = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng"];
 
@@ -129,8 +130,9 @@ async function PriceHistoryChart({ city, deal }: { city: string; deal: string })
 
   if (series.length < 2) {
     return (
-      <p className="text-xs text-[var(--ink-faint)] mb-4 rounded-lg bg-[var(--surface-2)] p-2.5">
-        📈 Lịch sử giá đang được tích luỹ mỗi ngày - biểu đồ xu hướng sẽ hiện tại đây sau vài ngày dữ liệu.
+      <p className="text-xs text-[var(--ink-faint)] mb-4 rounded-lg bg-[var(--surface-2)] p-2.5 flex items-center gap-2">
+        <TrendingUp className="w-4 h-4 text-brand shrink-0" />
+        <span>Lịch sử giá đang được tích luỹ mỗi ngày - biểu đồ xu hướng sẽ hiện tại đây sau vài ngày dữ liệu.</span>
       </p>
     );
   }
@@ -149,8 +151,9 @@ async function PriceHistoryChart({ city, deal }: { city: string; deal: string })
   return (
     <div className="mb-4 rounded-xl border border-[var(--line)] p-3">
       <div className="flex items-baseline gap-2 text-sm">
-        <span className={`font-extrabold ${changePct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-          {changePct >= 0 ? "↑" : "↓"} {Math.abs(changePct)}%
+        <span className={`font-extrabold inline-flex items-center gap-0.5 ${changePct >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+          {changePct >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+          <span>{Math.abs(changePct)}%</span>
         </span>
         <span className="text-xs text-[var(--ink-soft)]">
           giá/m² trung vị {deal === "ban" ? "bán" : "thuê"} tại {city} ({series.length} ngày ghi nhận)
