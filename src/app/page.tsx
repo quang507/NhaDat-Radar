@@ -11,7 +11,9 @@ import HangVuot from "@/components/HangVuot";
 import HeroTimKiem, { type ChipKhuVuc } from "@/components/HeroTimKiem";
 import { laTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang, laRoHang } from "@/lib/ro-hang";
-import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Building2, LandPlot, Store, ArrowRight } from "lucide-react";
+import { BAI_VIET } from "@/lib/bai-viet";
+import SafeImg from "@/components/SafeImg";
+import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Building2, LandPlot, Store, ArrowRight, Clock, Calendar, Newspaper } from "lucide-react";
 
 // thứ hạng ưu tiên trong lưới kết quả: tin Zalo (0) -> rổ hàng Radar (1) -> tin FB (2) -> nguồn web (3)
 const uuTienDocQuyen = (x: Listing) =>
@@ -300,6 +302,60 @@ export default async function Home({
                   </div>
                   <div className="mt-6 flex items-center gap-1.5 text-xs font-semibold text-white/80 group-hover:text-white transition-colors">
                     <span>Xem danh sách</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          {/* ===== Tin tức & Cẩm nang Bất Động Sản ===== */}
+          <section className="mt-16">
+            <div className="flex items-baseline gap-3 mb-6">
+              <div>
+                <h2 className="prata text-xl md:text-2xl border-l-[3px] border-brand pl-3">Tin tức &amp; Cẩm nang thị trường</h2>
+                <p className="text-xs text-[var(--ink-soft)] pl-3 mt-1">Kiến thức pháp lý, quy hoạch, lãi suất vay và kinh nghiệm giao dịch BĐS</p>
+              </div>
+              <Link href="/tin-tuc" className="group text-sm text-brand font-semibold ml-auto whitespace-nowrap inline-flex items-center gap-1">
+                <span>Xem tất cả tin tức</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {BAI_VIET.slice(0, 4).map((b) => (
+                <Link
+                  key={b.slug}
+                  href={`/tin-tuc/${b.slug}`}
+                  className="group card rounded-2xl overflow-hidden border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="aspect-[16/10] relative overflow-hidden bg-slate-100">
+                      <SafeImg
+                        src={b.coverImage}
+                        alt={b.tieuDe}
+                        fallbackLabel={b.categoryName}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-white/95 text-slate-800 shadow-xs backdrop-blur-md">
+                        {b.categoryName}
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 text-[0.7rem] text-slate-400 mb-1.5">
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {b.readTime}</span>
+                        <span>·</span>
+                        <span>{b.ngay}</span>
+                      </div>
+                      <h3 className="font-bold text-slate-900 group-hover:text-brand transition-colors line-clamp-2 leading-snug text-sm">
+                        {b.tieuDe}
+                      </h3>
+                      <p className="text-xs text-slate-500 line-clamp-2 mt-1.5 leading-relaxed">
+                        {b.moTa}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-4 pt-0 flex items-center justify-between text-xs font-semibold text-brand">
+                    <span>Đọc tiếp</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </Link>
