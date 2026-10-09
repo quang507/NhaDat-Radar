@@ -1,21 +1,51 @@
 "use client";
 
+import { useState } from "react";
 import { hiRes } from "@/lib/img";
+import { Building2 } from "lucide-react";
 
-// Ảnh ưu tiên bản phân giải cao, tự rơi về URL gốc nếu bản lớn 404.
-export default function SafeImg({ src, alt, className }: { src: string; alt: string; className?: string }) {
+export default function SafeImg({
+  src,
+  alt,
+  className,
+  fallbackLabel,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  fallbackLabel?: string;
+}) {
+  const [error, setError] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(hiRes(src));
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-slate-100 text-slate-400">
+        <Building2 className="w-8 h-8 opacity-60" />
+        {fallbackLabel && (
+          <span className="text-[0.65rem] font-bold uppercase tracking-wider text-slate-500">
+            {fallbackLabel}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={hiRes(src)}
+      src={currentSrc}
       alt={alt}
       loading="lazy"
       className={className}
-      // Ảnh CDN Facebook (tin cào FB, 17/8): gửi kèm Referer của mình dễ bị fbcdn từ chối -> không gửi
-      referrerPolicy={/fbcdn\.net|scontent/.test(src) ? "no-referrer" : undefined}
-      // lỗi lần 1: thử URL gốc; lỗi tiếp (URL gốc cũng hỏng) -> ẩn ảnh để lộ nền khung, không hiện
-      // chữ alt tràn ra thẻ (29/9: thẻ ngang mobile hiện nguyên tiêu đề đè lên ô ảnh)
-      onError={(e) => { const el = e.currentTarget; if (!el.dataset.goc) { el.dataset.goc = "1"; if (el.src !== src) { el.src = src; return; } } el.style.visibility = "hidden"; }}
+      referrerPolicy={/fbcdn\.net|scontent/.test(currentSrc) ? "no-referrer" : undefined}
+      onError={() => {
+        if (currentSrc !== src) {
+          setCurrentSrc(src);
+        } else {
+          setError(true);
+        }
+      }}
     />
   );
 }
