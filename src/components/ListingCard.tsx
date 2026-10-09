@@ -3,6 +3,7 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
+import PropertyPlaceholder from "./PropertyPlaceholder";
 import { thongTinAnh } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon } from "@/lib/ro-hang";
@@ -34,10 +35,7 @@ export default function ListingCard({ x }: { x: Listing }) {
         {x.images?.[0] ? (
           <SafeImg src={x.images[0]} alt={title} fallbackLabel={PROP[x.kind]} className="lc-img w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
-          <span className="flex flex-col items-center gap-1.5 opacity-90">
-            <span className="w-12 h-12 rounded-full bg-white/20 grid place-items-center text-2xl backdrop-blur-sm">{t.icon}</span>
-            <span className="text-[0.65rem] font-bold uppercase tracking-widest opacity-80">{PROP[x.kind]}</span>
-          </span>
+          <PropertyPlaceholder kind={x.kind} />
         )}
 
         {/* Top-left badges: Tối đa 2 badge tinh gọn */}

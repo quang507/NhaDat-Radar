@@ -6,6 +6,7 @@ import type { Listing } from "@/lib/types";
 import { fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
+import PropertyPlaceholder from "./PropertyPlaceholder";
 import { thongTinAnh } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, maPhong, tagGiuPhong } from "@/lib/ro-hang";
@@ -44,9 +45,11 @@ export default function ThePhong({ x }: { x: Listing }) {
   return (
     <div className="relative card rounded-xl overflow-hidden flex flex-col hover:shadow-md hover:border-[var(--line-strong)] transition">
       <Link href={href} className="relative block aspect-[3/2] overflow-hidden" style={{ background: x.images?.[0] ? "var(--surface-2)" : t.bg }}>
-        {x.images?.[0]
-          ? <SafeImg src={x.images[0]} alt={tieuDe} fallbackLabel={PROP[x.kind]} className="w-full h-full object-cover" />
-          : <span className="absolute inset-0 grid place-items-center text-3xl text-white/90">{t.icon}</span>}
+        {x.images?.[0] ? (
+          <SafeImg src={x.images[0]} alt={tieuDe} fallbackLabel={PROP[x.kind]} className="w-full h-full object-cover" />
+        ) : (
+          <PropertyPlaceholder kind={x.kind} />
+        )}
         {roHang && (
           <span className="absolute top-2 left-2 text-[0.62rem] font-bold px-2 py-0.5 rounded-full bg-emerald-600/95 text-white shadow-sm backdrop-blur-sm flex items-center gap-1">
             <ShieldCheck className="w-3 h-3 shrink-0" />

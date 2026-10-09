@@ -143,6 +143,47 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                 ))}
               </div>
             )}
+            {deal === "cho_thue" && (
+              <>
+                <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
+                  <span className="text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold">Tiện ích:</span>
+                  {[
+                    ["ban_cong", "Ban công"],
+                    ["thu_cung", "Thú cưng"],
+                    ["thang_may", "Thang máy"],
+                    ["gac_lung", "Gác lửng"],
+                    ["dieu_hoa", "Máy lạnh"],
+                    ["de_xe", "Chỗ để xe"],
+                  ].map(([k, label]) => (
+                    <Link
+                      key={k}
+                      href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", ti: k })}
+                      className="shrink-0 px-2.5 py-1 rounded-full border border-slate-200/80 bg-white hover:border-brand hover:text-brand transition whitespace-nowrap text-slate-600 font-medium text-[0.75rem]"
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
+                  <span className="text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold">Gần trường/Metro:</span>
+                  {[
+                    ["Kinh Tế", "ĐH Kinh Tế"],
+                    ["Bách Khoa", "ĐH Bách Khoa"],
+                    ["Hutech", "ĐH Hutech"],
+                    ["Tôn Đức Thắng", "ĐH Tôn Đức Thắng"],
+                    ["Metro", "Ga Metro số 1"],
+                  ].map(([qTerm, label]) => (
+                    <Link
+                      key={qTerm}
+                      href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", q: qTerm })}
+                      className="shrink-0 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/60 hover:bg-emerald-100 transition whitespace-nowrap font-medium text-[0.75rem]"
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
