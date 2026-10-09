@@ -2,7 +2,8 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Lightbulb } from "lucide-react";
+import Link from "next/link";
+import { Lightbulb, Sparkles, ArrowRight } from "lucide-react";
 
 const VND = new Intl.NumberFormat("vi-VN");
 function money(v: number): string {
@@ -133,6 +134,29 @@ function MortgageCalc() {
             <div className="flex justify-between text-[0.65rem] text-[var(--ink-faint)] mt-1">
               <span>Năm 0</span><span>Năm {Math.round(years / 2)}</span><span>Năm {years}</span>
             </div>
+          </div>
+
+          {/* Nối luồng sang danh sách nhà bán thực tế theo ngân sách đã tính */}
+          <div className="card rounded-2xl p-5 border border-brand/40 bg-gradient-to-br from-brand/5 via-transparent to-transparent flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+            <div>
+              <div className="text-xs font-bold text-brand uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Gợi ý bất động sản phù hợp</span>
+              </div>
+              <h3 className="font-bold text-base text-[var(--ink)]">
+                Tìm nhà bán trong tầm giá ~{money(price)}
+              </h3>
+              <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                Khả năng chi trả ước tính {money(r.monthly)}/tháng. Xem các nhà đất đang rao bán trong ngân sách của bạn.
+              </p>
+            </div>
+            <Link
+              href={`/search?deal=ban&priceMin=${Math.round(price * 0.8)}&priceMax=${Math.round(price * 1.2)}`}
+              className="btn btn-primary rounded-xl px-5 whitespace-nowrap text-sm shrink-0 inline-flex items-center gap-1.5"
+            >
+              <span>Xem nhà tầm giá này</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </div>

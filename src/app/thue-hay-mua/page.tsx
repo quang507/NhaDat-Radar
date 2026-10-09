@@ -3,8 +3,9 @@ export const revalidate = 3600;
 
 import { createAnonClient } from "@/lib/supabase/anon";
 import { median } from "@/lib/gemini";
+import Link from "next/link";
 import RentVsBuyCalc from "./RentVsBuyCalc";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, ArrowUpRight } from "lucide-react";
 
 export const metadata = { title: "Thuê hay Mua? Tỷ suất cho thuê theo quận - NhaDat Radar" };
 
@@ -67,12 +68,21 @@ export default async function RentVsBuyPage() {
                 <span>Quận</span><span className="text-right">Bán/m²</span><span className="text-right">Thuê/m²/th</span><span className="text-right">Yield</span>
               </div>
               {rows.slice(0, 15).map((r) => (
-                <div key={r.district + r.province} className="grid grid-cols-[1fr_70px_70px_60px] gap-2 items-center py-1 border-b border-[var(--line)] last:border-0">
-                  <span className="truncate">{r.district} <span className="text-[var(--ink-faint)] text-xs">({r.province})</span></span>
+                <Link
+                  key={r.district + r.province}
+                  href={`/search?province=${encodeURIComponent(r.province)}&district=${encodeURIComponent(r.district)}`}
+                  className="grid grid-cols-[1fr_70px_70px_60px] gap-2 items-center py-1.5 px-2 -mx-2 rounded-lg border-b border-[var(--line)] last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-brand transition-colors group cursor-pointer"
+                  title={`Xem tin bán & thuê tại ${r.district}, ${r.province}`}
+                >
+                  <span className="truncate group-hover:underline flex items-center gap-1">
+                    <span>{r.district}</span>
+                    <span className="text-[var(--ink-faint)] text-xs">({r.province})</span>
+                    <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-brand" />
+                  </span>
                   <span className="text-right font-mono text-xs">{fm(r.banMed)}</span>
                   <span className="text-right font-mono text-xs">{fm(r.thueMed)}</span>
                   <span className={`text-right font-bold ${(r.yieldPct ?? 0) >= 4 ? "text-emerald-600" : "text-[var(--ink-soft)]"}`}>{r.yieldPct}%</span>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

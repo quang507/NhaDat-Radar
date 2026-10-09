@@ -42,6 +42,8 @@ import { GhiXemTin, LinkTheoDoi, NutZalo } from "@/components/TheoDoi";
 import MoTaThuGon from "@/components/MoTaThuGon";
 import HangVuot from "@/components/HangVuot";
 import AppointmentForm from "@/components/AppointmentForm";
+import NutQuayLai from "@/components/NutQuayLai";
+import MobileSectionJumper from "@/components/MobileSectionJumper";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
 import { MapPin, ShieldCheck, Building2, AlertTriangle, HelpCircle, MessageSquare, MessageCircle, ChevronLeft } from "lucide-react";
 
@@ -350,10 +352,7 @@ export default async function ListingDetail({
     <div>
       {ldTin.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(o) }} />)}
       <div className="flex items-center gap-3">
-        <Link href="/search" className="text-sm text-[var(--ink-soft)] font-semibold inline-flex items-center gap-1 hover:text-brand transition-colors">
-          <ChevronLeft className="w-4 h-4" />
-          <span>Quay lại</span>
-        </Link>
+        <NutQuayLai fallbackHref="/search" />
         <span className="ml-auto flex items-center gap-2">
           <ChiaSe url={`${SITE_URL}/listings/${x.id}`} title={x.title} listingId={x.id} />
           <FavButton id={x.id} />
@@ -454,7 +453,9 @@ export default async function ListingDetail({
             )}
           </div>
 
-          <div className="card rounded-lg p-5">
+          <MobileSectionJumper />
+
+          <div id="tong-quan" className="card rounded-lg p-5 scroll-mt-28">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
               <h3 className="font-bold">Thông tin chính</h3>
               <span className="ml-auto flex flex-wrap items-center gap-2 text-sm">
@@ -483,6 +484,7 @@ export default async function ListingDetail({
               <RichText text={docQuyen ? cheSoVanBan(x.description) : x.description || ""} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
             </MoTaThuGon>
           </div>
+          <div id="phan-tich-gia" className="scroll-mt-28" />
           {/* So sánh giá với mặt bằng khu vực (data thật) */}
           {/* 2/10: phòng rổ hàng (hàng mình bán) không tự dán nhãn "Cao hơn mặt bằng ~147%": mẫu so là phòng trọ
               Chợ Tốt giá rẻ, không cùng hạng (studio full nội thất Q1). Chỉ hiện khi RẺ hơn - là lợi thế bán hàng. */}
@@ -582,6 +584,7 @@ export default async function ListingDetail({
               <p className="text-xs text-[var(--ink-faint)] mt-3">Muốn hỏi thêm hoặc hẹn xem: liên hệ với chuyên viên Radar ở khung bên cạnh.</p>
             </div>
           )}
+          <div id="vi-tri-tien-ich" className="scroll-mt-28" />
           {x.amenities?.length ? (
             <div className="card rounded-lg p-5">
               <h3 className="font-bold mb-3">Tiện ích</h3>
@@ -810,7 +813,7 @@ export default async function ListingDetail({
 
       {/* Tin liên quan */}
       {related.length > 0 && (
-        <section className="mt-12">
+        <section id="tin-lien-quan" className="mt-12 scroll-mt-28">
           <h2 className="prata text-xl mb-4">
             {PROP[x.kind]} liên quan tại {x.district || x.province}
           </h2>

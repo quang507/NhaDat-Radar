@@ -696,6 +696,52 @@ export default function SearchClient({
             chưa xuống dòng -> cột 1fr phình (đo được 2190px ở viewport 1400) đẩy cột bản đồ 420px ra NGOÀI màn hình.
             Sự cố 17/8: "Xem bản đồ" bấm không thấy gì. */}
         <div className="min-w-0">
+          {/* Smart Context & Active Filter Pills */}
+          {soLoc > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 mb-3.5 text-xs">
+              <span className="text-[var(--ink-soft)] font-medium mr-1">Bộ lọc đang áp:</span>
+              {goc.province && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {goc.province}
+                  <button type="button" onClick={() => push({ ...goc, province: "", district: "", ward: "" })} aria-label="Bỏ lọc tỉnh" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+              {goc.district && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {goc.district}
+                  <button type="button" onClick={() => push({ ...goc, district: "", ward: "" })} aria-label="Bỏ lọc quận" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+              {goc.ward && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {goc.ward}
+                  <button type="button" onClick={() => push({ ...goc, ward: "" })} aria-label="Bỏ lọc phường" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+              {goc.q && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  “{goc.q}”
+                  <button type="button" onClick={() => push({ ...goc, q: "" })} aria-label="Bỏ lọc từ khoá" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+              {nhanGia && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {nhanGia}
+                  <button type="button" onClick={() => push({ ...goc, priceMin: "", priceMax: "" })} aria-label="Bỏ lọc giá" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+              {nhanDt && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {nhanDt}
+                  <button type="button" onClick={() => push({ ...goc, areaMin: "", areaMax: "" })} aria-label="Bỏ lọc diện tích" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
+                </span>
+              )}
+              <button type="button" onClick={clear} className="text-brand font-semibold hover:underline ml-1 cursor-pointer">
+                Xóa tất cả
+              </button>
+            </div>
+          )}
+
           {display.length ? (
             <>
               {trang === 1 && <DaiDocQuyen listings={display} />}
@@ -706,15 +752,59 @@ export default function SearchClient({
               {phanTrang("mt-5")}
             </>
           ) : (
-            <div className="card rounded-2xl p-10 sm:p-14 text-center border border-[var(--line)] shadow-sm max-w-md mx-auto my-6">
-              <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto mb-4">
+            <div className="card rounded-2xl p-8 sm:p-12 text-center border border-[var(--line)] shadow-sm max-w-lg mx-auto my-6">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-4">
                 <SearchX className="w-7 h-7" />
               </div>
-              <h3 className="font-bold text-lg mb-1 text-[var(--ink)]">Không tìm thấy bất động sản</h3>
+              <h3 className="font-bold text-lg mb-1.5 text-[var(--ink)]">Không tìm thấy bất động sản phù hợp</h3>
               <p className="text-[var(--ink-soft)] text-sm mb-5 leading-relaxed">
-                Không có tin nào khớp với điều kiện lọc hiện tại. Hãy thử mở rộng khu vực hoặc xóa bớt tiêu chí tìm kiếm.
+                Các tiêu chí tìm kiếm hiện tại có thể đang giới hạn quá hẹp. Bạn hãy thử nới lỏng nhanh một vài tiêu chí dưới đây:
               </p>
-              <button className="btn btn-primary rounded-xl px-5" onClick={clear}>Xóa toàn bộ bộ lọc</button>
+
+              <div className="flex flex-wrap justify-center gap-2 mb-6">
+                {goc.q && (
+                  <button
+                    type="button"
+                    onClick={() => push({ ...goc, q: "" })}
+                    className="btn !py-1.5 !px-3 text-xs border border-slate-300 hover:border-brand hover:text-brand cursor-pointer"
+                  >
+                    Bỏ từ khóa “{goc.q}”
+                  </button>
+                )}
+                {(goc.priceMin || goc.priceMax) && (
+                  <button
+                    type="button"
+                    onClick={() => push({ ...goc, priceMin: "", priceMax: "" })}
+                    className="btn !py-1.5 !px-3 text-xs border border-slate-300 hover:border-brand hover:text-brand cursor-pointer"
+                  >
+                    Mở rộng khoảng giá
+                  </button>
+                )}
+                {goc.ward && (
+                  <button
+                    type="button"
+                    onClick={() => push({ ...goc, ward: "" })}
+                    className="btn !py-1.5 !px-3 text-xs border border-slate-300 hover:border-brand hover:text-brand cursor-pointer"
+                  >
+                    Xem toàn {goc.district || "quận"}
+                  </button>
+                )}
+                {goc.district && (
+                  <button
+                    type="button"
+                    onClick={() => push({ ...goc, district: "", ward: "" })}
+                    className="btn !py-1.5 !px-3 text-xs border border-slate-300 hover:border-brand hover:text-brand cursor-pointer"
+                  >
+                    Xem toàn {goc.province || "tỉnh/thành"}
+                  </button>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-[var(--line)] flex items-center justify-center gap-3">
+                <button className="btn btn-primary rounded-xl px-6 cursor-pointer" onClick={clear}>
+                  Xóa toàn bộ bộ lọc
+                </button>
+              </div>
             </div>
           )}
         </div>

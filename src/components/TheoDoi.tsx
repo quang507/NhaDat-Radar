@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type AnchorHTMLAttributes } from "react";
 import { baoSuKien } from "@/lib/su-kien-client";
+import { Check } from "lucide-react";
 
 // Theo dõi quan tâm (30/9) - xem lib/su-kien-client + migration 031.
 
@@ -41,8 +42,11 @@ export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttrib
         a.onClick?.(e);
       }}>{children}</a>
       {daChep && (
-        <span role="status" className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 max-w-[90vw] px-4 py-2.5 rounded-xl bg-[#0068ff] text-white text-sm font-semibold shadow-2xl text-center">
-          ✓ Đã chép tin nhắn kèm mã phòng - mở Zalo rồi bấm giữ ô chat để <b>Dán</b> và gửi
+        <span role="status" className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 max-w-[90vw] px-4 py-2.5 rounded-2xl bg-[#0068ff] text-white text-xs sm:text-sm font-semibold shadow-2xl flex items-center gap-2 border border-white/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+            <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+          </span>
+          <span>Đã chép nội dung &amp; mã phòng - mở Zalo và chọn <b>Dán</b> để gửi</span>
         </span>
       )}
     </>
