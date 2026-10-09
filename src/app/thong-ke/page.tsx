@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { unstable_cache } from "next/cache";
-import PriceMap, { type MapPoint } from "@/components/PriceMap";
+import ThongKeView from "./ThongKeView";
+import type { MapPoint } from "@/components/PriceMap";
 import type { Listing } from "@/lib/types";
 import { median } from "@/lib/gemini";
 import { TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
@@ -52,6 +53,8 @@ export default async function ThongKe({
     lng: r.lng,
     label: short(r.med),
     sub: `${r.district} · ${r.n} tin`,
+    district: r.district,
+    searchUrl: `/search?deal=${deal}&province=${encodeURIComponent(city)}&district=${encodeURIComponent(r.district)}`,
   }));
   const maxMed = Math.max(...rows.map((r) => r.med), 1);
   const lo = rows.length ? short(Math.min(...rows.map((r) => r.med))) : "-";
@@ -70,7 +73,7 @@ export default async function ThongKe({
     <div>
       <h1 className="prata text-2xl mb-1">Thống kê giá theo khu vực</h1>
       <p className="text-[var(--ink-soft)] text-sm mb-4">
-        Vị trí theo toạ độ thật (geocode) · giá median theo quận · bản đồ OpenStreetMap (miễn phí).
+        Vị trí theo toạ độ thật.
       </p>
 
       <div className="flex flex-wrap gap-2 mb-4">
@@ -80,46 +83,17 @@ export default async function ThongKe({
         {tab(`/thong-ke?city=${encodeURIComponent(city)}&deal=ban`, "Mua bán", deal === "ban")}
       </div>
 
-      <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
-        <div className="card rounded-lg p-3">
-          <div className="text-sm text-[var(--ink-soft)] mb-2 px-1">
-            <b className="text-[var(--ink)]">{listings.length}</b> tin, giá {lo} - {hi} tại {city},{" "}
-            {deal === "cho_thue" ? "cho thuê" : "rao bán"}
-          </div>
-          {points.length ? (
-            <PriceMap points={points} height={460} />
-          ) : (
-            <div className="h-[460px] grid place-items-center text-[var(--ink-soft)]">
-              Chưa có dữ liệu geocode cho khu vực này.
-            </div>
-          )}
-        </div>
-
-        <div className="card rounded-lg p-5">
-          <h3 className="font-bold mb-3">Xếp hạng giá theo quận</h3>
-          <PriceHistoryChart city={city} deal={deal} />
-          {rows.length ? (
-            <div className="flex flex-col gap-2">
-              {rows.map((r) => (
-                <div key={r.district} className="grid grid-cols-[110px_1fr_64px] items-center gap-2 text-sm">
-                  <span className="text-[var(--ink-soft)] truncate" title={r.district}>
-                    {r.district.replace(/^(Quận|Huyện) /, "")} <span className="text-[var(--ink-faint)]">({r.n})</span>
-                  </span>
-                  <span className="h-2.5 rounded-full bg-[var(--surface-2)] overflow-hidden">
-                    <span
-                      className="block h-full rounded-full bg-gradient-to-r from-brand to-brand-2"
-                      style={{ width: `${Math.max(7, (r.med / maxMed) * 100)}%` }}
-                    />
-                  </span>
-                  <span className="text-right font-mono text-xs font-semibold">{short(r.med)}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[var(--ink-soft)] text-sm">Không có dữ liệu.</p>
-          )}
-        </div>
-      </div>
+      <ThongKeView
+        points={points}
+        rows={rows}
+        maxMed={maxMed}
+        listingsCount={listings.length}
+        lo={lo}
+        hi={hi}
+        city={city}
+        deal={deal}
+        chartNode={<PriceHistoryChart city={city} deal={deal} />}
+      />
     </div>
   );
 }

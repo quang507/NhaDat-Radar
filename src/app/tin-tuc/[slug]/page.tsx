@@ -217,28 +217,56 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
 
       {bc.theoDienTich.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-bold text-xl text-slate-900">Mặt bằng giá theo diện tích</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-xl text-slate-900">Mặt bằng giá theo diện tích</h2>
+            <span className="text-xs text-slate-400">Bấm để xem danh sách phòng</span>
+          </div>
           <div className="grid sm:grid-cols-2 gap-2.5">
-            {bc.theoDienTich.map((d) => (
-              <div key={d.nhan} className="card rounded-xl p-3 border border-slate-200/80 bg-slate-50 flex items-center justify-between">
-                <span className="font-medium text-slate-700 text-sm">{d.nhan}</span>
-                <span className="font-bold text-brand text-sm">{trieu(d.trungVi)} <span className="text-xs text-slate-400 font-normal">({d.n} phòng)</span></span>
-              </div>
-            ))}
+            {bc.theoDienTich.map((d) => {
+              const searchUrl = `/search?deal=cho_thue&province=${encodeURIComponent(TINH_BAO_CAO)}&district=${encodeURIComponent(bc.quan)}`;
+              return (
+                <Link
+                  key={d.nhan}
+                  href={searchUrl}
+                  className="group card rounded-xl p-3 border border-slate-200/80 bg-slate-50 hover:bg-white hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
+                  title={`Xem danh sách phòng tại ${ten}`}
+                >
+                  <span className="font-semibold text-slate-700 text-sm group-hover:text-brand transition-colors flex items-center gap-1.5">
+                    <span>{d.nhan}</span>
+                    <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-brand" />
+                  </span>
+                  <span className="font-bold text-brand text-sm">{trieu(d.trungVi)} <span className="text-xs text-slate-400 font-normal">({d.n} phòng)</span></span>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
 
       {bc.theoPhuong.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-bold text-xl text-slate-900">Phường có giá thuê dễ chịu nhất ở {ten}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-xl text-slate-900">Phường có giá thuê dễ chịu nhất ở {ten}</h2>
+            <span className="text-xs text-slate-400">Bấm phường để xem phòng cụ thể</span>
+          </div>
           <div className="grid sm:grid-cols-2 gap-2.5">
-            {bc.theoPhuong.map((p) => (
-              <div key={p.phuong} className="card rounded-xl p-3 border border-slate-200/80 bg-white flex items-center justify-between">
-                <span className="font-medium text-slate-700 text-sm">{p.phuong}</span>
-                <span className="font-bold text-emerald-700 text-sm">{trieu(p.trungVi)} <span className="text-xs text-slate-400 font-normal">({p.n} phòng)</span></span>
-              </div>
-            ))}
+            {bc.theoPhuong.map((p) => {
+              const searchUrl = `/search?deal=cho_thue&province=${encodeURIComponent(TINH_BAO_CAO)}&district=${encodeURIComponent(bc.quan)}&q=${encodeURIComponent(p.phuong)}`;
+              return (
+                <Link
+                  key={p.phuong}
+                  href={searchUrl}
+                  className="group card rounded-xl p-3 border border-slate-200/80 bg-white hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
+                  title={`Xem ${p.n} phòng cho thuê tại ${p.phuong}`}
+                >
+                  <span className="font-semibold text-slate-800 text-sm group-hover:text-brand transition-colors flex items-center gap-1.5">
+                    <span>{p.phuong}</span>
+                    <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-brand" />
+                  </span>
+                  <span className="font-bold text-emerald-700 text-sm">{trieu(p.trungVi)} <span className="text-xs text-slate-400 font-normal">({p.n} phòng)</span></span>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

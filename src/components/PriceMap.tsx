@@ -4,13 +4,32 @@ import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import { escHtml } from "@/lib/format";
 
-export type MapPoint = { lat: number; lng: number; label: string; sub?: string };
+export type MapPoint = {
+  lat: number;
+  lng: number;
+  label: string;
+  sub?: string;
+  district?: string;
+  searchUrl?: string;
+};
 
-// Leaflet + OpenStreetMap (miễn phí, không token). Có NEXT_PUBLIC_MAPBOX_TOKEN thì dùng tile Mapbox.
-export default function PriceMap({ points, height = 460 }: { points: MapPoint[]; height?: number }) {
+// Leaflet + OpenStreetMap. Hỗ trợ zoom trực tiếp khi click quận từ danh sách xếp hạng.
+export default function PriceMap({
+  points,
+  selectedDistrict,
+  onSelectDistrict,
+  height = 460,
+}: {
+  points: MapPoint[];
+  selectedDistrict?: string | null;
+  onSelectDistrict?: (district: string) => void;
+  height?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markersRef = useRef<Map<string, any>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -21,6 +40,8 @@ export default function PriceMap({ points, height = 460 }: { points: MapPoint[];
         mapRef.current.remove();
         mapRef.current = null;
       }
+      markersRef.current.clear();
+
       const map = L.map(ref.current, { scrollWheelZoom: false }).setView([16.05, 108.2], 6);
       mapRef.current = map;
 
@@ -44,12 +65,36 @@ export default function PriceMap({ points, height = 460 }: { points: MapPoint[];
           html: `<div class="pp">${escHtml(p.label)}</div>`,
           iconSize: [1, 1],
         });
-        L.marker([p.lat, p.lng], { icon })
+
+        const searchLink = p.searchUrl
+          ? `<div style="margin-top:6px;padding-top:4px;border-top:1px solid #e2e8f0"><a href="${escHtml(p.searchUrl)}" style="color:#059669;font-weight:700;font-size:12px;text-decoration:none">Xem danh sách tin ›</a></div>`
+          : "";
+
+        const popupHtml = `
+          <div style="font-family:system-ui,sans-serif;padding:2px">
+            <div style="font-size:15px;font-weight:800;color:#0f172a">${escHtml(p.label)}</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px">${escHtml(p.sub)}</div>
+            ${searchLink}
+          </div>
+        `;
+
+        const marker = L.marker([p.lat, p.lng], { icon })
           .addTo(map)
-          .bindPopup(`<b>${escHtml(p.label)}</b><br>${escHtml(p.sub)}`);
+          .bindPopup(popupHtml);
+
+        if (p.district) {
+          markersRef.current.set(p.district, marker);
+          marker.on("click", () => {
+            onSelectDistrict?.(p.district!);
+          });
+        }
+
         bounds.push([p.lat, p.lng]);
       }
-      if (bounds.length) map.fitBounds(bounds, { padding: [44, 44], maxZoom: 13 });
+
+      if (bounds.length) {
+        map.fitBounds(bounds, { padding: [44, 44], maxZoom: 13 });
+      }
     })();
 
     return () => {
@@ -59,13 +104,24 @@ export default function PriceMap({ points, height = 460 }: { points: MapPoint[];
         mapRef.current = null;
       }
     };
-  }, [points]);
+  }, [points, onSelectDistrict]);
+
+  // Zoom và mở popup khi selectedDistrict thay đổi từ danh sách bên ngoài
+  useEffect(() => {
+    if (!selectedDistrict || !mapRef.current) return;
+    const marker = markersRef.current.get(selectedDistrict);
+    if (marker) {
+      const ll = marker.getLatLng();
+      mapRef.current.flyTo([ll.lat, ll.lng], 13, { duration: 0.8 });
+      marker.openPopup();
+    }
+  }, [selectedDistrict]);
 
   return (
     <div
       ref={ref}
       style={{ height }}
-      className="w-full overflow-hidden rounded-lg border border-[var(--line)] z-0"
+      className="w-full overflow-hidden rounded-xl border border-slate-200 shadow-xs z-0"
     />
   );
 }
