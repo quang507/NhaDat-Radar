@@ -10,17 +10,15 @@ import { fmtPrice } from "@/lib/format";
 import { laRoHang, maPhong } from "@/lib/ro-hang";
 import { SITE_URL } from "@/lib/ld";
 
+import { baoLeadTelegram } from "@/lib/telegram";
+
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 export type LeadMoi = { listing_id: string | null; name: string; phone: string; message: string };
 
 export async function baoLeadMoi(lead: LeadMoi): Promise<void> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) { console.warn("baoLeadMoi: thiếu RESEND_API_KEY - bỏ qua email"); return; }
-  const to = (process.env.LEAD_NOTIFY_EMAIL || "quanggooner1996@gmail.com").split(",").map((s) => s.trim()).filter(Boolean);
-
   // Thông tin tin đăng + phần RIÊNG của rổ hàng (địa chỉ thật, mã căn, hoa hồng - chỉ admin đọc được,
-  // nên dùng service role; email chỉ tới admin)
+  // nên dùng service role; gửi tới Telegram & email admin)
   let tin: { id: string; title: string; price_vnd: number | null; deal: string; district: string | null; source: string | null; source_site: string | null } | null = null;
   let rieng: { exact_address: string | null; unit_code: string | null; commission: string | null } | null = null;
   if (lead.listing_id) {
@@ -31,6 +29,16 @@ export async function baoLeadMoi(lead: LeadMoi): Promise<void> {
     ]);
     tin = t; rieng = r;
   }
+
+  // 1. Gửi thông báo tức thì qua Telegram Bot (nếu đã cấu hình TELEGRAM_BOT_TOKEN & TELEGRAM_CHAT_ID)
+  baoLeadTelegram({ name: lead.name, phone: lead.phone, message: lead.message, tin, rieng }).catch((err) => {
+    console.error("baoLeadMoi Telegram error:", err);
+  });
+
+  // 2. Gửi thông báo qua Email Resend
+  const key = process.env.RESEND_API_KEY;
+  if (!key) { console.warn("baoLeadMoi: thiếu RESEND_API_KEY - bỏ qua email"); return; }
+  const to = (process.env.LEAD_NOTIFY_EMAIL || "quanggooner1996@gmail.com").split(",").map((s) => s.trim()).filter(Boolean);
   const roHang = tin ? laRoHang(tin) : false;
   const hen = lead.message.match(/^\[HẸN XEM ([^\]]+)\]/)?.[1];   // createLead ghép "[HẸN XEM Chiều 30/09/2026]"
   const loiNhan = lead.message.replace(/^\[HẸN XEM [^\]]+\]\s*/, "");
