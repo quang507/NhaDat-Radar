@@ -6,6 +6,9 @@ import { SITE_URL } from "@/lib/ld";
 const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
+const DEFAULT_BOT_TOKEN = "8828001883:AAHbo7xqdzYEASoHF5F3mx4iy6f1a96XjbQ";
+const DEFAULT_CHAT_ID = "8670770583";
+
 export async function sendTelegramMessage(
   text: string,
   options?: {
@@ -15,8 +18,8 @@ export async function sendTelegramMessage(
     disable_web_page_preview?: boolean;
   }
 ): Promise<boolean> {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = options?.chatId || process.env.TELEGRAM_CHAT_ID;
+  const token = process.env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
+  const chatId = options?.chatId || process.env.TELEGRAM_CHAT_ID || DEFAULT_CHAT_ID;
   if (!token || !chatId) {
     return false;
   }
@@ -71,8 +74,8 @@ export type LeadDetails = {
 };
 
 export async function baoLeadTelegram(data: LeadDetails): Promise<void> {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const token = process.env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID || DEFAULT_CHAT_ID;
   if (!token || !chatId) return;
 
   const { name, phone, message, tin, rieng } = data;
