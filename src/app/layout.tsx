@@ -1,13 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
+import InstallPwaBanner from "@/components/InstallPwaBanner";
 import Clarity from "@/components/Clarity";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import MoiDienSdt from "@/components/MoiDienSdt";
 import { ldJson, SITE_URL } from "@/lib/ld";
+
+export const viewport: Viewport = {
+  themeColor: "#16233a",
+  width: "device-width",
+  initialScale: 1,
+};
 
 // Body: Inter · Display: Lora (self-host qua next/font, không gọi link ngoài)
 const inter = Inter({ subsets: ["latin", "vietnamese"], variable: "--font-inter", display: "swap" });
@@ -22,14 +29,20 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description: "Tổng hợp tin nhà đất bán và cho thuê từ nhiều nguồn, chuẩn hoá bằng AI, kèm giá trung vị theo quận, xu hướng giá và cảnh báo giá lệch.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Radar Nhà Đất",
+  },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon.png", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
       { url: "/favicon.ico" },
     ],
     shortcut: "/favicon.ico",
-    apple: "/icon.png",
+    apple: "/apple-touch-icon.png",
   },
   alternates: { canonical: "/" },
   openGraph: {
@@ -64,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="max-w-6xl mx-auto px-5 py-6">{children}</main>
         <Footer />
         <ChatWidget />
+        <InstallPwaBanner />
         <Clarity />
         <GoogleAnalytics />
         {/* mời người đã đăng nhập để lại SĐT (không OTP, bỏ qua được) - hiện lại sau 7 ngày */}
