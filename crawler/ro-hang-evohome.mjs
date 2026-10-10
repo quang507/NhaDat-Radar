@@ -35,6 +35,20 @@ console.log(`Rổ hàng ${PARTNER}: ${src.length} phòng trong ${FILE}`);
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const sb = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
 
+async function thuLai(fn, maxLan = 3) {
+  for (let lan = 1; ; lan++) {
+    try {
+      const res = await fn();
+      if (res?.error) throw res.error;
+      return res;
+    } catch (e) {
+      if (lan >= maxLan) throw e;
+      console.warn(`Lỗi DB (lần ${lan}/${maxLan}), thử lại sau ${lan * 2}s:`, e.message || e);
+      await new Promise((r) => setTimeout(r, 2000 * lan));
+    }
+  }
+}
+
 // ---- A. che số nhà: chỉ che phần nhỏ nhất kiểu EvoHome ("86/23/2" -> "86/••") - che-dia-chi.mjs ----
 const gon = (s) => String(s || "").replace(/\s+,/g, ",").replace(/\s+/g, " ").trim();
 
@@ -234,15 +248,12 @@ rows.forEach((r, i) => {
   if (!cuRow || cuRow.status !== r.status || vanTayCu[r.source_post_id] !== vt) { ghi.push(r); ghiPriv.push(priv[i]); }
   else if (Date.now() - Date.parse(cuRow.last_seen_at || 0) > LAM_MOI_SAU) lamMoi.push(r.id);
 });
-for (let i = 0; i < ghi.length; i += 200) {
-  const { error } = await sb.from("listings").upsert(ghi.slice(i, i + 200), { onConflict: "id" });
-  if (error) throw error;
-  const { error: e2 } = await sb.from("listing_ro_hang").upsert(ghiPriv.slice(i, i + 200), { onConflict: "listing_id" });
-  if (e2) throw e2;
+for (let i = 0; i < ghi.length; i += 100) {
+  await thuLai(() => sb.from("listings").upsert(ghi.slice(i, i + 100), { onConflict: "id" }));
+  await thuLai(() => sb.from("listing_ro_hang").upsert(ghiPriv.slice(i, i + 100), { onConflict: "listing_id" }));
 }
-for (let i = 0; i < lamMoi.length; i += 200) {
-  const { error } = await sb.from("listings").update({ last_seen_at: now, last_confirmed_at: now }).in("id", lamMoi.slice(i, i + 200));
-  if (error) throw error;
+for (let i = 0; i < lamMoi.length; i += 100) {
+  await thuLai(() => sb.from("listings").update({ last_seen_at: now, last_confirmed_at: now }).in("id", lamMoi.slice(i, i + 100)));
 }
 // ghi dấu vân tay SAU khi DB thành công - lỗi giữa chừng thì lượt sau ghi lại hết, không sót
 fs.writeFileSync(HASH_FILE, JSON.stringify(vanTayMoi));
@@ -256,7 +267,7 @@ let het = [...cu.values()].filter((r) => !conLai.has(r.source_post_id) && r.stat
 const dangHien = [...cu.values()].filter((r) => r.status !== "gone").length;
 if (rows.length < dangHien * 0.5) { console.warn(`Chỉ ${rows.length}/${dangHien} phòng - nghi lượt cào hụt, KHÔNG hạ phòng nào`); het = []; }
 for (let i = 0; i < het.length; i += 100) {
-  await sb.from("listings").update({ status: "gone" }).in("id", het.slice(i, i + 100));
+  await thuLai(() => sb.from("listings").update({ status: "gone" }).in("id", het.slice(i, i + 100)));
 }
 // phòng đã cho thuê quá 30 ngày -> "dòng mộ" (2/10): bỏ phần nặng (mô tả, ảnh...), giữ id/khu vực để URL cũ
 // chuyển hướng 301 về trang khu vực thay vì 404 (db-prune.mjs làm tương tự cho tin crawl). Bản gốc riêng
@@ -266,8 +277,11 @@ const xoa = [...cu.values()].filter((r) => r.status === "gone" && !conLai.has(r.
 const MO = { description: null, images: [], amenities: [], specs: null, address: null };
 for (let i = 0; i < xoa.length; i += 100) {
   const lo = xoa.slice(i, i + 100);
-  const { error } = await sb.from("listings").update(MO).in("id", lo).or("description.not.is.null,images.neq.{}");
-  if (error) console.warn("Chuyển dòng mộ lỗi:", error.message);
-  await sb.from("listing_ro_hang").delete().in("listing_id", lo);
+  try {
+    await thuLai(() => sb.from("listings").update(MO).in("id", lo).or("description.not.is.null,images.neq.{}"));
+  } catch (error) {
+    console.warn("Chuyển dòng mộ lỗi:", error.message);
+  }
+  await thuLai(() => sb.from("listing_ro_hang").delete().in("listing_id", lo));
 }
 console.log(`✓ ${rows.length} phòng trong rổ · hạ ${het.length} phòng đã cho thuê · ${xoa.length} phòng cho thuê quá 30 ngày thành dòng mộ`);
