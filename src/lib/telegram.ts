@@ -115,8 +115,7 @@ export async function baoLeadTelegram(data: LeadDetails): Promise<void> {
     buttons.push([{ text: "🌐 Xem tin trên web", url: `${SITE_URL}/listings/${tin.id}` }]);
   }
   buttons.push([
-    { text: "💬 Chat Zalo", url: `https://zalo.me/${esc(sdt)}` },
-    { text: "📞 Gọi ngay", url: `tel:${esc(sdt)}` },
+    { text: "💬 Chat Zalo với khách", url: `https://zalo.me/${esc(sdt)}` },
   ]);
 
   await sendTelegramMessage(lines.join("\n"), {

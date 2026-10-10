@@ -77,7 +77,7 @@ export async function POST(req: Request) {
             { text: "🌐 Mở Web NhaDat Radar", url: SITE_URL },
             { text: "🔍 Tìm phòng trống ngay", url: `${SITE_URL}/search` },
           ],
-          [{ text: "📞 Gọi Hotline 0346689460", url: "tel:0346689460" }],
+          [{ text: "💬 Zalo Hotline: 0346689460", url: "https://zalo.me/0346689460" }],
         ],
       },
     });
@@ -197,7 +197,7 @@ export async function POST(req: Request) {
 
       buttons.push([
         { text: "🔍 Tìm kiếm thêm trên web", url: `${SITE_URL}/search` },
-        { text: "📞 Hỗ trợ trực tiếp: 0346689460", url: "tel:0346689460" },
+        { text: "💬 Zalo Hotline: 0346689460", url: "https://zalo.me/0346689460" },
       ]);
 
       await sendTelegramMessage(resp, {
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
           reply_markup: {
             inline_keyboard: [
               [{ text: "🔍 Xem tất cả phòng trống", url: `${SITE_URL}/search` }],
-              [{ text: "📞 Gọi tư vấn: 0346689460", url: "tel:0346689460" }],
+              [{ text: "💬 Zalo Hotline: 0346689460", url: "https://zalo.me/0346689460" }],
             ],
           },
         }
@@ -237,7 +237,7 @@ export async function POST(req: Request) {
     reply_markup: {
       inline_keyboard: [
         [{ text: "🌐 Khám phá NhaDat Radar", url: SITE_URL }],
-        [{ text: "📞 Hotline: 0346689460", url: "tel:0346689460" }],
+        [{ text: "💬 Zalo Hotline: 0346689460", url: "https://zalo.me/0346689460" }],
       ],
     },
   });
