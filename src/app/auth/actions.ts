@@ -13,7 +13,7 @@ async function siteUrl(): Promise<string> {
   if (origin) return origin;
   const host = h.get("x-forwarded-host") || h.get("host");
   if (host) return `${h.get("x-forwarded-proto") || "https"}://${host}`;
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  return process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
 }
 
 // Dịch lỗi Supabase sang tiếng Việt dễ hiểu
