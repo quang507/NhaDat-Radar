@@ -10,6 +10,7 @@
 // avatar. Khách vãng lai và Google thì thấy đúng ngay từ HTML đầu tiên.
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/app/auth/actions";
 import NavMsg from "./NavMsg";
@@ -63,10 +64,21 @@ export default function NavAuth() {
       >
         {email.charAt(0).toUpperCase()}
       </Link>
-      <Link href="/dashboard/new" className="btn btn-primary whitespace-nowrap">+ Đăng tin</Link>
+      {/* mobile: chỉ dấu "+" - đủ chữ thì cụm nút tràn mép phải ở 360-390px */}
+      <Link href="/dashboard/new" aria-label="Đăng tin" className="btn btn-primary whitespace-nowrap">
+        +<span className="hidden sm:inline">&nbsp;Đăng tin</span>
+      </Link>
       {/* mobile: Đăng xuất nằm trong menu ☰ / trang tài khoản, tránh tràn thanh nav */}
-      <form action={signOut} className="hidden lg:block">
-        <button className="btn" type="submit">Đăng xuất</button>
+      {/* desktop: chỉ icon (kèm title) - nút chữ "Đăng xuất" làm menu ngang bị đè */}
+      <form action={signOut} className="hidden xl:block">
+        <button
+          className="w-9 h-9 rounded-full grid place-items-center text-slate-500 hover:text-brand hover:bg-slate-50 transition-colors"
+          type="submit"
+          title="Đăng xuất"
+          aria-label="Đăng xuất"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </form>
     </>
   );

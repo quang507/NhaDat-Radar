@@ -36,7 +36,7 @@ export default function MobileMenu() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="lg:hidden">
+    <div className="xl:hidden">
       <button
         aria-label={open ? "Đóng menu" : "Mở menu"}
         className="btn !p-2 text-slate-700 hover:text-brand"
