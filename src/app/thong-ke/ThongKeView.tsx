@@ -47,9 +47,10 @@ export default function ThongKeView({
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
 
   return (
-    <div className="grid lg:grid-cols-[1.4fr_1fr] gap-5 items-start">
+    // grid-cols-1 + min-w-0: không có thì thẻ giãn theo nội dung rộng nhất -> tràn ngang trên điện thoại
+    <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5 items-start">
       {/* Cột trái: Bản đồ giá */}
-      <div className="card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-xs space-y-3">
+      <div className="card min-w-0 rounded-2xl p-4 border border-slate-200/80 bg-white shadow-xs space-y-3">
         <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600 px-1">
           <div>
             <b className="text-slate-900 font-bold">{listingsCount}</b> tin, giá {lo} - {hi} tại {city},{" "}
@@ -80,7 +81,7 @@ export default function ThongKeView({
       </div>
 
       {/* Cột phải: Xếp hạng giá theo quận */}
-      <div className="card rounded-2xl p-5 border border-slate-200/80 bg-white shadow-xs space-y-4">
+      <div className="card min-w-0 rounded-2xl p-5 border border-slate-200/80 bg-white shadow-xs space-y-4">
         <div>
           <h3 className="font-bold text-base text-slate-900 flex items-center justify-between">
             <span>Xếp hạng giá theo quận</span>
