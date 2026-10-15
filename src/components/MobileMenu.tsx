@@ -63,6 +63,17 @@ export default function MobileMenu() {
               ))}
             </div>
 
+            {/* Nút Đăng tin nổi bật trên Mobile */}
+            <div className="pt-2">
+              <Link
+                href="/dashboard/new"
+                onClick={() => setOpen(false)}
+                className="w-full btn btn-primary flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl shadow-sm text-sm"
+              >
+                <span>+ Đăng tin nhà đất miễn phí</span>
+              </Link>
+            </div>
+
             {/* Hotline & Zalo hỗ trợ */}
             <div className="pt-3 pb-2 mt-2 border-t border-[var(--line)]">
               <div className="text-[0.7rem] uppercase tracking-wider text-[var(--ink-faint)] font-bold mb-2">Hỗ trợ khách hàng:</div>

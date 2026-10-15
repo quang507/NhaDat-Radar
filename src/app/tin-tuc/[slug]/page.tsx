@@ -7,6 +7,7 @@ import { areaPath } from "@/lib/slug";
 import { ldJson, SITE_URL } from "@/lib/ld";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import SafeImg from "@/components/SafeImg";
+import AdSenseBanner from "@/components/AdSenseBanner";
 import { Home, ChevronRight, Calendar, Clock, MessageCircle, ShieldCheck, ArrowRight, Share2, BookOpen } from "lucide-react";
 
 export const revalidate = 43200;
@@ -445,6 +446,9 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
           </a>
         </div>
       </section>
+
+      {/* Vị trí quảng cáo AdSense trong bài viết */}
+      <AdSenseBanner />
 
       {/* Related Articles */}
       {lienQuan && lienQuan.length > 0 && (

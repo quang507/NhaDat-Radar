@@ -44,6 +44,9 @@ import HangVuot from "@/components/HangVuot";
 import AppointmentForm from "@/components/AppointmentForm";
 import NutQuayLai from "@/components/NutQuayLai";
 import MobileSectionJumper from "@/components/MobileSectionJumper";
+import SimilarListings from "@/components/SimilarListings";
+import AdSenseBanner from "@/components/AdSenseBanner";
+import { layTinTuongTu, type ListingTuongTu } from "@/lib/tuong-tu";
 import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
 import { MapPin, ShieldCheck, Building2, AlertTriangle, HelpCircle, MessageSquare, MessageCircle, ChevronLeft } from "lucide-react";
 
@@ -90,7 +93,7 @@ const cungNguoiDang = unstable_cache(
 );
 
 async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
-  const [du, dem, hd, comp, rel, poster] = await Promise.all([
+  const [du, dem, hd, comp, rel, poster, tuongTu] = await Promise.all([
     x.project_id ? sb.from("projects").select("id,name,investor").eq("id", x.project_id).maybeSingle() : Promise.resolve({ data: null }),
     x.project_id ? sb.from("listings").select("id", { count: "exact", head: true }).eq("project_id", x.project_id).eq("status", "published") : Promise.resolve({ count: 0 }),
     // Hỏi đáp tích luỹ từ Cầu Nối (listing_facts đọc công khai qua RLS facts_read)
@@ -102,6 +105,7 @@ async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
       ? lienQuanNhom(x.kind, x.district ? "district" : "province", (x.district || x.province)!, x.source === "ro_hang").catch(() => [])
       : Promise.resolve([] as Listing[]),
     x.poster_key ? cungNguoiDang(x.poster_key).catch(() => ({ rows: [] as Listing[], count: 0 })) : Promise.resolve({ rows: [] as Listing[], count: 0 }),
+    layTinTuongTu(x, 6).catch(() => [] as ListingTuongTu[]),
   ]);
   const posterRows = poster.rows.filter((r) => r.id !== x.id).slice(0, 6);
   return {
@@ -113,6 +117,7 @@ async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
     coSdt: !!x.has_contact_phone,
     compRows: comp,
     relRows: rel.filter((r) => r.id !== x.id),
+    tinTuongTu: tuongTu || [],
     posterRows,
     posterCount: Math.max(0, poster.count - (x.status === "published" ? 1 : 0)),   // count gồm cả chính tin này
   };
@@ -215,7 +220,7 @@ export default async function ListingDetail({
   const images = cleanImages(x.images || []);
 
   // Tin thuộc dự án (gan-du-an.mjs nối theo tên) -> khối "Thông tin dự án" + đếm tin cùng dự án đang rao
-  const { duAn, tinCungDuAn, hoiDap, compRows, relRows, posterRows, posterCount } = pub;
+  const { duAn, tinCungDuAn, hoiDap, compRows, relRows, posterRows, posterCount, tinTuongTu } = pub;
 
   // 17/8: bỏ duyệt trước - tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
   let isAdmin = false;
@@ -809,6 +814,14 @@ export default async function ListingDetail({
           <p className="text-xs text-[var(--ink-soft)] mb-4">Gom theo tài khoản đăng trên {x.source_site || "nguồn"} - {(posterCount ?? 0) >= 3 ? "nhiều tin cùng lúc thường là môi giới/sàn." : "ít tin, có thể là chính chủ."}</p>
           <HangVuot cot={230} items={posterOthers.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
         </section>
+      )}
+
+      {/* Vị trí quảng cáo AdSense tài trợ (tự ẩn nếu chưa có client ID / slot) */}
+      <AdSenseBanner />
+
+      {/* Bất động sản / Phòng tương tự theo thuật toán FR-31 */}
+      {tinTuongTu && tinTuongTu.length > 0 && (
+        <SimilarListings items={tinTuongTu} loaiBDS={x.kind} />
       )}
 
       {/* Tin liên quan */}

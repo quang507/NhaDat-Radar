@@ -65,8 +65,16 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      <div className="border-t border-[var(--line)] py-4 text-center text-xs text-[var(--ink-faint)]">
-        © {new Date().getFullYear()} NhaDat Radar. Dữ liệu tổng hợp từ các nguồn công khai, chỉ mang tính chất tham khảo.
+      <div className="border-t border-[var(--line)] py-5 text-center text-xs text-[var(--ink-faint)] space-y-2">
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-medium">
+          <Link href="/gioi-thieu" className="hover:text-brand transition-colors">Giới thiệu</Link>
+          <Link href="/lien-he" className="hover:text-brand transition-colors">Liên hệ</Link>
+          <Link href="/chinh-sach-bao-mat" className="hover:text-brand transition-colors">Chính sách bảo mật</Link>
+          <Link href="/dieu-khoan-su-dung" className="hover:text-brand transition-colors">Điều khoản sử dụng</Link>
+        </div>
+        <div>
+          © {new Date().getFullYear()} NhaDat Radar. Dữ liệu tổng hợp từ các nguồn công khai, chỉ mang tính chất tham khảo.
+        </div>
       </div>
     </footer>
   );

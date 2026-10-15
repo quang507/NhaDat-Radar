@@ -7,6 +7,7 @@ import ChatWidget from "@/components/ChatWidget";
 import InstallPwaBanner from "@/components/InstallPwaBanner";
 import Clarity from "@/components/Clarity";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import GoogleAdSense from "@/components/GoogleAdSense";
 import MoiDienSdt from "@/components/MoiDienSdt";
 import { ldJson, SITE_URL } from "@/lib/ld";
 
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <InstallPwaBanner />
         <Clarity />
         <GoogleAnalytics />
+        <GoogleAdSense />
         {/* mời người đã đăng nhập để lại SĐT (không OTP, bỏ qua được) - hiện lại sau 7 ngày */}
         <MoiDienSdt />
         {/* JSON-LD đặt CUỐI body: để ở đầu body làm hydration hỏng trên WebKit/iOS (đo 23/9:

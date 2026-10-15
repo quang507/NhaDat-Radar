@@ -7,29 +7,49 @@ import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import { Bot, Sparkles, X, Send, PhoneCall, Home } from "lucide-react";
 
 type MiniListing = { id: string; title: string; price: string; meta: string; image: string | null };
-type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[] };
+type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[]; suggestions?: string[] };
 
-const GREET: Msg = {
+const GREET_DEFAULT: Msg = {
   role: "bot",
-  text: "Xin chào! Mình là trợ lý AI của NhaDat Radar.\n\nMình có thể hỗ trợ bạn:\n• Tìm nhà bán / cho thuê theo tầm giá & khu vực\n• Kiểm tra tin đã xác minh, tư vấn pháp lý\n• Đặt lịch hẹn xem nhà thực tế với chuyên viên\n\nBạn đang quan tâm bất động sản ở khu vực nào?",
+  text: "Xin chào! Mình là trợ lý AI của NhaDat Radar 🏠\n\nMình có thể lọc nhanh căn phù hợp theo nhu cầu của bạn. Bạn muốn xem phương án nào?",
+  suggestions: ["Phòng trọ Bình Thạnh dưới 4tr", "Nhà Tân Phú 3 - 5 tỷ hxh", "Căn hộ 2PN Quận 7"],
 };
 
-const CHIPS = [
-  "Nhà Tân Phú dưới 8 tỷ",
-  "Nhà Bình Tân 3 - 4 tỷ",
-  "Cần xem sổ hồng & tư vấn",
+const CHIPS_DEFAULT = [
+  "Phòng trọ Bình Thạnh dưới 4tr",
+  "Nhà Tân Phú 3 - 5 tỷ hxh",
+  "Căn hộ 2PN Quận 7",
+  "Liên hệ Hotline hỗ trợ",
+];
+
+const CHIPS_DANG_XEM = [
+  "Gợi ý căn tương tự",
+  "Căn này còn trống không?",
+  "Tư vấn & hẹn xem nhà",
   "Liên hệ Hotline hỗ trợ",
 ];
 
 // Chatbot nổi góc phải: hỏi đáp tìm nhà bằng AI, thu thập lead và kết nối chuyên viên
 export default function ChatWidget() {
+  const pathname = usePathname();
+  // đang ở trang chi tiết tin -> gửi kèm id để bot hiểu "phòng này còn không", "giá bao nhiêu", gợi ý căn tương tự
+  const dangXem = pathname?.match(/^\/listings\/([0-9a-f-]{36})/i)?.[1] || null;
+
   const [open, setOpen] = useState(false);
-  const [msgs, setMsgs] = useState<Msg[]>([GREET]);
+  const [msgs, setMsgs] = useState<Msg[]>([
+    dangXem
+      ? {
+          role: "bot",
+          text: "Xin chào! Bạn đang xem tin bất động sản này 🏠\n\nBạn muốn tìm thêm các căn tương tự hay cần tư vấn & hẹn xem trực tiếp?",
+          suggestions: ["Gợi ý căn tương tự", "Căn này còn trống không?", "Tư vấn & hẹn xem nhà"],
+        }
+      : GREET_DEFAULT,
+  ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
-  // đang ở trang chi tiết tin -> gửi kèm id để bot hiểu "phòng này còn không", "giá bao nhiêu"
-  const dangXem = usePathname()?.match(/^\/listings\/([0-9a-f-]{36})/i)?.[1] || null;
+
+  const chips = dangXem ? CHIPS_DANG_XEM : CHIPS_DEFAULT;
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
@@ -63,7 +83,15 @@ export default function ChatWidget() {
         body: JSON.stringify({ messages: next.map(({ role, text }) => ({ role, text })), dangXem }),
       });
       const j = await res.json();
-      setMsgs((m) => [...m, { role: "bot", text: j.reply || "Xin lỗi, mình chưa trả lời được.", listings: j.listings }]);
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "bot",
+          text: j.reply || "Xin lỗi, mình chưa trả lời được.",
+          listings: j.listings,
+          suggestions: j.suggestions,
+        },
+      ]);
     } catch {
       setMsgs((m) => [...m, { role: "bot", text: "Có lỗi mạng, bạn thử lại giúp mình nhé." }]);
     } finally {
@@ -161,6 +189,22 @@ export default function ChatWidget() {
                     ))}
                   </div>
                 )}
+                {m.suggestions && m.suggestions.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {m.suggestions.map((sug, sIdx) => (
+                      <button
+                        key={sIdx}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => handleSendText(sug)}
+                        className="text-[0.72rem] font-medium px-2.5 py-1 rounded-full bg-brand/10 text-brand hover:bg-brand hover:text-white transition-all border border-brand/20 active:scale-95 text-left inline-flex items-center gap-1"
+                      >
+                        <span>💡</span>
+                        <span>{sug}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {busy && <div className="text-xs text-[var(--ink-faint)] px-2 animate-pulse">Đang tìm kiếm dữ liệu nhà đất…</div>}
@@ -168,7 +212,7 @@ export default function ChatWidget() {
 
           {/* Quick chips gợi ý */}
           <div className="px-3 py-1.5 bg-[var(--surface)] border-t border-[var(--line)] overflow-x-auto flex gap-1.5 [scrollbar-width:none]">
-            {CHIPS.map((chip, idx) => (
+            {chips.map((chip, idx) => (
               <button
                 key={idx}
                 type="button"

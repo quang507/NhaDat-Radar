@@ -103,7 +103,10 @@ const out = units.map((u) => {
   const phuongTho = site.oldWard?.name || "";
   const phuong = phuongTho ? `Phường ${/^\d+$/.test(phuongTho) ? phuongTho.replace(/^0+/, "") : phuongTho}` : "";
   const loai = LOAI[u.roomType] || "Phòng";
-  const gia = Number(u.rentPrice) || 0, dt = Number(u.area) || 0;
+  let gia = Number(u.rentPrice) || 0;
+  if (gia > 0 && gia < 1000) gia = Math.round(gia * 1e6);
+  gia = Math.round(gia);
+  const dt = Number(u.area) || 0;
   const tn = [
     [u.room_hasAirConditioner, "Máy lạnh"], [u.room_hasWashingMachine, "Máy giặt"], [u.room_hasFridge, "Tủ lạnh"],
     [u.room_hasKitchenShelf, "Kệ bếp"], [u.room_hasBed, "Giường nệm"], [u.room_hasWindow, "Cửa sổ thoáng"],

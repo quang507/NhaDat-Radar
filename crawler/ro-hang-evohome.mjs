@@ -144,6 +144,11 @@ if (PARTNER === "hifriendz") {
 }
 for (const x of dsNhap) {
   if (!x.source_post_id || !x.price_vnd) continue;
+  let gia = Number(x.price_vnd) || 0;
+  if (gia > 0 && gia < 1000) gia = Math.round(gia * 1e6);
+  gia = Math.round(gia);
+  if (!gia) continue;
+
   const specs = x.specs || {};
   const dauDiaChi = gon(String(x.address || "").split(",")[0]);
   const diaChiChe = cheDiaChi(dauDiaChi);
@@ -162,7 +167,7 @@ for (const x of dsNhap) {
     .join("\n")
     .split(dauDiaChi).join(cheThuong)
     .replace(/\n{3,}/g, "\n\n").trim()
-    + `\n\n💬 Giá niêm yết ${giaTrieu(x.price_vnd)}/tháng. Anh/chị qua xem phòng thực tế, ưng ý Radar hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà.`;
+    + `\n\n💬 Giá niêm yết ${giaTrieu(gia)}/tháng. Anh/chị qua xem phòng thực tế, ưng ý Radar hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà.`;
 
   const anh = (x.images || []).filter(laAnh).slice(0, 20);
   const cuRow = cu.get(x.source_post_id);
@@ -178,8 +183,8 @@ for (const x of dsNhap) {
     // "Gò Vấp" gọn hơn "Quận Gò Vấp", nhưng quận số phải giữ chữ "Quận" ("..., 7" vô nghĩa)
     title: `${loai}${dt ? ` ${dt}m²` : ""} - ${[diaChiChe || x.ward, quan && (/^Quận \d/.test(quan) ? quan : quan.replace(/^(Quận|Huyện) /, ""))].filter(Boolean).join(", ")}`,
     description: moTa,
-    price_vnd: x.price_vnd,
-    area_m2: dt,
+    price_vnd: gia,
+    area_m2: dt ? Math.round(dt * 10) / 10 : null,
     province: x.province || "Hồ Chí Minh",   // HiFriendz có cả Bình Dương / BR-VT (hifriendz-fetch.mjs)
     district: quan,
     ward: x.ward || null,

@@ -35,11 +35,13 @@ export default function NavAuth() {
   }, []);
 
   if (!xong && !email) {
-    // chưa biết trạng thái: hiện đúng thứ khách vãng lai thấy (đa số lượt truy cập) để khỏi giật layout
+    // chưa biết trạng thái: hiện khung chuẩn bị để khỏi giật layout
     return (
       <>
         <Link href="/auth" className="btn whitespace-nowrap">Đăng nhập</Link>
-        <Link href="/auth?mode=register" className="btn btn-primary whitespace-nowrap hidden sm:inline-flex">Đăng ký</Link>
+        <Link href="/dashboard/new" aria-label="Đăng tin" className="btn btn-primary whitespace-nowrap">
+          +<span className="hidden sm:inline">&nbsp;Đăng tin</span>
+        </Link>
       </>
     );
   }
@@ -48,8 +50,9 @@ export default function NavAuth() {
     return (
       <>
         <Link href="/auth" className="btn whitespace-nowrap">Đăng nhập</Link>
-        {/* mobile: 1 nút là đủ (form /auth có tab Đăng ký) - 2 nút làm tràn nav ở 390px */}
-        <Link href="/auth?mode=register" className="btn btn-primary whitespace-nowrap hidden sm:inline-flex">Đăng ký</Link>
+        <Link href="/dashboard/new" aria-label="Đăng tin" className="btn btn-primary whitespace-nowrap">
+          +<span className="hidden sm:inline">&nbsp;Đăng tin</span>
+        </Link>
       </>
     );
   }

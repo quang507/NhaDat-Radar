@@ -12,6 +12,7 @@ import SearchClient, { type DieuHuong } from "./SearchClient";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
 import { oTronRoHang, xepTheoThuTu } from "@/lib/ro-hang";
 import { docTienIch, dieuKienTienIch, tienIchCua } from "@/lib/tien-ich";
+import { bocTruyVanBDS } from "@/lib/boc-truy-van";
 
 // /search KHÔNG tham số là trang có ích (điểm vào bộ lọc) -> để index.
 // /search?... là vô số tổ hợp nội dung mỏng/trùng với trang khu vực -> noindex, follow (23/9).
@@ -79,11 +80,25 @@ const khongDau = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "
 const KHOA_LOC = ["page", "deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "bathrooms", "ti", "project", "street", "anh", "gan", "bk", "q", "sort", "own", "legal", "direction", "newAddr", "agent"] as const;
 const timKiemCoCache = unstable_cache(
   async (sp: Record<string, string | undefined>) => {
-  const { kind, province, district, ward, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, ti, project, street, anh, q, sort, own, legal, direction, newAddr, agent } = sp;
+  // Bóc tách câu tìm kiếm tự nhiên nếu người dùng gõ cả câu vào ô q
+  const boc = sp.q ? bocTruyVanBDS(sp.q) : null;
+  const kind = sp.kind || boc?.loc.kind || undefined;
+  const province = sp.province || boc?.loc.province || undefined;
+  const district = sp.district || boc?.loc.district || undefined;
+  const ward = sp.ward || boc?.loc.ward || undefined;
+  const priceMin = sp.priceMin || (boc?.loc.price_min ? String(boc.loc.price_min) : undefined);
+  const priceMax = sp.priceMax || (boc?.loc.price_max ? String(boc.loc.price_max) : undefined);
+  const areaMin = sp.areaMin || (boc?.loc.area_min ? String(boc.loc.area_min) : undefined);
+  const areaMax = sp.areaMax || (boc?.loc.area_max ? String(boc.loc.area_max) : undefined);
+  const bedrooms = sp.bedrooms || (boc?.loc.bedrooms ? String(boc.loc.bedrooms) : undefined);
+  const street = sp.street || boc?.loc.street || undefined;
+  const { bathrooms, ti, project, anh, sort, own, legal, direction, newAddr, agent } = sp;
+  const q = boc?.coKetQua ? (boc.loc.street || boc.loc.keyword || undefined) : sp.q;
   const tam = toaDoGan(sp.gan, sp.bk);
+
   // URL có lọc giá mà không có deal (dán tay / link cũ): hiểu theo thang tỷ như UI đang hiện
   // (SearchClient.push cũng ép vậy) - không thì mọi tin thuê đều lọt lưới "dưới X tỷ".
-  const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : priceMin || priceMax ? "ban" : undefined;
+  const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : boc?.loc.deal || (priceMin || priceMax ? "ban" : undefined);
   const supabase = createAnonClient();
 
   // Làm sạch input trước khi đưa vào ilike/or của PostgREST: %/_ là wildcard, ",()" phá cú pháp .or() (audit 16/8: province/district/ward từng đưa thẳng)

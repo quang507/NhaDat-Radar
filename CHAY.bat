@@ -57,6 +57,7 @@ if errorlevel 1 (
   echo.
   echo       [LOI] That bai. Xem thong bao o tren.
   echo.
+  if "%1"=="/tudong" exit /b 1
   pause
   exit /b 1
 )
@@ -67,4 +68,6 @@ echo     XONG. Xem web: https://nhadatradar.com
 echo     Bot Zalo van chay nen (dong cua so nay khong tat bot).
 echo   ============================================
 echo.
+if "%1"=="/tudong" exit /b 0
 pause
+
