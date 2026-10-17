@@ -508,19 +508,18 @@ export default async function ListingDetail({
               : "border-[var(--line)]"
             }`}>
               <div className="flex items-center gap-2 font-bold mb-1">
-                So sánh giá
-                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                  diffPct <= -5 ? "bg-emerald-500/15 text-emerald-600"
+                Đánh giá mức giá
+                <span className={`text-xs px-2.5 py-0.5 rounded-md font-bold ${
+                  diffPct <= -5 ? "bg-emerald-600 text-white"
                   : diffPct >= 10 ? "bg-red-500/15 text-red-600"
-                  : "bg-[var(--surface-2)] text-[var(--ink-soft)]"
+                  : "bg-slate-100 text-slate-700"
                 }`}>
-                  {diffPct <= -5 ? `Rẻ hơn mặt bằng ~${Math.abs(diffPct)}%` : diffPct >= 10 ? `Cao hơn mặt bằng ~${diffPct}%` : "Ngang mặt bằng"}
+                  {diffPct <= -5 ? `Giá tốt · Rẻ hơn khu vực ~${Math.abs(diffPct)}%` : diffPct >= 10 ? `Cao hơn mặt bằng ~${diffPct}%` : "Đúng giá thị trường"}
                 </span>
               </div>
-              <p className="text-[var(--ink-soft)]">
-                Giá/m² tin này: <b>{fmtPpm2(myPpm2!)}</b> - trung vị {ppm2s.length} tin {PROP[x.kind].toLowerCase()} {x.deal === "ban" ? "bán" : "cho thuê"} tại {x.district}: <b>{fmtPpm2(med)}</b>
-                {p25 && p75 ? <> · khoảng phổ biến {fmtPpm2(p25)} - {fmtPpm2(p75)}/m²</> : null}.
-                <span className="text-[var(--ink-faint)]"> Dựa trên {ppm2s.length} tin đang hiển thị cùng loại tại {x.district}. Chỉ mang tính tham khảo, không phải định giá.</span>
+              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                Đơn giá: <b>{fmtPpm2(myPpm2!)}</b> (Mặt bằng chung {ppm2s.length} tin {PROP[x.kind].toLowerCase()} tại {x.district} thường dao động từ <b>{p25 ? fmtPpm2(p25) : fmtPpm2(med)}</b> đến <b>{p75 ? fmtPpm2(p75) : fmtPpm2(med)}</b>).
+                <span className="text-slate-400 block mt-1 text-xs">Dữ liệu được Radar tổng hợp đối soát tự động từ các nguồn tin trong khu vực.</span>
               </p>
             </div>
           )}
@@ -727,7 +726,7 @@ export default async function ListingDetail({
                   <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
                 )}
                 {!user && (coSdt || x.phone_masked) && (
-                  <div className="mb-3"><DangNhapDeXem /></div>
+                  <div className="mb-3"><DangNhapDeXem listingId={x.id} listingTitle={x.title} /></div>
                 )}
               </>
             )}

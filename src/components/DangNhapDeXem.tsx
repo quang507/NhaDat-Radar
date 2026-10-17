@@ -1,57 +1,93 @@
 "use client";
 
 import { useState } from "react";
-import { Lock } from "lucide-react";
+import { HOTLINE } from "@/lib/hotline";
+import { Lock, MessageCircle, PhoneCall, ShieldCheck, X } from "lucide-react";
 
-// Cổng "đăng nhập để xem SĐT người đăng" - mô hình Homigo nhưng KHÔNG thu tiền:
-// khách vãng lai bấm nút thì mở popup mời đăng nhập/đăng ký, đăng nhập xong thấy số.
-// Mục tiêu là gom tài khoản (email + tên) để nuôi kênh phân phối (email tin mới, retarget),
-// đổi lại khách được xem SĐT che - chi phí bằng 0 với khách, giá trị thu về là danh sách user.
-//
-// Chỉ chặn SĐT NGƯỜI ĐĂNG. Hotline tư vấn của Radar (TuVanRadar) vẫn hiện cho mọi khách -
-// chặn nốt cái đó là tự bóp kênh lead chính.
-//
-// v1: /auth sau đăng nhập đổ về /dashboard chứ chưa quay lại đúng tin đang xem (actions.ts
-// chưa nhận tham số next). Chấp nhận được - sửa luồng quay-lại là việc riêng ở auth/actions.
-export default function DangNhapDeXem() {
+export default function DangNhapDeXem({ listingId, listingTitle }: { listingId?: string; listingTitle?: string }) {
   const [mo, setMo] = useState(false);
+
+  const tinZalo = `Chào Radar, mình đang xem căn "${listingTitle || "này"}" (mã: ${listingId?.slice(0, 8) || ""}), gửi giúp mình SĐT chính chủ và hỗ trợ kiểm tra còn phòng không nhé!`;
+  const linkZalo = `https://zalo.me/${HOTLINE}?text=${encodeURIComponent(tinZalo)}`;
 
   return (
     <>
       <button
+        type="button"
         onClick={() => setMo(true)}
-        className="btn w-full text-center border border-[var(--line)] font-semibold inline-flex items-center justify-center gap-1.5"
+        className="btn w-full text-center border-2 border-brand/30 bg-brand/5 hover:bg-brand/10 text-brand font-bold py-2.5 rounded-lg inline-flex items-center justify-center gap-2 transition"
       >
-        <Lock className="w-4 h-4 text-slate-500" />
-        <span>Đăng nhập để xem SĐT người đăng</span>
+        <Lock className="w-4 h-4 text-brand" />
+        <span>Bấm để nhận SĐT &amp; kiểm tra còn phòng</span>
       </button>
 
       {mo && (
         <div
-          className="fixed inset-0 z-[1000] bg-black/50 grid place-items-center p-4"
+          className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm grid place-items-center p-4 animate-in fade-in duration-200"
           onClick={() => setMo(false)}
         >
           <div
-            className="bg-[var(--bg,#fff)] rounded-xl p-6 max-w-sm w-full shadow-xl"
+            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-lg font-bold mb-1">Xem SĐT người đăng</div>
-            <p className="text-sm text-[var(--ink-soft)] mb-4">
-              Tạo tài khoản miễn phí để xem số liên hệ, lưu tin yêu thích và nhận thông báo
-              khi có tin mới đúng khu vực bạn quan tâm.
-            </p>
-            <a href="/auth?mode=register" className="btn btn-primary w-full text-center block mb-2">
-              Đăng ký miễn phí
-            </a>
-            <a href="/auth" className="btn w-full text-center block border border-[var(--line)]">
-              Tôi đã có tài khoản - Đăng nhập
-            </a>
             <button
               onClick={() => setMo(false)}
-              className="block w-full text-center text-xs text-[var(--ink-faint)] mt-3"
+              aria-label="Đóng"
+              className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
             >
-              Để sau
+              <X className="w-4 h-4" />
             </button>
+
+            <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold mb-2">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Hỗ trợ kết nối chính chủ miễn phí</span>
+            </div>
+
+            <h3 className="text-lg font-bold text-slate-900 leading-snug">
+              Xem số điện thoại &amp; video phòng
+            </h3>
+            <p className="text-xs text-slate-600 mt-1 mb-5 leading-relaxed">
+              Để tránh tin ảo và môi giới kê giá, bạn có thể nhận SĐT đã xác minh qua Zalo hoặc tạo tài khoản để xem trực tiếp.
+            </p>
+
+            {/* Các lựa chọn chuyển đổi */}
+            <div className="space-y-2.5">
+              <a
+                href={linkZalo}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 rounded-xl font-extrabold text-sm text-white bg-[#0068ff] hover:bg-[#0057d9] active:scale-[0.99] transition shadow-md flex items-center justify-center gap-2 text-center"
+              >
+                <MessageCircle className="w-4 h-4 fill-current" />
+                <span>Nhận SĐT &amp; Video qua Zalo (Nhanh nhất)</span>
+              </a>
+
+              <a
+                href={`tel:${HOTLINE}`}
+                className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 transition flex items-center justify-center gap-2 text-center"
+              >
+                <PhoneCall className="w-3.5 h-3.5 text-brand" />
+                <span>Hoặc gọi Hotline Radar: 0346 689 460</span>
+              </a>
+
+              <div className="pt-3 border-t border-slate-100 mt-3 text-center">
+                <span className="text-xs text-slate-400 block mb-2">Hoặc xem số trực tiếp trên web:</span>
+                <div className="flex gap-2">
+                  <a
+                    href="/auth?mode=register"
+                    className="flex-1 py-2 px-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition text-center"
+                  >
+                    Đăng ký nhanh
+                  </a>
+                  <a
+                    href="/auth"
+                    className="flex-1 py-2 px-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition text-center"
+                  >
+                    Đăng nhập
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

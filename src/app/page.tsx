@@ -7,6 +7,7 @@ import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> tr
 import { LISTING_COLS, LISTING_THE_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen from "@/components/DaiDocQuyen";
+import TimPhongNhanh from "@/components/TimPhongNhanh";
 import HangVuot from "@/components/HangVuot";
 import HeroTimKiem, { type ChipKhuVuc } from "@/components/HeroTimKiem";
 import { laTinDocQuyen } from "@/lib/doc-quyen";
@@ -216,6 +217,9 @@ export default async function Home({
         </section>
       ) : (
         <>
+          {/* Mồi câu giữ chân & kích hoạt chuyển đổi Zalo trong 15 phút */}
+          <TimPhongNhanh />
+
           {/* dải độc quyền (FB + Zalo, tin Zalo trước) đứng đầu trang chủ - vị trí đẹp nhất cho hàng bán được */}
           <DaiDocQuyen listings={listings} />
           {projects.length > 0 && (

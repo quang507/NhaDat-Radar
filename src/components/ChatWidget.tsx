@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
-import { Bot, Sparkles, X, Send, PhoneCall, Home } from "lucide-react";
+import { Bot, Sparkles, X, Send, PhoneCall, Home, MessageCircle } from "lucide-react";
 
 type MiniListing = { id: string; title: string; price: string; meta: string; image: string | null };
 type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[]; suggestions?: string[] };
 
 const GREET_DEFAULT: Msg = {
   role: "bot",
-  text: "Xin chào! Mình là trợ lý AI của NhaDat Radar 🏠\n\nMình có thể lọc nhanh căn phù hợp theo nhu cầu của bạn. Bạn muốn xem phương án nào?",
+  text: "Xin chào! Mình là trợ lý của NhaDat Radar 🏠\n\nMình có thể lọc nhanh căn phù hợp theo nhu cầu của bạn. Bạn muốn xem phương án nào?",
   suggestions: ["Phòng trọ Bình Thạnh dưới 4tr", "Nhà Tân Phú 3 - 5 tỷ hxh", "Căn hộ 2PN Quận 7"],
 };
 
@@ -29,10 +29,10 @@ const CHIPS_DANG_XEM = [
   "Liên hệ Hotline hỗ trợ",
 ];
 
-// Chatbot nổi góc phải: hỏi đáp tìm nhà bằng AI, thu thập lead và kết nối chuyên viên
+// Cụm liên hệ nhanh nổi góc phải: Zalo + Gọi điện + Hỏi trợ lý
 export default function ChatWidget() {
   const pathname = usePathname();
-  // đang ở trang chi tiết tin -> gửi kèm id để bot hiểu "phòng này còn không", "giá bao nhiêu", gợi ý căn tương tự
+  // đang ở trang chi tiết tin -> gửi kèm id để bot hiểu
   const dangXem = pathname?.match(/^\/listings\/([0-9a-f-]{36})/i)?.[1] || null;
 
   const [open, setOpen] = useState(false);
@@ -60,7 +60,6 @@ export default function ChatWidget() {
     if (!trimmed || busy) return;
     setInput("");
 
-    // Nếu bấm chip Hotline
     if (trimmed === "Liên hệ Hotline hỗ trợ") {
       setMsgs((m) => [
         ...m,
@@ -105,15 +104,42 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Nút mở trợ lý AI (không chèn thêm nút Zalo nổi riêng để giữ giao diện thanh lịch) */}
-      <button
-        aria-label="Mở trợ lý AI"
-        onClick={() => setOpen((v) => !v)}
-        className={`fixed bottom-20 lg:bottom-5 right-4 lg:right-5 z-50 w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg grid place-items-center
-                   bg-brand text-white hover:scale-105 active:scale-95 transition ${open ? "" : "float-cta"}`}
-      >
-        {open ? <X className="w-5 h-5" /> : <Sparkles className="w-6 h-6" />}
-      </button>
+      {/* Cụm nút liên hệ nhanh góc phải: Zalo + Gọi điện + Hỏi AI */}
+      <div className="fixed bottom-20 lg:bottom-6 right-3 sm:right-6 z-40 flex flex-col items-end gap-2.5">
+        {/* Nút Gọi Hotline trực tiếp */}
+        <a
+          href={`tel:${HOTLINE}`}
+          aria-label={`Gọi Hotline ${HOTLINE}`}
+          className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
+        >
+          <PhoneCall className="w-3.5 h-3.5" />
+          <span>Hotline: 0346 689 460</span>
+        </a>
+
+        {/* Nút Chat Zalo (kênh chuyển đổi mạnh nhất tại VN) */}
+        <a
+          href={HOTLINE_ZALO}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Nhắn Zalo tư vấn phòng"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0068ff] hover:bg-[#0057d9] text-white text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all"
+        >
+          <MessageCircle className="w-4 h-4 fill-current" />
+          <span className="hidden sm:inline">Nhắn Zalo tư vấn 24/7</span>
+          <span className="sm:hidden font-extrabold text-[0.72rem]">Zalo</span>
+        </a>
+
+        {/* Nút Trợ lý AI (tuỳ chọn mở rộng) */}
+        <button
+          type="button"
+          aria-label="Mở trợ lý AI"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white text-[0.7rem] font-medium shadow-md transition active:scale-95 cursor-pointer"
+        >
+          {open ? <X className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
+          <span className="hidden sm:inline">{open ? "Đóng AI" : "Hỏi AI"}</span>
+        </button>
+      </div>
 
       {open && (
         <div className="fixed bottom-36 lg:bottom-24 right-4 lg:right-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[560px] max-h-[75vh]
@@ -123,10 +149,10 @@ export default function ChatWidget() {
             <div>
               <div className="font-bold flex items-center gap-1.5 text-sm">
                 <Bot className="w-4 h-4" />
-                <span>Trợ lý AI Radar</span>
-                <span className="text-[0.65rem] bg-white/20 px-1.5 py-0.5 rounded-full font-normal">24/7</span>
+                <span>Trợ lý Tìm Nhà Radar</span>
+                <span className="text-[0.65rem] bg-white/20 px-1.5 py-0.5 rounded-md font-normal">24/7</span>
               </div>
-              <div className="text-xs text-white/80">Tìm nhà nhanh · Kiểm tra giá thật</div>
+              <div className="text-xs text-white/80">Lọc nhanh phòng trống &amp; nhà đất xác minh</div>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -141,14 +167,14 @@ export default function ChatWidget() {
           <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Trực tuyến</span>
+              <span>Chuyên viên trực tuyến</span>
             </div>
             <a
               href={`tel:${HOTLINE}`}
               className="font-semibold text-brand hover:underline flex items-center gap-1"
             >
               <PhoneCall className="w-3 h-3" />
-              <span>Hotline: {HOTLINE}</span>
+              <span>Hotline: 0346 689 460</span>
             </a>
           </div>
 
@@ -197,7 +223,7 @@ export default function ChatWidget() {
                         type="button"
                         disabled={busy}
                         onClick={() => handleSendText(sug)}
-                        className="text-[0.72rem] font-medium px-2.5 py-1 rounded-full bg-brand/10 text-brand hover:bg-brand hover:text-white transition-all border border-brand/20 active:scale-95 text-left inline-flex items-center gap-1"
+                        className="text-[0.72rem] font-medium px-2.5 py-1 rounded-md bg-brand/10 text-brand hover:bg-brand hover:text-white transition-all border border-brand/20 active:scale-95 text-left inline-flex items-center gap-1 cursor-pointer"
                       >
                         <span>💡</span>
                         <span>{sug}</span>
@@ -207,7 +233,7 @@ export default function ChatWidget() {
                 )}
               </div>
             ))}
-            {busy && <div className="text-xs text-[var(--ink-faint)] px-2 animate-pulse">Đang tìm kiếm dữ liệu nhà đất…</div>}
+            {busy && <div className="text-xs text-[var(--ink-faint)] px-2 animate-pulse">Đang tìm kiếm căn phù hợp…</div>}
           </div>
 
           {/* Quick chips gợi ý */}
@@ -218,7 +244,7 @@ export default function ChatWidget() {
                 type="button"
                 onClick={() => handleSendText(chip)}
                 disabled={busy}
-                className="text-[0.7rem] whitespace-nowrap px-2.5 py-1 rounded-full bg-[var(--surface-2)] hover:bg-brand/10 hover:text-brand border border-[var(--line)] transition"
+                className="text-[0.7rem] whitespace-nowrap px-2.5 py-1 rounded-md bg-[var(--surface-2)] hover:bg-brand/10 hover:text-brand border border-[var(--line)] transition cursor-pointer"
               >
                 {chip}
               </button>
@@ -234,9 +260,9 @@ export default function ChatWidget() {
               className="inp !py-2 text-sm flex-1"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Hỏi AI: 'nhà Tân Phú dưới 8 tỷ', để lại SĐT…"
+              placeholder="Nhắn yêu cầu: 'phòng Bình Thạnh dưới 4tr'…"
             />
-            <button className="btn btn-primary !px-3.5 flex items-center justify-center" type="submit" disabled={busy || !input.trim()} aria-label="Gửi câu hỏi">
+            <button className="btn btn-primary !px-3.5 flex items-center justify-center cursor-pointer" type="submit" disabled={busy || !input.trim()} aria-label="Gửi câu hỏi">
               <Send className="w-4 h-4" />
             </button>
           </form>
