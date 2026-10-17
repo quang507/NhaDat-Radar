@@ -71,7 +71,7 @@ export default function MoiDienSdt() {
 
   return (
     <div className="fixed inset-0 z-[1000] bg-black/50 grid place-items-center p-4" onClick={dongTam}>
-      <div className="bg-[var(--bg,#fff)] rounded-xl p-6 max-w-sm w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-[var(--bg,#fff)] rounded-lg border border-[var(--line)] p-6 max-w-sm w-full shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="text-lg font-bold mb-1">Để lại số điện thoại?</div>
         <p className="text-sm text-[var(--ink-soft)] mb-4">
           Khi có tin đúng nhu cầu hoặc khách quan tâm tin của bạn, Radar gọi/Zalo báo ngay

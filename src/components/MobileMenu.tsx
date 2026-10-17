@@ -47,15 +47,15 @@ export default function MobileMenu() {
       {open && (
         <>
           <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setOpen(false)} />
-          <nav className="absolute left-0 right-0 top-full z-50 card border-t-0 shadow-2xl px-5 py-3 flex flex-col rounded-b-2xl animate-in slide-in-from-top-2 duration-200">
+          <nav className="absolute left-0 right-0 top-full z-50 card border-t-0 shadow-lg px-4 py-3 flex flex-col rounded-b-lg animate-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-2 gap-1 py-1">
               {LINKS.map(({ href, label, icon: Icon, highlight }) => (
                 <Link
                   key={href}
                   href={href}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors
-                    ${highlight ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" : "text-slate-700 hover:text-brand hover:bg-slate-50"}`}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-semibold transition-colors
+                    ${highlight ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400" : "text-slate-700 dark:text-slate-200 hover:text-brand hover:bg-slate-50 dark:hover:bg-slate-800/60"}`}
                 >
                   <Icon className={`w-4 h-4 shrink-0 ${highlight ? "text-emerald-600" : "text-slate-400"}`} />
                   <span>{label}</span>
@@ -68,7 +68,7 @@ export default function MobileMenu() {
               <Link
                 href="/dashboard/new"
                 onClick={() => setOpen(false)}
-                className="w-full btn btn-primary flex items-center justify-center gap-2 font-bold py-2.5 rounded-xl shadow-sm text-sm"
+                className="w-full btn btn-primary flex items-center justify-center gap-2 font-bold py-2.5 rounded-md shadow-xs text-sm"
               >
                 <span>+ Đăng tin nhà đất miễn phí</span>
               </Link>

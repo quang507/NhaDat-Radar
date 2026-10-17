@@ -233,7 +233,7 @@ export default async function Home({
           {projects.length > 0 && (
             <Section title="Dự án nổi bật" href="/projects">
               <HangVuot items={projects.slice(0, 3).map((p) => ({ key: p.id, node: (
-                  <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition group w-full">
+                  <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 group w-full border border-slate-200">
                     {/* Ảnh chiếm ~2/3 card (16:10), mô tả gọn 1 khối - ảnh là thứ bán dự án */}
                     <div className="aspect-[16/10] bg-[#16233a] grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
@@ -378,7 +378,7 @@ export default async function Home({
 
                   {/* Header thẻ: Icon danh mục */}
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center border border-white/20 group-hover:bg-brand group-hover:border-brand transition-colors">
+                    <div className="w-9 h-9 rounded-md bg-white/20 backdrop-blur-md text-white flex items-center justify-center border border-white/20 group-hover:bg-brand group-hover:border-brand transition-colors">
                       <Icon className="w-5 h-5" />
                     </div>
                   </div>
@@ -418,7 +418,7 @@ export default async function Home({
                 <Link
                   key={b.slug}
                   href={`/tin-tuc/${b.slug}`}
-                  className="group card rounded-2xl overflow-hidden border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                  className="group card rounded-lg overflow-hidden border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col justify-between"
                 >
                   <div>
                     <div className="aspect-[16/10] relative overflow-hidden bg-slate-100">
@@ -428,7 +428,7 @@ export default async function Home({
                         fallbackLabel={b.categoryName}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-white/95 text-slate-800 shadow-xs backdrop-blur-md">
+                      <span className="absolute top-2.5 left-2.5 px-1.5 py-0.5 rounded text-[0.65rem] font-bold bg-white/95 text-slate-800 shadow-xs backdrop-blur-xs">
                         {b.categoryName}
                       </span>
                     </div>

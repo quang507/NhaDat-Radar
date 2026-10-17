@@ -2,21 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root, html.light {
   --bg: #f5f7fa;
   --surface: #ffffff;
   --surface-2: #eef1f6;
   --ink: #141a22;
   --ink-soft: #4c566a;
-  --ink-faint: #6b7484;   /* WCAG AA 4.5:1 trên trắng (cũ #8b93a1 = 3.1:1, chữ nhỏ ngoài trời không đọc được) */
+  --ink-faint: #6b7484;   /* WCAG AA 4.5:1 trên trắng */
   --line: #e5e9f0;
   --line-strong: #d3d9e3;
-  --brand: #1e7b52;        /* xanh lá đậm — khớp logo "nd" (đổi từ đỏ gạch theo yêu cầu 16/8) */
+  --brand: #1e7b52;        /* xanh lá đậm — khớp logo "nd" */
   --brand-ink: #165f3f;
-  --accent: #c2711b;       /* cam đất — điểm nhấn phụ (nút bản đồ) để không lẫn với brand xanh */
+  --accent: #c2711b;       /* cam đất — điểm nhấn phụ */
 }
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light) {
     --bg: #0b0f17;
     --surface: #141a24;
     --surface-2: #0d1219;
@@ -24,12 +25,25 @@
     --ink-soft: #aab4c4;
     --ink-faint: #8f99aa;   /* ~5.2:1 trên nền tối */
     --line: #232c3a;
-    --line-strong: #33405230;
     --line-strong: #334052;
     --brand: #4cc38a;
     --brand-ink: #6bd6a2;
     --accent: #e0973f;
   }
+}
+
+html.dark {
+  --bg: #0b0f17;
+  --surface: #141a24;
+  --surface-2: #0d1219;
+  --ink: #e9edf4;
+  --ink-soft: #aab4c4;
+  --ink-faint: #8f99aa;
+  --line: #232c3a;
+  --line-strong: #334052;
+  --brand: #4cc38a;
+  --brand-ink: #6bd6a2;
+  --accent: #e0973f;
 }
 html { color-scheme: light dark; }
 body {

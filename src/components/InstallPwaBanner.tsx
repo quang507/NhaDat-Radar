@@ -80,9 +80,9 @@ export default function InstallPwaBanner() {
   return (
     <>
       {/* Floating Banner dính phía dưới màn hình */}
-      <div className="fixed bottom-20 lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-40 bg-[var(--surface)]/95 backdrop-blur-md border border-[var(--line-strong)] rounded-2xl p-3.5 shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-300">
+      <div className="fixed bottom-20 lg:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-40 bg-[var(--surface)]/95 backdrop-blur-md border border-[var(--line-strong)] rounded-lg p-3.5 shadow-md animate-in fade-in slide-in-from-bottom-5 duration-300">
         <div className="flex items-center gap-3">
-          <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-slate-200/60 shadow-xs">
+          <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0 border border-slate-200/60 shadow-xs">
             <Image src="/icon-192.png" alt="Radar Nhà Đất" fill className="object-cover" />
           </div>
           <div className="min-w-0 flex-1">
@@ -96,7 +96,7 @@ export default function InstallPwaBanner() {
           <button
             type="button"
             onClick={handleDismiss}
-            className="text-slate-400 hover:text-slate-600 p-1 rounded-full cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 p-1 rounded cursor-pointer"
             aria-label="Đóng thông báo"
           >
             <X className="w-4 h-4" />
@@ -107,14 +107,14 @@ export default function InstallPwaBanner() {
           <button
             type="button"
             onClick={handleDismiss}
-            className="flex-1 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 text-center rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+            className="flex-1 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 text-center rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
           >
             Để sau
           </button>
           <button
             type="button"
             onClick={handleInstallClick}
-            className="flex-1 py-1.5 px-3 text-xs font-bold bg-brand text-white rounded-lg hover:bg-brand-ink transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+            className="flex-1 py-1.5 px-3 text-xs font-bold bg-brand text-white rounded-md hover:bg-brand-ink transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Cài đặt ngay</span>
@@ -125,7 +125,7 @@ export default function InstallPwaBanner() {
       {/* Hướng dẫn cài đặt cho iOS Safari */}
       {showIosGuide && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[var(--surface)] w-full max-w-sm rounded-2xl p-5 shadow-2xl border border-[var(--line)] animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-[var(--surface)] w-full max-w-sm rounded-lg p-5 shadow-lg border border-[var(--line)] animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-base text-[var(--ink)]">Cài đặt trên iPhone/iPad</h3>
               <button

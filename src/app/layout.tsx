@@ -72,7 +72,14 @@ const LD_SITE = [
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi" className={`${inter.variable} ${lora.variable}`}>
+    <html lang="vi" className={`${inter.variable} ${lora.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.add('light')}}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body>
         <Nav />
         <main className="max-w-6xl mx-auto px-5 py-6">{children}</main>
