@@ -35,9 +35,9 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
       role="tab"
       aria-selected={tab === t}
       onClick={() => setTab(t)}
-      className={`px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+      className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-md transition-all ${
         tab === t
-          ? "bg-[var(--surface)] text-brand shadow-sm font-bold"
+          ? "bg-[var(--surface)] text-brand shadow-xs font-bold"
           : "text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--surface)]/50"
       }`}
     >
@@ -45,12 +45,12 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
     </button>
   );
 
-  const sel = "inp appearance-none pr-6 cursor-pointer text-xs sm:text-sm !py-2.5 !px-2.5 sm:!px-3 rounded-lg border-[var(--line-strong)] bg-[var(--surface)]";
+  const sel = "inp appearance-none pr-6 cursor-pointer text-xs sm:text-sm !py-2.5 !px-2.5 sm:!px-3 rounded-md border-[var(--line-strong)] bg-[var(--surface)]";
   const qs = (o: Record<string, string>) => "/search?" + new URLSearchParams(Object.entries(o).filter(([, v]) => v)).toString();
 
   return (
-    <div className="card rounded-2xl p-3 sm:p-5 shadow-sm border border-[var(--line)]">
-      <div role="tablist" className="flex items-center gap-1 p-1 bg-[var(--surface-2)] rounded-xl border border-[var(--line)] w-fit mb-3">
+    <div className="card rounded-lg p-3 sm:p-5 shadow-xs border border-[var(--line)]">
+      <div role="tablist" className="flex items-center gap-1 p-1 bg-[var(--surface-2)] rounded-md border border-[var(--line)] w-fit mb-3">
         {nut("cho_thue", "Cho thuê")}
         {nut("ban", "Mua bán")}
         {nut("dinh_gia", "Định giá BĐS")}
@@ -73,10 +73,10 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                 <input
                   name="q"
                   placeholder={deal === "cho_thue" ? "Gõ quận, đường, trường gần đó (VD: Gò Vấp, Phạm Hữu Lầu)" : "Gõ quận, đường, dự án (VD: Quận 7, Novaland)"}
-                  className="inp flex-1 min-w-0 pr-4 pl-3.5 !py-2.5 rounded-xl text-sm"
+                  className="inp flex-1 min-w-0 pr-4 pl-3.5 !py-2 rounded-md text-sm"
                 />
               </div>
-              <button className="btn btn-primary px-5 sm:px-6 rounded-xl flex items-center gap-1.5 whitespace-nowrap" type="submit">
+              <button className="btn btn-primary px-5 sm:px-6 rounded-md flex items-center gap-1.5 whitespace-nowrap shadow-xs" type="submit">
                 <Search className="w-4 h-4" />
                 <span>Tìm kiếm</span>
               </button>

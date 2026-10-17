@@ -42,11 +42,11 @@ export default function TimPhongNhanh() {
   const zaloUrl = `https://zalo.me/${HOTLINE}?text=${encodeURIComponent(tinNhan)}`;
 
   return (
-    <section className="my-8 rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/70 via-white to-brand/5 p-5 sm:p-7 shadow-sm">
+    <section className="my-8 rounded-lg border border-slate-200 bg-slate-50/60 p-5 sm:p-6 shadow-xs">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         {/* Cột trái: Thông điệp giải quyết nỗi đau tìm nhà */}
         <div className="max-w-xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-100/80 text-emerald-900 text-xs font-bold mb-3">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100/80 text-emerald-900 text-xs font-bold mb-3">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
             <span>Hỗ trợ tìm phòng &amp; dẫn xem hoàn toàn miễn phí</span>
           </div>
@@ -74,7 +74,7 @@ export default function TimPhongNhanh() {
         </div>
 
         {/* Cột phải: Form chọn nhanh 3 bước */}
-        <div className="w-full lg:max-w-md bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-md">
+        <div className="w-full lg:max-w-md bg-white rounded-lg p-4 sm:p-5 border border-slate-200 shadow-xs">
           <div className="space-y-3.5">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -83,7 +83,7 @@ export default function TimPhongNhanh() {
               <select
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                className="inp w-full !py-2.5 text-sm rounded-lg bg-slate-50 border-slate-300 font-medium cursor-pointer"
+                className="inp w-full !py-2 text-sm rounded-md bg-slate-50 border-slate-300 font-medium cursor-pointer"
               >
                 {QUAN_HOT.map((q) => (
                   <option key={q} value={q}>
@@ -101,7 +101,7 @@ export default function TimPhongNhanh() {
                 <select
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
-                  className="inp w-full !py-2.5 text-xs sm:text-sm rounded-lg bg-slate-50 border-slate-300 font-medium cursor-pointer"
+                  className="inp w-full !py-2 text-xs sm:text-sm rounded-md bg-slate-50 border-slate-300 font-medium cursor-pointer"
                 >
                   {GIA_MUC.map((g) => (
                     <option key={g} value={g}>
@@ -118,7 +118,7 @@ export default function TimPhongNhanh() {
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="inp w-full !py-2.5 text-xs sm:text-sm rounded-lg bg-slate-50 border-slate-300 font-medium cursor-pointer"
+                  className="inp w-full !py-2 text-xs sm:text-sm rounded-md bg-slate-50 border-slate-300 font-medium cursor-pointer"
                 >
                   {LOAI_HINH.map((l) => (
                     <option key={l} value={l}>
@@ -134,9 +134,9 @@ export default function TimPhongNhanh() {
                 href={zaloUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-xl font-extrabold text-sm text-white bg-[#0068ff] hover:bg-[#0057d9] active:scale-[0.99] transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-md font-bold text-sm text-white bg-[#0068ff] hover:bg-[#0057d9] active:scale-[0.99] transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
               >
-                <MessageCircle className="w-5 h-5 fill-current" />
+                <MessageCircle className="w-4 h-4 fill-current" />
                 <span>Nhận 3 - 5 phòng phù hợp qua Zalo</span>
               </a>
 

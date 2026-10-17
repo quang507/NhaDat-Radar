@@ -123,7 +123,7 @@ export default function ChatWidget() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Nhắn Zalo tư vấn phòng"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0068ff] hover:bg-[#0057d9] text-white text-xs font-bold shadow-lg hover:scale-105 active:scale-95 transition-all"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-xs font-bold shadow-xs hover:border-blue-700 active:scale-95 transition-all border border-blue-600"
         >
           <MessageCircle className="w-4 h-4 fill-current" />
           <span className="hidden sm:inline">Nhắn Zalo tư vấn 24/7</span>
@@ -135,7 +135,7 @@ export default function ChatWidget() {
           type="button"
           aria-label="Mở trợ lý AI"
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-medium shadow-md transition active:scale-95 cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-medium shadow-xs transition active:scale-95 cursor-pointer border border-slate-800"
         >
           {open ? <X className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
           <span className="hidden sm:inline">{open ? "Đóng AI" : "Hỏi AI"}</span>
@@ -144,7 +144,7 @@ export default function ChatWidget() {
 
       {open && (
         <div className="fixed bottom-36 lg:bottom-24 right-4 lg:right-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[560px] max-h-[75vh]
-                        card rounded-xl shadow-2xl flex flex-col overflow-hidden border border-[var(--line)]">
+                        card rounded-lg shadow-lg flex flex-col overflow-hidden border border-slate-300">
           {/* Header */}
           <div className="px-4 py-3 bg-brand text-white flex items-center justify-between">
             <div>

@@ -432,11 +432,11 @@ export default async function ListingDetail({
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
           {roHang ? (
             <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs">
-              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 border border-emerald-200">
+              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 border border-emerald-200">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 {x.deal === "ban" ? "Tin đã xác minh · nhà phố đã xác thực sổ hồng" : "Tin đã xác minh · phòng trống thực tế"}
               </span>
-              {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded-full">{giuPhong}</span>}
+              {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded">{giuPhong}</span>}
             </div>
           ) : (
             <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
@@ -457,7 +457,7 @@ export default async function ListingDetail({
             {images.length ? (
               <Gallery images={images} title={x.title} videos={layVideo(x.images)} />
             ) : (
-              <div className="relative rounded-2xl overflow-hidden aspect-[16/9] max-h-[440px] bg-slate-900 shadow-md group border border-slate-200/80">
+              <div className="relative rounded-lg overflow-hidden aspect-[16/9] max-h-[440px] bg-slate-900 shadow-xs group border border-slate-800">
                 {/* Background illustration photo */}
                 <img
                   src={t.img}
@@ -467,12 +467,12 @@ export default async function ListingDetail({
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-black/20" />
 
                 {/* Badge top-left */}
-                <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 z-10">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 text-slate-800 shadow-sm backdrop-blur-md flex items-center gap-1.5">
+                <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2 z-10">
+                  <span className="px-2.5 py-1 rounded text-xs font-bold bg-white/95 text-slate-800 shadow-xs backdrop-blur-md flex items-center gap-1.5">
                     <span>{t.icon}</span>
                     <span>Ảnh minh hoạ {t.label || "phân khúc"}</span>
                   </span>
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-black/60 text-amber-200 backdrop-blur-md border border-white/10">
+                  <span className="px-2 py-1 rounded text-[11px] font-medium bg-black/60 text-amber-200 backdrop-blur-md border border-white/10">
                     Nguồn gốc chưa có ảnh thực tế
                   </span>
                 </div>
@@ -495,7 +495,7 @@ export default async function ListingDetail({
                     href={`https://zalo.me/0346689460?text=${encodeURIComponent(`Chào Radar, mình xem tin "${x.title}" (mã: ${x.id?.slice(0, 8)}). Nhờ bạn gửi giúp ảnh chụp thực tế & sổ của căn này qua Zalo nhé!`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-sm shadow-xl shadow-emerald-950/40 transition-all active:scale-95 shrink-0"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-xs transition-all active:scale-95 shrink-0"
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span>Nhắn Zalo lấy ảnh thật &amp; sổ</span>

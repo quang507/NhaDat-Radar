@@ -25,7 +25,7 @@ export default function ListingCard({ x }: { x: Listing }) {
   return (
     <Link
       href={`/listings/${x.id}`}
-      className="reveal group card rounded-2xl overflow-hidden hover:border-slate-300 hover:shadow-lg transition-all duration-300 flex flex-col w-full bg-white border border-slate-200/80"
+      className="reveal group card rounded-lg overflow-hidden hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col w-full bg-white border border-slate-200"
     >
       {/* Thumbnail */}
       <div
@@ -39,24 +39,24 @@ export default function ListingCard({ x }: { x: Listing }) {
         )}
 
         {/* Top-left badges: Tối đa 2 badge tinh gọn */}
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap max-w-[80%]">
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap max-w-[85%]">
           {xacThuc && (
-            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-emerald-600/95 text-white shadow-sm backdrop-blur-sm tracking-wide">
+            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-emerald-600/95 text-white shadow-xs tracking-wide">
               <ShieldCheck className="w-3 h-3 stroke-[2.5]" />
               ĐÃ XÁC MINH
             </span>
           )}
           {anh.video && (
-            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-rose-600/95 text-white shadow-sm backdrop-blur-sm tracking-wide">
+            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-rose-600/95 text-white shadow-xs tracking-wide">
               <Play className="w-2.5 h-2.5 fill-current" />
               CÓ VIDEO
             </span>
           )}
-          <span className="text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-md">
+          <span className="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
             {x.deal === "ban" ? "Bán" : "Cho thuê"}
           </span>
           {isNew && !xacThuc && !anh.video && (
-            <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-amber-600 text-white shadow-sm">
+            <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-amber-600 text-white shadow-xs">
               Mới
             </span>
           )}
@@ -67,7 +67,7 @@ export default function ListingCard({ x }: { x: Listing }) {
 
         {/* Bottom-right photo count */}
         {anh.so > 1 && (
-          <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 text-[0.65rem] font-semibold px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-md">
+          <span className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 text-[0.65rem] font-semibold px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
             <Camera className="w-3 h-3" />
             <span>{anh.so}</span>
           </span>

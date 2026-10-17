@@ -130,8 +130,8 @@ export default async function Home({
     <div>
       {/* ===== HERO: Sàn thực tế ===== */}
       <section className="pt-3 pb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-bold mb-3 shadow-zen-1">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
           <span>Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay (Xác minh trực tiếp)</span>
         </div>
 
@@ -144,8 +144,8 @@ export default async function Home({
         <HeroTimKiem chip={chip} />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 text-xs">
-          <div className="p-3.5 rounded-2xl border border-slate-200/80 bg-white shadow-zen-1 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="p-3 rounded-lg border border-slate-200 bg-white flex items-center gap-2.5 shadow-none">
+            <div className="w-7 h-7 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
@@ -153,8 +153,8 @@ export default async function Home({
               <div className="text-[11px] text-slate-500">Tự động gỡ phòng đã thuê</div>
             </div>
           </div>
-          <div className="p-3.5 rounded-2xl border border-slate-200/80 bg-white shadow-zen-1 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+          <div className="p-3 rounded-lg border border-slate-200 bg-white flex items-center gap-2.5 shadow-none">
+            <div className="w-7 h-7 rounded-md bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
               <Play className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
@@ -162,8 +162,8 @@ export default async function Home({
               <div className="text-[11px] text-slate-500">Xem phòng &amp; hẻm trước</div>
             </div>
           </div>
-          <div className="p-3.5 rounded-2xl border border-slate-200/80 bg-white shadow-zen-1 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-brand flex items-center justify-center shrink-0">
+          <div className="p-3 rounded-lg border border-slate-200 bg-white flex items-center gap-2.5 shadow-none">
+            <div className="w-7 h-7 rounded-md bg-emerald-50 text-brand flex items-center justify-center shrink-0">
               <Store className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
@@ -171,8 +171,8 @@ export default async function Home({
               <div className="text-[11px] text-slate-500">Không chênh giá môi giới</div>
             </div>
           </div>
-          <div className="p-3.5 rounded-2xl border border-slate-200/80 bg-white shadow-zen-1 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="p-3 rounded-lg border border-slate-200 bg-white flex items-center gap-2.5 shadow-none">
+            <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
               <Clock className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
@@ -277,14 +277,14 @@ export default async function Home({
               <Link
                 key={href}
                 href={href}
-                className="card rounded-xl p-5 hover:border-brand hover:shadow-md transition-all group flex flex-col justify-between"
+                className="card rounded-lg p-4 sm:p-5 hover:border-slate-300 hover:shadow-sm transition-all group flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-brand/10 text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
+                    <div className="w-8 h-8 rounded-md bg-brand/10 text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
                       <Icon className="w-4 h-4" />
                     </div>
-                    <span className="text-[0.68rem] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-[var(--surface-2)] text-slate-700 dark:text-slate-200">
+                    <span className="text-[0.68rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-slate-700 dark:text-slate-200">
                       {tag}
                     </span>
                   </div>
@@ -304,13 +304,13 @@ export default async function Home({
           </section>
 
           {/* ===== Trợ lý Zalo: Nhận bảng hàng giá tốt mới nhất ===== */}
-          <section className="mt-12 sm:mt-16 card p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 border border-brand/20 bg-gradient-to-r from-emerald-50/80 via-white to-white shadow-zen-2">
-            <div className="w-12 h-12 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0 shadow-sm">
-              <MessageCircle className="w-6 h-6 text-brand" />
+          <section className="mt-10 sm:mt-12 card p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 border border-slate-200 bg-slate-50/70 rounded-lg">
+            <div className="w-10 h-10 rounded-md bg-brand/10 text-brand flex items-center justify-center shrink-0">
+              <MessageCircle className="w-5 h-5 text-brand" />
             </div>
             <div className="flex-1 text-center sm:text-left">
               <h3 className="heading-3 text-slate-900">Nhận danh sách căn giá tốt nhất qua Zalo</h3>
-              <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
                 Chuyên viên Radar lọc sẵn 3–5 căn sát nhu cầu, đúng giá chủ nhà và gửi kèm ảnh/sổ hồng trực tiếp qua Zalo trong 15 phút.
               </p>
             </div>
@@ -318,16 +318,16 @@ export default async function Home({
               href="https://zalo.me/0346689460?text=Chào%20Radar,%20mình%20cần%20tìm%20bất%20động%20sản%20phù%20hợp,%20nhờ%20bạn%20tư%20vấn%20giúp%20nhé!"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn btn-primary whitespace-nowrap px-6 py-3 rounded-xl shadow-md font-bold text-sm shrink-0"
+              className="btn btn-primary whitespace-nowrap px-5 py-2.5 rounded-md font-bold text-sm shrink-0 shadow-xs"
             >
               Nhận tư vấn Zalo miễn phí
             </a>
           </section>
 
           {/* ===== Duyệt theo danh mục ===== */}
-          <section className="mt-12 sm:mt-16">
+          <section className="mt-10 sm:mt-12">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-slate-900">Duyệt theo danh mục</h2>
+              <h2 className="heading-2 border-l-4 border-brand pl-3 text-slate-900">Duyệt theo danh mục</h2>
               <span className="text-xs sm:text-sm text-slate-500 font-medium">Hơn 15.000 căn nhà đất có sẵn</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -364,7 +364,7 @@ export default async function Home({
                 <Link
                   key={kind}
                   href={`/search?kind=${kind}`}
-                  className="relative rounded-2xl overflow-hidden min-h-[260px] group flex flex-col justify-between p-5 text-white shadow-zen-2 hover:shadow-zen-4 transition-all duration-300 border border-slate-700/30"
+                  className="relative rounded-lg overflow-hidden min-h-[240px] group flex flex-col justify-between p-4 sm:p-5 text-white shadow-sm hover:shadow-md transition-all duration-300 border border-slate-800/40"
                 >
                   {/* Ảnh nền thực tế */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
