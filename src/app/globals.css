@@ -18,32 +18,32 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --bg: #0b0f17;
-    --surface: #141a24;
-    --surface-2: #0d1219;
-    --ink: #e9edf4;
-    --ink-soft: #aab4c4;
-    --ink-faint: #8f99aa;   /* ~5.2:1 trên nền tối */
-    --line: #232c3a;
-    --line-strong: #334052;
-    --brand: #4cc38a;
-    --brand-ink: #6bd6a2;
-    --accent: #e0973f;
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #162032;
+    --ink: #f8fafc;
+    --ink-soft: #cbd5e1;
+    --ink-faint: #94a3b8;
+    --line: #334155;
+    --line-strong: #475569;
+    --brand: #10b981;
+    --brand-ink: #059669;
+    --accent: #f59e0b;
   }
 }
 
 html.dark {
-  --bg: #0b0f17;
-  --surface: #141a24;
-  --surface-2: #0d1219;
-  --ink: #e9edf4;
-  --ink-soft: #aab4c4;
-  --ink-faint: #8f99aa;
-  --line: #232c3a;
-  --line-strong: #334052;
-  --brand: #4cc38a;
-  --brand-ink: #6bd6a2;
-  --accent: #e0973f;
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-2: #162032;
+  --ink: #f8fafc;
+  --ink-soft: #cbd5e1;
+  --ink-faint: #94a3b8;
+  --line: #334155;
+  --line-strong: #475569;
+  --brand: #10b981;
+  --brand-ink: #059669;
+  --accent: #f59e0b;
 }
 html { color-scheme: light dark; }
 body {

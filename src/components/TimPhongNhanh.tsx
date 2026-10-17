@@ -42,48 +42,48 @@ export default function TimPhongNhanh() {
   const zaloUrl = `https://zalo.me/${HOTLINE}?text=${encodeURIComponent(tinNhan)}`;
 
   return (
-    <section className="my-8 rounded-lg border border-slate-200 bg-slate-50/60 p-5 sm:p-6 shadow-xs">
+    <section className="my-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-5 sm:p-6 shadow-xs">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         {/* Cột trái: Thông điệp giải quyết nỗi đau tìm nhà */}
         <div className="max-w-xl">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100/80 text-emerald-900 text-xs font-bold mb-3">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 text-xs font-bold mb-3 border border-emerald-200/60 dark:border-emerald-800/40">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
             <span>Hỗ trợ tìm phòng &amp; dẫn xem hoàn toàn miễn phí</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
             Quá bận để tự lọc hàng ngàn tin?
           </h2>
-          <p className="text-sm text-slate-600 mt-1.5 leading-relaxed">
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">
             Chọn nhanh nhu cầu — Chuyên viên Radar lọc sẵn <b>3 - 5 căn phòng đẹp nhất</b>, còn trống hôm nay và gửi video thực tế qua Zalo cho bạn trong <b>15 phút</b>.
           </p>
 
-          <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-200/80 text-xs text-slate-700 font-medium">
+          <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-200/80 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 font-medium">
             <div className="flex items-center gap-1.5">
               <Video className="w-4 h-4 text-rose-500 shrink-0" />
               <span>100% có video</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Đúng giá chủ nhà</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+              <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
               <span>Dẫn xem trong ngày</span>
             </div>
           </div>
         </div>
 
         {/* Cột phải: Form chọn nhanh 3 bước */}
-        <div className="w-full lg:max-w-md bg-white rounded-lg p-4 sm:p-5 border border-slate-200 shadow-xs">
+        <div className="w-full lg:max-w-md bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-xs">
           <div className="space-y-3.5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                 1. Khu vực bạn muốn thuê:
               </label>
               <select
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                className="inp w-full !py-2 text-sm rounded-md bg-slate-50 border-slate-300 font-medium cursor-pointer"
+                className="inp w-full !py-2 text-sm rounded-md bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-medium cursor-pointer"
               >
                 {QUAN_HOT.map((q) => (
                   <option key={q} value={q}>
@@ -95,13 +95,13 @@ export default function TimPhongNhanh() {
 
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   2. Ngân sách / tháng:
                 </label>
                 <select
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
-                  className="inp w-full !py-2 text-xs sm:text-sm rounded-md bg-slate-50 border-slate-300 font-medium cursor-pointer"
+                  className="inp w-full !py-2 text-xs sm:text-sm rounded-md bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-medium cursor-pointer"
                 >
                   {GIA_MUC.map((g) => (
                     <option key={g} value={g}>
@@ -112,13 +112,13 @@ export default function TimPhongNhanh() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
                   3. Loại hình phòng:
                 </label>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
-                  className="inp w-full !py-2 text-xs sm:text-sm rounded-md bg-slate-50 border-slate-300 font-medium cursor-pointer"
+                  className="inp w-full !py-2 text-xs sm:text-sm rounded-md bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-medium cursor-pointer"
                 >
                   {LOAI_HINH.map((l) => (
                     <option key={l} value={l}>

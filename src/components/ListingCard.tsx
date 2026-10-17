@@ -25,7 +25,7 @@ export default function ListingCard({ x }: { x: Listing }) {
   return (
     <Link
       href={`/listings/${x.id}`}
-      className="reveal group card rounded-lg overflow-hidden hover:border-slate-300 hover:shadow-sm transition-all duration-200 flex flex-col w-full bg-white border border-slate-200"
+      className="reveal group card rounded-lg overflow-hidden hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all duration-200 flex flex-col w-full bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80"
     >
       {/* Thumbnail */}
       <div
@@ -80,10 +80,10 @@ export default function ListingCard({ x }: { x: Listing }) {
         <div className="flex items-baseline justify-between gap-2">
           <div className="flex items-baseline gap-2">
             <span className="text-brand font-extrabold text-xl leading-none tracking-tight">{fmtPrice(x.price_vnd, x.deal)}</span>
-            {ppm2 && <span className="text-xs text-slate-500 font-semibold">{ppm2}</span>}
+            {ppm2 && <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{ppm2}</span>}
           </div>
           {x.price_flag && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/70" title="Giá có độ lệch đáng chú ý so với mặt bằng">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/70 dark:border-amber-800/60" title="Giá có độ lệch đáng chú ý so với mặt bằng">
               <AlertCircle className="w-3 h-3" />
               Lệch giá
             </span>
@@ -91,36 +91,36 @@ export default function ListingCard({ x }: { x: Listing }) {
         </div>
 
         {/* Title */}
-        <h3 className="font-bold text-sm text-slate-900 leading-snug line-clamp-2 group-hover:text-brand transition-colors">
+        <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-snug line-clamp-2 group-hover:text-brand dark:group-hover:text-emerald-400 transition-colors">
           {title}
         </h3>
 
         {/* Location */}
-        <div className="flex items-center gap-1 text-xs text-slate-500 truncate">
-          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 truncate">
+          <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
           <span className="truncate">{location}</span>
         </div>
 
         {/* Specs: Diện tích, Phòng ngủ, WC */}
-        <div className="flex items-center gap-2 text-xs text-slate-600 font-medium pt-0.5">
-          {x.area_m2 ? <span className="font-semibold text-slate-800">{x.area_m2} m²</span> : null}
-          {x.area_m2 && (x.bedrooms || x.bathrooms) ? <span className="text-slate-300">•</span> : null}
+        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 font-medium pt-0.5">
+          {x.area_m2 ? <span className="font-semibold text-slate-800 dark:text-slate-200">{x.area_m2} m²</span> : null}
+          {x.area_m2 && (x.bedrooms || x.bathrooms) ? <span className="text-slate-300 dark:text-slate-600">•</span> : null}
           {x.bedrooms ? <span>{x.bedrooms} PN</span> : null}
-          {x.bedrooms && x.bathrooms ? <span className="text-slate-300">•</span> : null}
+          {x.bedrooms && x.bathrooms ? <span className="text-slate-300 dark:text-slate-600">•</span> : null}
           {x.bathrooms ? <span>{x.bathrooms} WC</span> : null}
-          <span className="ml-auto text-xs text-slate-500 font-semibold">{PROP[x.kind]}</span>
+          <span className="ml-auto text-xs text-slate-500 dark:text-slate-400 font-semibold">{PROP[x.kind]}</span>
         </div>
 
         {/* Footer Meta */}
-        <div className="flex items-center justify-between gap-2 mt-auto pt-2.5 border-t border-slate-100 text-xs text-slate-500">
+        <div className="flex items-center justify-between gap-2 mt-auto pt-2.5 border-t border-slate-100 dark:border-slate-700/60 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-1.5">
             <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
-              isAgent ? "text-emerald-700 bg-emerald-50" : roHang ? "text-emerald-800 bg-emerald-50 border border-emerald-200/50" : "text-slate-600 bg-slate-100"
+              isAgent ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50" : roHang ? "text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50" : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60"
             }`}>
               {tenNguon(x)}
             </span>
             {multi && (
-              <span className="px-1.5 py-0.5 rounded text-emerald-700 bg-emerald-50 font-semibold text-[11px]" title={`Cùng tin xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
+              <span className="px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 font-semibold text-[11px]" title={`Cùng tin xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
                 {x.source_count} nguồn
               </span>
             )}
@@ -128,7 +128,7 @@ export default function ListingCard({ x }: { x: Listing }) {
           {ageMin != null && (
             <span
               suppressHydrationWarning
-              className="font-medium text-slate-500 shrink-0"
+              className="font-medium text-slate-500 dark:text-slate-400 shrink-0"
               title={`Radar thấy tin: ${new Date(x.first_seen_at!).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" })}`}
             >
               {fresh(ageMin)}

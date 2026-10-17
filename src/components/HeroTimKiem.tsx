@@ -158,7 +158,7 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                     <Link
                       key={k}
                       href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", ti: k })}
-                      className="shrink-0 px-2.5 py-1 rounded-md border border-slate-200/80 bg-white hover:border-brand hover:text-brand transition whitespace-nowrap text-slate-700 font-medium text-xs"
+                      className="shrink-0 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand dark:hover:border-emerald-500 hover:text-brand dark:hover:text-emerald-400 transition whitespace-nowrap text-slate-700 dark:text-slate-300 font-medium text-xs"
                     >
                       {label}
                     </Link>
@@ -177,7 +177,7 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                     <Link
                       key={qTerm}
                       href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", q: qTerm })}
-                      className="shrink-0 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60 hover:bg-emerald-100 transition whitespace-nowrap font-medium text-xs"
+                      className="shrink-0 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition whitespace-nowrap font-medium text-xs"
                     >
                       {label}
                     </Link>
