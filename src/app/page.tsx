@@ -309,29 +309,75 @@ export default async function Home({
 
           {/* ===== Duyệt theo danh mục ===== */}
           <section className="mt-16">
-            <h2 className="prata text-xl md:text-2xl mb-4 border-l-[3px] border-brand pl-3">Duyệt theo danh mục</h2>
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="prata text-xl md:text-2xl border-l-[3px] border-brand pl-3">Duyệt theo danh mục</h2>
+              <span className="text-xs text-[var(--ink-soft)]">Hơn 15.000 căn nhà đất có sẵn</span>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { kind: "nha", t: "Nhà Riêng", d: "Tìm ngôi nhà hoàn hảo cho gia đình", icon: HomeIcon },
-                { kind: "can_ho", t: "Căn Hộ", d: "Cuộc sống đô thị tiện nghi & an ninh", icon: Building2 },
-                { kind: "dat", t: "Đất Nền", d: "Đầu tư cho tương lai vững chắc", icon: LandPlot },
-                { kind: "mat_bang", t: "Mặt Bằng", d: "Không gian kinh doanh chuyên nghiệp", icon: Store },
-              ].map(({ kind, t, d, icon: Icon }) => (
+                { 
+                  kind: "nha", 
+                  t: "Nhà Riêng", 
+                  d: "Nhà phố, biệt thự, nhà hẻm ô tô đầy đủ tiện nghi", 
+                  icon: HomeIcon, 
+                  img: "/categories/nha-rieng.jpg" 
+                },
+                { 
+                  kind: "can_ho", 
+                  t: "Căn Hộ", 
+                  d: "Chung cư, studio & căn hộ dịch vụ trung tâm", 
+                  icon: Building2, 
+                  img: "/categories/can-ho.jpg" 
+                },
+                { 
+                  kind: "dat", 
+                  t: "Đất Nền", 
+                  d: "Đất thổ cư phân lô, sổ đỏ trao tay chính chủ", 
+                  icon: LandPlot, 
+                  img: "/categories/dat-nen.jpg" 
+                },
+                { 
+                  kind: "mat_bang", 
+                  t: "Mặt Bằng", 
+                  d: "Mặt tiền kinh doanh sầm uất, shophouse đắc địa", 
+                  icon: Store, 
+                  img: "/categories/mat-bang.jpg" 
+                },
+              ].map(({ kind, t, d, icon: Icon, img }) => (
                 <Link
                   key={kind}
                   href={`/search?kind=${kind}`}
-                  className="rounded-2xl p-6 bg-[#16233a] text-white hover:bg-[#1c2c48] transition-all group flex flex-col justify-between"
+                  className="relative rounded-2xl overflow-hidden min-h-[260px] group flex flex-col justify-between p-5 text-white shadow-md hover:shadow-xl transition-all duration-300 border border-slate-700/30"
                 >
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  {/* Ảnh nền thực tế */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img}
+                    alt={t}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  {/* Lớp phủ gradient tạo độ tương phản đọc chữ sắc nét */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25 group-hover:via-black/55 transition-colors" />
+
+                  {/* Header thẻ: Icon danh mục */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center border border-white/20 group-hover:bg-brand group-hover:border-brand transition-colors">
                       <Icon className="w-5 h-5" />
                     </div>
-                    <h3 className="prata text-xl mb-1 text-white group-hover:text-emerald-300 transition-colors">{t}</h3>
-                    <p className="text-sm text-white/70 leading-relaxed">{d}</p>
                   </div>
-                  <div className="mt-6 flex items-center gap-1.5 text-xs font-semibold text-white/80 group-hover:text-white transition-colors">
-                    <span>Xem danh sách</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+
+                  {/* Footer thẻ: Tiêu đề & mô tả */}
+                  <div className="relative z-10">
+                    <h3 className="prata text-xl font-bold text-white group-hover:text-emerald-300 transition-colors drop-shadow">
+                      {t}
+                    </h3>
+                    <p className="text-xs text-white/85 mt-1.5 leading-relaxed drop-shadow line-clamp-2">
+                      {d}
+                    </p>
+                    <div className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-white/95 group-hover:text-emerald-300 transition-colors">
+                      <span>Khám phá ngay</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </div>
                   </div>
                 </Link>
               ))}

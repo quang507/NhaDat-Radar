@@ -170,17 +170,55 @@ export default function Gallery({ images, title, videos = [] }: { images: string
       )}
 
       {video && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col" onClick={() => setVideo(null)}>
-          <div className="flex justify-end px-4 py-3">
-            <button aria-label="Đóng video" className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white grid place-items-center transition" onClick={() => setVideo(null)}>
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col justify-between p-3 sm:p-5" 
+          onClick={() => setVideo(null)}
+        >
+          {/* Header với nút đóng */}
+          <div className="w-full flex items-center justify-between text-white/90 text-sm max-w-5xl mx-auto">
+            <span className="font-semibold text-xs tracking-wide uppercase px-2.5 py-1 rounded-md bg-white/10 text-white/90">
+              Video thực tế căn phòng
+            </span>
+            <button 
+              aria-label="Đóng video" 
+              className="w-10 h-10 rounded-lg bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition cursor-pointer" 
+              onClick={() => setVideo(null)}
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex-1 min-h-0 grid place-items-center px-2 pb-4" onClick={(e) => e.stopPropagation()}>
-            {/* .mov (iPhone) phát được trên Safari/iOS và phần lớn Chrome; lỗi thì còn link mở trực tiếp */}
-            <video src={video} controls autoPlay playsInline className="max-h-full max-w-full rounded-lg bg-black" />
-            <a href={video} target="_blank" rel="noopener" className="mt-2 text-xs text-white/70 underline">Không phát được? Mở video trực tiếp</a>
+
+          {/* Vùng hiển thị video: co giãn chuẩn xác theo cả video ngang lẫn video dọc (portrait) */}
+          <div 
+            className="flex-1 min-h-0 w-full flex flex-col items-center justify-center py-2 overflow-hidden" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative flex items-center justify-center max-h-[calc(100vh-140px)] max-w-full">
+              <video 
+                src={video} 
+                controls 
+                autoPlay 
+                playsInline 
+                className="rounded-xl bg-black shadow-2xl object-contain border border-white/10"
+                style={{
+                  maxHeight: "calc(100vh - 150px)",
+                  maxWidth: "min(92vw, 900px)",
+                  width: "auto",
+                  height: "auto",
+                }}
+              />
+            </div>
+            <a 
+              href={video} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="mt-3 text-xs text-white/75 hover:text-white underline transition"
+            >
+              Không phát được? Mở video trực tiếp
+            </a>
           </div>
+
+          <div className="h-2" />
         </div>
       )}
 
