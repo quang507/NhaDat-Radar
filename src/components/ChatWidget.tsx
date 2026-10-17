@@ -110,7 +110,7 @@ export default function ChatWidget() {
         <a
           href={`tel:${HOTLINE}`}
           aria-label={`Gọi Hotline ${HOTLINE}`}
-          className="flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs active:scale-95 transition-all border border-emerald-600"
         >
           <PhoneCall className="w-4 h-4" />
           <span className="hidden sm:inline">Hotline: 0346 689 460</span>
