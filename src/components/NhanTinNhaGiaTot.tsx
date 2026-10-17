@@ -54,9 +54,9 @@ export default function NhanTinNhaGiaTot({ khuVuc = "khu vực bạn tìm", loai
 
   if (success) {
     return (
-      <div className={`p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 text-center space-y-2 ${className}`}>
-        <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-        <h3 className="font-bold text-base text-emerald-900 dark:text-emerald-200">
+      <div className={`p-5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 text-center space-y-2 ${className}`}>
+        <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400 mx-auto" />
+        <h3 className="font-bold text-sm sm:text-base text-emerald-900 dark:text-emerald-200">
           Đã nhận yêu cầu thành công!
         </h3>
         <p className="text-xs text-emerald-800 dark:text-emerald-300 max-w-md mx-auto">
@@ -67,20 +67,20 @@ export default function NhanTinNhaGiaTot({ khuVuc = "khu vực bạn tìm", loai
   }
 
   return (
-    <div className={`p-5 sm:p-7 rounded-2xl bg-gradient-to-br from-brand/5 via-[var(--surface)] to-emerald-50/20 border border-brand/20 shadow-sm ${className}`}>
-      <div className="flex items-center gap-2 text-xs font-bold text-brand uppercase tracking-wider mb-2">
-        <Sparkles className="w-4 h-4" />
+    <div className={`p-5 sm:p-6 rounded-lg bg-[var(--surface)] border border-[var(--line-strong)] shadow-xs ${className}`}>
+      <div className="flex items-center gap-1.5 text-xs font-bold text-brand uppercase tracking-wider mb-1.5">
+        <Sparkles className="w-3.5 h-3.5" />
         <span>Dịch vụ tìm nhà riêng biệt · Miễn phí</span>
       </div>
 
-      <h3 className="text-base sm:text-lg font-bold text-[var(--ink)] leading-snug">
+      <h3 className="text-sm sm:text-base font-bold text-[var(--ink)] leading-snug">
         Nhận danh sách bất động sản giá tốt tại {khuVuc} qua Zalo
       </h3>
-      <p className="text-xs text-[var(--ink-soft)] mt-1.5 mb-4 leading-relaxed max-w-xl">
+      <p className="text-xs text-[var(--ink-soft)] mt-1 mb-3.5 leading-relaxed max-w-xl">
         Radar tổng hợp từ hàng ngàn nguồn và loại bỏ tin ảo. Để lại số điện thoại, chuyên viên sẽ gửi 3 căn giá chuẩn mặt bằng, kiểm tra pháp lý trước khi dẫn xem.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2.5">
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <input
             type="tel"
@@ -88,7 +88,7 @@ export default function NhanTinNhaGiaTot({ khuVuc = "khu vực bạn tìm", loai
             value={phone}
             onChange={(e) => { setPhone(e.target.value); setError(""); }}
             placeholder="Số điện thoại / Zalo của bạn..."
-            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--line)] bg-[var(--bg)] text-sm focus:outline-none focus:border-brand"
+            className="w-full px-3 py-2 rounded-md border border-[var(--line-strong)] bg-[var(--bg)] text-xs sm:text-sm text-[var(--ink)] focus:outline-none focus:border-brand"
           />
         </div>
 
@@ -97,19 +97,19 @@ export default function NhanTinNhaGiaTot({ khuVuc = "khu vực bạn tìm", loai
           value={nhuCau}
           onChange={(e) => setNhuCau(e.target.value)}
           placeholder="Tầm giá / nhu cầu (VD: dưới 3 tỷ, hẻm xe hơi)"
-          className="flex-1 px-3.5 py-2.5 rounded-xl border border-[var(--line)] bg-[var(--bg)] text-sm focus:outline-none focus:border-brand"
+          className="flex-1 px-3 py-2 rounded-md border border-[var(--line-strong)] bg-[var(--bg)] text-xs sm:text-sm text-[var(--ink)] focus:outline-none focus:border-brand"
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="btn btn-primary px-5 py-2.5 whitespace-nowrap text-sm font-bold flex items-center justify-center gap-2 shrink-0 shadow-sm hover:opacity-95"
+          className="btn btn-primary px-4 py-2 whitespace-nowrap text-xs font-bold rounded-md flex items-center justify-center gap-1.5 shrink-0 shadow-xs hover:opacity-95 cursor-pointer"
         >
           {loading ? (
             "Đang gửi..."
           ) : (
             <>
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-4 h-4 fill-current" />
               <span>Gửi qua Zalo</span>
             </>
           )}

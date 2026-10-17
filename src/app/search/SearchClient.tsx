@@ -20,7 +20,8 @@ import { SidebarKhuVuc, type DieuHuong } from "@/components/DieuHuongKhuVuc";
 import { HangTienIch, ChonDuAn, KhuVucChip, OKhoangCach, doiTi } from "@/components/BoLocEvo";
 import { PopLoai, PopKhoang, CongTac, NhomNut, SidebarKhoang, KHOANG_GIA_MUA, KHOANG_DT_MUA, LOAI_MUA, ICON_LOAI, tachDs } from "@/components/BoLocMuaBan";
 import NhanTinNhaGiaTot from "@/components/NhanTinNhaGiaTot";
-import { Search, SearchX, Check, MapPin, Map, LayoutList, X, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { HOTLINE } from "@/lib/hotline";
+import { Search, SearchX, Check, MapPin, Map, LayoutList, X, ChevronLeft, ChevronRight, ShieldCheck, MessageCircle } from "lucide-react";
 
 const TIEU_DE = "text-xs font-bold tracking-wide text-[var(--ink)] mb-2.5";
 
@@ -761,21 +762,21 @@ export default function SearchClient({
             </>
           ) : (
             <>
-              <div className="card rounded-2xl p-8 sm:p-12 text-center border border-[var(--line)] shadow-sm max-w-lg mx-auto my-6">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-4">
-                  <SearchX className="w-7 h-7" />
+              <div className="card rounded-lg p-6 sm:p-8 text-center border border-[var(--line)] shadow-xs max-w-lg mx-auto my-6">
+                <div className="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-3.5">
+                  <SearchX className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-lg mb-1.5 text-[var(--ink)]">Không tìm thấy bất động sản phù hợp</h3>
-                <p className="text-[var(--ink-soft)] text-sm mb-5 leading-relaxed">
-                  Các tiêu chí tìm kiếm hiện tại có thể đang giới hạn quá hẹp. Bạn hãy thử nới lỏng nhanh một vài tiêu chí dưới đây:
+                <h3 className="font-bold text-base sm:text-lg mb-1 text-[var(--ink)]">Chưa tìm thấy căn phù hợp với bộ lọc</h3>
+                <p className="text-[var(--ink-soft)] text-xs sm:text-sm mb-4 leading-relaxed">
+                  Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể nới lỏng nhanh tiêu chí hoặc gửi trực tiếp cho chuyên viên Radar tìm giúp:
                 </p>
 
-                <div className="flex flex-wrap justify-center gap-2 mb-6">
+                <div className="flex flex-wrap justify-center gap-1.5 mb-5">
                   {goc.q && (
                     <button
                       type="button"
                       onClick={() => push({ ...goc, q: "" })}
-                      className="btn !py-1.5 !px-3 text-xs border border-slate-300 hover:border-brand hover:text-brand cursor-pointer"
+                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:border-brand hover:text-brand cursor-pointer"
                     >
                       Bỏ từ khóa “{goc.q}”
                     </button>
@@ -784,7 +785,7 @@ export default function SearchClient({
                     <button
                       type="button"
                       onClick={() => push({ ...goc, priceMin: "", priceMax: "" })}
-                      className="btn !py-1.5 !px-3 text-xs border border-slate-300 hover:border-brand hover:text-brand cursor-pointer"
+                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:border-brand hover:text-brand cursor-pointer"
                     >
                       Mở rộng khoảng giá
                     </button>
@@ -793,7 +794,7 @@ export default function SearchClient({
                     <button
                       type="button"
                       onClick={() => push({ ...goc, ward: "" })}
-                      className="btn !py-1.5 !px-3 text-xs border border-slate-300 hover:border-brand hover:text-brand cursor-pointer"
+                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:border-brand hover:text-brand cursor-pointer"
                     >
                       Xem toàn {goc.district || "quận"}
                     </button>
@@ -802,18 +803,44 @@ export default function SearchClient({
                     <button
                       type="button"
                       onClick={() => push({ ...goc, district: "", ward: "" })}
-                      className="btn !py-1.5 !px-3 text-xs border border-slate-300 hover:border-brand hover:text-brand cursor-pointer"
+                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:border-brand hover:text-brand cursor-pointer"
                     >
                       Xem toàn {goc.province || "tỉnh/thành"}
                     </button>
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-[var(--line)] flex items-center justify-center gap-3">
-                  <button className="btn btn-primary rounded-xl px-6 cursor-pointer" onClick={clear}>
-                    Xóa toàn bộ bộ lọc
-                  </button>
-                </div>
+                {/* Khối cứu vãn chuyển đổi: Nhắn Zalo yêu cầu tìm phòng/nhà theo đúng bộ lọc này */}
+                {(() => {
+                  const tieuChi = [
+                    goc.deal === "cho_thue" ? "thuê" : "mua",
+                    PROP[goc.kind || ""] || "BĐS",
+                    [goc.ward, goc.district, goc.province].filter(Boolean).join(", "),
+                    nhanGia ? `tầm giá ${nhanGia}` : "",
+                  ].filter(Boolean).join(" ");
+                  const tinZalo = `Chào Radar, mình đang cần tìm ${tieuChi}, trên web hiện chưa có căn khớp 100%. Nhờ chuyên viên lọc giúp mình 3-5 căn tương tự trong khu vực nhé!`;
+                  const linkZalo = `https://zalo.me/${HOTLINE}?text=${encodeURIComponent(tinZalo)}`;
+
+                  return (
+                    <div className="pt-4 border-t border-[var(--line)] flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                      <a
+                        href={linkZalo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto btn btn-primary px-4 py-2 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <MessageCircle className="w-4 h-4 fill-current shrink-0" />
+                        <span>Nhắn Zalo nhờ Radar tìm giúp</span>
+                      </a>
+                      <button
+                        className="w-full sm:w-auto btn px-4 py-2 text-xs rounded-md border border-[var(--line-strong)] text-[var(--ink-soft)] cursor-pointer"
+                        onClick={clear}
+                      >
+                        Xóa tất cả bộ lọc
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
 
               <NhanTinNhaGiaTot

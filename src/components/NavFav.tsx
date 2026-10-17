@@ -9,7 +9,7 @@ export default function NavFav() {
   return (
     <Link
       href="/yeu-thich"
-      className="relative btn !p-2 text-slate-700 hover:text-red-500 hover:border-red-200 transition-colors"
+      className="relative btn !p-2 text-slate-700 dark:text-slate-300 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-900/60 transition-colors"
       aria-label="Tin đã lưu"
       title="Tin đã lưu"
     >
