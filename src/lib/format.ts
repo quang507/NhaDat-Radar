@@ -49,15 +49,18 @@ export const AMEN: Record<string, string> = {
   pool: "🏊 Hồ bơi", gym: "🏋 Gym", school: "🏫 Trường học", park: "🌳 Công viên", mall: "🛍 TTTM",
 };
 
-// gradient thumbnail theo loại (khi chưa có ảnh crawl)
-export function thumb(kind: string): { bg: string; icon: string } {
-  const map: Record<string, [string, string, string]> = {
-    nha: ["#3B82F6", "#1E40AF", "🏠"], dat: ["#10B981", "#047857", "🌳"],
-    can_ho: ["#8B5CF6", "#5B21B6", "🏢"], mat_bang: ["#F59E0B", "#B45309", "🏬"],
-    phong_tro: ["#EC4899", "#9D174D", "🚪"], khac: ["#64748B", "#334155", "🏘️"],
+// Thumbnail và ảnh minh hoạ theo loại BĐS (khi tin chưa có ảnh cào thực tế)
+export function thumb(kind: string): { bg: string; icon: string; img: string; label: string } {
+  const map: Record<string, [string, string, string, string, string]> = {
+    nha: ["#3B82F6", "#1E40AF", "🏠", "/categories/nha-rieng.jpg", "Nhà riêng"],
+    dat: ["#10B981", "#047857", "🌳", "/categories/dat-nen.jpg", "Đất nền"],
+    can_ho: ["#8B5CF6", "#5B21B6", "🏢", "/categories/can-ho.jpg", "Căn hộ"],
+    mat_bang: ["#F59E0B", "#B45309", "🏬", "/categories/mat-bang.jpg", "Mặt bằng"],
+    phong_tro: ["#EC4899", "#9D174D", "🚪", "/categories/can-ho.jpg", "Phòng trọ"],
+    khac: ["#64748B", "#334155", "🏘️", "/categories/nha-rieng.jpg", "BĐS"],
   };
   const c = map[kind] || map.khac;
-  return { bg: `linear-gradient(135deg, ${c[0]}, ${c[1]})`, icon: c[2] };
+  return { bg: `linear-gradient(135deg, ${c[0]}, ${c[1]})`, icon: c[2], img: c[3], label: c[4] };
 }
 
 /**

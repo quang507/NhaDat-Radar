@@ -3,6 +3,7 @@ import type { Listing } from "@/lib/types";
 import { fmtPrice, fmtPpm2, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
+import PropertyPlaceholder from "./PropertyPlaceholder";
 import { thongTinAnh, layVideo } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon } from "@/lib/ro-hang";
@@ -44,7 +45,7 @@ export default function ListingRow({ x }: { x: Listing }) {
             )}
           </div>
         ) : (
-          <div className="h-44 sm:h-52 grid place-items-center text-white text-3xl" style={{ background: t.bg }}>{t.icon}</div>
+          <PropertyPlaceholder kind={x.kind} className="h-44 sm:h-52" />
         )}
         <span className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {laTinDocQuyen(x) && (
@@ -122,7 +123,7 @@ function MobileThumb({ x }: { x: Listing }) {
       {img ? (
         <SafeImg src={img} alt={docQuyen ? cheSoVanBan(x.title) : x.title} className="w-full h-full object-cover" />
       ) : (
-        <div className="w-full h-full grid place-items-center text-2xl opacity-60">{t.icon}</div>
+        <PropertyPlaceholder kind={x.kind} className="w-full h-full" />
       )}
       {docQuyen && (
         <span className="absolute top-1.5 left-1.5 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full text-white bg-emerald-600 shadow-sm flex items-center gap-0.5">

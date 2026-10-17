@@ -457,11 +457,50 @@ export default async function ListingDetail({
             {images.length ? (
               <Gallery images={images} title={x.title} videos={layVideo(x.images)} />
             ) : (
-              <div
-                className="rounded-lg overflow-hidden aspect-[16/9] max-h-[420px] grid place-items-center text-white text-5xl"
-                style={{ background: t.bg }}
-              >
-                <span>{t.icon}</span>
+              <div className="relative rounded-2xl overflow-hidden aspect-[16/9] max-h-[440px] bg-slate-900 shadow-md group border border-slate-200/80">
+                {/* Background illustration photo */}
+                <img
+                  src={t.img}
+                  alt={x.title}
+                  className="w-full h-full object-cover brightness-[0.72] group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-black/20" />
+
+                {/* Badge top-left */}
+                <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 z-10">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/95 text-slate-800 shadow-sm backdrop-blur-md flex items-center gap-1.5">
+                    <span>{t.icon}</span>
+                    <span>Ảnh minh hoạ {t.label || "phân khúc"}</span>
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-black/60 text-amber-200 backdrop-blur-md border border-white/10">
+                    Nguồn gốc chưa có ảnh thực tế
+                  </span>
+                </div>
+
+                {/* Bottom CTA bar */}
+                <div className="absolute inset-x-4 bottom-4 sm:bottom-5 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3 text-white z-10">
+                  <div className="max-w-lg">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                      Hỗ trợ kiểm tra thực tế căn này
+                    </span>
+                    <h4 className="text-base sm:text-lg font-bold leading-snug line-clamp-2 text-white drop-shadow">
+                      {x.title}
+                    </h4>
+                    <p className="text-xs text-slate-300 mt-0.5 hidden sm:block">
+                      Radar hỗ trợ kết nối chủ/môi giới gửi ảnh chụp thực tế &amp; sổ hồng miễn phí qua Zalo.
+                    </p>
+                  </div>
+                  <a
+                    href={`https://zalo.me/0346689460?text=${encodeURIComponent(`Chào Radar, mình xem tin "${x.title}" (mã: ${x.id?.slice(0, 8)}). Nhờ bạn gửi giúp ảnh chụp thực tế & sổ của căn này qua Zalo nhé!`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-sm shadow-xl shadow-emerald-950/40 transition-all active:scale-95 shrink-0"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Nhắn Zalo lấy ảnh thật &amp; sổ</span>
+                  </a>
+                </div>
               </div>
             )}
           </div>
