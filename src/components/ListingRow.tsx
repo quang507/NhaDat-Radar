@@ -6,7 +6,7 @@ import SafeImg from "./SafeImg";
 import { thongTinAnh, layVideo } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon } from "@/lib/ro-hang";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Play } from "lucide-react";
 
 // Dòng kết quả kiểu batdongsan.com.vn: ảnh lớn + dải ảnh nhỏ bên trái,
 // giá + giá/m² + diện tích + PN, mô tả 2 dòng, chân tin nguồn + thời gian.
@@ -48,19 +48,25 @@ export default function ListingRow({ x }: { x: Listing }) {
         )}
         <span className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {laTinDocQuyen(x) && (
-            <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-emerald-600/95 text-white shadow-sm backdrop-blur-sm flex items-center gap-1" title="Tin đăng đã xác minh thông tin & pháp lý thực tế">
+            <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-sm flex items-center gap-1 tracking-wide" title="Tin đăng đã xác minh thông tin & pháp lý thực tế">
               <ShieldCheck className="w-3 h-3 shrink-0" />
               <span>ĐÃ XÁC MINH</span>
             </span>
           )}
-          <span className="text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-md">
+          {vids.size > 0 && (
+            <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-md bg-rose-600 text-white shadow-sm flex items-center gap-1 tracking-wide">
+              <Play className="w-2.5 h-2.5 fill-current" />
+              <span>CÓ VIDEO</span>
+            </span>
+          )}
+          <span className="text-[0.68rem] font-semibold px-2 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-md">
             {x.deal === "ban" ? "Bán" : "Cho thuê"}
           </span>
-          {isNew && <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-sm">Mới</span>}
+          {isNew && !laTinDocQuyen(x) && <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-md bg-amber-600 text-white shadow-sm">Mới</span>}
           {x.price_flag && <span className="text-[0.62rem] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Lệch giá</span>}
         </span>
         {imgs.length > 0 && (
-          <span className="absolute bottom-2.5 right-2.5 text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-md">
+          <span className="absolute bottom-2.5 right-2.5 text-[0.68rem] font-semibold px-2 py-0.5 rounded-md bg-black/75 text-white backdrop-blur-md">
             {thongTinAnh(x).so} ảnh
           </span>
         )}

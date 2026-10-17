@@ -12,7 +12,7 @@ import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, maPhong, tagGiuPhong } from "@/lib/ro-hang";
 import { tienIchTheoKhoa } from "@/lib/tien-ich";
 import { baoGA } from "@/lib/su-kien-client";
-import { ShieldCheck, Eye } from "lucide-react";
+import { ShieldCheck, Eye, Play } from "lucide-react";
 
 // THẺ PHÒNG CHO THUÊ kiểu EvoHome (1/10): thẻ dọc xếp lưới - ảnh, [mã] giá đ/tháng, địa chỉ, chip
 // Loại · m² · Trống, icon tiện ích "+N tiện ích", thời gian đăng, [sao chép] [Liên hệ], "Xem chi tiết".
@@ -51,12 +51,18 @@ export default function ThePhong({ x }: { x: Listing }) {
           <PropertyPlaceholder kind={x.kind} />
         )}
         {roHang && (
-          <span className="absolute top-2 left-2 text-[0.62rem] font-bold px-2 py-0.5 rounded-full bg-emerald-600/95 text-white shadow-sm backdrop-blur-sm flex items-center gap-1">
+          <span className="absolute top-2 left-2 text-[0.62rem] font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-sm flex items-center gap-1 tracking-wide">
             <ShieldCheck className="w-3 h-3 shrink-0" />
-            <span>ĐÃ XÁC MINH</span>
+            <span>XÁC MINH</span>
           </span>
         )}
-        {anh.so > 1 && <span className="absolute bottom-2 right-2 text-[0.62rem] font-semibold px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-md">{anh.so} ảnh</span>}
+        {anh.video && (
+          <span className="absolute top-2 right-10 text-[0.62rem] font-bold px-2 py-0.5 rounded-md bg-rose-600 text-white shadow-sm flex items-center gap-1 tracking-wide">
+            <Play className="w-2.5 h-2.5 fill-current" />
+            <span>VIDEO</span>
+          </span>
+        )}
+        {anh.so > 1 && <span className="absolute bottom-2 right-2 text-[0.62rem] font-semibold px-2 py-0.5 rounded-md bg-black/75 text-white backdrop-blur-md">{anh.so} ảnh</span>}
       </Link>
       <FavButton id={x.id} className="absolute top-2 right-2" />
 
@@ -77,7 +83,7 @@ export default function ThePhong({ x }: { x: Listing }) {
         {ti.length > 0 && (
           <div className="flex items-center gap-1" title={ti.map((t) => t.ten).join(", ")}>
             {ti.slice(0, 3).map((t) => (
-              <span key={t.k} className="grid place-items-center w-6 h-6 rounded-full bg-brand/10 text-[0.7rem]" title={t.ten} aria-label={t.ten}>{t.icon}</span>
+              <span key={t.k} className="grid place-items-center w-6 h-6 rounded-md bg-brand/10 text-[0.7rem]" title={t.ten} aria-label={t.ten}>{t.icon}</span>
             ))}
             {ti.length > 3 && <span className="text-[0.68rem] text-[var(--ink-soft)] ml-0.5">+{ti.length - 3} tiện ích</span>}
           </div>

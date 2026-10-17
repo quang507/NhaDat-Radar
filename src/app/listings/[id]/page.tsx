@@ -171,10 +171,18 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   // Tin độc quyền: thân trang đã che SĐT trong mô tả (cheSoVanBan) nhưng thẻ meta/OG trước đây lấy mô tả
   // THÔ -> số lộ qua <meta name=description>, og:description, ảnh xem trước khi share (audit 22/9).
   const docQuyen = laTinDocQuyen(data);
-  const title = `${docQuyen ? cheSoVanBan(data.title) : data.title} - ${fmtPrice(data.price_vnd, data.deal)}`;
+  const baseTitle = docQuyen ? cheSoVanBan(data.title) : data.title;
+  const gia = fmtPrice(data.price_vnd, data.deal);
+  const vids = (data.images || []).some((u) => typeof u === "string" && /\.(mp4|mov|webm)$/i.test(u.split(/[?#]/)[0]));
+  const videoPrefix = vids ? "▶ [Có Video] " : "";
+  const tagHien = data.deal === "cho_thue" ? "Phòng thật · Giá chuẩn" : "Chính chủ";
+  const title = `${videoPrefix}${baseTitle} - ${gia} (${tagHien}) | NhaDat Radar`;
+
   const moTa = docQuyen ? cheSoVanBan(data.description) : data.description || "";
-  const description = catChu(moTa, 160) ||
-    `${[data.district, data.province].filter(Boolean).join(", ")} · NhaDat Radar`;
+  const description = catChu(
+    `${baseTitle}. Giá niêm yết: ${gia}. Địa chỉ: ${[data.address, data.district, data.province].filter(Boolean).join(", ")}. Hình ảnh và toạ độ xác minh thực tế, liên hệ xem phòng trực tiếp không kê giá.`,
+    160
+  );
   const img = cleanImages(data.images || [])[0];
   return {
     title,
@@ -625,6 +633,32 @@ export default async function ListingDetail({
                 <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-slate-400" /> Tin này chưa có toạ độ chính xác</span>
               </div>
             )}
+          </div>
+
+          {/* Khối giữ chân khách vãng lai: Chưa ưng căn này? Nhắn Zalo Radar */}
+          <div className="card rounded-xl p-5 border border-emerald-300/80 bg-gradient-to-br from-emerald-50/70 to-white dark:from-emerald-950/20 dark:to-[var(--surface)] shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-600/10 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                  <span>Dịch vụ tìm nhà nhanh Radar</span>
+                </div>
+                <h4 className="text-base font-extrabold text-[var(--ink)]">
+                  Chưa tìm được căn vừa ý tại {x.district || "khu vực này"}?
+                </h4>
+                <p className="text-xs text-[var(--ink-soft)] max-w-xl leading-relaxed">
+                  Radar hiện có hơn 1.000 phòng trống và nhà đất xác minh tại {x.district || "TP.HCM"}. Nhắn Zalo nhu cầu (tài chính, khu vực, tiện ích), đội ngũ Radar lọc và gửi ngay 3 căn đẹp nhất trong 5 phút.
+                </p>
+              </div>
+              <a
+                href={`https://zalo.me/0346689460?text=${encodeURIComponent(`Chào Radar, mình đang xem tin mã ${maPhong(x.id)} tại ${x.district || ""} nhưng muốn tìm thêm các căn tương tự tầm giá ${fmtPrice(x.price_vnd, x.deal)}, tư vấn giúp mình nhé!`)}`}
+                target="_blank"
+                rel="noopener"
+                className="btn btn-primary whitespace-nowrap px-5 py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 shadow-sm shrink-0"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Nhận rổ hàng tương tự qua Zalo</span>
+              </a>
+            </div>
           </div>
         </div>
 

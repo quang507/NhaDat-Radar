@@ -7,7 +7,7 @@ import PropertyPlaceholder from "./PropertyPlaceholder";
 import { thongTinAnh } from "@/lib/img";
 import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon } from "@/lib/ro-hang";
-import { ShieldCheck, MapPin, Camera, AlertCircle } from "lucide-react";
+import { ShieldCheck, MapPin, Camera, AlertCircle, Play } from "lucide-react";
 
 export default function ListingCard({ x }: { x: Listing }) {
   const t = thumb(x.kind);
@@ -46,10 +46,16 @@ export default function ListingCard({ x }: { x: Listing }) {
               ĐÃ XÁC MINH
             </span>
           )}
+          {anh.video && (
+            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-rose-600/95 text-white shadow-sm backdrop-blur-sm tracking-wide">
+              <Play className="w-2.5 h-2.5 fill-current" />
+              CÓ VIDEO
+            </span>
+          )}
           <span className="text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-md">
             {x.deal === "ban" ? "Bán" : "Cho thuê"}
           </span>
-          {isNew && !xacThuc && (
+          {isNew && !xacThuc && !anh.video && (
             <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-amber-600 text-white shadow-sm">
               Mới
             </span>

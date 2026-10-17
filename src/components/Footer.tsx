@@ -13,7 +13,7 @@ export default function Footer() {
             NhaDat<span className="text-brand">Radar</span>
           </div>
           <p className="text-[var(--ink-soft)] leading-relaxed">
-            Nền tảng tìm kiếm và so sánh bất động sản minh bạch: tổng hợp đa nguồn, kiểm tra giá lệch theo khu vực và xác minh dữ liệu thực tế.
+            Sàn tổng hợp phòng trọ và nhà đất xác minh tại TP.HCM. Cập nhật phòng trống liên tục mỗi ngày, đúng giá chủ nhà và hỗ trợ dẫn xem phòng miễn phí.
           </p>
           <div className="mt-4 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
             <ShieldCheck className="w-4 h-4" />
@@ -36,7 +36,7 @@ export default function Footer() {
         <div>
           <div className="font-bold mb-3">Công cụ &amp; Hướng dẫn</div>
           <ul className="space-y-2 text-[var(--ink-soft)]">
-            <li><Link className="hover:text-brand transition-colors" href="/dinh-gia">AI Định giá bất động sản</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/dinh-gia">Định giá bất động sản theo m²</Link></li>
             <li><Link className="hover:text-brand transition-colors" href="/tinh-lai-vay">Máy tính lãi vay ngân hàng</Link></li>
             <li><Link className="hover:text-brand transition-colors" href="/thue-hay-mua">So sánh Thuê hay Mua</Link></li>
             <li><Link className="hover:text-brand transition-colors" href="/huong-dan/mua">Kinh nghiệm mua &amp; thuê</Link></li>
