@@ -423,16 +423,16 @@ export default async function ListingDetail({
         </div>
       )}
       <div className="flex flex-wrap justify-between gap-4 items-start mt-2">
-        <div className="min-w-0">
-          <h1 className="prata text-xl md:text-3xl leading-tight">{x.title}</h1>
-          <div className="text-[var(--ink-soft)] text-sm mt-1 flex items-center gap-1">
+        <div className="min-w-0 flex-1">
+          <h1 className="heading-1 text-slate-900 leading-snug">{x.title}</h1>
+          <div className="text-slate-600 text-sm mt-1.5 flex items-center gap-1.5 font-medium">
             <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
             <span>{diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}</span>
           </div>
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
           {roHang ? (
-            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
-              <span className="font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 border border-emerald-500/20">
+            <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs">
+              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 border border-emerald-200">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 {x.deal === "ban" ? "Tin đã xác minh · nhà phố đã xác thực sổ hồng" : "Tin đã xác minh · phòng trống thực tế"}
               </span>
@@ -443,8 +443,8 @@ export default async function ListingDetail({
           )}
         </div>
         <div className="text-right shrink-0">
-          <div className="prata text-2xl text-brand">{fmtPrice(x.price_vnd, x.deal)}</div>
-          {myPpm2 ? <div className="text-xs text-[var(--ink-faint)] font-semibold">{fmtPpm2(myPpm2)}</div> : null}
+          <div className="heading-1 text-brand tracking-tight font-extrabold">{fmtPrice(x.price_vnd, x.deal)}</div>
+          {myPpm2 ? <div className="text-xs text-slate-500 font-semibold mt-0.5">{fmtPpm2(myPpm2)}</div> : null}
         </div>
       </div>
 

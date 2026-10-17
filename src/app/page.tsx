@@ -14,7 +14,7 @@ import { laTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang, laRoHang } from "@/lib/ro-hang";
 import { BAI_VIET } from "@/lib/bai-viet";
 import SafeImg from "@/components/SafeImg";
-import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Building2, LandPlot, Store, ArrowRight, Clock, Calendar, Newspaper, ShieldCheck, Play } from "lucide-react";
+import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Building2, LandPlot, Store, ArrowRight, Clock, Calendar, Newspaper, ShieldCheck, Play, MessageCircle } from "lucide-react";
 
 // thứ hạng ưu tiên trong lưới kết quả: tin Zalo (0) -> rổ hàng Radar (1) -> tin FB (2) -> nguồn web (3)
 const uuTienDocQuyen = (x: Listing) =>
@@ -129,47 +129,55 @@ export default async function Home({
   return (
     <div>
       {/* ===== HERO: Sàn thực tế ===== */}
-      <section className="pt-2 pb-5">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-semibold mb-3">
+      <section className="pt-3 pb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-bold mb-3 shadow-zen-1">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay (Xác minh trực tiếp)</span>
         </div>
 
-        <h1 className={`prata leading-[1.15] mb-2 text-balance ${hasFilter ? "text-[1.4rem] md:text-[1.8rem]" : "text-[1.6rem] md:text-[2.2rem]"}`}>
+        <h1 className={`heading-1 mb-3 text-slate-900 tracking-tight text-balance ${hasFilter ? "text-xl md:text-2xl" : "text-2xl sm:text-3xl md:text-4xl"}`}>
           Sàn Nhà Đất &amp; Phòng Trọ Xác Minh Thực Tế
         </h1>
-        <p className="text-sm text-[var(--ink-soft)] mb-5 max-w-2xl leading-relaxed">
+        <p className="text-sm sm:text-base text-slate-600 mb-6 max-w-2xl leading-relaxed">
           Hơn 14.000 căn phòng và nhà đất có video thực tế, định vị chuẩn xác và cam kết giá thuê trực tiếp từ chủ nhà, không tin ảo kê giá.
         </p>
         <HeroTimKiem chip={chip} />
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4 text-xs">
-          <div className="p-3 rounded-xl border border-slate-200/80 bg-white flex items-center gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 text-xs">
+          <div className="p-3.5 rounded-2xl border border-slate-200/80 bg-white shadow-zen-1 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
+            </div>
             <div>
-              <div className="font-bold text-slate-800">100% Tin xác minh</div>
-              <div className="text-[0.7rem] text-slate-500">Tự động gỡ phòng đã thuê</div>
+              <div className="font-bold text-slate-900 text-xs sm:text-sm">100% Tin xác minh</div>
+              <div className="text-[11px] text-slate-500">Tự động gỡ phòng đã thuê</div>
             </div>
           </div>
-          <div className="p-3 rounded-xl border border-slate-200/80 bg-white flex items-center gap-2.5">
-            <Play className="w-4 h-4 text-rose-600 shrink-0" />
+          <div className="p-3.5 rounded-2xl border border-slate-200/80 bg-white shadow-zen-1 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <Play className="w-4 h-4 stroke-[2.2]" />
+            </div>
             <div>
-              <div className="font-bold text-slate-800">Có video thực tế</div>
-              <div className="text-[0.7rem] text-slate-500">Xem phòng &amp; hẻm trước</div>
+              <div className="font-bold text-slate-900 text-xs sm:text-sm">Có video thực tế</div>
+              <div className="text-[11px] text-slate-500">Xem phòng &amp; hẻm trước</div>
             </div>
           </div>
-          <div className="p-3 rounded-xl border border-slate-200/80 bg-white flex items-center gap-2.5">
-            <Store className="w-4 h-4 text-brand shrink-0" />
+          <div className="p-3.5 rounded-2xl border border-slate-200/80 bg-white shadow-zen-1 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-brand flex items-center justify-center shrink-0">
+              <Store className="w-4 h-4 stroke-[2.2]" />
+            </div>
             <div>
-              <div className="font-bold text-slate-800">Đúng giá chủ nhà</div>
-              <div className="text-[0.7rem] text-slate-500">Không chênh giá môi giới</div>
+              <div className="font-bold text-slate-900 text-xs sm:text-sm">Đúng giá chủ nhà</div>
+              <div className="text-[11px] text-slate-500">Không chênh giá môi giới</div>
             </div>
           </div>
-          <div className="p-3 rounded-xl border border-slate-200/80 bg-white flex items-center gap-2.5">
-            <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+          <div className="p-3.5 rounded-2xl border border-slate-200/80 bg-white shadow-zen-1 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 stroke-[2.2]" />
+            </div>
             <div>
-              <div className="font-bold text-slate-800">Hỗ trợ 24/7</div>
-              <div className="text-[0.7rem] text-slate-500">Hotline: 0346 689 460</div>
+              <div className="font-bold text-slate-900 text-xs sm:text-sm">Hỗ trợ 24/7</div>
+              <div className="text-[11px] text-slate-500">Hotline: 0346 689 460</div>
             </div>
           </div>
         </div>
@@ -295,27 +303,32 @@ export default async function Home({
             ))}
           </section>
 
-          {/* ===== Micro: nhận email tin mới ===== */}
-          <section className="mt-10 card rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 border border-[var(--line)] bg-gradient-to-r from-brand/5 via-transparent to-transparent">
-            <div className="w-12 h-12 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
-              <BellRing className="w-6 h-6" />
+          {/* ===== Trợ lý Zalo: Nhận bảng hàng giá tốt mới nhất ===== */}
+          <section className="mt-12 sm:mt-16 card p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-5 border border-brand/20 bg-gradient-to-r from-emerald-50/80 via-white to-white shadow-zen-2">
+            <div className="w-12 h-12 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0 shadow-sm">
+              <MessageCircle className="w-6 h-6 text-brand" />
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <h2 className="font-bold text-lg">Đừng bỏ lỡ căn nhà ưng ý</h2>
-              <p className="text-sm text-[var(--ink-soft)] mt-0.5">
-                Lưu bộ lọc tìm kiếm của bạn - mỗi sáng có tin mới khớp, chúng tôi gửi thẳng vào email.
+              <h3 className="heading-3 text-slate-900">Nhận danh sách căn giá tốt nhất qua Zalo</h3>
+              <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                Chuyên viên Radar lọc sẵn 3–5 căn sát nhu cầu, đúng giá chủ nhà và gửi kèm ảnh/sổ hồng trực tiếp qua Zalo trong 15 phút.
               </p>
             </div>
-            <Link href="/search" className="btn btn-primary whitespace-nowrap rounded-xl px-5">
-              Tạo thông báo ngay
-            </Link>
+            <a
+              href="https://zalo.me/0346689460?text=Chào%20Radar,%20mình%20cần%20tìm%20bất%20động%20sản%20phù%20hợp,%20nhờ%20bạn%20tư%20vấn%20giúp%20nhé!"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary whitespace-nowrap px-6 py-3 rounded-xl shadow-md font-bold text-sm shrink-0"
+            >
+              Nhận tư vấn Zalo miễn phí
+            </a>
           </section>
 
           {/* ===== Duyệt theo danh mục ===== */}
-          <section className="mt-16">
-            <div className="flex items-baseline justify-between mb-4">
-              <h2 className="prata text-xl md:text-2xl border-l-[3px] border-brand pl-3">Duyệt theo danh mục</h2>
-              <span className="text-xs text-[var(--ink-soft)]">Hơn 15.000 căn nhà đất có sẵn</span>
+          <section className="mt-12 sm:mt-16">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-slate-900">Duyệt theo danh mục</h2>
+              <span className="text-xs sm:text-sm text-slate-500 font-medium">Hơn 15.000 căn nhà đất có sẵn</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
@@ -351,7 +364,7 @@ export default async function Home({
                 <Link
                   key={kind}
                   href={`/search?kind=${kind}`}
-                  className="relative rounded-2xl overflow-hidden min-h-[260px] group flex flex-col justify-between p-5 text-white shadow-md hover:shadow-xl transition-all duration-300 border border-slate-700/30"
+                  className="relative rounded-2xl overflow-hidden min-h-[260px] group flex flex-col justify-between p-5 text-white shadow-zen-2 hover:shadow-zen-4 transition-all duration-300 border border-slate-700/30"
                 >
                   {/* Ảnh nền thực tế */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -372,7 +385,7 @@ export default async function Home({
 
                   {/* Footer thẻ: Tiêu đề & mô tả */}
                   <div className="relative z-10">
-                    <h3 className="prata text-xl font-bold text-white group-hover:text-emerald-300 transition-colors drop-shadow">
+                    <h3 className="heading-3 text-white group-hover:text-emerald-300 transition-colors drop-shadow">
                       {t}
                     </h3>
                     <p className="text-xs text-white/85 mt-1.5 leading-relaxed drop-shadow line-clamp-2">
@@ -389,11 +402,11 @@ export default async function Home({
           </section>
 
           {/* ===== Tin tức & Cẩm nang Bất Động Sản ===== */}
-          <section className="mt-16">
-            <div className="flex items-baseline gap-3 mb-6">
+          <section className="mt-12 sm:mt-16">
+            <div className="flex items-center justify-between gap-3 mb-6">
               <div>
-                <h2 className="prata text-xl md:text-2xl border-l-[3px] border-brand pl-3">Tin tức &amp; Cẩm nang thị trường</h2>
-                <p className="text-xs text-[var(--ink-soft)] pl-3 mt-1">Kiến thức pháp lý, quy hoạch, lãi suất vay và kinh nghiệm giao dịch BĐS</p>
+                <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-slate-900">Tin tức &amp; Cẩm nang thị trường</h2>
+                <p className="text-xs sm:text-sm text-slate-500 pl-4 mt-1">Kiến thức pháp lý, quy hoạch, lãi suất vay và kinh nghiệm giao dịch BĐS</p>
               </div>
               <Link href="/tin-tuc" className="group text-sm text-brand font-semibold ml-auto whitespace-nowrap inline-flex items-center gap-1">
                 <span>Xem tất cả tin tức</span>
@@ -455,12 +468,12 @@ export default async function Home({
 
 function Section({ title, href, children }: { title: string; href: string; children: React.ReactNode }) {
   return (
-    <section className="mt-12">
-      <div className="flex items-baseline gap-3 mb-4">
-        <h2 className="prata text-xl md:text-2xl border-l-[3px] border-brand pl-3">{title}</h2>
-        <Link href={href} className="group text-sm text-brand font-semibold ml-auto whitespace-nowrap inline-flex items-center gap-1">
+    <section className="mt-12 sm:mt-16">
+      <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+        <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-slate-900">{title}</h2>
+        <Link href={href} className="group text-sm text-brand font-bold ml-auto whitespace-nowrap inline-flex items-center gap-1 hover:text-brand-ink transition-colors">
           <span>Xem tất cả</span>
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
       {children}

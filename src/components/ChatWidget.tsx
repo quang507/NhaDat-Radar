@@ -105,15 +105,16 @@ export default function ChatWidget() {
   return (
     <>
       {/* Cụm nút liên hệ nhanh góc phải: Zalo + Gọi điện + Hỏi AI */}
-      <div className="fixed bottom-20 lg:bottom-6 right-3 sm:right-6 z-40 flex flex-col items-end gap-2.5">
+      <div className={`fixed bottom-6 right-3 sm:right-6 z-40 flex flex-col items-end gap-2.5 ${dangXem ? "hidden lg:flex" : "flex"}`}>
         {/* Nút Gọi Hotline trực tiếp */}
         <a
           href={`tel:${HOTLINE}`}
           aria-label={`Gọi Hotline ${HOTLINE}`}
-          className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
+          className="flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all"
         >
-          <PhoneCall className="w-3.5 h-3.5" />
-          <span>Hotline: 0346 689 460</span>
+          <PhoneCall className="w-4 h-4" />
+          <span className="hidden sm:inline">Hotline: 0346 689 460</span>
+          <span className="sm:hidden font-extrabold text-[11px]">Gọi điện</span>
         </a>
 
         {/* Nút Chat Zalo (kênh chuyển đổi mạnh nhất tại VN) */}
@@ -126,7 +127,7 @@ export default function ChatWidget() {
         >
           <MessageCircle className="w-4 h-4 fill-current" />
           <span className="hidden sm:inline">Nhắn Zalo tư vấn 24/7</span>
-          <span className="sm:hidden font-extrabold text-[0.72rem]">Zalo</span>
+          <span className="sm:hidden font-extrabold text-[11px]">Chat Zalo</span>
         </a>
 
         {/* Nút Trợ lý AI (tuỳ chọn mở rộng) */}
@@ -134,7 +135,7 @@ export default function ChatWidget() {
           type="button"
           aria-label="Mở trợ lý AI"
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white text-[0.7rem] font-medium shadow-md transition active:scale-95 cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-medium shadow-md transition active:scale-95 cursor-pointer"
         >
           {open ? <X className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
           <span className="hidden sm:inline">{open ? "Đóng AI" : "Hỏi AI"}</span>

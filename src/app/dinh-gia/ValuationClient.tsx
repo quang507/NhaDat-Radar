@@ -73,9 +73,9 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
     <div>
       <section className="text-center py-8">
         <div className="kicker mb-2">Định giá bằng AI + dữ liệu thật</div>
-        <h1 className="prata text-3xl mb-3">AI Định Giá Bất Động Sản</h1>
-        <p className="text-[var(--ink-soft)] max-w-2xl mx-auto">
-          Nhập thông tin tài sản - AI so sánh với các tin đang rao cùng khu vực trong dữ liệu của chúng tôi
+        <h1 className="heading-1 text-slate-900 mb-3">AI Định Giá Bất Động Sản</h1>
+        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+          Nhập thông tin tài sản — Hệ thống tự động so sánh với các tin đang rao cùng khu vực trong dữ liệu của Radar
           để đưa ra khoảng giá ước tính và dự phóng tương lai.
         </p>
       </section>
@@ -210,6 +210,22 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                   className="btn w-full mt-3 text-sm text-center block">
                   Xem các tin so sánh ›
                 </Link>
+              </div>
+
+              {/* Box chuyển đổi chuyên viên hỗ trợ thẩm định thực tế */}
+              <div className="card p-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-zen-2">
+                <div>
+                  <h4 className="font-bold text-base text-white">Cần thẩm định thực tế &amp; kiểm tra pháp lý?</h4>
+                  <p className="text-xs text-emerald-100 mt-0.5">Chuyên viên Radar hỗ trợ tra cứu quy hoạch, kiểm tra sổ hồng và định giá thị trường miễn phí.</p>
+                </div>
+                <a
+                  href={`https://zalo.me/0346689460?text=${encodeURIComponent(`Chào chuyên viên Radar, mình vừa định giá tài sản (${PROP[f.kind] || "nhà đất"} tại ${f.district ? f.district + ", " : ""}${f.province}). Nhờ bạn hỗ trợ thẩm định thực tế và kiểm tra pháp lý giúp mình nhé!`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-sm shadow-md whitespace-nowrap active:scale-95 transition-all shrink-0"
+                >
+                  Nhắn Zalo thẩm định
+                </a>
               </div>
 
               <p className="text-xs text-[var(--ink-faint)]">
