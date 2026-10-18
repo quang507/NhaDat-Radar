@@ -21,7 +21,7 @@ export default function ChiaSe({ url, title, listingId }: { url: string; title: 
     setMo((v) => !v);
   }
   async function chepFormat() {
-    const textZalo = `🏡 ${title}\n📍 Xem chi tiết & video thực tế: ${url}\n(Nguồn: Radar Nhà Đất - Xác minh thực tế)`;
+    const textZalo = `${title}\nXem chi tiết và video: ${url}\nNguồn: Radar Nhà Đất`;
     try {
       await navigator.clipboard.writeText(textZalo);
       setDaChep(true);
