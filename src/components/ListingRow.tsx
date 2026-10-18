@@ -26,7 +26,7 @@ export default function ListingRow({ x }: { x: Listing }) {
   return (
     // MỘT link cho mỗi tin; bên trong phần điện thoại (sm:hidden) và desktop (hidden sm:*) tách riêng.
     // Không render 2 link: link ẩn đứng trước làm locator/bot "tin đầu tiên" trỏ vào phần không hiện.
-    <Link href={`/listings/${x.id}`} className="card rounded-xl overflow-hidden flex flex-row gap-3 p-2 sm:gap-0 sm:p-0 active:bg-[var(--surface-2)] sm:active:bg-transparent hover:border-[var(--line-strong)] hover:shadow-md transition-all group">
+    <Link href={`/listings/${x.id}`} className="card rounded-lg overflow-hidden flex flex-row gap-3 p-2 sm:gap-0 sm:p-0 active:bg-[var(--surface-2)] sm:active:bg-transparent hover:border-[var(--line-strong)] hover:shadow-xs transition-all group">
       <MobileThumb x={x} />
       <MobileBody x={x} ago={ago} isNew={isNew} />
       {/* Media: 1 ảnh lớn + tối đa 3 ảnh nhỏ */}

@@ -442,9 +442,13 @@ export default async function ListingDetail({
             <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
           )}
         </div>
-        <div className="text-right shrink-0">
+        <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
           <div className="heading-1 text-brand tracking-tight font-extrabold">{fmtPrice(x.price_vnd, x.deal)}</div>
-          {myPpm2 ? <div className="text-xs text-slate-500 font-semibold mt-0.5">{fmtPpm2(myPpm2)}</div> : null}
+          {myPpm2 ? <div className="text-xs text-slate-500 font-semibold">{fmtPpm2(myPpm2)}</div> : null}
+          <div className="flex items-center gap-2 mt-1">
+            <FavButton id={x.id} />
+            <ChiaSe url={`https://radarnhadat.vn/listings/${x.id}`} title={x.title} listingId={x.id} />
+          </div>
         </div>
       </div>
 

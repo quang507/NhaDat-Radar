@@ -20,36 +20,56 @@ export default function ChiaSe({ url, title, listingId }: { url: string; title: 
     }
     setMo((v) => !v);
   }
-  async function chep() {
-    try { await navigator.clipboard.writeText(url); setDaChep(true); setTimeout(() => setDaChep(false), 2000); } catch { /* trình duyệt chặn clipboard */ }
+  async function chepFormat() {
+    const textZalo = `🏡 ${title}\n📍 Xem chi tiết & video thực tế: ${url}\n(Nguồn: Radar Nhà Đất - Xác minh thực tế)`;
+    try {
+      await navigator.clipboard.writeText(textZalo);
+      setDaChep(true);
+      setTimeout(() => setDaChep(false), 2500);
+    } catch {
+      /* trình duyệt chặn clipboard */
+    }
   }
 
   return (
     <span className="relative">
-      <button type="button" onClick={bam} aria-expanded={mo} aria-label="Chia sẻ tin"
-        className="h-8 px-3 rounded-full flex items-center justify-center gap-1.5 text-xs font-semibold transition shadow bg-white/90 text-[#333] hover:bg-white">
-        <Share2 className="w-3.5 h-3.5" />
+      <button
+        type="button"
+        onClick={bam}
+        aria-expanded={mo}
+        aria-label="Chia sẻ tin"
+        className="h-8 px-3 rounded-md flex items-center justify-center gap-1.5 text-xs font-semibold transition border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:border-brand dark:hover:border-emerald-500 shadow-xs cursor-pointer"
+      >
+        <Share2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
         <span>Chia sẻ</span>
       </button>
       {mo && (
-        <span className="absolute right-0 top-10 z-20 w-52 card rounded-lg shadow-lg p-1.5 flex flex-col text-sm">
-          <button type="button" onClick={chep} className="text-left px-3 py-2 rounded hover:bg-[var(--surface-2)] flex items-center gap-2">
+        <span className="absolute right-0 top-10 z-20 w-60 card rounded-lg shadow-md p-1.5 flex flex-col text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+          <button
+            type="button"
+            onClick={chepFormat}
+            className="text-left px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2 text-slate-700 dark:text-slate-200 font-medium cursor-pointer"
+          >
             {daChep ? (
               <>
                 <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-emerald-600 font-semibold">Đã chép link</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Đã chép nội dung gửi Zalo!</span>
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4 text-slate-500 shrink-0" />
-                <span>Sao chép link</span>
+                <Copy className="w-4 h-4 text-brand dark:text-emerald-400 shrink-0" />
+                <span>Chép tóm tắt gửi Zalo/Khách</span>
               </>
             )}
           </button>
-          <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`} target="_blank" rel="noopener"
-            className="px-3 py-2 rounded hover:bg-[var(--surface-2)] flex items-center gap-2">
+          <a
+            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
+            target="_blank"
+            rel="noopener"
+            className="px-3 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2 text-slate-700 dark:text-slate-200 font-medium cursor-pointer"
+          >
             <Share2 className="w-4 h-4 text-blue-600 shrink-0" />
-            <span>Chia sẻ Facebook</span>
+            <span>Chia sẻ qua Facebook</span>
           </a>
         </span>
       )}

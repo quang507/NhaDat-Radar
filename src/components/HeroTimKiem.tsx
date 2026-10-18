@@ -148,12 +148,13 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                 <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
                   <span className="text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold">Tiện ích:</span>
                   {[
-                    ["ban_cong", "Ban công"],
-                    ["thu_cung", "Nuôi thú cưng"],
-                    ["thang_may", "Thang máy"],
-                    ["gac_lung", "Gác lửng"],
-                    ["dieu_hoa", "Máy lạnh"],
-                    ["de_xe", "Chỗ để xe"],
+                    ["thu_cung", "🐾 Nuôi thú cưng"],
+                    ["gio_tu_do", "⏰ Giờ tự do"],
+                    ["gac_lung", "🪜 Gác lửng"],
+                    ["ban_cong", "🌇 Ban công"],
+                    ["thang_may", "🛗 Thang máy"],
+                    ["dieu_hoa", "❄ Máy lạnh"],
+                    ["de_xe", "🛵 Chỗ để xe"],
                   ].map(([k, label]) => (
                     <Link
                       key={k}
