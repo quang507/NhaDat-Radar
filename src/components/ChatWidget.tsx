@@ -104,8 +104,29 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Cụm nút liên hệ nhanh góc phải: Zalo + Gọi điện + Hỏi AI */}
-      <div className={`fixed bottom-6 right-3 sm:right-6 z-40 flex flex-col items-end gap-2.5 ${dangXem ? "hidden lg:flex" : "flex"}`}>
+      {/* MOBILE (25/10, ZEN thumb zone): thanh 3 nút dính đáy thay cho cụm nút nổi - cụm cũ đè lên thẻ tin/
+          ô tìm kiếm ở 375-414px. Trang tin đã có thanh Gọi/Zalo riêng (kèm giá + mã phòng) -> ẩn ở đó. */}
+      {!dangXem && (
+        <>
+          <div className="lg:hidden h-16" aria-hidden />
+          <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur">
+            <a href={`tel:${HOTLINE}`} aria-label={`Gọi Hotline ${HOTLINE}`} className="btn btn-primary min-h-11 font-bold">
+              <PhoneCall className="w-4 h-4" />
+              <span>Gọi ngay</span>
+            </a>
+            <a href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo tư vấn phòng" className="btn min-h-11 font-bold !border-[#0068ff] !text-[#0068ff]">
+              <MessageCircle className="w-4 h-4" />
+              <span>Zalo</span>
+            </a>
+            <button type="button" aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"} onClick={() => setOpen((v) => !v)} className="btn min-h-11 min-w-11 !px-3">
+              {open ? <X className="w-4 h-4" /> : <Sparkles className="w-4 h-4 text-amber-500" />}
+            </button>
+          </nav>
+        </>
+      )}
+
+      {/* Máy tính: cụm nút liên hệ nhanh góc phải: Zalo + Gọi điện + Hỏi AI */}
+      <div className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end gap-2.5">
         {/* Nút Gọi Hotline trực tiếp */}
         <a
           href={`tel:${HOTLINE}`}
@@ -143,7 +164,7 @@ export default function ChatWidget() {
       </div>
 
       {open && (
-        <div className="fixed bottom-36 lg:bottom-24 right-4 lg:right-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[560px] max-h-[75vh]
+        <div className="fixed bottom-20 lg:bottom-24 right-4 lg:right-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[560px] max-h-[75vh]
                         card rounded-lg shadow-lg flex flex-col overflow-hidden border border-slate-300">
           {/* Header */}
           <div className="px-4 py-3 bg-brand text-white flex items-center justify-between">

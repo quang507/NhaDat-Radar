@@ -12,9 +12,13 @@ export default function Nav() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-5 py-2.5 flex items-center gap-3">
         <MobileMenu />
         <Link href="/" className="flex items-center gap-2.5 font-black text-base tracking-tight whitespace-nowrap shrink-0 group">
+          {/* Logo R mới (25/10): 2 bản màu phẳng theo theme - logo.svg cho nền sáng, logo-dark.svg (emerald sáng hơn) cho nền slate.
+              Chữ thương hiệu là chữ HTML Inter: file Illustrator gốc dùng FranklinGothic không nhúng -> trình duyệt hiện Times. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="NhaDat Radar" className="w-8 h-8 rounded-lg object-contain shrink-0 transition-transform duration-200 group-hover:scale-105" />
-          <span className="hidden min-[480px]:inline text-slate-900 dark:text-slate-100 font-extrabold tracking-tight">NhaDat&nbsp;<span className="text-brand">Radar</span></span>
+          <img src="/logo.svg" alt="NhaDat Radar" width={25} height={32} className="h-8 w-auto shrink-0 dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-dark.svg" alt="" aria-hidden width={25} height={32} className="h-8 w-auto shrink-0 hidden dark:block" />
+          <span className="hidden min-[480px]:inline text-[var(--ink)] font-extrabold tracking-tight uppercase">NhaDat&nbsp;<span className="text-brand">Radar</span></span>
         </Link>
 
         {/* Menu ngang desktop */}
@@ -31,7 +35,8 @@ export default function Nav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 shrink-0">
-          <ThemeToggle />
+          {/* điện thoại: nút sáng/tối nằm trong menu ☰ (MobileMenu) cho header gọn */}
+          <span className="hidden sm:contents"><ThemeToggle /></span>
           <NavFav />
           <NavAuth />
         </div>

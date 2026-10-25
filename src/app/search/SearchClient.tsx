@@ -303,10 +303,10 @@ export default function SearchClient({
           onSubmit={(e) => { e.preventDefault(); submit(); }}
         >
           <input
-            className="flex-1 px-4 py-2.5 bg-transparent outline-none text-sm min-w-0 rounded-l-lg"
+            className="flex-1 px-4 py-2.5 min-h-11 bg-transparent outline-none text-base sm:text-sm min-w-0 rounded-l-lg"
             value={f.q}
             onChange={set("q")}
-            placeholder="Gõ quận/phường (VD: Q7, Bình Thạnh), đường, dự án…"
+            placeholder="Quận, phường, đường, dự án…"
             autoComplete="off"
           />
           {/* NN/g #5: gợi ý địa danh thật, nhận cả viết tắt Q7 -> Quận 7 */}
@@ -333,7 +333,7 @@ export default function SearchClient({
   // [Lọc (n)] [Tin đã xác minh] [Loại nhà đất ▾] [Khoảng giá ▾] [Diện tích ▾] [Địa chỉ sau sáp nhập]
   // Popover chọn xong mới "Áp dụng"; mọi giá trị xuất phát từ goc (bộ ĐÃ ÁP theo URL).
   const hangLocMua = (
-    <div className="flex items-center gap-2 pb-4 mb-4 border-b border-[var(--line)] text-sm overflow-x-auto sm:overflow-visible sm:flex-wrap -mx-5 px-5 sm:mx-0 sm:px-0 [scrollbar-width:none]">
+    <div className="flex items-center gap-2 pb-4 mb-4 border-b border-[var(--line)] text-sm overflow-x-auto sm:overflow-visible sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
       <button
         className={`shrink-0 h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition
           ${showFilter || soLoc ? "border-brand text-brand bg-brand/5 font-semibold" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
@@ -436,7 +436,9 @@ export default function SearchClient({
       </div>
 
       <HangTienIch ti={goc.ti} onDoi={(k) => push({ ...goc, ti: doiTi(goc.ti, k) })} />
-      {duAn.length > 0 && <ChonDuAn duAn={duAn} value={goc.project} onChon={(id) => push({ ...goc, project: id })} />}
+      {/* 25/10 mobile gọn: Dự án + Tên đường đã có trong popup "Bộ lọc" -> ngoài trang chỉ hiện từ sm (trước đây
+          khách phải cuộn ~1 màn hình bộ lọc mới tới tin đầu tiên ở 375px) */}
+      {duAn.length > 0 && <div className="hidden sm:block"><ChonDuAn duAn={duAn} value={goc.project} onChon={(id) => push({ ...goc, project: id })} /></div>}
 
       <RecentSearches />
 
@@ -474,7 +476,7 @@ export default function SearchClient({
       />
 
       {/* TÊN ĐƯỜNG: lọc theo địa chỉ (Enter để áp) */}
-      <form className="flex flex-wrap items-center gap-2 sm:gap-4 mb-5" onSubmit={(e) => { e.preventDefault(); push({ ...goc, street: f.street.trim() }); }}>
+      <form className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-4 mb-5" onSubmit={(e) => { e.preventDefault(); push({ ...goc, street: f.street.trim() }); }}>
         <span className="text-xs font-bold tracking-wide text-[var(--ink-soft)]">TÊN ĐƯỜNG</span>
         <label className="h-10 w-full sm:w-[28rem] px-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] flex items-center gap-2 text-sm">
           <svg className="w-4 h-4 text-[var(--ink-soft)] shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="9" cy="9" r="5.5" /><path d="M13.5 13.5L17 17" strokeLinecap="round" /></svg>

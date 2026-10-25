@@ -1,5 +1,12 @@
 export const revalidate = 3600; // Cache ISR 1 giờ trên CDN Vercel - bot cào không tốn egress Supabase
 
+// Audit 25/10 (đo bằng `next start`): thiếu hàm này thì route [id] là ƒ Dynamic - header trả
+// "private, no-cache, no-store", `revalidate` ở trên KHÔNG có tác dụng, CDN không giữ trang nào.
+// Trả [] = không dựng sẵn lúc build (~22.000 tin), dựng lần đầu khi có người mở rồi cache ISR như trang tĩnh.
+export async function generateStaticParams() {
+  return [];
+}
+
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
@@ -12,6 +19,7 @@ import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb, catChu, canonDistrict } fr
 import { cleanImages, layVideo } from "@/lib/img";
 import { median, percentile } from "@/lib/gemini";
 import { posterReasonText, type Listing } from "@/lib/types";
+import AdminDetailBar from "@/components/AdminDetailBar";
 import ContactForm from "./ContactForm";
 import ReportButton from "./ReportButton";
 import PriceTrend from "@/components/PriceTrend";
@@ -29,16 +37,14 @@ import PhoneReveal from "@/components/PhoneReveal";
 import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
 import HienSoRadar from "@/components/HienSoRadar";
-import DangNhapDeXem from "@/components/DangNhapDeXem";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
-import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong, linkGocEvohome, linkGocHifriendz } from "@/lib/ro-hang";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong } from "@/lib/ro-hang";
 import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import ChiaSe from "@/components/ChiaSe";
-import { GhiXemTin, LinkTheoDoi, NutZalo } from "@/components/TheoDoi";
+import { GhiXemTin, NutZalo } from "@/components/TheoDoi";
 import MoTaThuGon from "@/components/MoTaThuGon";
 import HangVuot from "@/components/HangVuot";
 import AppointmentForm from "@/components/AppointmentForm";
@@ -47,7 +53,6 @@ import MobileSectionJumper from "@/components/MobileSectionJumper";
 import SimilarListings from "@/components/SimilarListings";
 import AdSenseBanner from "@/components/AdSenseBanner";
 import { layTinTuongTu, type ListingTuongTu } from "@/lib/tuong-tu";
-import { setListingStatusFromDetail, deleteListingFromDetail } from "@/app/admin/actions";
 import { MapPin, ShieldCheck, Building2, AlertTriangle, HelpCircle, MessageSquare, MessageCircle, ChevronLeft } from "lucide-react";
 
 // ---- DỮ LIỆU CÔNG KHAI CỦA TRANG TIN, CÓ CACHE (28/9) ----------------------------------------------
@@ -202,60 +207,19 @@ export default async function ListingDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  // Phần CÔNG KHAI lấy từ cache (xem layTinCongKhai). Lỗi thật thì log + coi như không có -> dưới đây
-  // người đã đăng nhập (admin xem tin ẩn/chờ duyệt) còn được hỏi thẳng DB bằng quyền của họ.
   let pub: TinCongKhai | null = null;
   try { pub = await layTinCongKhai(id); } catch (e) { console.error(String(e)); }
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!pub && user) {
-    // tin anon không thấy (hidden/pending/draft) - chỉ admin hoặc chủ tin qua được RLS
-    const { data: rieng } = await supabase.from("listings").select(LISTING_PUBLIC_COLS).eq("id", id).maybeSingle();
-    if (rieng) pub = await phuTroTin(supabase, rieng as unknown as Listing);
-  }
   if (!pub) notFound();
   const data = pub.tin;
-  // SEO (2/10): tin ĐÃ GỠ -> 301 về trang khu vực cùng loại (khách từ Google thấy phòng/nhà còn trống thay vì
-  // trang chết; Google dồn uy tín link cũ sang trang khu vực). Người đã đăng nhập (admin, chủ tin) vẫn xem được.
-  if (data.status === "gone" && !user) permanentRedirect(await khuVucCuaTin(data));
-  // contact_phone không có trong LISTING_PUBLIC_COLS -> gán sau (chỉ khi đã đăng nhập)
+  if (data.status === "gone") permanentRedirect(await khuVucCuaTin(data));
   const x = { ...data, contact_phone: null } as Listing;
-  // FB + Zalo = tin ĐỘC QUYỀN (21/8): giấu SĐT mọi nơi, liên hệ qua Cầu Nối - xem lib/doc-quyen
   const docQuyen = laTinDocQuyen(x);
-  // tiêu đề tin FB/Zalo cũng hay chứa số ("Bán nhà Q7 LH 09...") -> che luôn, như mô tả
   if (docQuyen) Object.assign(x, cheTinDocQuyen(x));
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
-  // Tin thuộc dự án (gan-du-an.mjs nối theo tên) -> khối "Thông tin dự án" + đếm tin cùng dự án đang rao
   const { duAn, tinCungDuAn, hoiDap, compRows, relRows, posterRows, posterCount, tinTuongTu } = pub;
-
-  // 17/8: bỏ duyệt trước - tin lên thẳng, nên admin cần nút gỡ/xoá NGAY tại trang tin
-  let isAdmin = false;
-  if (user) {
-    const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    isAdmin = prof?.role === "admin";
-  }
-  // Rổ hàng: admin xem bản gốc (địa chỉ thật, số phòng, hoa hồng) + link mở phòng bên đối tác.
-  // Đọc bằng service role SAU khi đã xác nhận admin - source_post_id/listing_ro_hang không ra web công khai.
-  let goc: { partner: string; source_post_id: string | null; exact_address: string | null; unit_code: string | null; commission: string | null; chu_nha_phone: string | null } | null = null;
-  if (isAdmin && laRoHang(data)) {
-    const admin = createAdminClient();
-    const [{ data: l }, { data: p }] = await Promise.all([
-      admin.from("listings").select("source_post_id").eq("id", id).maybeSingle(),
-      admin.from("listing_ro_hang").select("partner,exact_address,unit_code,commission,raw").eq("listing_id", id).maybeSingle(),
-    ]);
-    const raw = (p?.raw || {}) as Record<string, unknown>;
-    const phone = (raw.chu_nha_phone || raw.contact_real) ? String(raw.chu_nha_phone || raw.contact_real) : null;
-    goc = { partner: p?.partner || data.source_site || "", source_post_id: l?.source_post_id ?? null, exact_address: p?.exact_address ?? null, unit_code: p?.unit_code ?? null, commission: p?.commission ?? null, chu_nha_phone: phone };
-  }
-  // SĐT thật: chỉ tải khi đã đăng nhập. Khách vãng lai chỉ cần biết "có SĐT" (has_contact_phone, trong cache)
-  let coSdt = pub.coSdt;
-  if (user) {
-    const { data: ph } = await supabase.from("listings").select("contact_phone").eq("id", id).maybeSingle();
-    x.contact_phone = ph?.contact_phone ?? null;
-    coSdt = !!x.contact_phone;
-  }
+  const coSdt = pub.coSdt;
 
   const posterOthers = ((posterRows ?? []) as Listing[]).map(cheTinDocQuyen);
 
@@ -277,10 +241,12 @@ export default async function ListingDetail({
   const isCrawl = x.source === "crawl";
   // RỔ HÀNG RADAR (28/9): hàng mình nắm - không link gốc, không tên đối tác, CTA chỉ về Radar (lib/ro-hang)
   const roHang = laRoHang(x);
-  // tin nhắn Zalo chép sẵn (2/10) - khách khỏi gõ, Radar biết ngay khách hỏi phòng/tin nào
+  // tin nhắn Zalo chép sẵn (2/10) - khách khỏi gõ, Radar biết ngay khách hỏi phòng/tin nào.
+  // Audit 25/10: tin web cũng gắn mã (maPhong tra được cho MỌI tin qua /rh/[mã]) - trước đây chỉ có tiêu đề
+  const ma = maPhong(x.id);
   const tinNhanZalo = roHang
-    ? `Chào Radar, em muốn xem ${x.deal === "ban" ? "căn" : "phòng"} ${maPhong(x.id)} - ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Em xem được lúc:`
-    : `Chào Radar, em quan tâm tin: ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Nhờ Radar tư vấn giúp em.`;
+    ? `Chào Radar, em muốn xem ${x.deal === "ban" ? "căn" : "phòng"} ${ma} - ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Em xem được lúc:`
+    : `Chào Radar, em quan tâm tin Mã: ${ma} - ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Nhờ Radar tư vấn giúp em.`;
   const giuPhong = tagGiuPhong(x);
   const reasons = (x.poster_reasons || []).map(posterReasonText);
   const fmtDT = (iso: string | null | undefined) =>
@@ -292,6 +258,25 @@ export default async function ListingDetail({
   const specs = (x.specs ?? null) as Record<string, string> | null;
   // các nhãn đã có ô riêng ở trên -> không lặp lại ở phần thông số nguồn
   const daCo = /^(hướng (nhà|đất)|pháp lý|giấy tờ pháp lý|loại sổ|tình trạng sổ|số tầng|nội thất|tổng diện tích đất|diện tích)/i;
+
+  // BẢNG 5 CHI PHÍ (audit 25/10): khách thuê quyết định liên hệ hay không dựa trên TỔNG tiền/tháng, không
+  // chỉ giá phòng. Trước đây Điện/Nước/Phí quản lý (EvoHome ghi vào specs) lẫn trong lưới thông số, thiếu
+  // dòng nào thì khách không biết là "không thu" hay "chưa có dữ liệu". Thiếu -> ghi rõ "Hỏi Radar".
+  const giaTriSpec = (re: RegExp) => {
+    const hit = Object.entries(specs || {}).find(([k, v]) => re.test(k) && v && String(v).trim() !== "-");
+    return hit ? String(hit[1]) : null;
+  };
+  const PHI: [string, RegExp][] = [
+    ["Điện", /^(tiền )?điện/i],
+    ["Nước", /^(tiền )?nước/i],
+    ["Gửi xe", /(gửi|giữ|để) xe/i],
+    ["Dịch vụ", /dịch vụ|phí quản lý|phí chung/i],
+  ];
+  const laPhi = (k: string) => x.deal === "cho_thue" && PHI.some(([, re]) => re.test(k));
+  const bangPhi: [string, string | null][] | null = x.deal === "cho_thue"
+    ? [["Tiền phòng", fmtPrice(x.price_vnd, x.deal)], ...PHI.map(([nhan, re]) => [nhan, giaTriSpec(re)] as [string, string | null])]
+    : null;
+  const tienCoc = x.deal === "cho_thue" ? giaTriSpec(/cọc/i) : null;
 
   // Sáp nhập 1/7/2025: người đăng lúc ghi tên CŨ (quen miệng), lúc ghi tên MỚI. Các sàn lớn
   // đều hiện CẢ HAI để ai đọc cũng nhận ra chỗ đó - chotot: "Quận 11, TP.HCM (Phường Phú Thọ,
@@ -313,7 +298,7 @@ export default async function ListingDetail({
     ...(x.amenities?.includes("parking") ? [["Chỗ đậu xe", "Có"] as [string, ReactNode]] : []),
     // thông số riêng của nguồn (guland: mặt tiền, chiều dài, hình dáng đất, số mặt tiếp giáp…)
     ...Object.entries(specs || {})
-      .filter(([k, v]) => v && String(v).trim() !== "-" && !daCo.test(k))
+      .filter(([k, v]) => v && String(v).trim() !== "-" && !daCo.test(k) && !laPhi(k) && !(tienCoc && /cọc/i.test(k)))
       .slice(0, 14)
       .map(([k, v]) => [k, String(v)] as [string, ReactNode]),
   ];
@@ -377,41 +362,8 @@ export default async function ListingDetail({
         </span>
       </div>
 
-      {/* Thanh admin: gỡ tin không liên quan / kém chất lượng tại chỗ (chỉ admin thấy) */}
-      {isAdmin && (
-        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs">
-          <span className="font-bold text-amber-700">🛡 Admin</span>
-          <span className="text-[var(--ink-soft)]">tin đang <b>{x.status}</b></span>
-          <span className="ml-auto flex items-center gap-2">
-            <form action={setListingStatusFromDetail}>
-              <input type="hidden" name="id" value={x.id} />
-              <input type="hidden" name="status" value={x.status === "hidden" ? "published" : "hidden"} />
-              <button className="btn !py-1 text-xs" type="submit">{x.status === "hidden" ? "Hiện lại" : "Ẩn tin"}</button>
-            </form>
-            <form action={deleteListingFromDetail}>
-              <input type="hidden" name="id" value={x.id} />
-              <button className="btn !py-1 text-xs !text-red-600" type="submit">Xoá hẳn</button>
-            </form>
-          </span>
-          {goc && (
-            <div className="basis-full flex flex-wrap items-center gap-x-3 gap-y-1 pt-1.5 mt-0.5 border-t border-amber-400/30 text-[var(--ink)]">
-              <span>🔒 Gốc <b>{goc.partner}</b>:</span>
-              <span>{[goc.exact_address, goc.unit_code ? `P.${goc.unit_code}` : null, goc.commission ? `HH ${goc.commission}` : null, goc.chu_nha_phone ? `📞 SĐT chủ: ${goc.chu_nha_phone}` : null].filter(Boolean).join(" · ") || "chưa có địa chỉ thật"}</span>
-              {goc.partner === "evohome" && (
-                <a href={linkGocEvohome(goc.source_post_id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 underline">
-                  Mở trên app.evohome.it.com ↗
-                </a>
-              )}
-              {goc.partner === "hifriendz" && (
-                <a href={linkGocHifriendz(goc.source_post_id)} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 underline">
-                  Mở trên hifriendz.com ↗
-                </a>
-              )}
-              {goc.source_post_id && <span className="font-mono text-[var(--ink-soft)]">id: {goc.source_post_id}</span>}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Thanh admin: chuyển sang client component để trang tin cache ISR 100% */}
+      <AdminDetailBar id={x.id} status={x.status} isRoHang={roHang} />
 
       {/* Breadcrumb + tiêu đề + giá TRÊN gallery: khách từ Google phải thấy "tin gì, giá bao nhiêu" ngay màn hình đầu
           (UX audit 16/8: trước đây màn hình đầu chỉ có ảnh, giá/tiêu đề nằm dưới fold) */}
@@ -431,7 +383,7 @@ export default async function ListingDetail({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             {roHang && (
-              <span className="font-mono text-xs font-black bg-slate-900 text-white px-2.5 py-0.5 rounded-md shadow-xs select-all inline-flex items-center gap-1" title="Mã căn - gửi kèm khi nhắn Zalo">
+              <span className="font-mono text-xs font-black bg-[var(--ink)] text-[var(--bg)] px-2.5 py-0.5 rounded-md shadow-xs select-all inline-flex items-center gap-1" title="Mã căn - gửi kèm khi nhắn Zalo">
                 <span>Mã: {maPhong(x.id)}</span>
               </span>
             )}
@@ -441,8 +393,9 @@ export default async function ListingDetail({
               </span>
             )}
           </div>
-          <h1 className="heading-1 text-slate-900 leading-snug">{x.title}</h1>
-          <div className="text-slate-600 text-sm mt-1.5 flex items-center gap-1.5 font-medium">
+          {/* audit 25/10: text-slate-900 gán cứng -> tiêu đề TÀNG HÌNH ở dark mode (chữ tối trên nền tối). Dùng token theme. */}
+          <h1 className="heading-1 text-[var(--ink)] leading-snug">{x.title}</h1>
+          <div className="text-[var(--ink-soft)] text-sm mt-1.5 flex items-center gap-1.5 font-medium">
             <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
             <span>{diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}</span>
           </div>
@@ -462,10 +415,7 @@ export default async function ListingDetail({
         <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
           <div className="heading-1 text-brand tracking-tight font-extrabold">{fmtPrice(x.price_vnd, x.deal)}</div>
           {myPpm2 ? <div className="text-xs text-slate-500 font-semibold">{fmtPpm2(myPpm2)}</div> : null}
-          <div className="flex items-center gap-2 mt-1">
-            <FavButton id={x.id} />
-            <ChiaSe url={`https://radarnhadat.vn/listings/${x.id}`} title={x.title} listingId={x.id} />
-          </div>
+          {/* audit 25/10: bỏ cặp Yêu thích/Chia sẻ thứ 2 (đã có ở thanh trên) - bản này còn share sai domain radarnhadat.vn */}
         </div>
       </div>
 
@@ -512,15 +462,18 @@ export default async function ListingDetail({
                       Radar hỗ trợ kết nối chủ/môi giới gửi ảnh chụp thực tế &amp; sổ hồng miễn phí qua Zalo.
                     </p>
                   </div>
-                  <a
-                    href={`https://zalo.me/0346689460?text=${encodeURIComponent(`Chào Radar, mình xem tin "${x.title}" (mã: ${x.id?.slice(0, 8)}). Nhờ bạn gửi giúp ảnh chụp thực tế & sổ của căn này qua Zalo nhé!`)}`}
+                  {/* zalo.me bỏ qua ?text= -> NutZalo chép sẵn nội dung + mã, khách chỉ Dán */}
+                  <NutZalo
+                    listingId={x.id}
+                    tinNhan={`Chào Radar, mình xem tin "${x.title}" (Mã: ${ma}). Nhờ bạn gửi giúp ảnh chụp thực tế & sổ của căn này qua Zalo nhé!`}
+                    href={HOTLINE_ZALO}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-xs transition-all active:scale-95 shrink-0"
+                    className="w-full sm:w-auto min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-xs transition-all active:scale-95 shrink-0"
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span>Nhắn Zalo lấy ảnh thật &amp; sổ</span>
-                  </a>
+                  </NutZalo>
                 </div>
               </div>
             )}
@@ -549,6 +502,24 @@ export default async function ListingDetail({
               ))}
             </div>
           </div>
+          {bangPhi && (
+            <div id="chi-phi" className="card rounded-lg p-5 scroll-mt-28">
+              <div className="flex items-baseline justify-between gap-3 mb-3">
+                <h3 className="font-bold">Chi phí hằng tháng</h3>
+                {tienCoc && <span className="text-xs text-[var(--ink-soft)]">Cọc: <b className="text-[var(--ink)]">{tienCoc}</b></span>}
+              </div>
+              <dl className="divide-y divide-[var(--line)] text-sm">
+                {bangPhi.map(([nhan, giaTri]) => (
+                  <div key={nhan} className="flex items-center justify-between gap-3 py-2 min-h-11">
+                    <dt className="text-[var(--ink-soft)]">{nhan}</dt>
+                    <dd className={giaTri ? "font-semibold text-right" : "text-xs text-[var(--ink-faint)] text-right"}>
+                      {giaTri ?? "Chưa có - hỏi Radar"}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
           <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-3">Mô tả</h3>
             {/* 17/8: trước dùng whitespace-pre-line -> tin dài (nhất là bài FB) thành khối chữ liền.
@@ -708,15 +679,17 @@ export default async function ListingDetail({
                   Radar hiện có hơn 1.000 phòng trống và nhà đất xác minh tại {x.district || "TP.HCM"}. Nhắn Zalo nhu cầu (tài chính, khu vực, tiện ích), đội ngũ Radar lọc và gửi ngay 3 căn đẹp nhất trong 5 phút.
                 </p>
               </div>
-              <a
-                href={`https://zalo.me/0346689460?text=${encodeURIComponent(`Chào Radar, mình đang xem tin mã ${maPhong(x.id)} tại ${x.district || ""} nhưng muốn tìm thêm các căn tương tự tầm giá ${fmtPrice(x.price_vnd, x.deal)}, tư vấn giúp mình nhé!`)}`}
+              <NutZalo
+                listingId={x.id}
+                tinNhan={`Chào Radar, mình đang xem tin Mã: ${ma} tại ${x.district || ""} nhưng muốn tìm thêm các căn tương tự tầm giá ${fmtPrice(x.price_vnd, x.deal)}, tư vấn giúp mình nhé!`}
+                href={HOTLINE_ZALO}
                 target="_blank"
                 rel="noopener"
                 className="btn btn-primary whitespace-nowrap px-5 py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 shadow-sm shrink-0"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>Nhận rổ hàng tương tự qua Zalo</span>
-              </a>
+              </NutZalo>
             </div>
           </div>
         </div>
@@ -726,13 +699,13 @@ export default async function ListingDetail({
           <div className="card rounded-lg p-5" id="lien-he">
             <h3 className="font-bold mb-3">{roHang ? (x.deal === "ban" ? "Liên hệ xem nhà" : "Liên hệ xem phòng") : isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#16233a] text-xs">
+              <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#0f172a] text-xs">
                 {x.source === "agent" ? "BÁN" : "TIN"}
               </div>
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {docQuyen ? "Tin đã xác minh - liên hệ qua Radar" : (coSdt || x.phone_masked) && !user ? "Đăng nhập để xem SĐT" : x.contact_phone ? "SĐT được che, bấm để xem" : x.phone_masked ? "SĐT che 4 số cuối - số đầy đủ ở bài gốc" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
+                  {docQuyen ? "Tin đã xác minh - liên hệ qua Radar" : (coSdt || x.phone_masked) ? "Đăng nhập hoặc liên hệ để xem SĐT" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
                 </div>
               </div>
             </div>
@@ -781,12 +754,14 @@ export default async function ListingDetail({
               </div>
             ) : (
               <>
-                {user && x.contact_phone && <div className="mb-3"><PhoneReveal phone={x.contact_phone} /></div>}
-                {user && !x.contact_phone && x.phone_masked && (
-                  <div className="mb-3 font-mono text-lg font-bold tracking-wider">{x.phone_masked}</div>
-                )}
-                {!user && (coSdt || x.phone_masked) && (
-                  <div className="mb-3"><DangNhapDeXem listingId={x.id} listingTitle={x.title} /></div>
+                {(coSdt || x.phone_masked) && (
+                  <div className="mb-3">
+                    <PhoneReveal
+                      phoneMasked={x.phone_masked}
+                      listingId={x.id}
+                      listingTitle={x.title}
+                    />
+                  </div>
                 )}
               </>
             )}
@@ -886,9 +861,11 @@ export default async function ListingDetail({
               <span>Zalo</span>
             </NutZalo>
           </span>
-        ) : isCrawl ? (
+        ) : isCrawl || docQuyen ? (
           // 2/10: trước đây nút chính là "Xem bài gốc ›" -> khách muốn liên hệ là bị đẩy sang trang khác.
           // Giờ giữ khách ở Radar (gọi/Zalo tư vấn); "Xem bài gốc" vẫn có trong khối liên hệ.
+          // audit 25/10: + tin độc quyền Zalo OA (source không phải crawl) - trước rơi xuống nhánh "Liên hệ"
+          // chỉ cuộn trang, mất nút Gọi/Zalo 1-chạm trong vùng ngón cái dù Radar là đầu mối duy nhất.
           <span className="ml-auto flex gap-1.5">
             <HienSoRadar listingId={x.id} nho />
             <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold inline-flex items-center gap-1.5">

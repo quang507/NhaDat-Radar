@@ -159,9 +159,9 @@ function ThanhNav() {
           className="mr-2 flex items-center gap-2 rounded-lg px-2 py-1 transition hover:bg-white/10"
           aria-label="Về bàn làm việc"
         >
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500 font-black text-white shadow-sm">
-            NR
-          </div>
+          {/* logo R negative trên nền tối của thanh admin (25/10, thay ô chữ "NR") */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-negative.svg" alt="" aria-hidden width={25} height={32} className="h-8 w-auto" />
           <span className="hidden leading-tight md:block">
             <span className="block text-sm font-bold tracking-tight text-white">NhaDat Radar</span>
             <span className="block text-[10px] font-semibold uppercase tracking-wider text-emerald-400">

@@ -146,7 +146,7 @@ export default function Gallery({ images, title, videos = [], roomCode }: { imag
         <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mt-2">
           {videos.map((v) => (
             <button key={v} type="button" onClick={() => setVideo(v)} aria-label="Xem video phòng"
-              className="aspect-[4/3] w-full rounded-lg bg-[#16233a] text-white grid place-items-center hover:opacity-90 transition">
+              className="aspect-[4/3] w-full rounded-lg bg-[#0f172a] text-white grid place-items-center hover:opacity-90 transition">
               <span className="flex flex-col items-center gap-1">
                 <Play className="w-5 h-5 fill-current" />
                 <span className="text-[0.7rem] font-semibold">Video</span>

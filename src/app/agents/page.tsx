@@ -79,7 +79,7 @@ export default async function AgentsPage() {
               const initials = name.split(" ").map((w) => w[0]).slice(-2).join("").toUpperCase();
               return (
                 <div key={a.id} className="card rounded-lg p-5 shadow-sm hover:shadow-lg transition flex flex-col items-center text-center">
-                  <div className="w-20 h-20 rounded-full overflow-hidden bg-[#16233a] text-white grid place-items-center text-xl font-bold mb-3">
+                  <div className="w-20 h-20 rounded-full overflow-hidden bg-[#0f172a] text-white grid place-items-center text-xl font-bold mb-3">
                     {a.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={a.avatar_url} alt={name} className="w-full h-full object-cover" />

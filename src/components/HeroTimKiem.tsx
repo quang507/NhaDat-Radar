@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { PROP } from "@/lib/format";
 import { Search, Sparkles, ArrowRight } from "lucide-react";
@@ -29,13 +29,13 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
   const [tab, setTab] = useState<Tab>("cho_thue");
   const deal = tab === "dinh_gia" ? null : tab;
 
-  const nut = (t: Tab, nhan: string) => (
+  const nut = (t: Tab, nhan: ReactNode) => (
     <button
       type="button"
       role="tab"
       aria-selected={tab === t}
       onClick={() => setTab(t)}
-      className={`px-3.5 py-1.5 text-xs sm:text-sm font-semibold rounded-md transition-all ${
+      className={`min-h-10 sm:min-h-0 px-3.5 py-1.5 text-sm font-semibold rounded-sm transition-all ${
         tab === t
           ? "bg-[var(--surface)] text-brand shadow-xs font-bold"
           : "text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--surface)]/50"
@@ -45,15 +45,16 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
     </button>
   );
 
-  const sel = "inp appearance-none pr-6 cursor-pointer text-xs sm:text-sm !py-2.5 !px-2.5 sm:!px-3 rounded-md border-[var(--line-strong)] bg-[var(--surface)]";
+  const sel = "inp appearance-none pr-6 cursor-pointer text-sm min-h-11 !py-2 !px-2.5 sm:!px-3 rounded-md border-[var(--line-strong)] bg-[var(--surface)] truncate";
   const qs = (o: Record<string, string>) => "/search?" + new URLSearchParams(Object.entries(o).filter(([, v]) => v)).toString();
 
   return (
     <div className="card rounded-lg p-3 sm:p-5 shadow-xs border border-[var(--line)]">
-      <div role="tablist" className="flex items-center gap-1 p-1 bg-[var(--surface-2)] rounded-md border border-[var(--line)] w-fit mb-3">
+      {/* mobile: 3 tab chia đều cả hàng (dễ chạm), máy tính: gọn theo nội dung */}
+      <div role="tablist" className="grid grid-cols-3 sm:flex items-center gap-1 p-1 bg-[var(--surface-2)] rounded-md border border-[var(--line)] sm:w-fit mb-3">
         {nut("cho_thue", "Cho thuê")}
         {nut("ban", "Mua bán")}
-        {nut("dinh_gia", "Định giá BĐS")}
+        {nut("dinh_gia", <><span className="sm:hidden">Định giá</span><span className="hidden sm:inline">Định giá BĐS</span></>)}
       </div>
 
       <div>
@@ -72,13 +73,15 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
               <div className="relative flex-1 min-w-0">
                 <input
                   name="q"
-                  placeholder={deal === "cho_thue" ? "Gõ quận, đường, trường gần đó (VD: Gò Vấp, Phạm Hữu Lầu)" : "Gõ quận, đường, dự án (VD: Quận 7, Novaland)"}
-                  className="inp flex-1 min-w-0 pr-4 pl-3.5 !py-2 rounded-md text-sm"
+                  aria-label="Từ khoá khu vực"
+                  placeholder={deal === "cho_thue" ? "Quận, đường, trường gần đó…" : "Quận, đường, dự án…"}
+                  className="inp flex-1 min-w-0 min-h-11 pr-4 pl-3.5 !py-2 rounded-md text-base sm:text-sm"
                 />
               </div>
-              <button className="btn btn-primary px-5 sm:px-6 rounded-md flex items-center gap-1.5 whitespace-nowrap shadow-xs" type="submit">
+              {/* mobile: nút vuông 44px chỉ icon - nhường chỗ cho ô gõ (placeholder cũ bị cắt chữ) */}
+              <button className="btn btn-primary min-h-11 min-w-11 !px-3 sm:!px-6 rounded-md flex items-center gap-1.5 whitespace-nowrap shadow-xs" type="submit" aria-label="Tìm kiếm">
                 <Search className="w-4 h-4" />
-                <span>Tìm kiếm</span>
+                <span className="hidden sm:inline">Tìm kiếm</span>
               </button>
             </div>
 
@@ -88,7 +91,7 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                 {TINH.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
               <select name="kind" defaultValue="" className={sel} aria-label="Loại nhà đất">
-                <option value="">Loại nhà đất</option>
+                <option value="">Loại nhà</option>
                 {LOAI[deal].map((k) => <option key={k} value={k}>{(PROP as Record<string, string>)[k]}</option>)}
               </select>
               <select name="priceMax" defaultValue="" className={sel} aria-label="Mức giá">
@@ -108,7 +111,7 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                 Nhập địa chỉ, diện tích và kết cấu nhà. Hệ thống tự động so sánh với mặt bằng giá thị trường và lịch sử mua bán mới nhất trong khu vực.
               </p>
             </div>
-            <Link href="/dinh-gia" className="btn btn-primary whitespace-nowrap text-center inline-flex items-center gap-1.5 justify-center rounded-xl">
+            <Link href="/dinh-gia" className="btn btn-primary min-h-11 whitespace-nowrap text-center inline-flex items-center gap-1.5 justify-center rounded-md">
               <span>Tra cứu giá ngay</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
@@ -118,12 +121,12 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
         {deal && (
           <div className="mt-3.5 flex flex-col gap-2 text-xs pt-3 border-t border-[var(--line)]">
             <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1">
-              <span className="text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold">Giá:</span>
+              <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Giá:</span>
               {GIA[deal].map(([min, max, l]) => (
                 <Link
                   key={l}
                   href={qs({ deal, province: "Hồ Chí Minh", priceMin: min, priceMax: max })}
-                  className="shrink-0 px-2.5 py-1 rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] hover:border-brand hover:text-brand transition whitespace-nowrap text-xs font-medium"
+                  className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-soft)] hover:border-brand hover:text-brand transition whitespace-nowrap text-xs font-medium"
                 >
                   {l}
                 </Link>
@@ -131,12 +134,12 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
             </div>
             {chip[deal].length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center" title="Số tin đang có theo khu vực">
-                <span className="text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold">Khu vực:</span>
+                <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Khu vực:</span>
                 {chip[deal].map((c) => (
                   <Link
                     key={c.district}
                     href={qs({ deal, province: c.province, district: c.district })}
-                    className="shrink-0 px-2.5 py-1 rounded-md bg-[var(--surface-2)] text-[var(--ink-soft)] hover:text-brand transition whitespace-nowrap text-xs font-medium"
+                    className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md bg-[var(--surface-2)] text-[var(--ink-soft)] hover:text-brand transition whitespace-nowrap text-xs font-medium"
                   >
                     {tenGon(c.district)} <span className="text-[var(--ink-soft)] font-mono text-[0.7rem] font-medium">{c.n.toLocaleString("vi-VN")}</span>
                   </Link>
@@ -145,8 +148,8 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
             )}
             {deal === "cho_thue" && (
               <>
-                <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
-                  <span className="text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold">Tiện ích:</span>
+                <div className="hidden sm:flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
+                  <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Tiện ích:</span>
                   {[
                     ["thu_cung", "Nuôi thú cưng"],
                     ["gio_tu_do", "Giờ giấc tự do"],
@@ -159,14 +162,14 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                     <Link
                       key={k}
                       href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", ti: k })}
-                      className="shrink-0 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand dark:hover:border-emerald-500 hover:text-brand dark:hover:text-emerald-400 transition whitespace-nowrap text-slate-700 dark:text-slate-300 font-medium text-xs"
+                      className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand dark:hover:border-emerald-500 hover:text-brand dark:hover:text-emerald-400 transition whitespace-nowrap text-slate-700 dark:text-slate-300 font-medium text-xs"
                     >
                       {label}
                     </Link>
                   ))}
                 </div>
-                <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
-                  <span className="text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold">Khu vực sinh viên:</span>
+                <div className="hidden sm:flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
+                  <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Khu vực sinh viên:</span>
                   {[
                     ["Kinh Tế", "ĐH Kinh Tế"],
                     ["Bách Khoa", "ĐH Bách Khoa"],
@@ -178,7 +181,7 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
                     <Link
                       key={qTerm}
                       href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", q: qTerm })}
-                      className="shrink-0 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition whitespace-nowrap font-medium text-xs"
+                      className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition whitespace-nowrap font-medium text-xs"
                     >
                       {label}
                     </Link>

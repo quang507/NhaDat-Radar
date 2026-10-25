@@ -90,14 +90,8 @@ const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
   { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/search?kind=mat_bang" },
 ];
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
-  const sp = await searchParams;
-  const { deal, kind, province, bedrooms, priceMax, q } = sp;
-  const { data, projData, projectCount } = await layTinTrangChu(deal, kind, province, bedrooms, priceMax, q);
+export default async function Home() {
+  const { data, projData, projectCount } = await layTinTrangChu();
   const listings = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
 
   // count exact: bộ đếm "dự án" phải là tổng toàn DB, không phải độ dài danh sách limit(6) (bug 17/8: hero hiện "6 dự án" trong khi DB có 30)
@@ -120,7 +114,7 @@ export default async function Home({
     .map(([district, c]) => ({ province: "Hồ Chí Minh", district, n: c[d] }))
     .filter((c) => c.n > 0).sort((a, b) => b.n - a.n).slice(0, 10);
   const chip = { cho_thue: chipQuan("cho_thue"), ban: chipQuan("ban") };
-  const hasFilter = Boolean(deal || kind || province || bedrooms || priceMax || q);
+  const hasFilter = false;
   const mapItems: MapItem[] = listings
     .filter((x) => x.lat != null && x.lng != null)
     .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, label: shortPrice(x.price_vnd), title: x.title }));
@@ -129,55 +123,58 @@ export default async function Home({
   return (
     <div>
       {/* ===== HERO: Sàn thực tế ===== */}
-      <section className="pt-3 pb-6">
+      <section className="pt-1 sm:pt-3 pb-5 sm:pb-6">
         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-3">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span>Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay (Xác minh trực tiếp)</span>
+          {/* mobile: 1 dòng ngắn (câu dài cũ rớt 2 dòng, đẩy ô tìm kiếm xuống) */}
+          <span className="sm:hidden">1.380+ phòng trống mới hôm nay</span>
+          <span className="hidden sm:inline">Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay (Xác minh trực tiếp)</span>
         </div>
 
-        <h1 className={`heading-1 mb-3 text-slate-900 dark:text-slate-100 tracking-tight text-balance ${hasFilter ? "text-xl md:text-2xl" : "text-2xl sm:text-3xl md:text-4xl"}`}>
+        <h1 className={`heading-1 mb-3 text-[var(--ink)] tracking-tight text-balance ${hasFilter ? "text-xl md:text-2xl" : "!text-[1.375rem] sm:!text-3xl md:!text-4xl"}`}>
           Sàn Nhà Đất &amp; Phòng Trọ Xác Minh Thực Tế
         </h1>
-        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 mb-6 max-w-2xl leading-relaxed">
+        {/* mobile: ẩn đoạn giới thiệu - để ô tìm kiếm lên màn hình đầu (ZEN: gọn trên điện thoại) */}
+        <p className="hidden sm:block text-base text-[var(--ink-soft)] mb-6 max-w-2xl leading-relaxed">
           Hơn 14.000 căn phòng và nhà đất có video thực tế, định vị chuẩn xác và cam kết giá thuê trực tiếp từ chủ nhà, không tin ảo kê giá.
         </p>
         <HeroTimKiem chip={chip} />
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 text-xs">
-          <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 flex items-center gap-2.5 shadow-none">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-5 text-xs">
+          <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">
             <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
-              <div className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">100% Tin xác minh</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">Tự động gỡ phòng đã thuê</div>
+              <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">100% Tin xác minh</div>
+              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Tự động gỡ phòng đã thuê</div>
             </div>
           </div>
-          <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 flex items-center gap-2.5 shadow-none">
+          <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">
             <div className="w-7 h-7 rounded-md bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <Play className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
-              <div className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">Có video thực tế</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">Xem phòng &amp; hẻm trước</div>
+              <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Có video thực tế</div>
+              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Xem phòng &amp; hẻm trước</div>
             </div>
           </div>
-          <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 flex items-center gap-2.5 shadow-none">
+          <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">
             <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-brand dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Store className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
-              <div className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">Đúng giá chủ nhà</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">Không chênh giá môi giới</div>
+              <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Đúng giá chủ nhà</div>
+              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Không chênh giá môi giới</div>
             </div>
           </div>
-          <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 flex items-center gap-2.5 shadow-none">
+          <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">
             <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <Clock className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div>
-              <div className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">Hỗ trợ 24/7</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">Hotline: 0346 689 460</div>
+              <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Hỗ trợ 24/7</div>
+              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Hotline: 0346 689 460</div>
             </div>
           </div>
         </div>
@@ -201,7 +198,7 @@ export default async function Home({
       {hasFilter ? (
         <section className="mt-2">
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="prata text-xl">{listings.length} kết quả{q ? ` cho “${q}”` : ""}</h2>
+            <h2 className="prata text-xl">{listings.length} kết quả</h2>
             <Link href="/" className="text-sm text-brand font-semibold">Xoá lọc</Link>
           </div>
           <div className="grid lg:grid-cols-[1fr_400px] gap-4 items-start">
@@ -235,7 +232,7 @@ export default async function Home({
               <HangVuot items={projects.slice(0, 3).map((p) => ({ key: p.id, node: (
                   <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 group w-full border border-slate-200">
                     {/* Ảnh chiếm ~2/3 card (16:10), mô tả gọn 1 khối - ảnh là thứ bán dự án */}
-                    <div className="aspect-[16/10] bg-[#16233a] grid place-items-center overflow-hidden">
+                    <div className="aspect-[16/10] bg-[#0f172a] grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />

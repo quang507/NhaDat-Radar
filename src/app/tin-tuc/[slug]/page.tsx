@@ -37,13 +37,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         title: `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam} | NhaDat Radar`,
         description: `Báo cáo giá thuê phòng trọ ${ten} mới nhất: trung vị ${bc ? trieu(bc.trungVi) : ""}, tổng hợp từ dữ liệu thật trên NhaDat Radar.`,
         url: `${SITE_URL}/tin-tuc/${slug}`,
-        images: [{ url: "/logo.svg", width: 900, height: 900, alt: `Giá thuê phòng trọ ${ten}` }],
+        images: [{ url: "/og-default.png", width: 1200, height: 630, alt: `Giá thuê phòng trọ ${ten}` }],
       },
       twitter: {
         card: "summary_large_image",
         title: `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam}`,
         description: `Báo cáo giá thuê phòng trọ ${ten} từ dữ liệu NhaDat Radar.`,
-        images: ["/logo.svg"],
+        images: ["/og-default.png"],
       },
     };
   }
@@ -58,13 +58,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: `${b.tieuDe} | NhaDat Radar`,
       description: b.moTa,
       url: `${SITE_URL}/tin-tuc/${slug}`,
-      images: [{ url: b.coverImage || "/logo.svg", width: 1200, height: 630, alt: b.tieuDe }],
+      images: [{ url: b.coverImage || "/og-default.png", width: 1200, height: 630, alt: b.tieuDe }],
     },
     twitter: {
       card: "summary_large_image",
       title: b.tieuDe,
       description: b.moTa,
-      images: [b.coverImage || "/logo.svg"],
+      images: [b.coverImage || "/og-default.png"],
     },
   };
 }

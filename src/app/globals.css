@@ -3,16 +3,20 @@
 @tailwind utilities;
 
 :root, html.light {
-  --bg: #f5f7fa;
+  /* ZEN Kaiz (25/10): Neutral Slate + Emerald #059669 - khớp logo R mới (public/logo.svg) */
+  --bg: #f8fafc;           /* slate-50 */
   --surface: #ffffff;
-  --surface-2: #eef1f6;
-  --ink: #141a22;
-  --ink-soft: #4c566a;
-  --ink-faint: #6b7484;   /* WCAG AA 4.5:1 trên trắng */
-  --line: #e5e9f0;
-  --line-strong: #d3d9e3;
-  --brand: #1e7b52;        /* xanh lá đậm — khớp logo "nd" */
-  --brand-ink: #165f3f;
+  --surface-2: #f1f5f9;    /* slate-100 */
+  --ink: #0f172a;          /* slate-900 */
+  --ink-soft: #334155;     /* slate-700 */
+  --ink-faint: #64748b;    /* slate-500 - WCAG AA 4.7:1 trên trắng */
+  --line: #e2e8f0;         /* slate-200 */
+  --line-strong: #cbd5e1;  /* slate-300 */
+  --brand: #059669;        /* emerald-600: nền nút/chữ đậm cỡ lớn (3.8:1 - chữ nhỏ dùng --brand-ink) */
+  --brand-ink: #047857;    /* emerald-700: hover + chữ nhỏ (5.5:1) */
+  --brand-rgb: 5 150 105;       /* kênh RGB cho tailwind bg-brand/10 ... */
+  --brand-ink-rgb: 4 120 87;
+  --brand-text-rgb: 4 120 87;    /* text-brand ở nền sáng = emerald-700 để chữ nhỏ đạt AA */
   --accent: #c2711b;       /* cam đất — điểm nhấn phụ */
 }
 
@@ -28,6 +32,9 @@
     --line-strong: #475569;
     --brand: #10b981;
     --brand-ink: #059669;
+    --brand-rgb: 16 185 129;
+    --brand-ink-rgb: 5 150 105;
+    --brand-text-rgb: 16 185 129;
     --accent: #f59e0b;
   }
 }
@@ -43,6 +50,9 @@ html.dark {
   --line-strong: #475569;
   --brand: #10b981;
   --brand-ink: #059669;
+  --brand-rgb: 16 185 129;
+  --brand-ink-rgb: 5 150 105;
+  --brand-text-rgb: 16 185 129;
   --accent: #f59e0b;
 }
 html { color-scheme: light dark; }
@@ -136,10 +146,14 @@ body {
   letter-spacing: 0.08em;
 }
 
+/* 25/10: .card/.inp/.btn vào @layer components - trước đây nằm SAU @tailwind utilities nên `display:inline-flex`
+   của .btn đè `hidden`: nút "hidden lg:inline-flex btn" (Xem bản đồ...) vẫn hiện trên điện thoại và gây
+   cuộn ngang 430px ở /search. Trong layer, utility (hidden, px-*, rounded-*) thắng như đúng chuẩn Tailwind. */
+@layer components {
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 4px;      /* ZEN: khoá 2-4px, không bo mềm */
   box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
 }
 
@@ -147,7 +161,7 @@ body {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--line-strong);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--surface);
   color: var(--ink);
   font-size: 0.925rem;
@@ -171,7 +185,7 @@ select.inp option { color: var(--ink); }
   justify-content: center;
   gap: 0.5rem;
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-weight: 600;
   font-size: 0.875rem;
   line-height: 1.25;
@@ -193,6 +207,12 @@ select.inp option { color: var(--ink); }
 
 .btn:active { transform: translateY(1px); }
 
+/* Audit 25/10: .btn mặc định chỉ cao ~36px (8px padding + 17.5px chữ) - dưới mức 44px cho ngón tay
+   (Apple HIG / WCAG 2.5.5). Chỉ nâng trên màn cảm ứng để bảng admin/máy tính giữ mật độ cũ. */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+}
+
 .btn-primary {
   background: var(--brand);
   border-color: var(--brand);
@@ -206,6 +226,8 @@ select.inp option { color: var(--ink); }
   color: #fff;
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.08);
 }
+}
+/* ---- hết @layer components ---- */
 
 /* Nhãn nhỏ trên input */
 .lbl {
@@ -301,7 +323,7 @@ img { transition: opacity .3s ease; }
 /* Leaflet price pill markers */
 .price-pin .pp {
   background: #1c1c1e; color: #fff; font-weight: 700; font-size: 12px;
-  padding: 4px 9px; border-radius: 9px; white-space: nowrap;
+  padding: 4px 9px; border-radius: 4px; white-space: nowrap;
   box-shadow: 0 3px 10px rgba(0,0,0,.35); transform: translate(-50%, -120%);
   position: relative; width: max-content;
 }

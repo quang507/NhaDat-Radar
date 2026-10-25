@@ -20,12 +20,12 @@ export function HangTienIch({ ti, onDoi }: { ti: string; onDoi: (k: string) => v
   return (
     <div className="flex items-start gap-2 mb-3">
       <span className="hidden sm:block text-xs font-semibold text-[var(--ink-soft)] pt-2 shrink-0">Tiện ích:</span>
-      <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-5 px-5 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]">
+      <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]">
         {TIEN_ICH.map((t) => {
           const on = chon.includes(t.k);
           return (
             <button key={t.k} type="button" role="checkbox" aria-checked={on} onClick={() => onDoi(t.k)}
-              className={`shrink-0 flex items-center gap-2 h-9 pl-2.5 pr-4 rounded-full border text-sm whitespace-nowrap transition
+              className={`shrink-0 flex items-center gap-2 h-10 sm:h-9 pl-2.5 pr-4 rounded border text-sm whitespace-nowrap transition
                 ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] bg-[var(--surface)] hover:border-brand"}`}>
               <span className={`grid place-items-center w-4 h-4 rounded border text-[0.65rem] leading-none
                 ${on ? "bg-brand border-brand text-white" : "border-[var(--line-strong)]"}`}>{on ? <Check className="w-3 h-3 text-white" /> : ""}</span>
@@ -90,17 +90,20 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
   onTinh: (p: string) => void; onQuan: (d: string) => void; phai?: React.ReactNode;
 }) {
   const [du, setDu] = useState(false);
-  const pill = (on: boolean) => `shrink-0 h-9 px-3.5 rounded-full text-sm font-semibold whitespace-nowrap flex items-center gap-2 transition
+  const pill = (on: boolean) => `shrink-0 h-10 sm:h-9 px-3.5 rounded text-sm font-semibold whitespace-nowrap flex items-center gap-2 transition
     ${on ? "bg-brand text-white" : "bg-[var(--surface)] border border-[var(--line)] hover:border-brand"}`;
   return (
     <div className="mb-3">
       <div className="flex flex-wrap items-center gap-2 mb-2">
+        {/* mobile: dải tỉnh cuộn ngang 1 hàng (trước rớt 2 hàng), máy tính: xuống dòng như cũ */}
+        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible sm:flex-wrap [scrollbar-width:none] -mx-4 px-4 sm:mx-0 sm:px-0">
         {province ? (
           <button type="button" className={pill(true)} onClick={() => onTinh("")} title="Bỏ chọn tỉnh">{province} <X className="w-3.5 h-3.5 ml-1 inline" /></button>
         ) : tinhs.slice(0, 8).map((p) => (
           <button key={p} type="button" className={pill(false)} onClick={() => onTinh(p)}>{p}</button>
         ))}
-        {phai && <span className="ml-auto flex flex-wrap items-center gap-4">{phai}</span>}
+        </div>
+        {phai && <span className="sm:ml-auto flex flex-wrap items-center gap-4">{phai}</span>}
       </div>
       {province && districts.length > 0 && (
         <div className="card rounded-xl p-2 flex items-start gap-2">

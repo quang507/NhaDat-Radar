@@ -1,33 +1,39 @@
 "use client";
 
 import { useState } from "react";
-import { HOTLINE } from "@/lib/hotline";
+import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
+import { maPhong } from "@/lib/ro-hang";
+import { NutZalo } from "./TheoDoi";
 import { Lock, MessageCircle, PhoneCall, ShieldCheck, X } from "lucide-react";
 
 export default function DangNhapDeXem({ listingId, listingTitle }: { listingId?: string; listingTitle?: string }) {
   const [mo, setMo] = useState(false);
 
-  const tinZalo = `Chào Radar, mình đang xem căn "${listingTitle || "này"}" (mã: ${listingId?.slice(0, 8) || ""}), gửi giúp mình SĐT chính chủ và hỗ trợ kiểm tra còn phòng không nhé!`;
-  const linkZalo = `https://zalo.me/${HOTLINE}?text=${encodeURIComponent(tinZalo)}`;
+  // zalo.me KHÔNG điền sẵn tin nhắn (bỏ qua ?text=) -> NutZalo chép nội dung + mã vào clipboard, khách chỉ cần Dán.
+  // Mã = maPhong: tra được ở /rh/[mã] và ô tra mã admin cho MỌI tin (không riêng rổ hàng)
+  const ma = listingId ? maPhong(listingId) : "";
+  const tinZalo = `Chào Radar, mình đang xem căn "${listingTitle || "này"}" (Mã: ${ma}), gửi giúp mình SĐT chính chủ và hỗ trợ kiểm tra còn phòng không nhé!`;
 
   return (
     <div className="flex flex-col gap-2">
       {/* Nút chính: 1-chạm mở Zalo trực tiếp, kèm nội dung căn cần xem */}
-      <a
-        href={linkZalo}
+      <NutZalo
+        listingId={listingId || ""}
+        tinNhan={tinZalo}
+        href={HOTLINE_ZALO}
         target="_blank"
         rel="noopener noreferrer"
-        className="w-full py-2.5 px-3.5 rounded-lg font-bold text-xs sm:text-sm text-white bg-[#0068ff] hover:bg-[#0057d9] active:scale-[0.99] transition shadow-xs flex items-center justify-center gap-2 text-center"
+        className="w-full min-h-11 py-2.5 px-3.5 rounded-lg font-bold text-sm text-white bg-[#0068ff] hover:bg-[#0057d9] active:scale-[0.99] transition shadow-xs flex items-center justify-center gap-2 text-center"
       >
         <MessageCircle className="w-4 h-4 fill-current shrink-0" />
         <span>Nhắn Zalo nhận SĐT &amp; Video</span>
-      </a>
+      </NutZalo>
 
       {/* Nút phụ: Mở popup nếu muốn xem các lựa chọn khác hoặc đăng nhập */}
       <button
         type="button"
         onClick={() => setMo(true)}
-        className="btn w-full text-center border border-[var(--line-strong)] bg-[var(--surface-2)] hover:bg-[var(--line)] text-[var(--ink-soft)] font-medium py-1.5 rounded-lg inline-flex items-center justify-center gap-1.5 transition text-xs cursor-pointer"
+        className="btn w-full min-h-11 text-center border border-[var(--line-strong)] bg-[var(--surface-2)] hover:bg-[var(--line)] text-[var(--ink-soft)] font-medium py-1.5 rounded-lg inline-flex items-center justify-center gap-1.5 transition text-xs cursor-pointer"
       >
         <Lock className="w-3.5 h-3.5 text-slate-400" />
         <span>Tùy chọn kết nối khác</span>
@@ -39,7 +45,7 @@ export default function DangNhapDeXem({ listingId, listingTitle }: { listingId?:
           onClick={() => setMo(false)}
         >
           <div
-            className="bg-white dark:bg-slate-850 rounded-lg p-5 sm:p-6 max-w-md w-full shadow-lg border border-slate-200 dark:border-slate-700 relative"
+            className="bg-white dark:bg-slate-900 rounded-lg p-5 sm:p-6 max-w-md w-full shadow-lg border border-slate-200 dark:border-slate-700 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -64,19 +70,21 @@ export default function DangNhapDeXem({ listingId, listingTitle }: { listingId?:
 
             {/* Các lựa chọn chuyển đổi */}
             <div className="space-y-2">
-              <a
-                href={linkZalo}
+              <NutZalo
+                listingId={listingId || ""}
+                tinNhan={tinZalo}
+                href={HOTLINE_ZALO}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-md font-bold text-xs sm:text-sm text-white bg-[#0068ff] hover:bg-[#0057d9] transition shadow-xs flex items-center justify-center gap-2 text-center"
+                className="w-full min-h-11 py-2.5 px-4 rounded-md font-bold text-sm text-white bg-[#0068ff] hover:bg-[#0057d9] transition shadow-xs flex items-center justify-center gap-2 text-center"
               >
                 <MessageCircle className="w-4 h-4 fill-current shrink-0" />
                 <span>Nhận SĐT &amp; Video qua Zalo (Nhanh nhất)</span>
-              </a>
+              </NutZalo>
 
               <a
                 href={`tel:${HOTLINE}`}
-                className="w-full py-2.5 px-4 rounded-md font-bold text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 text-center"
+                className="w-full min-h-11 py-2.5 px-4 rounded-md font-bold text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 text-center"
               >
                 <PhoneCall className="w-3.5 h-3.5 text-brand dark:text-emerald-400" />
                 <span>Hoặc gọi Hotline Radar: 0346 689 460</span>

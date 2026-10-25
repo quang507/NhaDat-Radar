@@ -81,3 +81,27 @@ export async function setVerified(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/agents");
 }
+
+
+export async function getAdminListingOrigin(id: string) {
+  try {
+    await requireAdmin();
+    const admin = createAdminClient();
+    const [{ data: l }, { data: p }] = await Promise.all([
+      admin.from('listings').select('source_post_id').eq('id', id).maybeSingle(),
+      admin.from('listing_ro_hang').select('partner,exact_address,unit_code,commission,raw').eq('listing_id', id).maybeSingle(),
+    ]);
+    const raw = (p?.raw || {}) as Record<string, unknown>;
+    const phone = (raw.chu_nha_phone || raw.contact_real) ? String(raw.chu_nha_phone || raw.contact_real) : null;
+    return {
+      partner: p?.partner || '',
+      source_post_id: l?.source_post_id ?? null,
+      exact_address: p?.exact_address ?? null,
+      unit_code: p?.unit_code ?? null,
+      commission: p?.commission ?? null,
+      chu_nha_phone: phone,
+    };
+  } catch {
+    return null;
+  }
+}

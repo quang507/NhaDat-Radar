@@ -12,7 +12,7 @@ import MoiDienSdt from "@/components/MoiDienSdt";
 import { ldJson, SITE_URL } from "@/lib/ld";
 
 export const viewport: Viewport = {
-  themeColor: "#16233a",
+  themeColor: "#0f172a",
   width: "device-width",
   initialScale: 1,
 };
@@ -50,13 +50,13 @@ export const metadata: Metadata = {
     type: "website", siteName: "NhaDat Radar", locale: "vi_VN", url: SITE_URL,
     title: "NhaDat Radar - Sàn nhà đất bán & cho thuê",
     description: "Tin nhà đất nhiều nguồn, giá trung vị theo khu vực, cảnh báo giá lệch.",
-    images: [{ url: "/logo.svg", width: 900, height: 900, alt: "NhaDat Radar" }],
+    images: [{ url: "/og-default.png", width: 1200, height: 630, alt: "NhaDat Radar" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "NhaDat Radar - Sàn nhà đất bán & cho thuê",
     description: "Tin nhà đất nhiều nguồn, giá trung vị theo khu vực, cảnh báo giá lệch.",
-    images: ["/logo.svg"],
+    images: ["/og-default.png"],
   },
   robots: { index: true, follow: true },
 };
@@ -82,7 +82,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Nav />
-        <main className="max-w-6xl mx-auto px-5 py-6">{children}</main>
+        <main className="max-w-6xl mx-auto px-4 sm:px-5 py-4 sm:py-6">{children}</main>
         <Footer />
         <ChatWidget />
         <InstallPwaBanner />

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
+import ThemeToggle from "./ThemeToggle";
 import {
   Menu, X, Home, KeyRound, Building2, Users, BarChart3,
   Newspaper, Sparkles, Calculator, Scale, Heart, Phone,
@@ -126,6 +127,11 @@ export default function MobileMenu() {
                   <span>Đăng ký tài khoản miễn phí</span>
                 </Link>
               )}
+            </div>
+            {/* nút giao diện sáng/tối: ở header bị ẩn trên điện thoại (25/10, header 6 nút quá chật ở 375px) */}
+            <div className="sm:hidden pt-2 mt-2 border-t border-[var(--line)] flex items-center justify-between text-sm font-semibold text-[var(--ink-soft)]">
+              <span>Giao diện sáng / tối</span>
+              <ThemeToggle />
             </div>
           </nav>
         </>

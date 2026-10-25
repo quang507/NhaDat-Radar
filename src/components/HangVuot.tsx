@@ -12,7 +12,7 @@ const LUOI = {
 // toiDaSm: từ sm+ chỉ hiện N thẻ đầu (1 hàng lưới) - điện thoại vẫn vuốt được hết (trang chủ 30/9)
 export default function HangVuot({ items, cot = 250, toiDaSm }: { items: { key: string; node: ReactNode }[]; cot?: keyof typeof LUOI; toiDaSm?: number }) {
   return (
-    <div className={`flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-5 -mx-5 px-5 pb-2 [scrollbar-width:none]
+    <div className={`flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4 -mx-4 px-4 sm:scroll-px-5 sm:-mx-5 sm:px-5 pb-2 [scrollbar-width:none]
       sm:grid sm:gap-4 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 ${LUOI[cot]}`}>
       {items.map((it, i) => (
         <div key={it.key} className={`w-[78%] shrink-0 snap-start sm:w-auto flex ${toiDaSm != null && i >= toiDaSm ? "sm:hidden" : ""}`}>{it.node}</div>

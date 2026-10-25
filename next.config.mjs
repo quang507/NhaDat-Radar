@@ -4,6 +4,18 @@ const nextConfig = {
   // khiến /_next/image thành proxy ảnh công cộng cho MỌI domain (ai cũng dùng được, Vercel tính phí).
   // Khi nào dùng next/image thì liệt kê đúng từng hostname cần thiết.
 
+  // Audit 25/10: trang chủ thành Static (bỏ searchParams để giữ cache CDN) -> link lọc cũ "/?deal=...&q=..."
+  // (Google đã index, link chia sẻ cũ) mà không chuyển thì khách thấy trang chủ trơn, mất bộ lọc.
+  // Đẩy sang /search (giữ nguyên query string) - redirect chạy ở edge, không đụng cache của "/".
+  async redirects() {
+    return ["deal", "kind", "province", "bedrooms", "priceMax", "q"].map((key) => ({
+      source: "/",
+      has: [{ type: "query", key }],
+      destination: "/search",
+      permanent: true,
+    }));
+  },
+
   // Header bảo mật cơ bản. CHƯA đặt CSP: trang nạp Clarity, Turnstile, tile Esri/OSM/Mapbox và ảnh
   // hotlink từ nhiều CDN -> CSP phải liệt kê kỹ + thử trên preview trước.
   async headers() {
