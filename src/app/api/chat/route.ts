@@ -242,12 +242,25 @@ export async function POST(req: NextRequest) {
   if (!daTim && dsDuAn.length && /\s(du an|khu do thi|kdt|khu dan cu|kdc|chung cu|can ho|toa nha|gan|quanh|canh)\s/.test(cnCau)) {
     vecCau = await nhungCau(last);
     if (vecCau) {
-      const { data: khop } = await createAnonClient().rpc("match_projects", { query_embedding: vecCau, match_count: 3 });
+      // Top 5 thường sát điểm nhau ("chung cư hà đô quận 10": Đào Duy Từ Q10 .741 · HaDo Centrosa Q10 .739 ·
+      // Z751 Hà Đô Gò Vấp .735) -> chỉ nhận dự án có từ riêng nằm trong câu (so cả dạng viết liền: "ha do" ~ "HaDo"),
+      // cộng điểm khi quận của dự án trùng quận khách nhắc, rồi lấy điểm cao nhất.
+      const { data: khop } = await createAnonClient().rpc("match_projects", { query_embedding: vecCau, match_count: 5 });
+      // dạng viết liền CHỈ từ 2 từ đứng cạnh nhau ("ha do" -> "hado"); so chuỗi con tự do từng làm
+      // "canh" (Mỹ Cảnh) lọt trong "canho" (căn hộ) -> "căn hộ 2PN quận 7" bị gán nhầm dự án
+      const tuCau = cnCau.trim().split(" ");
+      const ghep2 = new Set(tuCau.slice(1).map((w, i) => tuCau[i] + w));
+      let tot = 0;
       for (const k of (khop ?? []) as { id: string; similarity: number }[]) {
         if (k.similarity < 0.7) break;
         const p = dsDuAn.find((x) => x.id === k.id);
-        const tuRieng = p ? chuanTen(p.name).split(" ").filter((w) => w.length >= 2 && !TU_CHUNG_DU_AN.has(w)) : [];
-        if (p && tuRieng.some((w) => cnCau.includes(` ${w} `))) { daTim = p; break; }
+        if (!p) continue;
+        const tuRieng = chuanTen(p.name).split(" ").filter((w) => w.length >= 2 && !TU_CHUNG_DU_AN.has(w));
+        const coTen = tuRieng.some((w) => cnCau.includes(` ${w} `) || ghep2.has(w));
+        if (!coTen) continue;
+        const quan = p.district ? chuanTen(p.district.replace(/\(.*\)/, "")) : "";
+        const diem = k.similarity + (quan && cnCau.includes(` ${quan} `) ? 0.05 : 0);
+        if (diem > tot) { tot = diem; daTim = p; }
       }
     }
   }
