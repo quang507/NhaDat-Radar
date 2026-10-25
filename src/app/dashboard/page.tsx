@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { LISTING_COLS, LISTING_CARD_COLS } from "@/lib/cols";
+import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import { setAppointmentStatus } from "./actions";
 import type { Listing } from "@/lib/types";
@@ -17,7 +17,7 @@ export default async function Dashboard() {
   if (!user) redirect("/auth?message=" + encodeURIComponent("Đăng nhập để vào trang người bán"));
 
   const [{ data }, { data: appts }, { data: leadRows }] = await Promise.all([
-    supabase.from("listings").select(LISTING_COLS).eq("agent_id", user.id).order("created_at", { ascending: false }).limit(100),
+    supabase.from("listings").select(LISTING_PUBLIC_COLS).eq("agent_id", user.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("appointments").select("*")
       .or(`agent_id.eq.${user.id},buyer_id.eq.${user.id}`)
       .order("slot", { ascending: true }).limit(30),

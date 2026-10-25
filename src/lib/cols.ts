@@ -19,6 +19,7 @@ export const LISTING_COLS = "id,source,source_site,source_url,source_post_id,age
 // Audit 25/10: bỏ source_post_id - id phòng/bài gốc (HiFriendz "LST-...", FB post id) dẫn thẳng tới tin của đối
 // tác/người đăng, vượt mặt Radar. Trang tin không dùng; admin đọc bằng service role. Sau khi bản này deploy
 // mới được thu quyền đọc cột của anon (không thì trang tin 42501 như sự cố 015).
+// 26/10: /dashboard (authenticated, tin của chính môi giới) cũng dùng bản này - source_post_id thu quyền cả authenticated.
 export const LISTING_PUBLIC_COLS = "id,source,source_site,source_url,agent_id,project_id,deal,kind,title,description,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,floors,direction,legal_status,furnishing,province,district,ward,address,lat,lng,amenities,specs,images,contact_name,phone_masked,ai_score,trust_score,poster_role_guess,poster_listing_count,poster_reasons,poster_key,price_flag,source_count,source_sites,status,posted_at,first_seen_at,last_seen_at,crawled_at,crawl_count,created_at";
 
 // Bản GỌN cho danh sách/thẻ tin (trang chủ, /search, tin liên quan): bỏ các cột chỉ trang chi tiết

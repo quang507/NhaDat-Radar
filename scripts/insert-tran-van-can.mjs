@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { lechToaDo } from "../crawler/chung.mjs";
 import crypto from "crypto";
 
 import fs from "fs";
@@ -67,8 +68,8 @@ const listingData = {
   district: "Quận Tân Phú",
   ward: "Phường Phú Thạnh",
   address: "Hẻm 73/•• Trần Văn Cẩn, Phường Phú Thạnh, Quận Tân Phú",
-  lat: 10.76235,
-  lng: 106.62895,
+  // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
+  ...lechToaDo(10.76235, 106.62895, "doc_quyen|insert-tran-van-can"),
   contact_name: "Radar Nhà Đất",
   contact_phone: "0346689460",
   ai_score: 99,

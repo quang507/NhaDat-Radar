@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { lechToaDo } from "../crawler/chung.mjs";
 import crypto from "crypto";
 import fs from "fs";
 
@@ -94,8 +95,8 @@ async function main() {
     district: "Quận Tân Bình",
     ward: "Phường 4",
     address: "Hẻm ô tô Hoàng Văn Thụ, Phường 4, Quận Tân Bình",
-    lat: 10.79620,
-    lng: 106.65780,
+    // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
+    ...lechToaDo(10.79620, 106.65780, "doc_quyen|insert-tan-binh-lang-cha-ca"),
     contact_name: "Radar Nhà Đất",
     contact_phone: "0346689460",
     phone_masked: "0346 689 xxx",

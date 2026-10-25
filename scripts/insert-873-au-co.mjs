@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { lechToaDo } from "../crawler/chung.mjs";
 import crypto from "crypto";
 import fs from "fs";
 
@@ -89,8 +90,8 @@ async function main() {
     district: "Quận Tân Phú",
     ward: "Phường Tân Sơn Nhì",
     address: "Mặt tiền 87x Âu Cơ, Phường Tân Sơn Nhì, Quận Tân Phú",
-    lat: 10.79685,
-    lng: 106.63640,
+    // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
+    ...lechToaDo(10.79685, 106.63640, "doc_quyen|insert-873-au-co"),
     contact_name: "Radar Nhà Đất",
     contact_phone: "0346689460",
     phone_masked: "0346 689 xxx",

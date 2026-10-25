@@ -200,7 +200,7 @@ export default async function AdminPage({
           <div className="mt-4 space-y-4">
             {traListings.map((t) => {
               const p = traP.get(t.id);
-              const partner = t.source_site || p?.partner || "";
+              const partner = p?.partner || t.source_site || "";   // 26/10: source_site rổ hàng = "radar", đối tác thật ở listing_ro_hang.partner
               const linkGoc =
                 partner === "hifriendz"
                   ? linkGocHifriendz(t.source_post_id)
@@ -1506,7 +1506,7 @@ export default async function AdminPage({
                   {x.title}
                 </Link>
                 <span className="text-xs text-slate-500">
-                  {fmtPrice(x.price_vnd, x.deal)} · {[x.district, x.province].filter(Boolean).join(", ")} · {x.source === "crawl" ? x.source_site : x.source === "ro_hang" ? `rổ hàng · ${x.source_site}` : "tự đăng"}
+                  {fmtPrice(x.price_vnd, x.deal)} · {[x.district, x.province].filter(Boolean).join(", ")} · {x.source === "crawl" ? x.source_site : x.source === "ro_hang" ? "rổ hàng" : "tự đăng"}
                 </span>
                 <span className="ml-auto flex gap-1.5">
                   {x.status !== "published" && (

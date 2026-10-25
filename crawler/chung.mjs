@@ -12,6 +12,21 @@
 // signed/unsigned, đổi sẽ xê dịch toạ độ rải của toàn bộ tin đã ghim.)
 export function hash31(s) { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) | 0; return h; }
 
+// BÁN KÍNH AN TOÀN (CLAUDE.md mục 4.2): toạ độ CÔNG KHAI của tin độc quyền / rổ hàng lệch 20-35 m (~5-6 căn)
+// so với vị trí thật - chống lộ nhà chính chủ và chống môi giới dò nhảy tin. Hướng + khoảng lệch cố định theo
+// hatGiong (cùng toà = cùng điểm) - lệch ngẫu nhiên mỗi lượt thì lấy trung bình nhiều lượt là ra nhà thật.
+// Toạ độ THẬT chỉ lưu ở listing_ro_hang.exact_lat/exact_lng (admin). 26/10: tách từ ro-hang-evohome.mjs để
+// scripts/insert-*.mjs dùng chung - 5 tin độc quyền nhập tay từng ghi lat công khai = toạ độ thật (lệch 0 m).
+export function lechToaDo(lat, lng, hatGiong) {
+  const h = Math.abs(hash31(hatGiong));
+  const goc = ((h % 360) * Math.PI) / 180;
+  const met = 20 + ((h >>> 9) % 16);           // 20-35 m (1/10: địa chỉ đã giữ số hẻm chính, lệch 75 m dễ rơi sang hẻm bên)
+  return {
+    lat: +(lat + (met * Math.cos(goc)) / 111320).toFixed(6),
+    lng: +(lng + (met * Math.sin(goc)) / (111320 * Math.cos((lat * Math.PI) / 180))).toFixed(6),
+  };
+}
+
 // Sửa chuỗi Unicode hỏng từ Gemini (soát 21/8): chỗ vá JSON lỗi trong facebook.mjs giữ
 // nguyên văn bản đã hỏng, nên DB dính tỉnh ma ("\u01ồng Nai" tách khỏi "Đồng Nai") và
 // "Thủ Đức" vỡ thành 6 bucket (ƌ/Ǝ/Ɓ thay cho Đ) - lọc theo khu vực là mất tin.

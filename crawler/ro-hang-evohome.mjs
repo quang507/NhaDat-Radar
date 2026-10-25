@@ -19,7 +19,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { smartGeocode, LOI } from "./geo.mjs";
-import { hash31, laAnh, laVideo } from "./chung.mjs";
+import { laAnh, laVideo, lechToaDo } from "./chung.mjs";
 import { cheDiaChi } from "./che-dia-chi.mjs";
 
 // 2/10: dùng chung cho mọi đối tác rổ hàng cùng khuôn file - RO_HANG_PARTNER=hifriendz (crawler/hifriendz-fetch.mjs)
@@ -52,15 +52,7 @@ async function thuLai(fn, maxLan = 3) {
 // ---- A. che số nhà: chỉ che phần nhỏ nhất kiểu EvoHome ("86/23/2" -> "86/••") - che-dia-chi.mjs ----
 const gon = (s) => String(s || "").replace(/\s+,/g, ",").replace(/\s+/g, " ").trim();
 
-function lechToaDo(lat, lng, hatGiong) {
-  const h = Math.abs(hash31(hatGiong));
-  const goc = ((h % 360) * Math.PI) / 180;
-  const met = 20 + ((h >>> 9) % 16);           // 20-35 m (1/10: địa chỉ đã giữ số hẻm chính, lệch 75 m dễ rơi sang hẻm bên)
-  return {
-    lat: +(lat + (met * Math.cos(goc)) / 111320).toFixed(6),
-    lng: +(lng + (met * Math.sin(goc)) / (111320 * Math.cos((lat * Math.PI) / 180))).toFixed(6),
-  };
-}
+// lechToaDo (20-35 m, ~5-6 căn) chuyển sang crawler/chung.mjs (26/10) - dùng chung với scripts/insert-*.mjs tin độc quyền
 
 const tenQuan = (d) => {
   const s = gon(d);
@@ -72,13 +64,34 @@ const tenQuan = (d) => {
 const giaTrieu = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",")} triệu` : `${v.toLocaleString("vi-VN")} đ`);
 
 // ---- đọc tin cũ để giữ id / first_seen_at / toạ độ thật đã geocode --------------------------
+// 26/10: listings.source_site của rổ hàng = "radar" (anon đọc được cột này -> không để lộ tên đối tác).
+// Đối tác thật chỉ còn ở listing_ro_hang.partner (admin) -> tra phòng cũ qua bảng đó. Vẫn gộp truy vấn
+// source_site=PARTNER cũ để lượt chạy giữa lúc đổi code và lúc PATCH dữ liệu không coi cả rổ là phòng mới.
+const COT_CU = "id,source_post_id,first_seen_at,last_seen_at,crawl_count,status";
 const cu = new Map();
+const daLuu = new Map();   // listing_id -> { lat, lng } toạ độ thật đã lưu
 if (sb) {
+  const idsDoiTac = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from("listings").select("id,source_post_id,first_seen_at,last_seen_at,crawl_count,status")
-      .eq("source", "ro_hang").eq("source_site", PARTNER).order("id").range(from, from + 999);   // order bắt buộc: thiếu thì các trang chồng nhau, sót phòng cũ -> tạo id mới -> trùng khoá (2/10)
+    const { data, error } = await sb.from("listing_ro_hang").select("listing_id,exact_lat,exact_lng")
+      .eq("partner", PARTNER).order("listing_id").range(from, from + 999);   // order bắt buộc: thiếu thì các trang chồng nhau (2/10)
+    if (error) throw error;
+    for (const r of data) {
+      idsDoiTac.push(r.listing_id);
+      if (r.exact_lat != null && r.exact_lng != null) daLuu.set(r.listing_id, { lat: r.exact_lat, lng: r.exact_lng });
+    }
+    if (data.length < 1000) break;
+  }
+  for (let i = 0; i < idsDoiTac.length; i += 300) {
+    const { data, error } = await sb.from("listings").select(COT_CU).eq("source", "ro_hang").in("id", idsDoiTac.slice(i, i + 300));
     if (error) throw error;
     for (const r of data) cu.set(r.source_post_id, r);
+  }
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("listings").select(COT_CU)
+      .eq("source", "ro_hang").eq("source_site", PARTNER).order("id").range(from, from + 999);
+    if (error) throw error;
+    for (const r of data) if (!cu.has(r.source_post_id)) cu.set(r.source_post_id, r);
     if (data.length < 1000) break;
   }
   console.log(`Đã có trong DB: ${cu.size}`);
@@ -86,9 +99,9 @@ if (sb) {
 
 // ---- toạ độ thật ĐÃ LƯU của phòng cũ (listing_ro_hang) -> khỏi geocode lại mỗi lượt ------------
 // 30/9: mỗi lượt geocode lại ~124 địa chỉ (Nominatim 1 req/s + thử 2 biến thể) = ~10 phút / 12 phút chạy.
-const daLuu = new Map();   // listing_id -> { lat, lng }
+// (đã nạp cùng lượt tra listing_ro_hang ở trên; chỉ đọc bù cho phòng cũ tìm thấy qua source_site)
 if (sb && cu.size) {
-  const ids = [...cu.values()].map((r) => r.id);
+  const ids = [...cu.values()].map((r) => r.id).filter((id) => !daLuu.has(id));
   for (let i = 0; i < ids.length; i += 300) {
     const { data, error } = await sb.from("listing_ro_hang").select("listing_id,exact_lat,exact_lng").in("listing_id", ids.slice(i, i + 300));
     if (error) throw error;
@@ -175,7 +188,7 @@ for (const x of dsNhap) {
   rows.push({
     id,
     source: "ro_hang",
-    source_site: PARTNER,
+    source_site: "radar",   // KHÔNG ghi tên đối tác ra cột anon đọc được - đối tác ở listing_ro_hang.partner
     source_post_id: x.source_post_id,
     source_url: null,
     deal: "cho_thue",

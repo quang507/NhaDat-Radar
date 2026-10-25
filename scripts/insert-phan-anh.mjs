@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { lechToaDo } from "../crawler/chung.mjs";
 import crypto from "crypto";
 import fs from "fs";
 
@@ -57,8 +58,8 @@ const listingData = {
   district: "Quận Bình Tân",
   ward: "Phường Bình Trị Đông",
   address: "Hẻm 137/•• Phan Anh, Phường Bình Trị Đông, Quận Bình Tân",
-  lat: 10.77250,
-  lng: 106.62215,
+  // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
+  ...lechToaDo(10.77250, 106.62215, "doc_quyen|insert-phan-anh"),
   contact_name: "Radar Nhà Đất",
   contact_phone: "0346689460",
   ai_score: 98,

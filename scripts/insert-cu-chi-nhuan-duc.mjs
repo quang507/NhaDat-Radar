@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { lechToaDo } from "../crawler/chung.mjs";
 import crypto from "crypto";
 import fs from "fs";
 
@@ -91,8 +92,8 @@ async function main() {
     district: "Huyện Củ Chi",
     ward: "Xã Trung Lập Hạ",
     address: "Đường số 1 (giáp Nhuận Đức), Xã Trung Lập Hạ, Huyện Củ Chi",
-    lat: 11.08250,
-    lng: 106.46850,
+    // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
+    ...lechToaDo(11.08250, 106.46850, "doc_quyen|insert-cu-chi-nhuan-duc"),
     contact_name: "Radar Nhà Đất",
     contact_phone: "0346689460",
     phone_masked: "0346 689 xxx",
