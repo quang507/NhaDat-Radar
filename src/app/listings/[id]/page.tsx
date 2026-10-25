@@ -882,7 +882,7 @@ export default async function ListingDetail({
         <section className="mt-12">
           <h2 className="prata text-xl mb-1">Người đăng này còn {posterCount ?? posterOthers.length} tin khác</h2>
           <p className="text-xs text-[var(--ink-soft)] mb-4">Gom theo tài khoản đăng trên {x.source_site || "nguồn"} - {(posterCount ?? 0) >= 3 ? "nhiều tin cùng lúc thường là môi giới/sàn." : "ít tin, có thể là chính chủ."}</p>
-          <HangVuot cot={230} items={posterOthers.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
+          <HangVuot motHang items={posterOthers.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
         </section>
       )}
 
@@ -900,7 +900,7 @@ export default async function ListingDetail({
           <h2 className="prata text-xl mb-4">
             {PROP[x.kind]} liên quan tại {x.district || x.province}
           </h2>
-          <HangVuot cot={230} items={related.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
+          <HangVuot motHang items={related.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
         </section>
       )}
       {/* NN/g #6: nhớ tin đã xem (localStorage) + hiện dải "Đã xem gần đây" */}

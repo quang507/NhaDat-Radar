@@ -229,7 +229,7 @@ export default async function Home() {
           <DaiDocQuyen listings={listings} />
           {projects.length > 0 && (
             <Section title="Dự án nổi bật" href="/projects">
-              <HangVuot items={projects.slice(0, 3).map((p) => ({ key: p.id, node: (
+              <HangVuot motHang items={projects.slice(0, 4).map((p) => ({ key: p.id, node: (
                   <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 group w-full border border-slate-200">
                     {/* Ảnh chiếm ~2/3 card (16:10), mô tả gọn 1 khối - ảnh là thứ bán dự án */}
                     <div className="aspect-[16/10] bg-[#0f172a] grid place-items-center overflow-hidden">
@@ -258,7 +258,7 @@ export default async function Home() {
             if (!items.length) return null;
             return (
               <Section key={c.t} title={c.t} href={c.href}>
-                <HangVuot cot={230} toiDaSm={4} items={items.map((x) => ({ key: x.id, node: <ListingCard x={x} /> }))} />
+                <HangVuot motHang items={items.map((x) => ({ key: x.id, node: <ListingCard x={x} /> }))} />
               </Section>
             );
           })}

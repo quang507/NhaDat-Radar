@@ -36,7 +36,7 @@ export default function SimilarListings({
       </div>
 
       <HangVuot
-        cot={230}
+        motHang
         items={items.map((x) => {
           const img = cleanImages(x.images || [])[0] || null;
           return {

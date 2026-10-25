@@ -32,7 +32,7 @@ export default function DaiDocQuyen({ listings, toiDa = 6 }: { listings: Listing
       </div>
       {/* không đè thêm badge - ListingCard tự gắn tag "ĐÃ XÁC MINH" cho tin độc quyền */}
       {/* điện thoại: hàng vuốt ngang; sm+: lưới */}
-      <HangVuot items={tins.map((x) => ({ key: x.id, node: <ListingCard x={x} /> }))} />
+      <HangVuot motHang items={tins.map((x) => ({ key: x.id, node: <ListingCard x={x} /> }))} />
     </div>
   );
 }
