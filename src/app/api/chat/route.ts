@@ -10,6 +10,7 @@ import { lamSachTuKhoa, cacMucNoi, type BoLoc } from "@/lib/chat-tim";
 import { bocTruyVanBDS } from "@/lib/boc-truy-van";
 import { layTinTuongTu } from "@/lib/tuong-tu";
 import { cheSoVanBan } from "@/lib/doc-quyen";
+import { layDuAnToaDo, duAnTrongCau, chuanTen, khoangCachKm } from "@/lib/du-an";
 import { HOTLINE } from "@/components/TuVanRadar";
 
 // %/_ là wildcard ilike, ",()" phá cú pháp .or() - cùng luật clean của /search (soát 21/8:
@@ -51,6 +52,29 @@ const PARSE_PROMPT = `Bạn là trợ lý AI của sàn nhà đất NhaDat Radar
 }
 Không bịa. Giá quy về VND.
 Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu") -> mode "chat", small_talk_reply trả lời từ thông tin tin đó (không bịa thêm), mời gọi/nhắn Zalo hotline ${HOTLINE} để hẹn xem thực tế.`;
+
+// Nhúng câu hỏi thành vector 768 chiều (gemini-embedding-001 - cùng model với listings.embedding và
+// projects.embedding chép từ kho AI Ơi). Xoay key khi 429. null nếu hết key / lỗi.
+async function nhungCau(text: string): Promise<number[] | null> {
+  const KEYS = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
+    process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5].filter(Boolean) as string[];
+  for (const k of KEYS) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${k}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 1000) }] }, outputDimensionality: 768 }),
+      });
+      if (res.status === 429) continue;
+      const j = await res.json();
+      if (j?.embedding?.values) return j.embedding.values;
+    } catch { /* thử key kế */ }
+  }
+  return null;
+}
+
+// từ chung trong tên dự án - không tính là "khách có nhắc tên dự án" (cùng danh sách match_projects bên kho AI Ơi)
+const TU_CHUNG_DU_AN = new Set(["the", "khu", "can", "ho", "nha", "pho", "dat", "nen", "city", "garden", "residence", "apartment",
+  "tower", "block", "phan", "du", "an", "project", "eco", "new", "and", "chung", "cu", "biet", "thu", "villa", "shophouse", "do", "thi", "kdt", "plaza", "center", "home", "homes"]);
 
 function fallbackParse(text: string): Parsed {
   const t = text.toLowerCase();
@@ -206,6 +230,101 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ===== DỰ ÁN (26/10): câu có tên dự án -> tìm tin QUANH dự án theo bán kính, hoặc trả lời dự án ở đâu / có gì =====
+  // Đi trước Gemini: số liệu lấy thẳng từ bảng projects + toạ độ, không để AI tự đoán vị trí dự án.
+  const dsDuAn = await layDuAnToaDo().catch(() => []);
+  let daTim = duAnTrongCau(dsDuAn, last);
+  // Không gõ đúng tên (sai chính tả, nhớ một phần: "chung cư hà đô quận 10") -> tìm theo NGHĨA bằng vector (035).
+  // Chỉ thử khi câu có dấu hiệu nói về dự án, và dự án tìm được phải có ít nhất 1 từ riêng xuất hiện trong câu -
+  // tránh "căn hộ gần quận 7" bị gán đại vào một dự án nào đó.
+  let vecCau: number[] | null = null;
+  const cnCau = ` ${chuanTen(last)} `;
+  if (!daTim && dsDuAn.length && /\s(du an|khu do thi|kdt|khu dan cu|kdc|chung cu|can ho|toa nha|gan|quanh|canh)\s/.test(cnCau)) {
+    vecCau = await nhungCau(last);
+    if (vecCau) {
+      const { data: khop } = await createAnonClient().rpc("match_projects", { query_embedding: vecCau, match_count: 3 });
+      for (const k of (khop ?? []) as { id: string; similarity: number }[]) {
+        if (k.similarity < 0.7) break;
+        const p = dsDuAn.find((x) => x.id === k.id);
+        const tuRieng = p ? chuanTen(p.name).split(" ").filter((w) => w.length >= 2 && !TU_CHUNG_DU_AN.has(w)) : [];
+        if (p && tuRieng.some((w) => cnCau.includes(` ${w} `))) { daTim = p; break; }
+      }
+    }
+  }
+  const da = daTim;
+  if (da) {
+    const cn = ` ${chuanTen(last)} `;
+    const hoiQuanh = /\s(gan|quanh|canh|sat|ke ben|xung quanh|lan can|loanh quanh)\s/.test(cn);
+    const hoiThongTin = /\s(o dau|cho nao|vi tri|dia chi|chu dau tu|cdt|ban giao|tien ich|thong tin|review|co gi|phap ly|nam o)\s/.test(cn);
+    const hoiTin = hoiQuanh || (!hoiThongTin && /\s(tro|phong|thue|mua|can ho|nha|tim)\s/.test(cn));
+    if (hoiTin) {
+      const loc = bocTruyVanBDS(last).loc;
+      const deal = loc.deal || (/\s(tro|phong|thue)\s/.test(cn) ? "cho_thue" : null);
+      const tim = async (km: number) => {
+        const dLat = km / 111.32, dLng = km / (111.32 * Math.cos((da.lat * Math.PI) / 180));
+        let q = createAnonClient().from("listings")
+          .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images,source,lat,lng")
+          .eq("status", "published")
+          .gte("lat", da.lat - dLat).lte("lat", da.lat + dLat).gte("lng", da.lng - dLng).lte("lng", da.lng + dLng);
+        if (deal) q = q.eq("deal", deal);
+        if (loc.kind && PROP[loc.kind]) q = q.eq("kind", loc.kind);
+        if (loc.price_max) q = q.lte("price_vnd", loc.price_max);
+        if (loc.price_min) q = q.gte("price_vnd", loc.price_min);
+        if (loc.bedrooms) q = q.gte("bedrooms", loc.bedrooms);
+        // lỗi thoáng qua của Supabase từng bị hiểu là "không có tin" -> nới bán kính oan; thử lại 1 lần.
+        // 600: khu trung tâm 2 km có thể vượt 300 tin, cắt bớt thì câu "có N tin" báo thiếu
+        let { data, error } = await q.limit(600);
+        if (error) ({ data, error } = await q.limit(600));
+        if (error) console.error("chat quanh du an:", error.message);
+        return (data ?? [])
+          .map((x) => ({ ...x, km: khoangCachKm(da, { lat: Number(x.lat), lng: Number(x.lng) }) }))
+          .filter((x) => x.km <= km).sort((a, b) => a.km - b.km);
+      };
+      // ít quá thì nới bán kính 2 -> 3 km, nói rõ cho khách
+      let km = 2, gan = await tim(km);
+      if (gan.length < 3) { km = 3; gan = await tim(km); }
+      const viTri = [da.district, da.province].filter(Boolean).join(", ");
+      const loai = deal === "cho_thue" ? "tin cho thuê" : deal === "ban" ? "tin bán" : "tin";
+      const href = `/search?${new URLSearchParams({ ...(deal ? { deal } : {}), ...(loc.price_max ? { priceMax: String(loc.price_max) } : {}), gan: `${da.lat.toFixed(6)},${da.lng.toFixed(6)}`, bk: String(km), gan_ten: da.name })}`;
+      after(() => ghiSuKien({ loai: "chat", listingId: null, noiDung: last, ketQua: gan.length }));
+      return NextResponse.json({
+        reply: gan.length
+          ? `Quanh ${da.name} (${viTri}), trong bán kính ${km} km Radar đang có ${gan.length} ${loai} phù hợp. Em gửi ${Math.min(5, gan.length)} tin gần dự án nhất bên dưới - tin đầu tiên cách khoảng ${gan[0].km < 1 ? Math.round(gan[0].km * 1000) + " m" : gan[0].km.toFixed(1) + " km"}.`
+          : `Trong bán kính ${km} km quanh ${da.name} (${viTri}) hiện chưa có ${loai} khớp yêu cầu. Anh/chị để lại SĐT hoặc nhắn Zalo ${HOTLINE}, Radar tìm thêm phòng quanh dự án giúp mình nhé.`,
+        link: gan.length ? { href, label: `Xem cả ${gan.length} tin quanh ${da.name} trên bản đồ` } : null,
+        suggestions: [`${da.name} ở đâu, có gì?`, deal === "cho_thue" ? `Phòng dưới 4 triệu gần ${da.name}` : `Phòng trọ gần ${da.name}`, "Đặt lịch hẹn xem phòng"],
+        listings: gan.slice(0, 5).map((x) => ({
+          id: x.id, title: cheSoVanBan(x.title), price: fmtPrice(x.price_vnd, x.deal),
+          meta: [`cách ${x.km < 1 ? Math.round(x.km * 1000) + " m" : x.km.toFixed(1) + " km"}`, x.area_m2 ? `${x.area_m2}m²` : null, x.district].filter(Boolean).join(" · "),
+          image: cleanImages(x.images || [])[0] || null,
+        })),
+      });
+    }
+    // Hỏi thông tin dự án: trả lời từ dữ liệu thật, không qua AI (tránh bịa giá / tiện ích)
+    const { data: p } = await createAnonClient().from("projects")
+      .select("name,investor,address,district,province,price_min,price_max,handover,amenities,specs").eq("id", da.id).maybeSingle();
+    if (p) {
+      const gia = p.price_min ? `Giá tham khảo từ ${fmtPrice(p.price_min, "ban")}${p.price_max ? ` - ${fmtPrice(p.price_max, "ban")}` : ""}.` : "Giá: chưa có số liệu công khai.";
+      const tienIch = ((p.amenities as string[] | null) || []).slice(0, 4);
+      const phapLy = (p.specs as Record<string, string> | null)?.["Pháp lý"];
+      after(() => ghiSuKien({ loai: "chat", listingId: null, noiDung: last, ketQua: 1 }));
+      return NextResponse.json({
+        reply: [
+          `${p.name}${p.investor ? ` - chủ đầu tư ${p.investor}` : ""}.`,
+          `Vị trí: ${p.address || [p.district, p.province].filter(Boolean).join(", ")}.`,
+          gia,
+          p.handover ? `Bàn giao: ${p.handover}.` : null,
+          phapLy ? `Pháp lý: ${phapLy}.` : null,
+          tienIch.length ? `Tiện ích, kết nối nổi bật:\n• ${tienIch.join("\n• ")}` : null,
+          `(Thông tin tổng hợp từ nguồn công khai, chỉ để tham khảo.)`,
+        ].filter(Boolean).join("\n"),
+        link: { href: `/projects/${da.id}`, label: `Xem trang dự án ${p.name}` },
+        suggestions: [`Phòng trọ gần ${p.name}`, `Căn hộ bán quanh ${p.name}`, "Đặt lịch tư vấn"],
+        listings: [],
+      });
+    }
+  }
+
   const convo = (dangXem ? dangXem + "\n" : "") + messages.map((m) => `${m.role === "user" ? "Người dùng" : "Trợ lý"}: ${m.text}`).join("\n");
 
   let parsed: Parsed | null = null;
@@ -299,25 +418,8 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
   // Không có kết quả -> thử tìm NGỮ NGHĨA bằng pgvector (cần migration 003 + embed.mjs đã chạy)
   if (!found.length) {
     try {
-      const KEYS = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
-        process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5].filter(Boolean) as string[];
-      // Cùng danh sách model với crawler/embed.mjs (vector câu hỏi phải cùng model với vector đã lưu)
-      let vec: number[] | null = null;
-      outer: for (const model of ["gemini-embedding-001"]) { // text-embedding-004 đã bị gỡ (404) - giữ đồng bộ với crawler/embed.mjs
-        for (const k of KEYS) {
-          const body: Record<string, unknown> = { content: { parts: [{ text: last.slice(0, 1000) }] } };
-          if (model === "gemini-embedding-001") body.outputDimensionality = 768;
-          const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${k}`,
-            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
-          );
-          if (res.status === 429) continue;
-          const j = await res.json();
-          if (j?.embedding?.values) { vec = j.embedding.values; break outer; }
-          if (res.status === 404) break; // model không tồn tại -> đổi model
-          continue; // lỗi key -> thử key kế
-        }
-      }
+      // dùng lại vector đã nhúng ở bước dự án (nếu có) - khỏi tốn thêm 1 lượt Gemini
+      const vec = vecCau ?? await nhungCau(last);
       if (vec) {
         const { data: matches } = await supabase.rpc("match_listings", { query_embedding: vec, match_count: 5 });
         const ids = (matches ?? []).filter((m: { similarity: number }) => m.similarity > 0.5).map((m: { id: string }) => m.id);

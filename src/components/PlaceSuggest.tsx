@@ -23,13 +23,28 @@ export function buildPlaces(geo: Record<string, Record<string, string[]>>): Plac
   return out;
 }
 
-export default function PlaceSuggest({ value, places, onPick, className }: {
-  value: string; places: Place[]; onPick: (p: Place) => void; className?: string;
+// Dự án (26/10): gợi ý thêm từ /api/goi-y-du-an (~2.200 dự án, lọc ở server) - chọn là tìm tin QUANH dự án
+export type DuAnGoiY = { id: string; name: string; sub: string; lat: number; lng: number };
+
+export default function PlaceSuggest({ value, places, onPick, onPickDuAn, className }: {
+  value: string; places: Place[]; onPick: (p: Place) => void; onPickDuAn?: (d: DuAnGoiY) => void; className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);
+  const [duAn, setDuAn] = useState<DuAnGoiY[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
   const q = expand(value);
+  // gõ dừng 250ms mới hỏi server; huỷ yêu cầu cũ khi gõ tiếp
+  useEffect(() => {
+    if (!onPickDuAn || q.length < 2) { setDuAn([]); return; }
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      fetch(`/api/goi-y-du-an?q=${encodeURIComponent(value.trim())}`, { signal: ctrl.signal })
+        .then((r) => (r.ok ? r.json() : [])).then((d: DuAnGoiY[]) => setDuAn(Array.isArray(d) ? d.slice(0, 4) : []))
+        .catch(() => { /* huỷ / lỗi mạng: bỏ qua gợi ý dự án */ });
+    }, 250);
+    return () => { clearTimeout(t); ctrl.abort(); };
+  }, [q, value, onPickDuAn]);
   const hits = useMemo(() => {
     if (q.length < 1) return [];
     const scored = places.map((p) => {
@@ -38,14 +53,14 @@ export default function PlaceSuggest({ value, places, onPick, className }: {
       // "quan 7" không được khớp "quan 70"/"quan 72" trước "quan 7" -> ưu tiên exact/prefix + level cao
       return { p, s: s ? s * 10 + (p.level === "province" ? 3 : p.level === "district" ? 2 : 1) : 0 };
     }).filter((x) => x.s > 0).sort((a, b) => b.s - a.s || a.p.label.length - b.p.label.length);
-    return scored.slice(0, 7).map((x) => x.p);
-  }, [q, places]);
-  useEffect(() => { setOpen(hits.length > 0); setHi(0); }, [hits, value]);
+    return scored.slice(0, duAn.length ? 4 : 7).map((x) => x.p);
+  }, [q, places, duAn.length]);
+  useEffect(() => { setOpen(hits.length > 0 || duAn.length > 0); setHi(0); }, [hits, duAn, value]);
   useEffect(() => {
     const h = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
   }, []);
-  if (!open || !hits.length) return null;
+  if (!open || (!hits.length && !duAn.length)) return null;
   return (
     <div ref={boxRef} className={`absolute z-30 left-0 right-0 top-full mt-1 card rounded-lg shadow-lg overflow-hidden ${className || ""}`} role="listbox">
       {hits.map((p, i) => (
@@ -61,6 +76,22 @@ export default function PlaceSuggest({ value, places, onPick, className }: {
           <span className="text-xs text-[var(--ink-soft)] truncate">{p.sub}</span>
         </button>
       ))}
+      {duAn.length > 0 && onPickDuAn && (
+        <>
+          <div className="px-3 pt-2 pb-1 text-[0.7rem] font-bold uppercase tracking-wider text-[var(--ink-faint)] border-t border-[var(--line)]">Tìm quanh dự án</div>
+          {duAn.map((d) => (
+            <button
+              key={d.id} type="button" role="option" aria-selected={false}
+              onMouseDown={(e) => { e.preventDefault(); onPickDuAn(d); setOpen(false); }}
+              className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-2 min-h-[44px] hover:bg-[var(--surface-2)]"
+            >
+              <span className="text-[var(--ink-faint)] text-xs w-14 shrink-0">Dự án</span>
+              <span className="font-semibold truncate">{d.name}</span>
+              <span className="text-xs text-[var(--ink-soft)] truncate">{d.sub}</span>
+            </button>
+          ))}
+        </>
+      )}
     </div>
   );
 }

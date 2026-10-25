@@ -1,5 +1,10 @@
 // 1/10: ISR 10 phút, client ẩn danh (dữ liệu công khai) - trước đây mỗi lượt xem là 2-3 truy vấn
 export const revalidate = 600;
+// 26/10: thiếu hàm này thì route [id] là ƒ Dynamic và `revalidate` bị bỏ qua (no-store) - giống trang tin (listings/[id]).
+// Trả [] = không dựng sẵn ~2.300 dự án lúc build; dựng lần đầu có người mở rồi cache ISR.
+export async function generateStaticParams() {
+  return [];
+}
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,6 +18,7 @@ import ProjectContact from "./ProjectContact";
 import RichText from "@/components/RichText";
 import type { Project, Listing } from "@/lib/types";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { docToaDoWkb, khoangCachKm } from "@/lib/du-an";
 import { ChevronLeft, Building2, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 
 export default async function ProjectDetail({
@@ -35,8 +41,26 @@ export default async function ProjectDetail({
     .limit(24);
   let listings = ((ls ?? []) as Listing[]).map(cheTinDocQuyen);
 
-  // Chưa có tin gắn trực tiếp dự án -> hiện tin cùng khu vực (quận/tỉnh) làm gợi ý
-  let related = false;
+  // 26/10: toạ độ dự án (geo EWKB) -> gợi ý tin trong bán kính 2 km + nút "tìm quanh dự án" sang /search
+  const td = docToaDoWkb((proj as { geo?: unknown }).geo);
+  const quanh = (deal: "cho_thue" | "ban") => td
+    ? `/search?${new URLSearchParams({ deal, gan: `${td.lat.toFixed(6)},${td.lng.toFixed(6)}`, bk: "2", gan_ten: p.name })}`
+    : null;
+
+  // Chưa có tin gắn trực tiếp dự án -> hiện tin QUANH dự án (2 km, gần trước); không có toạ độ thì cùng quận/tỉnh
+  let related = false, quanhKm = false;
+  if (!listings.length && td) {
+    const dLat = 2 / 111.32, dLng = 2 / (111.32 * Math.cos((td.lat * Math.PI) / 180));
+    const { data: near } = await supabase
+      .from("listings").select(LISTING_THE_COLS).eq("status", "published").not("images", "eq", "{}")
+      .gte("lat", td.lat - dLat).lte("lat", td.lat + dLat).gte("lng", td.lng - dLng).lte("lng", td.lng + dLng)
+      .limit(120);
+    listings = ((near ?? []) as Listing[])
+      .filter((x) => x.lat != null && x.lng != null && khoangCachKm(td, { lat: x.lat!, lng: x.lng! }) <= 2)
+      .sort((a, b) => khoangCachKm(td, { lat: a.lat!, lng: a.lng! }) - khoangCachKm(td, { lat: b.lat!, lng: b.lng! }))
+      .slice(0, 8).map(cheTinDocQuyen);
+    related = quanhKm = listings.length > 0;
+  }
   if (!listings.length && (p.district || p.province)) {
     const { data: near } = await supabase
       .from("listings").select(LISTING_THE_COLS).eq("status", "published")
@@ -81,6 +105,12 @@ export default async function ProjectDetail({
               return phan.filter(Boolean).join(", ") || "-";
             })()}</span>
           </div>
+          {td && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Link href={quanh("cho_thue")!} className="btn btn-primary min-h-11 font-bold"><MapPin className="w-4 h-4" /> Tìm phòng trọ quanh dự án</Link>
+              <Link href={quanh("ban")!} className="btn min-h-11 font-bold">Nhà đất bán quanh đây</Link>
+            </div>
+          )}
 
           {/* Bảng thông số (migration 013): tổng DT, DT xây dựng, DT căn từ-đến, ngày khởi công/hoàn
               thành, pháp lý - thông tin người mua tìm đầu tiên, phải nằm TRÊN phần mô tả dài. */}
@@ -160,7 +190,7 @@ export default async function ProjectDetail({
             );
             if (related) return (
               <>
-                <h3 className="font-bold mt-6 mb-3">Bất động sản tại {p.district || p.province}</h3>
+                <h3 className="font-bold mt-6 mb-3">{quanhKm ? `Tin đăng trong bán kính 2 km quanh ${p.name}` : `Bất động sản tại ${p.district || p.province}`}</h3>
                 <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
                   {listings.map((x) => <ListingCard key={x.id} x={x} />)}
                 </div>

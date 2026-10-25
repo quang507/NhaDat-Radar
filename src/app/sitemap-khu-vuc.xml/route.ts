@@ -13,6 +13,7 @@ export async function GET() {
   const muc: MucSitemap[] = [
     "", "/search", "/projects", "/agents", "/thong-ke", "/dinh-gia", "/tinh-lai-vay", "/lap-phong",
     "/thue-hay-mua", "/ban", "/huong-dan/mua", "/huong-dan/ban", "/nha-dat-ban", "/nha-dat-cho-thue", "/tin-tuc",
+    "/gioi-thieu", "/lien-he", "/chinh-sach-bao-mat", "/dieu-khoan-su-dung",
   ].map((p) => ({ url: SITE + p, changefreq: "daily", priority: p === "" ? 1 : 0.7 }));
 
   try {

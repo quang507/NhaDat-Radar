@@ -7,7 +7,8 @@ import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import { Bot, Sparkles, X, Send, PhoneCall, Home, MessageCircle } from "lucide-react";
 
 type MiniListing = { id: string; title: string; price: string; meta: string; image: string | null };
-type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[]; suggestions?: string[] };
+// link (26/10): nút mở trang liên quan - "xem cả N tin quanh dự án trên bản đồ", "trang dự án"
+type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[]; suggestions?: string[]; link?: { href: string; label: string } | null };
 
 const GREET_DEFAULT: Msg = {
   role: "bot",
@@ -89,6 +90,8 @@ export default function ChatWidget() {
           text: j.reply || "Xin lỗi, mình chưa trả lời được.",
           listings: j.listings,
           suggestions: j.suggestions,
+          // chỉ nhận link nội bộ ("/..."), không mở link lạ từ phản hồi
+          link: j.link && typeof j.link.href === "string" && j.link.href.startsWith("/") && !j.link.href.startsWith("//") ? j.link : null,
         },
       ]);
     } catch {
@@ -237,6 +240,12 @@ export default function ChatWidget() {
                       </Link>
                     ))}
                   </div>
+                )}
+                {m.link && (
+                  <Link href={m.link.href} onClick={() => setOpen(false)}
+                    className="mt-2 btn btn-primary w-full min-h-11 text-sm font-bold">
+                    {m.link.label} ›
+                  </Link>
                 )}
                 {m.suggestions && m.suggestions.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1.5">

@@ -14,7 +14,7 @@ import { PROP, shortPrice } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
 import type { Listing } from "@/lib/types";
-import PlaceSuggest, { buildPlaces, type Place } from "@/components/PlaceSuggest";
+import PlaceSuggest, { buildPlaces, type Place, type DuAnGoiY } from "@/components/PlaceSuggest";
 import RecentlyViewed, { RecentSearches, rememberSearch } from "@/components/RecentlyViewed";
 import { SidebarKhuVuc, type DieuHuong } from "@/components/DieuHuongKhuVuc";
 import { HangTienIch, ChonDuAn, KhuVucChip, OKhoangCach, doiTi } from "@/components/BoLocEvo";
@@ -78,7 +78,7 @@ function nhanKhoang(min: string, max: string, fmt: (n: number) => string) {
 
 // Mọi ô lọc (URL <-> state). 1/10 thêm: phòng tắm, tiện ích (ti), dự án, tên đường, hình ảnh, khoảng cách (gan + bk)
 const O_LOC = ["q", "deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax",
-  "bedrooms", "bathrooms", "legal", "direction", "ti", "project", "street", "anh", "gan", "bk"] as const;
+  "bedrooms", "bathrooms", "legal", "direction", "ti", "project", "street", "anh", "gan", "bk", "gan_ten"] as const;
 type BoLoc = Record<(typeof O_LOC)[number], string>;
 const tuParams = (p: Record<string, string | undefined>): BoLoc =>
   Object.fromEntries(O_LOC.map((k) => [k, p[k] || ""])) as BoLoc;
@@ -103,6 +103,12 @@ export default function SearchClient({
   const places = useMemo(() => buildPlaces(geo), [geo]);
   const pickPlace = (p: Place) => {
     const next = { ...f, q: "", province: p.province, district: p.district || "", ward: p.ward || "" };
+    setF(next); push(next);
+  };
+  // 26/10: chọn dự án trong gợi ý -> tin QUANH dự án (bán kính, mặc định 2 km), bỏ lọc tỉnh/quận để không
+  // cắt mất tin bên kia ranh quận; gan_ten chỉ để hiện nhãn "Gần Ny'ah Bình Tây"
+  const pickDuAn = (d: DuAnGoiY) => {
+    const next = { ...f, q: "", province: "", district: "", ward: "", project: "", gan: `${d.lat},${d.lng}`, bk: f.bk || "2", gan_ten: d.name };
     setF(next); push(next);
   };
   const sort = params.sort || "";
@@ -223,7 +229,10 @@ export default function SearchClient({
   const dealWord = f.deal === "cho_thue" ? "Cho thuê" : f.deal === "ban" ? "Mua bán" : "Mua bán & cho thuê";
   const kindWord = tenLoai(f.kind).toLowerCase() || "nhà đất";
   const locWord = [f.district, f.province].filter(Boolean).join(", ");
-  const pageTitle = `${dealWord} ${kindWord}${locWord ? " " + locWord : " toàn quốc"}`;
+  // đang lọc quanh 1 điểm -> "Cho thuê nhà đất quanh Ny'ah Bình Tây" thay vì "toàn quốc" (26/10)
+  const pageTitle = goc.gan
+    ? `${dealWord} ${kindWord} quanh ${goc.gan_ten || "vị trí đã chọn"}`
+    : `${dealWord} ${kindWord}${locWord ? " " + locWord : " toàn quốc"}`;
 
   const muaBan = goc.deal === "ban"; // mua bán: bộ lọc kiểu batdongsan; cho thuê / gộp: kiểu EvoHome
   const choThue = goc.deal === "cho_thue"; // cho thuê: thẻ phòng dạng lưới kiểu EvoHome (ThePhong)
@@ -310,7 +319,7 @@ export default function SearchClient({
             autoComplete="off"
           />
           {/* NN/g #5: gợi ý địa danh thật, nhận cả viết tắt Q7 -> Quận 7 */}
-          <PlaceSuggest value={f.q} places={places} onPick={pickPlace} />
+          <PlaceSuggest value={f.q} places={places} onPick={pickPlace} onPickDuAn={pickDuAn} />
           <button className="bg-brand text-white font-semibold text-sm px-4 sm:px-6 hover:bg-brand-ink transition whitespace-nowrap rounded-r-lg flex items-center justify-center gap-1.5" type="submit" aria-label="Tìm kiếm">
             <Search className="w-4 h-4" />
             <span className="hidden sm:inline">Tìm kiếm</span>
@@ -326,6 +335,23 @@ export default function SearchClient({
           <span>{showMap ? "Đóng bản đồ" : "Xem bản đồ"}</span>
         </button>
       </div>
+      {/* 26/10: đang lọc quanh 1 điểm (dự án / link Google Maps) -> nói rõ đang ở đâu, đổi bán kính 1 chạm, bỏ lọc */}
+      {goc.gan && (
+        <div className="flex flex-wrap items-center gap-2 mb-3 text-sm" role="group" aria-label="Lọc theo khoảng cách">
+          <span className="inline-flex items-center gap-1.5 min-h-10 pl-3 pr-1 rounded border border-brand/40 bg-brand/10 text-brand font-semibold max-w-full">
+            <MapPin className="w-4 h-4 shrink-0" />
+            <span className="truncate">Gần {goc.gan_ten || "vị trí đã chọn"}</span>
+            <button type="button" aria-label="Bỏ lọc khoảng cách" onClick={() => push({ ...goc, gan: "", bk: "", gan_ten: "" })}
+              className="w-8 h-8 grid place-items-center rounded-sm hover:bg-brand/15"><X className="w-4 h-4" /></button>
+          </span>
+          {["1", "2", "3", "5"].map((km) => (
+            <button key={km} type="button" aria-pressed={(goc.bk || "2") === km} onClick={() => push({ ...goc, bk: km })}
+              className={`min-h-10 px-3 rounded border text-sm font-semibold transition-colors ${(goc.bk || "2") === km ? "bg-brand text-white border-brand" : "border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink-soft)]"}`}>
+              {km} km
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 

@@ -4,6 +4,7 @@
 //
 // Chạy thử (không ghi):  node --env-file=.env.local scripts/nhap-du-an-aioi.mjs
 // Ghi thật:              node --env-file=.env.local scripts/nhap-du-an-aioi.mjs --ghi
+// Chép vector (sau 035): node --env-file=.env.local scripts/nhap-du-an-aioi.mjs --vector --ghi
 //
 // - Khử trùng theo slug (cùng kiểu "ten-du-an-prjNNNN" của Mogi) + tên chuẩn hoá; dự án đã có thì GIỮ NGUYÊN.
 // - Bỏ dự án không ảnh (web cũng ẩn - xem app/projects/page.tsx).
@@ -35,6 +36,34 @@ const COT = "slug,name,developer,description,province,district,ward,location_raw
 
 const chuan = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const mangChu = (v, max) => (Array.isArray(v) ? v : []).filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()).slice(0, max);
+
+// --vector (26/10): chép VECTOR (projects.nhung, gemini-embedding-001 768 chiều) sang projects.embedding của Radar.
+// Cần migration 035 trước. Chỉ cập nhật dự án Radar ĐÃ có (theo slug) - không tạo dòng mới.
+if (process.argv.includes("--vector")) {
+  const radar = new Set((await docHet(`${RADAR}/rest/v1/projects?select=slug&order=slug`, RKEY)).map((p) => p.slug).filter(Boolean));
+  let doc = 0, ghi = 0, bo = 0;
+  for (let tu = 0; ; tu += 200) {   // ~15KB/vector -> lô 200 dòng thay vì 1.000
+    const r = await goi(`${SRC}/rest/v1/projects?select=slug,name,nhung&nhung=not.is.null&order=slug`, { headers: { ...hdr(SKEY), Range: `${tu}-${tu + 199}` } });
+    if (!r.ok) throw new Error(`đọc vector ${r.status}: ${await r.text()}`);
+    const lo = await r.json(); doc += lo.length;
+    const capNhat = lo.filter((p) => radar.has(p.slug) && typeof p.nhung === "string").map((p) => ({ slug: p.slug, name: p.name, embedding: p.nhung }));
+    bo += lo.length - capNhat.length;
+    if (GHI && capNhat.length) {
+      // upsert theo slug, chỉ đè các cột gửi lên (name giữ y nguyên giá trị nguồn, embedding mới)
+      const w = await goi(`${RADAR}/rest/v1/projects?on_conflict=slug`, {
+        method: "POST",
+        headers: { ...hdr(RKEY), "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify(capNhat),
+      });
+      if (!w.ok) { console.error(`\nGhi vector lỗi ${w.status}: ${(await w.text()).slice(0, 300)}`); process.exit(1); }
+    }
+    ghi += capNhat.length;
+    process.stdout.write(`\rĐọc ${doc} · ${GHI ? "đã ghi" : "sẽ ghi"} ${ghi} · bỏ ${bo} (không có trên Radar)`);
+    if (lo.length < 200) break;
+  }
+  console.log(GHI ? "\n✓ Xong chép vector." : "\nChạy thử - thêm --ghi để ghi.");
+  process.exit(0);
+}
 
 const nguon = await docHet(`${SRC}/rest/v1/projects?select=${COT}&order=slug`, SKEY);
 const coSan = await docHet(`${RADAR}/rest/v1/projects?select=slug,name&order=slug`, RKEY);
