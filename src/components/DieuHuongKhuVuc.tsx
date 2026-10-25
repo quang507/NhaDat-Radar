@@ -20,7 +20,7 @@ export function ChipQuan({ dh, district, onPick }: { dh: DieuHuong; district: st
   if (!dh.districts.length) return null;
   const chip = "shrink-0 snap-start text-xs px-3 py-1.5 rounded-full border whitespace-nowrap transition";
   return (
-    <div className="lg:hidden flex gap-2 overflow-x-auto snap-x scroll-px-4 -mx-4 px-4 sm:scroll-px-5 sm:-mx-5 sm:px-5 pb-1 mb-3 [scrollbar-width:none]" title={GHI_CHU}>
+    <div className="cuon-ngang lg:hidden flex gap-2 overflow-x-auto snap-x scroll-px-4 -mx-4 px-4 sm:scroll-px-5 sm:-mx-5 sm:px-5 pb-1 mb-3 [scrollbar-width:none]" title={GHI_CHU}>
       {district ? (
         <button type="button" className={`${chip} border-brand text-brand font-semibold`} onClick={() => onPick("")}>‹ Toàn {dh.province}</button>
       ) : null}

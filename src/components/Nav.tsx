@@ -3,12 +3,13 @@ import NavFav from "./NavFav";
 import NavAuth from "./NavAuth";
 import MobileMenu from "./MobileMenu";
 import ThemeToggle from "./ThemeToggle";
+import HeaderCuon from "./HeaderCuon";
 
 // Nav KHÔNG đọc cookie nữa (23/9): nó nằm trong layout gốc nên mỗi lần gọi auth.getUser() là ép
 // toàn bộ site render động, không trang nào được cache. Trạng thái đăng nhập do NavAuth (client) lo.
 export default function Nav() {
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+    <HeaderCuon className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-5 py-2.5 flex items-center gap-3">
         <MobileMenu />
         <Link href="/" className="flex items-center gap-2.5 font-black text-base tracking-tight whitespace-nowrap shrink-0 group">
@@ -41,6 +42,6 @@ export default function Nav() {
           <NavAuth />
         </div>
       </div>
-    </header>
+    </HeaderCuon>
   );
 }

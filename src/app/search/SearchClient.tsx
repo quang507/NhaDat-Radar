@@ -333,7 +333,7 @@ export default function SearchClient({
   // [Lọc (n)] [Tin đã xác minh] [Loại nhà đất ▾] [Khoảng giá ▾] [Diện tích ▾] [Địa chỉ sau sáp nhập]
   // Popover chọn xong mới "Áp dụng"; mọi giá trị xuất phát từ goc (bộ ĐÃ ÁP theo URL).
   const hangLocMua = (
-    <div className="flex items-center gap-2 pb-4 mb-4 border-b border-[var(--line)] text-sm overflow-x-auto sm:overflow-visible sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
+    <div className="cuon-ngang flex items-center gap-2 pb-4 mb-4 border-b border-[var(--line)] text-sm overflow-x-auto sm:overflow-visible sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
       <button
         className={`shrink-0 h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition
           ${showFilter || soLoc ? "border-brand text-brand bg-brand/5 font-semibold" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}

@@ -20,7 +20,7 @@ export function HangTienIch({ ti, onDoi }: { ti: string; onDoi: (k: string) => v
   return (
     <div className="flex items-start gap-2 mb-3">
       <span className="hidden sm:block text-xs font-semibold text-[var(--ink-soft)] pt-2 shrink-0">Tiện ích:</span>
-      <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]">
+      <div className="cuon-ngang flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]">
         {TIEN_ICH.map((t) => {
           const on = chon.includes(t.k);
           return (
@@ -96,7 +96,7 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
     <div className="mb-3">
       <div className="flex flex-wrap items-center gap-2 mb-2">
         {/* mobile: dải tỉnh cuộn ngang 1 hàng (trước rớt 2 hàng), máy tính: xuống dòng như cũ */}
-        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible sm:flex-wrap [scrollbar-width:none] -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="cuon-ngang flex gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible sm:flex-wrap [scrollbar-width:none] -mx-4 px-4 sm:mx-0 sm:px-0">
         {province ? (
           <button type="button" className={pill(true)} onClick={() => onTinh("")} title="Bỏ chọn tỉnh">{province} <X className="w-3.5 h-3.5 ml-1 inline" /></button>
         ) : tinhs.slice(0, 8).map((p) => (
@@ -107,7 +107,7 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
       </div>
       {province && districts.length > 0 && (
         <div className="card rounded-xl p-2 flex items-start gap-2">
-          <div className={`flex gap-2 flex-1 min-w-0 ${du ? "flex-wrap" : "overflow-x-auto [scrollbar-width:thin] pb-1"}`}>
+          <div className={`flex gap-2 flex-1 min-w-0 ${du ? "flex-wrap" : "cuon-ngang overflow-x-auto [scrollbar-width:thin] pb-1"}`}>
             {districts.map((d) => (
               <button key={d} type="button" onClick={() => onQuan(d === district ? "" : d)}
                 className={`shrink-0 h-8 px-3.5 rounded-full text-sm whitespace-nowrap transition

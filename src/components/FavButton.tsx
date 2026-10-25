@@ -70,6 +70,7 @@ export function useFavCount(): number {
 // Trái tim lưu tin (localStorage, không cần đăng nhập) - dùng đè lên ảnh ListingCard.
 export default function FavButton({ id, className = "" }: { id: string; className?: string }) {
   const [on, setOn] = useState(false);
+  const [pop, setPop] = useState(0);   // tăng khi BẤM lưu -> chỉ nảy lúc thao tác, không nảy khi tải trang
   useEffect(() => {
     const upd = () => setOn(getFavs().includes(id));
     upd();
@@ -86,13 +87,19 @@ export default function FavButton({ id, className = "" }: { id: string; classNam
         e.stopPropagation();
         const cur = getFavs();
         setFavs(on ? cur.filter((x) => x !== id) : [...cur, id]);
-        if (!on) baoSuKien("luu", id);
+        if (!on) {
+          baoSuKien("luu", id);
+          setPop((p) => p + 1);
+          // phản hồi xúc giác nhẹ khi lưu (Android; iOS bỏ qua) - xác nhận thao tác mà không cần toast
+          try { navigator.vibrate?.(12); } catch { /* trình duyệt chặn: bỏ qua */ }
+        }
         void syncDb(id, !on);
       }}
-      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shadow-sm backdrop-blur-md
+      // 25/10: 40px trên điện thoại (32px cũ dưới mức chạm tối thiểu, hay bấm trượt sang mở tin)
+      className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shadow-sm backdrop-blur-md
         ${on ? "bg-red-500 text-white shadow-red-500/30" : "bg-white/85 text-slate-700 hover:bg-white hover:text-red-500 hover:shadow-md"} ${className}`}
     >
-      <Heart className={`w-4 h-4 transition-transform duration-200 ${on ? "fill-white text-white scale-110" : "stroke-[2.2]"}`} />
+      <Heart key={pop} className={`w-4 h-4 transition-transform duration-200 ${on ? `fill-white text-white scale-110 ${pop ? "fav-pop" : ""}` : "stroke-[2.2]"}`} />
     </button>
   );
 }

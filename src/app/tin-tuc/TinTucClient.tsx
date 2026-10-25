@@ -37,7 +37,7 @@ export default function TinTucClient({
   return (
     <div className="space-y-10">
       {/* Category Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+      <div className="cuon-ngang flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.id}

@@ -17,7 +17,7 @@ const anTheoCot = (i: number) => (i < 2 ? "" : i === 2 ? "sm:hidden md:flex" : i
 
 export default function HangVuot({ items, cot = 250, motHang = false }: { items: { key: string; node: ReactNode }[]; cot?: keyof typeof LUOI; motHang?: boolean }) {
   return (
-    <div className={`flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4 -mx-4 px-4 sm:scroll-px-5 sm:-mx-5 sm:px-5 pb-2 [scrollbar-width:none]
+    <div className={`cuon-ngang flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4 -mx-4 px-4 sm:scroll-px-5 sm:-mx-5 sm:px-5 pb-2 [scrollbar-width:none]
       sm:grid sm:gap-4 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 ${motHang ? MOT_HANG : LUOI[cot]}`}>
       {items.map((it, i) => (
         <div key={it.key} className={`w-[78%] shrink-0 snap-start sm:w-auto flex ${motHang ? anTheoCot(i) : ""}`}>{it.node}</div>

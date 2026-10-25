@@ -268,9 +268,12 @@ html { scroll-behavior: smooth; }
   .btn, .inp, select.inp { min-height: 44px; }
   .btn-primary { min-height: 48px; }
 }
-.btn:hover { transform: translateY(-1px); }
+/* hover chỉ cho chuột: trên cảm ứng :hover "dính" sau khi chạm -> nút cứ nhấc lên mãi (25/10) */
+@media (hover: hover) {
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary:hover { box-shadow: 0 4px 14px color-mix(in srgb, var(--brand) 45%, transparent); }
+}
 .btn:active { transform: translateY(0); }
-.btn-primary:hover { box-shadow: 0 4px 14px color-mix(in srgb, var(--brand) 45%, transparent); }
 
 /* Link nav: gạch chân trượt từ trái */
 .navlink { position: relative; }
@@ -301,10 +304,46 @@ img { transition: opacity .3s ease; }
 @keyframes floatPulse { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 .float-cta { animation: floatPulse 3s ease-in-out infinite; }
 
+/* ===== Mobile: phản hồi chạm & cuộn (25/10, theo NN/g "Touch Targets", "Horizontal Scrolling",
+   "Sticky Headers") ===== */
+/* Bỏ ô xám mặc định khi chạm (Android/iOS) - thay bằng phản hồi :active rõ ràng bên dưới;
+   touch-action: manipulation = bỏ trễ 300ms chờ double-tap zoom */
+html { -webkit-tap-highlight-color: transparent; scroll-padding-top: 72px; }
+a, button, summary, label, [role="button"], [role="tab"] { touch-action: manipulation; }
+@media (hover: none) {
+  /* nhấn là thấy ngay (<100ms) - NN/g: phản hồi tức thì cho mọi thao tác */
+  .btn:active, [role="tab"]:active { transform: scale(.97); }
+  a.card:active, .card a:active > .card { transform: scale(.985); }
+  a.card, .btn, [role="tab"] { transition: transform .12s ease, background-color .12s ease, border-color .12s ease; }
+}
+/* Hàng cuộn ngang: mép phải mờ dần = "còn nữa, vuốt sang" (người dùng hay bỏ sót nội dung ngang);
+   overscroll-behavior-x chặn vuốt ngang kích hoạt "quay lại" của trình duyệt; snap nhẹ để dừng gọn từng thẻ */
+.cuon-ngang {
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  padding-inline-end: 28px;
+}
+.cuon-ngang > * { scroll-snap-align: start; }
+@media (min-width: 640px) { .cuon-ngang { -webkit-mask-image: none; mask-image: none; padding-inline-end: 0; } }
+/* iOS tự phóng to khi chạm ô nhập có chữ < 16px rồi không thu lại - giữ 16px trên màn cảm ứng */
+@media (pointer: coarse) {
+  .inp, input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px; }
+}
+/* Header ẩn khi cuộn xuống, hiện khi cuộn lên (components/HeaderCuon); thanh dính ngay dưới header
+   (.duoi-header, vd thanh mục trang tin) trượt lên sát mép trên theo */
+.header-an { transform: translateY(-100%); }
+.duoi-header { transition: top .2s ease-out; }
+html[data-header-an] .duoi-header { top: 0; }
+/* Trái tim lưu tin: nảy khi bật (xác nhận thao tác đã ghi nhận) */
+@keyframes favPop { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
+.fav-pop { animation: favPop .32s cubic-bezier(.34,1.56,.64,1); }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .reveal, .float-cta, .skeleton::after { animation: none; }
-  .btn:hover, .chip:hover { transform: none; }
+  .reveal, .float-cta, .skeleton::after, .fav-pop { animation: none; }
+  .btn:hover, .chip:hover, .btn:active, a.card:active, [role="tab"]:active { transform: none; }
 }
 
 /* Hero entrance animation */

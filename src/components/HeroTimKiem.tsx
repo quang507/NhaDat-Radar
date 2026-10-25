@@ -120,7 +120,7 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
 
         {deal && (
           <div className="mt-3.5 flex flex-col gap-2 text-xs pt-3 border-t border-[var(--line)]">
-            <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1">
+            <div className="cuon-ngang flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1">
               <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Giá:</span>
               {GIA[deal].map(([min, max, l]) => (
                 <Link
@@ -133,7 +133,7 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
               ))}
             </div>
             {chip[deal].length > 0 && (
-              <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center" title="Số tin đang có theo khu vực">
+              <div className="cuon-ngang flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center" title="Số tin đang có theo khu vực">
                 <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Khu vực:</span>
                 {chip[deal].map((c) => (
                   <Link
