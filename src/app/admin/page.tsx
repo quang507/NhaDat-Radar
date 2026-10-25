@@ -9,7 +9,7 @@ import DangBaiCard from "@/components/admin/DangBaiCard";
 import SanKhachCard from "@/components/admin/SanKhachCard";
 import { cauBinhLuan, tinNhanRieng, dieuKienQuan, type NhuCau, type PhongKhop } from "@/lib/san-khach";
 import { baiDangMotPhong, baiDangGomQuan } from "@/lib/bai-dang";
-import { maPhong, khoangIdTuMa } from "@/lib/ro-hang";
+import { maPhong, khoangIdTuMa, linkGocEvohome, linkGocHifriendz } from "@/lib/ro-hang";
 import { fmtPrice } from "@/lib/format";
 import { LISTING_COLS } from "@/lib/cols";
 import { REPORT_REASONS } from "@/lib/reports";
@@ -156,6 +156,143 @@ export default async function AdminPage({
   const tab = sp.tab || "todo";
   const admin = createAdminClient();
 
+  // TRA MÃ PHÒNG / MÃ TIN TOÀN HỆ THỐNG: khách gửi mã RH... qua Zalo -> tra ngay ra thông tin nguồn + link gốc
+  const queryMa = (sp.ma || sp.q || "").trim();
+  const khoangTim = khoangIdTuMa(queryMa);
+  let traKetQuaNode: React.ReactNode = null;
+  if (khoangTim) {
+    const { data: traListings } = await admin
+      .from("listings")
+      .select("id,deal,title,price_vnd,area_m2,status,district,province,source,source_site,source_post_id")
+      .gte("id", khoangTim[0])
+      .lte("id", khoangTim[1])
+      .limit(10);
+    const traIds = (traListings ?? []).map((t) => t.id);
+    const { data: traRoHang } = traIds.length
+      ? await admin
+          .from("listing_ro_hang")
+          .select("listing_id,partner,exact_address,unit_code,commission,raw")
+          .in("listing_id", traIds)
+      : { data: [] };
+    const traP = new Map((traRoHang ?? []).map((r) => [r.listing_id, r]));
+
+    traKetQuaNode = (
+      <div className="mb-6 rounded-2xl border-2 border-emerald-500 bg-white p-5 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="rounded-lg bg-emerald-600 px-2.5 py-1 font-mono text-sm font-black text-white">
+              {queryMa.toUpperCase()}
+            </span>
+            <span className="text-sm font-bold text-slate-800">
+              Kết quả tra mã phòng / Rổ hàng đối tác
+            </span>
+          </div>
+          <span className="text-xs text-slate-500">
+            Tìm thấy {traListings?.length ?? 0} tin khớp
+          </span>
+        </div>
+
+        {!traListings?.length ? (
+          <div className="py-4 text-xs text-slate-500">
+            Không tìm thấy phòng nào có mã <b>{queryMa.toUpperCase()}</b> trong hệ thống.
+          </div>
+        ) : (
+          <div className="mt-4 space-y-4">
+            {traListings.map((t) => {
+              const p = traP.get(t.id);
+              const partner = t.source_site || p?.partner || "";
+              const linkGoc =
+                partner === "hifriendz"
+                  ? linkGocHifriendz(t.source_post_id)
+                  : partner === "evohome"
+                  ? linkGocEvohome(t.source_post_id)
+                  : null;
+              const specs = (p?.raw as { specs?: Record<string, string> } | null)?.specs;
+              const maToa = specs?.["Mã toà HiFriendz"];
+
+              return (
+                <div
+                  key={t.id}
+                  className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-emerald-300 hover:bg-white"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded bg-slate-900 px-2 py-0.5 font-mono text-xs font-bold text-white">
+                          {maPhong(t.id)}
+                        </span>
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs font-bold ${
+                            t.status === "published"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {t.status === "published" ? "Đang hiển thị" : `Trạng thái: ${t.status}`}
+                        </span>
+                        <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800 uppercase">
+                          Nguồn: {partner || t.source}
+                        </span>
+                      </div>
+                      <h3 className="mt-1.5 text-sm font-bold text-slate-800">
+                        {t.title}
+                      </h3>
+                      <div className="mt-0.5 text-xs text-slate-600">
+                        Giá: <b className="text-emerald-700">{fmtPrice(t.price_vnd, t.deal)}</b> · Diện tích: {t.area_m2 || "-"} m² · Khu vực: {[t.district, t.province].filter(Boolean).join(", ")}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {linkGoc && (
+                        <a
+                          href={linkGoc}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
+                        >
+                          Mở link gốc {partner.toUpperCase()} ›
+                        </a>
+                      )}
+                      <Link
+                        href={`/listings/${t.id}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                      >
+                        Xem tin Radar ›
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Thông tin nội bộ bảo mật (Chỉ admin thấy) */}
+                  <div className="mt-3 grid grid-cols-1 gap-2 rounded-lg border border-amber-200 bg-amber-50/70 p-3 text-xs sm:grid-cols-2 md:grid-cols-4">
+                    <div>
+                      <span className="block font-semibold text-amber-900">Số phòng nội bộ:</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {p?.unit_code || specs?.["Số phòng"] || "Chưa rõ"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block font-semibold text-amber-900">Mã toà đối tác:</span>
+                      <span className="font-mono text-slate-800">{maToa || "-"}</span>
+                    </div>
+                    <div>
+                      <span className="block font-semibold text-amber-900">Hoa hồng dự kiến:</span>
+                      <span className="font-medium text-slate-800">{p?.commission || "Theo chính sách sàn"}</span>
+                    </div>
+                    <div>
+                      <span className="block font-semibold text-amber-900">Địa chỉ thật:</span>
+                      <span className="font-medium text-slate-800">{p?.exact_address || "Đang cập nhật"}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ═════════════════════════════════════════════════════════════════════════════
   // TAB 1: BÀN LÀM VIỆC (TODO / OVERVIEW)
   // ═════════════════════════════════════════════════════════════════════════════
@@ -201,6 +338,7 @@ export default async function AdminPage({
 
     return (
       <AdminShell>
+        {traKetQuaNode}
         {/* KPI Cards Header */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -612,6 +750,7 @@ export default async function AdminPage({
 
     return (
       <AdminShell>
+        {traKetQuaNode}
         {/* CRM Sub-Header & Controls */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1299,7 +1438,10 @@ export default async function AdminPage({
     const subTab = tab === "crawl" ? "crawl" : "user";
     let query = admin.from("listings").select(LISTING_COLS).order("created_at", { ascending: false }).limit(60);
     query = subTab === "user" ? query.neq("source", "crawl") : query.eq("source", "crawl");
-    if (sp.q) query = query.ilike("title", `%${sp.q}%`);
+    if (sp.q) {
+      const k = khoangIdTuMa(sp.q);
+      query = k ? query.gte("id", k[0]).lte("id", k[1]) : query.ilike("title", `%${sp.q}%`);
+    }
     const { data: rows } = await query;
     const listings = rows ?? [];
 
@@ -1312,6 +1454,7 @@ export default async function AdminPage({
 
     return (
       <AdminShell>
+        {traKetQuaNode}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2">
             <Link

@@ -297,8 +297,13 @@ export default async function ListingDetail({
   // đều hiện CẢ HAI để ai đọc cũng nhận ra chỗ đó - chotot: "Quận 11, TP.HCM (Phường Phú Thọ,
   // TP.HCM mới)", guland: "Tây Ninh (Mới) · Long An". Ta làm tương tự ở mức TỈNH (mức phường
   // cần bộ dữ liệu vài nghìn dòng, chưa có).
-  const diaChiDayDu = (addr: string | null, quan: string | null, tinh: string | null) =>
-    [addr, quan, nhanTinh(tinh)].filter(Boolean).join(", ") || "-";
+  const diaChiDayDu = (addr: string | null, quan: string | null, tinh: string | null) => {
+    let diaChi = addr || "";
+    if (diaChi.includes("Thông Tây Hội")) {
+      diaChi = diaChi.replace("Phường Thông Tây Hội", "Phường Thông Tây Hội (Phường 9 cũ)");
+    }
+    return [diaChi, quan, nhanTinh(tinh)].filter(Boolean).join(", ") || "-";
+  };
 
   const details: [string, ReactNode][] = [
     ...(x.direction ? [["Hướng", x.direction] as [string, ReactNode]] : []),
@@ -424,6 +429,18 @@ export default async function ListingDetail({
       )}
       <div className="flex flex-wrap justify-between gap-4 items-start mt-2">
         <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {roHang && (
+              <span className="font-mono text-xs font-black bg-slate-900 text-white px-2.5 py-0.5 rounded-md shadow-xs select-all inline-flex items-center gap-1" title="Mã căn - gửi kèm khi nhắn Zalo">
+                <span>Mã: {maPhong(x.id)}</span>
+              </span>
+            )}
+            {roHang && (
+              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-xs border border-emerald-200">
+                ✓ Cam kết giá thật 100% · Không phí ẩn
+              </span>
+            )}
+          </div>
           <h1 className="heading-1 text-slate-900 leading-snug">{x.title}</h1>
           <div className="text-slate-600 text-sm mt-1.5 flex items-center gap-1.5 font-medium">
             <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
@@ -459,7 +476,7 @@ export default async function ListingDetail({
           {/* Gallery + lightbox - cap chiều cao để không đẩy hết nội dung xuống dưới fold */}
           <div className="[&_img]:max-h-[420px]">
             {images.length ? (
-              <Gallery images={images} title={x.title} videos={layVideo(x.images)} />
+              <Gallery images={images} title={x.title} videos={layVideo(x.images)} roomCode={roHang ? maPhong(x.id) : undefined} />
             ) : (
               <div className="relative rounded-lg overflow-hidden aspect-[16/9] max-h-[440px] bg-slate-900 shadow-xs group border border-slate-800">
                 {/* Background illustration photo */}

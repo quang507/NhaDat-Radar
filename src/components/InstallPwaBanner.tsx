@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Download, X, Share2, PlusSquare } from "lucide-react";
 
@@ -10,10 +11,16 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function InstallPwaBanner() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIos, setIsIos] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
+
+  // Không hiển thị banner che khuất màn hình khi đang xem tin đăng hoặc trong trang admin
+  if (pathname?.startsWith("/listings/") || pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   useEffect(() => {
     // 1. Kiểm tra nếu đã mở dưới dạng App standalone (đã cài đặt)

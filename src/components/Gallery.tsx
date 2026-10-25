@@ -47,7 +47,7 @@ function useSnapTrack(n: number, onIndexChange: (i: number) => void) {
 
 // videos (30/9, kiểu Mogi): video phòng (rổ hàng EvoHome) - nhãn "▶ Video" trên ảnh chính + ô đầu hàng ảnh nhỏ,
 // bấm mở trình phát toàn màn hình. Không trộn vào track vuốt ảnh để không đụng logic snap/lightbox.
-export default function Gallery({ images, title, videos = [] }: { images: string[]; title: string; videos?: string[] }) {
+export default function Gallery({ images, title, videos = [], roomCode }: { images: string[]; title: string; videos?: string[]; roomCode?: string }) {
   const [video, setVideo] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);       // ảnh đang xem trong lightbox
@@ -119,10 +119,15 @@ export default function Gallery({ images, title, videos = [] }: { images: string
         </div>
         {videos.length > 0 && (
           <button type="button" onClick={() => setVideo(videos[0])}
-            className="absolute top-3 left-3 flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm text-white hover:bg-black/85 transition">
+            className="absolute top-3 left-3 flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm text-white hover:bg-black/85 transition z-10">
             <Play className="w-3.5 h-3.5 fill-current" />
             <span>Video</span>
           </button>
+        )}
+        {roomCode && (
+          <span className="absolute top-3 right-3 text-[11px] font-mono font-bold px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm text-white/95 pointer-events-none shadow-sm z-10">
+            {roomCode}
+          </span>
         )}
         <span className="absolute bottom-3 right-3 text-xs font-medium px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white pointer-events-none flex items-center gap-1.5">
           <span>{heroIdx + 1}/{n}</span>
