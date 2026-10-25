@@ -41,6 +41,7 @@ export default function Footer() {
             <li><Link className="hover:text-brand transition-colors" href="/thue-hay-mua">So sánh Thuê hay Mua</Link></li>
             <li><Link className="hover:text-brand transition-colors" href="/huong-dan/mua">Kinh nghiệm mua &amp; thuê</Link></li>
             <li><Link className="hover:text-brand transition-colors" href="/huong-dan/ban">Kinh nghiệm bán nhà</Link></li>
+            <li><Link className="hover:text-brand transition-colors font-semibold" href="/lap-phong">Chủ trọ: dịch vụ lấp phòng</Link></li>
             <li><Link className="hover:text-brand transition-colors" href="/agents">Mạng lưới môi giới uy tín</Link></li>
           </ul>
         </div>

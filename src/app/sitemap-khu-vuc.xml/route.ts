@@ -11,7 +11,7 @@ export const revalidate = 3600;
 
 export async function GET() {
   const muc: MucSitemap[] = [
-    "", "/search", "/projects", "/agents", "/thong-ke", "/dinh-gia", "/tinh-lai-vay",
+    "", "/search", "/projects", "/agents", "/thong-ke", "/dinh-gia", "/tinh-lai-vay", "/lap-phong",
     "/thue-hay-mua", "/ban", "/huong-dan/mua", "/huong-dan/ban", "/nha-dat-ban", "/nha-dat-cho-thue", "/tin-tuc",
   ].map((p) => ({ url: SITE + p, changefreq: "daily", priority: p === "" ? 1 : 0.7 }));
 

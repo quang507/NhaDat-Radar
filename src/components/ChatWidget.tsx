@@ -106,7 +106,8 @@ export default function ChatWidget() {
     <>
       {/* MOBILE (25/10, ZEN thumb zone): thanh 3 nút dính đáy thay cho cụm nút nổi - cụm cũ đè lên thẻ tin/
           ô tìm kiếm ở 375-414px. Trang tin đã có thanh Gọi/Zalo riêng (kèm giá + mã phòng) -> ẩn ở đó. */}
-      {!dangXem && (
+      {/* /lap-phong có thanh "Đăng ký lấp phòng" riêng -> không chồng 2 thanh dính đáy */}
+      {!dangXem && pathname !== "/lap-phong" && (
         <>
           <div className="lg:hidden h-16" aria-hidden />
           <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur">

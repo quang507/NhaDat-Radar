@@ -23,6 +23,7 @@ const LINKS = [
   { href: "/tinh-lai-vay", label: "Lãi Vay", icon: Calculator },
   { href: "/thue-hay-mua", label: "Thuê hay Mua", icon: Scale },
   { href: "/yeu-thich", label: "Tin đã lưu", icon: Heart },
+  { href: "/lap-phong", label: "Cho chủ trọ: lấp phòng", icon: KeyRound },
 ];
 
 export default function MobileMenu() {
