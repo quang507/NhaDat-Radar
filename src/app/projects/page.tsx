@@ -21,18 +21,20 @@ const CARD_COLS = "id,name,investor,province,district,images,price_min,price_max
 const layDuAn = unstable_cache(
   async (tinh: string, page: number) => {
     const supabase = createAnonClient();
-    let q = supabase.from("projects").select(CARD_COLS, { count: "exact" }).eq("status", "published");
+    // 25/10: bỏ dự án "vỏ rỗng" (không ảnh - vd 3 dự án Mogi chỉ có tên + 1 câu mô tả tự sinh): thẻ toàn ô
+    // xanh trống + "Giá thoả thuận" làm cả trang trông thiếu dữ liệu. Trang chi tiết vẫn mở được qua link cũ.
+    let q = supabase.from("projects").select(CARD_COLS, { count: "exact" }).eq("status", "published").not("images", "eq", "{}");
     if (tinh) q = q.eq("province", tinh);
     // Thứ tự PHẢI ổn định giữa các trang, không thì phân trang sẽ lặp/sót dự án:
     // priority (đối tác lên đầu) -> tên. Không sắp lại ở client như bản cũ vì làm vậy chỉ đúng trong 1 trang.
     const from = (page - 1) * PER_PAGE;
     const [{ data, count }, { data: provRows }] = await Promise.all([
       q.order("priority", { ascending: false }).order("name").range(from, from + PER_PAGE - 1),
-      supabase.from("projects").select("province").eq("status", "published").not("province", "is", null).limit(2000),
+      supabase.from("projects").select("province").eq("status", "published").not("images", "eq", "{}").not("province", "is", null).limit(2000),
     ]);
     return { data, count, provRows };
   },
-  ["projects-list"],
+  ["projects-list-v2"],
   { revalidate: 600 },
 );
 

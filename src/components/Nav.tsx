@@ -12,7 +12,9 @@ export default function Nav() {
     <HeaderCuon className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-5 py-2.5 flex items-center gap-3">
         <MobileMenu />
-        <Link href="/" className="flex items-center gap-2.5 font-black text-base tracking-tight whitespace-nowrap shrink-0 group">
+        {/* 25/10: viền focus mặc định ôm sát mép link -> đè lên nét đứng chữ R ("logo bị chặt"). Chừa đệm
+            (p-1 bù bằng -m-1 nên bố cục không xê dịch) + vòng focus màu brand cách logo 2px. */}
+        <Link href="/" className="flex items-center gap-2.5 font-black text-base tracking-tight whitespace-nowrap shrink-0 group -m-1 p-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]">
           {/* Logo R mới (25/10): 2 bản màu phẳng theo theme - logo.svg cho nền sáng, logo-dark.svg (emerald sáng hơn) cho nền slate.
               Chữ thương hiệu là chữ HTML Inter: file Illustrator gốc dùng FranklinGothic không nhúng -> trình duyệt hiện Times. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}

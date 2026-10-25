@@ -73,8 +73,8 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
     <div>
       <section className="text-center py-8">
         <div className="kicker mb-2">Định giá bằng AI + dữ liệu thật</div>
-        <h1 className="heading-1 text-slate-900 mb-3">AI Định Giá Bất Động Sản</h1>
-        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+        <h1 className="heading-1 text-[var(--ink)] mb-3">AI Định Giá Bất Động Sản</h1>
+        <p className="text-sm sm:text-base text-[var(--ink-soft)] max-w-2xl mx-auto leading-relaxed">
           Nhập thông tin tài sản — Hệ thống tự động so sánh với các tin đang rao cùng khu vực trong dữ liệu của Radar
           để đưa ra khoảng giá ước tính và dự phóng tương lai.
         </p>
@@ -166,7 +166,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                 {/* Thanh khoảng giá */}
                 <div className="relative h-2 rounded-full bg-[var(--surface-2)] mb-1">
                   <div className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-brand/40 to-brand" style={{ width: "100%" }} />
-                  <div className="absolute -top-1 w-4 h-4 rounded-full bg-white border-[3px] border-brand shadow" style={{ left: `calc(${pct}% - 8px)` }} />
+                  <div className="absolute -top-1 w-4 h-4 rounded-full bg-[var(--surface)] border-[3px] border-brand shadow" style={{ left: `calc(${pct}% - 8px)` }} />
                 </div>
                 <div className="flex justify-between text-xs text-[var(--ink-soft)] mb-3">
                   <span>{money(r.low_vnd, r.deal === "cho_thue")}</span>
@@ -222,7 +222,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                   href={`https://zalo.me/0346689460?text=${encodeURIComponent(`Chào chuyên viên Radar, mình vừa định giá tài sản (${PROP[f.kind] || "nhà đất"} tại ${f.district ? f.district + ", " : ""}${f.province}). Nhờ bạn hỗ trợ thẩm định thực tế và kiểm tra pháp lý giúp mình nhé!`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-md bg-white text-emerald-900 hover:bg-emerald-50 font-bold text-sm shadow-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
+                  className="px-4 py-2 rounded-md bg-[var(--surface)] text-emerald-900 hover:bg-emerald-50 font-bold text-sm shadow-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
                 >
                   Nhắn Zalo thẩm định
                 </a>

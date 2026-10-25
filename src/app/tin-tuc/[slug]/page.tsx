@@ -140,16 +140,16 @@ function KhungBai({
           )}
         </div>
 
-        <h1 className="prata text-2xl sm:text-3xl md:text-4xl text-slate-900 leading-snug tracking-tight">
+        <h1 className="prata text-2xl sm:text-3xl md:text-4xl text-[var(--ink)] leading-snug tracking-tight">
           {tieuDe}
         </h1>
 
-        <p className="text-base md:text-lg text-slate-600 leading-relaxed font-normal bg-slate-50 border-l-4 border-brand p-4 rounded-r-xl">
+        <p className="text-base md:text-lg text-[var(--ink-soft)] leading-relaxed font-normal bg-[var(--surface-2)] border-l-4 border-brand p-4 rounded-r-xl">
           {moTa}
         </p>
 
         {coverImage && (
-          <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-md mt-6 bg-slate-100">
+          <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-md mt-6 bg-[var(--surface-2)]">
             <SafeImg
               src={coverImage}
               alt={tieuDe}
@@ -197,7 +197,7 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
           ["Giá theo m²", bc.giaM2 ? `${Math.round(bc.giaM2 / 1000).toLocaleString("vi-VN")}k / m²` : "-"],
           ["Tổng phòng", `${bc.n.toLocaleString("vi-VN")} phòng`],
         ].map(([k, v]) => (
-          <div key={k} className="card rounded-2xl p-4 border border-slate-200/80 bg-white shadow-xs">
+          <div key={k} className="card rounded-2xl p-4 border border-[var(--line)] bg-[var(--surface)] shadow-xs">
             <div className="text-xs text-slate-500">{k}</div>
             <div className="font-bold text-brand text-lg sm:text-xl mt-1">{v}</div>
           </div>
@@ -206,11 +206,11 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
 
       {bc.xuHuong && (
         <section className="space-y-2">
-          <h2 className="font-bold text-xl text-slate-900">Biến động giá thuê 30 ngày qua</h2>
+          <h2 className="font-bold text-xl text-[var(--ink)]">Biến động giá thuê 30 ngày qua</h2>
           <p className="text-slate-700">
             Giá thuê tính theo m² của phòng trọ {ten}{" "}
             {bc.xuHuong.pct > 0.5 ? "tăng" : bc.xuHuong.pct < -0.5 ? "giảm" : "gần như đi ngang"}{" "}
-            khoảng <b className="text-slate-900">{Math.abs(bc.xuHuong.pct).toLocaleString("vi-VN")}%</b>{" "}
+            khoảng <b className="text-[var(--ink)]">{Math.abs(bc.xuHuong.pct).toLocaleString("vi-VN")}%</b>{" "}
             trong 30 ngày qua ({Math.round(bc.xuHuong.truoc / 1000)}k → {Math.round(bc.xuHuong.nay / 1000)}k/m²).
           </p>
         </section>
@@ -219,7 +219,7 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
       {bc.theoDienTich.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-xl text-slate-900">Mặt bằng giá theo diện tích</h2>
+            <h2 className="font-bold text-xl text-[var(--ink)]">Mặt bằng giá theo diện tích</h2>
             <span className="text-xs text-slate-400">Bấm để xem danh sách phòng</span>
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5">
@@ -229,7 +229,7 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
                 <Link
                   key={d.nhan}
                   href={searchUrl}
-                  className="group card rounded-xl p-3 border border-slate-200/80 bg-slate-50 hover:bg-white hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
+                  className="group card rounded-xl p-3 border border-[var(--line)] bg-[var(--surface-2)] hover:bg-[var(--surface)] hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
                   title={`Xem danh sách phòng tại ${ten}`}
                 >
                   <span className="font-semibold text-slate-700 text-sm group-hover:text-brand transition-colors flex items-center gap-1.5">
@@ -247,7 +247,7 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
       {bc.theoPhuong.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-bold text-xl text-slate-900">Phường có giá thuê dễ chịu nhất ở {ten}</h2>
+            <h2 className="font-bold text-xl text-[var(--ink)]">Phường có giá thuê dễ chịu nhất ở {ten}</h2>
             <span className="text-xs text-slate-400">Bấm phường để xem phòng cụ thể</span>
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5">
@@ -257,7 +257,7 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
                 <Link
                   key={p.phuong}
                   href={searchUrl}
-                  className="group card rounded-xl p-3 border border-slate-200/80 bg-white hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
+                  className="group card rounded-xl p-3 border border-[var(--line)] bg-[var(--surface)] hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
                   title={`Xem ${p.n} phòng cho thuê tại ${p.phuong}`}
                 >
                   <span className="font-semibold text-slate-800 text-sm group-hover:text-brand transition-colors flex items-center gap-1.5">
@@ -274,7 +274,7 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
 
       {bc.canHo && (
         <section className="space-y-2">
-          <h2 className="font-bold text-xl text-slate-900">So với căn hộ dịch vụ / studio</h2>
+          <h2 className="font-bold text-xl text-[var(--ink)]">So với căn hộ dịch vụ / studio</h2>
           <p className="text-slate-700">
             Căn hộ cho thuê tại {ten} có giá trung vị <b className="text-brand">{trieu(bc.canHo.trungVi)}</b>/tháng ({bc.canHo.n} căn) — cao hơn phòng trọ thường nhưng đã trang bị đầy đủ nội thất, thang máy và dịch vụ quản lý tiện nghi.
           </p>
@@ -285,9 +285,9 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
       <section className="card rounded-2xl p-6 border border-emerald-200 bg-emerald-50/50 space-y-4">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-emerald-600" />
-          <h2 className="font-bold text-lg text-slate-900">Xem {bc.n.toLocaleString("vi-VN")} phòng trọ {ten} đã xác minh còn trống</h2>
+          <h2 className="font-bold text-lg text-[var(--ink)]">Xem {bc.n.toLocaleString("vi-VN")} phòng trọ {ten} đã xác minh còn trống</h2>
         </div>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-[var(--ink-soft)]">
           Hình ảnh thực tế, mức giá minh bạch, phòng trống đã xác thực trên NhaDat Radar — hỗ trợ xem phòng miễn phí và thương lượng trực tiếp với chủ nhà.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
@@ -299,7 +299,7 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
             href={HOTLINE_ZALO}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn border border-[#0068ff]/30 text-[#0068ff] bg-white hover:bg-blue-50/50 inline-flex items-center gap-2 font-semibold shadow-xs"
+            className="btn border border-[#0068ff]/30 text-[#0068ff] bg-[var(--surface)] hover:bg-blue-50/50 inline-flex items-center gap-2 font-semibold shadow-xs"
           >
             <MessageCircle className="w-4 h-4 text-[#0068ff]" />
             <span>Nhắn Zalo xem phòng ({HOTLINE})</span>
@@ -308,14 +308,14 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
       </section>
 
       {khac.length > 0 && (
-        <section className="pt-6 border-t border-slate-200/80 space-y-3">
-          <h2 className="font-bold text-lg text-slate-900">Xem giá thuê phòng trọ các quận lân cận</h2>
+        <section className="pt-6 border-t border-[var(--line)] space-y-3">
+          <h2 className="font-bold text-lg text-[var(--ink)]">Xem giá thuê phòng trọ các quận lân cận</h2>
           <div className="flex flex-wrap gap-2">
             {khac.map((k) => (
               <Link
                 key={k.slug}
                 href={`/tin-tuc/gia-thue-phong-tro-${k.slug}`}
-                className="text-xs px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:border-brand hover:text-brand font-medium transition-colors"
+                className="text-xs px-3 py-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] hover:border-brand hover:text-brand font-medium transition-colors"
               >
                 {tenKhuVucGon(k.quan)}
               </Link>
@@ -365,7 +365,7 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
     >
       {/* Table of Contents */}
       {b.muc.length > 2 && (
-        <div className="card rounded-2xl p-5 border border-slate-200/80 bg-slate-50/80 my-4 space-y-2">
+        <div className="card rounded-2xl p-5 border border-[var(--line)] bg-slate-50/80 my-4 space-y-2">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
             <BookOpen className="w-3.5 h-3.5" />
             <span>Mục lục bài viết</span>
@@ -385,7 +385,7 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
       {/* Sections */}
       {b.muc.map((m, idx) => (
         <section key={m.h2} id={`muc-${idx}`} className="space-y-3 pt-2 scroll-mt-20">
-          <h2 className="font-bold text-xl md:text-2xl text-slate-900 flex items-center gap-2">
+          <h2 className="font-bold text-xl md:text-2xl text-[var(--ink)] flex items-center gap-2">
             <span className="w-1.5 h-6 rounded-full bg-brand shrink-0" />
             <span>{m.h2}</span>
           </h2>
@@ -410,7 +410,7 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:border-brand hover:text-brand shadow-xs transition-colors flex items-center gap-1"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] hover:border-brand hover:text-brand shadow-xs transition-colors flex items-center gap-1"
                 >
                   <span>{l.nhan}</span>
                   <ArrowRight className="w-3 h-3" />
@@ -425,9 +425,9 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
       <section className="card rounded-3xl p-6 sm:p-8 border border-emerald-200 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/40 shadow-sm space-y-4 my-8">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-emerald-600" />
-          <h3 className="font-bold text-xl text-slate-900">Đồng hành cùng bạn trên thị trường BĐS</h3>
+          <h3 className="font-bold text-xl text-[var(--ink)]">Đồng hành cùng bạn trên thị trường BĐS</h3>
         </div>
-        <p className="text-sm text-slate-600 leading-relaxed">
+        <p className="text-sm text-[var(--ink-soft)] leading-relaxed">
           NhaDat Radar giúp bạn tìm kiếm, thẩm định giá và xác minh thông tin nhà đất khắp Việt Nam. Chúng tôi cam kết dữ liệu minh bạch, hình ảnh thực tế và hỗ trợ thương lượng trực tiếp chủ nhà.
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
@@ -439,7 +439,7 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
             href={HOTLINE_ZALO}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn border border-[#0068ff]/30 text-[#0068ff] bg-white hover:bg-blue-50/50 inline-flex items-center gap-2 font-semibold"
+            className="btn border border-[#0068ff]/30 text-[#0068ff] bg-[var(--surface)] hover:bg-blue-50/50 inline-flex items-center gap-2 font-semibold"
           >
             <MessageCircle className="w-4 h-4 text-[#0068ff]" />
             <span>Tư vấn qua Zalo ({HOTLINE})</span>
@@ -452,16 +452,16 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
 
       {/* Related Articles */}
       {lienQuan && lienQuan.length > 0 && (
-        <section className="pt-8 border-t border-slate-200/80 space-y-4">
-          <h3 className="font-bold text-xl text-slate-900">Bài viết liên quan</h3>
+        <section className="pt-8 border-t border-[var(--line)] space-y-4">
+          <h3 className="font-bold text-xl text-[var(--ink)]">Bài viết liên quan</h3>
           <div className="grid sm:grid-cols-3 gap-4">
             {lienQuan.map((item) => (
               <Link
                 key={item.slug}
                 href={`/tin-tuc/${item.slug}`}
-                className="group card rounded-2xl overflow-hidden border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-md transition-all flex flex-col"
+                className="group card rounded-2xl overflow-hidden border border-[var(--line)] bg-[var(--surface)] hover:border-slate-300 hover:shadow-md transition-all flex flex-col"
               >
-                <div className="aspect-[16/10] relative overflow-hidden bg-slate-100">
+                <div className="aspect-[16/10] relative overflow-hidden bg-[var(--surface-2)]">
                   <SafeImg
                     src={item.coverImage}
                     alt={item.tieuDe}
@@ -470,7 +470,7 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
                   />
                 </div>
                 <div className="p-3.5 flex-1 flex flex-col justify-between">
-                  <h4 className="font-semibold text-sm text-slate-900 group-hover:text-brand transition-colors line-clamp-2 leading-snug">
+                  <h4 className="font-semibold text-sm text-[var(--ink)] group-hover:text-brand transition-colors line-clamp-2 leading-snug">
                     {item.tieuDe}
                   </h4>
                   <div className="text-[0.7rem] text-slate-400 mt-2 flex items-center justify-between">

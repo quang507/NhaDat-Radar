@@ -47,12 +47,12 @@ const layTinTrangChu = unstable_cache(
     const [{ data: rhData }, { data }, { data: projData, count: projectCount }] = await Promise.all([
       taoQuery().eq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(100),
       taoQuery().neq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150),
-      supabase.from("projects").select("*", { count: "exact" }).eq("status", "published")
+      supabase.from("projects").select("*", { count: "exact" }).eq("status", "published").not("images", "eq", "{}")   // 25/10: bỏ dự án không ảnh
         .order("priority", { ascending: false }).order("name").limit(6),
     ]);
     return { data: tronRoHang((rhData ?? []) as { id: string }[], (data ?? []) as { id: string }[]), projData: projData ?? [], projectCount: projectCount ?? 0 };
   },
-  ["home-listings-v6"],
+  ["home-listings-v7"],
   { revalidate: 1800, tags: ["listings"] },   // 30 phút (2/10, egress): mỗi lần làm mới kéo 250 tin
 );
 
@@ -230,7 +230,7 @@ export default async function Home() {
           {projects.length > 0 && (
             <Section title="Dự án nổi bật" href="/projects">
               <HangVuot motHang items={projects.slice(0, 4).map((p) => ({ key: p.id, node: (
-                  <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 group w-full border border-slate-200">
+                  <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 group w-full border border-[var(--line)]">
                     {/* Ảnh chiếm ~2/3 card (16:10), mô tả gọn 1 khối - ảnh là thứ bán dự án */}
                     <div className="aspect-[16/10] bg-[#0f172a] grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
@@ -301,13 +301,13 @@ export default async function Home() {
           </section>
 
           {/* ===== Trợ lý Zalo: Nhận bảng hàng giá tốt mới nhất ===== */}
-          <section className="mt-10 sm:mt-12 card p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 border border-slate-200 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/80 rounded-lg">
+          <section className="mt-10 sm:mt-12 card p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 border border-[var(--line)] dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/80 rounded-lg">
             <div className="w-10 h-10 rounded-md bg-brand/10 dark:bg-emerald-950/50 text-brand dark:text-emerald-400 flex items-center justify-center shrink-0">
               <MessageCircle className="w-5 h-5 text-brand dark:text-emerald-400" />
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <h3 className="heading-3 text-slate-900 dark:text-slate-100">Nhận danh sách căn giá tốt nhất qua Zalo</h3>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+              <h3 className="heading-3 text-[var(--ink)] dark:text-slate-100">Nhận danh sách căn giá tốt nhất qua Zalo</h3>
+              <p className="text-xs sm:text-sm text-[var(--ink-soft)] dark:text-slate-300 mt-1 leading-relaxed">
                 Chuyên viên Radar lọc sẵn 3–5 căn sát nhu cầu, đúng giá chủ nhà và gửi kèm ảnh/sổ hồng trực tiếp qua Zalo trong 15 phút.
               </p>
             </div>
@@ -324,7 +324,7 @@ export default async function Home() {
           {/* ===== Duyệt theo danh mục ===== */}
           <section className="mt-10 sm:mt-12">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="heading-2 border-l-4 border-brand pl-3 text-slate-900 dark:text-slate-100">Duyệt theo danh mục</h2>
+              <h2 className="heading-2 border-l-4 border-brand pl-3 text-[var(--ink)] dark:text-slate-100">Duyệt theo danh mục</h2>
               <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Hơn 15.000 căn nhà đất có sẵn</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -402,7 +402,7 @@ export default async function Home() {
           <section className="mt-12 sm:mt-16">
             <div className="flex items-center justify-between gap-3 mb-6">
               <div>
-                <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-slate-900 dark:text-slate-100">Tin tức &amp; Cẩm nang thị trường</h2>
+                <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-[var(--ink)] dark:text-slate-100">Tin tức &amp; Cẩm nang thị trường</h2>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 pl-4 mt-1">Kiến thức pháp lý, quy hoạch, lãi suất vay và kinh nghiệm giao dịch BĐS</p>
               </div>
               <Link href="/tin-tuc" className="group text-sm text-brand dark:text-emerald-400 font-semibold ml-auto whitespace-nowrap inline-flex items-center gap-1">
@@ -415,10 +415,10 @@ export default async function Home() {
                 <Link
                   key={b.slug}
                   href={`/tin-tuc/${b.slug}`}
-                  className="group card rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all duration-200 flex flex-col justify-between"
+                  className="group card rounded-lg overflow-hidden border border-[var(--line)] dark:border-slate-700/80 bg-[var(--surface)] dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all duration-200 flex flex-col justify-between"
                 >
                   <div>
-                    <div className="aspect-[16/10] relative overflow-hidden bg-slate-100 dark:bg-slate-900">
+                    <div className="aspect-[16/10] relative overflow-hidden bg-[var(--surface-2)] dark:bg-slate-900">
                       <SafeImg
                         src={b.coverImage}
                         alt={b.tieuDe}
@@ -430,12 +430,12 @@ export default async function Home() {
                       </span>
                     </div>
                     <div className="p-4">
-                      <div className="flex items-center gap-2 text-[0.7rem] text-slate-600 dark:text-slate-400 mb-1.5 font-medium">
+                      <div className="flex items-center gap-2 text-[0.7rem] text-[var(--ink-soft)] dark:text-slate-400 mb-1.5 font-medium">
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" /> {b.readTime}</span>
                         <span>·</span>
                         <span>{b.ngay}</span>
                       </div>
-                      <h3 className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-brand dark:group-hover:text-emerald-400 transition-colors line-clamp-2 leading-snug text-sm">
+                      <h3 className="font-bold text-[var(--ink)] dark:text-slate-100 group-hover:text-brand dark:group-hover:text-emerald-400 transition-colors line-clamp-2 leading-snug text-sm">
                         {b.tieuDe}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">
@@ -467,7 +467,7 @@ function Section({ title, href, children }: { title: string; href: string; child
   return (
     <section className="mt-12 sm:mt-16">
       <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-        <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-slate-900">{title}</h2>
+        <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-[var(--ink)]">{title}</h2>
         <Link href={href} className="group text-sm text-brand font-bold ml-auto whitespace-nowrap inline-flex items-center gap-1 hover:text-brand-ink transition-colors">
           <span>Xem tất cả</span>
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

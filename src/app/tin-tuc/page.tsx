@@ -32,16 +32,16 @@ export default async function TinTucPage() {
           <span className="text-slate-800 font-medium">Tin tức &amp; Cẩm nang</span>
         </nav>
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200/80">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[var(--line)]">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60 mb-2">
               <BookOpen className="w-3.5 h-3.5" />
               <span>Chuyên mục Bất Động Sản</span>
             </div>
-            <h1 className="prata text-2xl md:text-4xl text-slate-900 tracking-tight">
+            <h1 className="prata text-2xl md:text-4xl text-[var(--ink)] tracking-tight">
               Tin tức &amp; Cẩm nang thị trường
             </h1>
-            <p className="text-sm md:text-base text-slate-600 mt-2 max-w-2xl leading-relaxed">
+            <p className="text-sm md:text-base text-[var(--ink-soft)] mt-2 max-w-2xl leading-relaxed">
               Kiến thức pháp lý thực chiến, kinh nghiệm mua bán &amp; thuê nhà, báo cáo biến động giá trung vị từ kho dữ liệu thật trên NhaDat Radar.
             </p>
           </div>

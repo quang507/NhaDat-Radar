@@ -50,10 +50,10 @@ export default function ThongKeView({
     // grid-cols-1 + min-w-0: không có thì thẻ giãn theo nội dung rộng nhất -> tràn ngang trên điện thoại
     <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5 items-start">
       {/* Cột trái: Bản đồ giá */}
-      <div className="card min-w-0 rounded-2xl p-4 border border-slate-200/80 bg-white shadow-xs space-y-3">
-        <div className="flex items-center justify-between text-xs sm:text-sm text-slate-600 px-1">
+      <div className="card min-w-0 rounded-2xl p-4 border border-[var(--line)] bg-[var(--surface)] shadow-xs space-y-3">
+        <div className="flex items-center justify-between text-xs sm:text-sm text-[var(--ink-soft)] px-1">
           <div>
-            <b className="text-slate-900 font-bold">{listingsCount}</b> tin, giá {lo} - {hi} tại {city},{" "}
+            <b className="text-[var(--ink)] font-bold">{listingsCount}</b> tin, giá {lo} - {hi} tại {city},{" "}
             {deal === "cho_thue" ? "cho thuê" : "rao bán"}
           </div>
           {selectedDistrict && (
@@ -74,16 +74,16 @@ export default function ThongKeView({
             height={480}
           />
         ) : (
-          <div className="h-[480px] grid place-items-center text-slate-400 bg-slate-50 rounded-xl border border-slate-100">
+          <div className="h-[480px] grid place-items-center text-slate-400 bg-[var(--surface-2)] rounded-xl border border-slate-100">
             Chưa có dữ liệu toạ độ cho khu vực này.
           </div>
         )}
       </div>
 
       {/* Cột phải: Xếp hạng giá theo quận */}
-      <div className="card min-w-0 rounded-2xl p-5 border border-slate-200/80 bg-white shadow-xs space-y-4">
+      <div className="card min-w-0 rounded-2xl p-5 border border-[var(--line)] bg-[var(--surface)] shadow-xs space-y-4">
         <div>
-          <h3 className="font-bold text-base text-slate-900 flex items-center justify-between">
+          <h3 className="font-bold text-base text-[var(--ink)] flex items-center justify-between">
             <span>Xếp hạng giá theo quận</span>
             <span className="text-[0.7rem] font-normal text-slate-400">Bấm quận để phóng to bản đồ</span>
           </h3>
@@ -118,7 +118,7 @@ export default function ThongKeView({
                       <span className="text-slate-400 font-normal">({r.n})</span>
                     </span>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-mono font-bold text-slate-900">{short(r.med)}</span>
+                      <span className="font-mono font-bold text-[var(--ink)]">{short(r.med)}</span>
                       <Link
                         href={searchUrl}
                         onClick={(e) => e.stopPropagation()}
