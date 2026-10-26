@@ -441,3 +441,24 @@ body {
   display: none !important;
 }
 
+
+/* Hiệu ứng zoom ra zoom vào (breathing pulse) cho cụm nút liên hệ nổi */
+@keyframes pulseZoom {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.12), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.animate-pulse-zoom {
+  animation: pulseZoom 2.2s ease-in-out infinite;
+}
+
+.animate-pulse-zoom-delay {
+  animation: pulseZoom 2.2s ease-in-out infinite;
+  animation-delay: 1.1s;
+}

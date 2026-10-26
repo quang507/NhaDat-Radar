@@ -62,7 +62,7 @@ export async function generateMetadata() {
   try {
     const { total, districtCount, sources } = await getAreas();
     return {
-      title: `NhaDat Radar - ${total.toLocaleString("vi-VN")} tin nhà đất bán & cho thuê, giá thật theo khu vực`,
+      title: `NhaDat Radar - ${total.toLocaleString("vi-VN")} tin nhà đất bán & cho thuê giá thật`,
       description: `${total.toLocaleString("vi-VN")} tin nhà đất từ ${sources} nguồn, phủ ${districtCount} quận/huyện: giá trung vị theo m², xu hướng giá, cảnh báo giá lệch và dấu hiệu môi giới/chính chủ. Cập nhật hằng ngày.`,
       alternates: { canonical: "/" },
     };
@@ -210,9 +210,9 @@ export default async function Home() {
                   <span className="text-slate-400 text-xs">·</span>
                   <span className="text-xs text-slate-300">Đường Hậu Giang, P.11, Q.6</span>
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition leading-snug mb-2">
+                <h2 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition leading-snug mb-2">
                   Cho thuê nhà compound Bình Phú · 60m² · 4 tầng · Xe hơi vô nhà
-                </h3>
+                </h2>
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-300 mb-3">
                   <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 Phòng ngủ</span>
                   <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 WC</span>

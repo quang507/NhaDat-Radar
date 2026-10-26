@@ -135,7 +135,7 @@ export default function ChatWidget() {
         <a
           href={`tel:${HOTLINE}`}
           aria-label={`Gọi Hotline ${HOTLINE}`}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs active:scale-95 transition-all border border-emerald-600"
+          className="animate-pulse-zoom origin-right flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all border border-emerald-600 hover:[animation-play-state:paused]"
         >
           <PhoneCall className="w-4 h-4" />
           <span className="hidden sm:inline">Hotline: 0346 689 460</span>
@@ -148,7 +148,7 @@ export default function ChatWidget() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Nhắn Zalo tư vấn phòng"
-          className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-xs font-bold shadow-xs hover:border-blue-700 active:scale-95 transition-all border border-blue-600"
+          className="animate-pulse-zoom-delay origin-right flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-xs font-bold shadow-md hover:shadow-lg hover:border-blue-700 active:scale-95 transition-all border border-blue-600 hover:[animation-play-state:paused]"
         >
           <MessageCircle className="w-4 h-4 fill-current" />
           <span className="hidden sm:inline">Nhắn Zalo tư vấn 24/7</span>
