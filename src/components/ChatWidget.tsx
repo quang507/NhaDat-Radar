@@ -35,6 +35,7 @@ export default function ChatWidget() {
   const pathname = usePathname();
   // đang ở trang chi tiết tin -> gửi kèm id để bot hiểu
   const dangXem = pathname?.match(/^\/listings\/([0-9a-f-]{36})/i)?.[1] || null;
+  const anThanhDay = !!dangXem || pathname === "/lap-phong" || pathname?.startsWith("/admin") || pathname?.startsWith("/dashboard");
 
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([
@@ -110,9 +111,9 @@ export default function ChatWidget() {
       {/* MOBILE (25/10, ZEN thumb zone): thanh 3 nút dính đáy thay cho cụm nút nổi - cụm cũ đè lên thẻ tin/
           ô tìm kiếm ở 375-414px. Trang tin đã có thanh Gọi/Zalo riêng (kèm giá + mã phòng) -> ẩn ở đó. */}
       {/* /lap-phong có thanh "Đăng ký lấp phòng" riêng -> không chồng 2 thanh dính đáy */}
-      {!dangXem && pathname !== "/lap-phong" && (
+      {!anThanhDay && (
         <>
-          <div className="lg:hidden h-16" aria-hidden />
+          <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
           <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur">
             <a href={`tel:${HOTLINE}`} aria-label={`Gọi Hotline ${HOTLINE}`} className="btn btn-primary min-h-11 font-bold">
               <PhoneCall className="w-4 h-4" />
@@ -269,7 +270,7 @@ export default function ChatWidget() {
           </div>
 
           {/* Quick chips gợi ý */}
-          <div className="px-3 py-1.5 bg-[var(--surface)] border-t border-[var(--line)] overflow-x-auto flex gap-1.5 [scrollbar-width:none]">
+          <div className="cuon-ngang px-3 py-1.5 bg-[var(--surface)] border-t border-[var(--line)] overflow-x-auto flex gap-1.5 [scrollbar-width:none]">
             {chips.map((chip, idx) => (
               <button
                 key={idx}

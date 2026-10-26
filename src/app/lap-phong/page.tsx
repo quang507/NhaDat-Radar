@@ -188,7 +188,7 @@ export default async function LapPhong() {
       </section>
 
       {/* Mobile: CTA dính đáy trong vùng ngón cái (thanh liên hệ chung được ẩn ở trang này - ChatWidget) */}
-      <div className="lg:hidden h-16" aria-hidden />
+      <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
       <nav aria-label="Đăng ký lấp phòng" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_auto] gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur">
         <a href="#dang-ky" className="btn btn-primary min-h-12 font-bold">Đăng ký lấp phòng</a>
         <a href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo Radar" className="btn min-h-12 font-bold !border-[#0068ff] !text-[#0068ff]">

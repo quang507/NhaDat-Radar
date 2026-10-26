@@ -378,6 +378,21 @@ html[data-header-an] .duoi-header { top: 0; }
 .ndr-pin:hover::after, .ndr-pin:focus-visible::after { border-top-color: #065f46; }
 .maplibregl-marker:has(.ndr-pin:hover) { z-index: 2; }
 @media (prefers-reduced-motion: reduce) { .ndr-pin { transition: none; } .ndr-pin:hover { transform: none; } }
+/* Pin chính (vị trí tin đang xem): màu Slate đậm viền Amber nổi bật, luôn nằm trên cùng */
+.ndr-pin.ndr-pin-chinh {
+  background: #0f172a; border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, .35), 0 3px 8px rgb(15 23 42 / .35);
+  z-index: 10;
+}
+.ndr-pin.ndr-pin-chinh::after { border-top-color: #0f172a; }
+.ndr-pin.ndr-pin-chinh:hover, .ndr-pin.ndr-pin-chinh:focus-visible { background: #1e293b; }
+.ndr-pin.ndr-pin-chinh:hover::after, .ndr-pin.ndr-pin-chinh:focus-visible::after { border-top-color: #1e293b; }
+.maplibregl-marker:has(.ndr-pin.ndr-pin-chinh) { z-index: 10; }
+/* Pin phòng trọ / cho thuê lân cận: tông Teal dễ phân biệt với tin bán */
+.ndr-pin.ndr-pin-thue { background: #0d9488; }
+.ndr-pin.ndr-pin-thue::after { border-top-color: #0d9488; }
+.ndr-pin.ndr-pin-thue:hover, .ndr-pin.ndr-pin-thue:focus-visible { background: #0f766e; }
+.ndr-pin.ndr-pin-thue:hover::after, .ndr-pin.ndr-pin-thue:focus-visible::after { border-top-color: #0f766e; }
 
 /* Popup */
 .ndr-popup .maplibregl-popup-content {

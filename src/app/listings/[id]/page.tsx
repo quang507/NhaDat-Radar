@@ -668,7 +668,7 @@ export default async function ListingDetail({
             </div>
             {x.lat != null && x.lng != null ? (
               <>
-                <ListingMap lat={x.lat} lng={x.lng} title={x.title} />
+                <ListingMap lat={x.lat} lng={x.lng} title={x.title} deal={x.deal} currentId={x.id} priceVnd={x.price_vnd} />
                 {/* Tiện ích quanh đây (ISO 9241-110): mở Google Maps tìm quanh toạ độ - không cần API trả phí */}
                 <div className="flex flex-wrap gap-2 mt-3 text-xs">
                   <span className="text-[var(--ink-soft)] self-center">Quanh đây:</span>
@@ -868,7 +868,7 @@ export default async function ListingDetail({
 
       {/* Mobile: thanh CTA dính đáy - khối liên hệ nằm cuối trang, khách phải cuộn 4-5 màn (UX audit).
           Bù padding-bottom cho body qua div dưới. */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 py-2.5 flex items-center gap-3">
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] flex items-center gap-3">
         <div className="min-w-0">
           <div className="text-brand font-extrabold leading-tight">{fmtPrice(x.price_vnd, x.deal)}</div>
           <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[roHang ? `Mã ${maPhong(x.id)}` : null, x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
@@ -928,7 +928,7 @@ export default async function ListingDetail({
       <RecentlyViewedTracker item={{ id: x.id, title: x.title, price: fmtPrice(x.price_vnd, x.deal), where: [x.district, x.province].filter(Boolean).join(", "), img: images[0] || null }} />
       <RecentlyViewed excludeId={x.id} />
       {/* chừa chỗ cho thanh CTA dính đáy trên mobile */}
-      <div className="lg:hidden h-16" aria-hidden />
+      <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
     </div>
   );
 }

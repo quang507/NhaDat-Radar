@@ -58,7 +58,7 @@ export default function RecentlyViewed({ excludeId }: { excludeId?: string } = {
         <h2 className="font-bold text-sm">Đã xem gần đây</h2>
         <button className="text-xs text-[var(--ink-faint)] hover:underline" onClick={() => { try { localStorage.removeItem(KEY); } catch { /* ignore */ } setItems([]); }}>xoá lịch sử</button>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
+      <div className="cuon-ngang flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
         {items.map((r) => (
           <Link key={r.id} href={`/listings/${r.id}`} className="card rounded-lg overflow-hidden shrink-0 w-44 hover:border-brand transition">
             <div className="h-24 bg-[var(--surface-2)] overflow-hidden">
