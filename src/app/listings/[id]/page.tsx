@@ -144,8 +144,24 @@ const layTinCongKhai = unstable_cache(
   { revalidate: 43200, tags: ["listings"] },   // 12 giờ (3/10, egress): ~22.000 trang tin bị bot quét; admin gỡ tin vẫn revalidateTag ngay
 );
 
+// 26/10: tin đã XOÁ hẳn (daily.mjs) trước đây ra 404 - Search Console báo 4.247 URL. Migration 036 ghi "bia mộ"
+// (id + khu vực) lúc xoá -> 301 về trang khu vực như tin gone. Bảng lỗi (chưa chạy 036) thì NÉM để unstable_cache
+// không giữ kết quả rỗng 1 ngày; trang bắt lỗi và trả 404 như cũ.
+type BiaMo = Pick<Listing, "deal" | "kind" | "province" | "district">;
+const layBiaMo = unstable_cache(
+  async (id: string): Promise<BiaMo | null> => {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    const { data, error } = await createAnonClient().from("listing_tombstones")
+      .select("deal,kind,province,district").eq("id", id).maybeSingle();
+    if (error) throw new Error(`tombstone ${id}: ${error.code} ${error.message}`);
+    return (data ?? null) as BiaMo | null;
+  },
+  ["listing-tombstone-v1"],
+  { revalidate: 86400 },
+);
+
 /** Trang khu vực sâu nhất CÒN TIN cho tin đã gỡ: tỉnh/quận/loại -> tỉnh/quận -> tỉnh -> trang mua/thuê */
-async function khuVucCuaTin(x: Listing): Promise<string> {
+async function khuVucCuaTin(x: BiaMo): Promise<string> {
   const deal = x.deal === "cho_thue" ? "cho_thue" : "ban";
   const goc = deal === "ban" ? "/nha-dat-ban" : "/nha-dat-cho-thue";
   if (!x.province) return goc;
@@ -209,7 +225,11 @@ export default async function ListingDetail({
   const { id } = await params;
   let pub: TinCongKhai | null = null;
   try { pub = await layTinCongKhai(id); } catch (e) { console.error(String(e)); }
-  if (!pub) notFound();
+  if (!pub) {
+    const biaMo = await layBiaMo(id).catch(() => null);
+    if (biaMo) permanentRedirect(await khuVucCuaTin(biaMo));
+    notFound();
+  }
   const data = pub.tin;
   if (data.status === "gone") permanentRedirect(await khuVucCuaTin(data));
   const x = { ...data, contact_phone: null } as Listing;
