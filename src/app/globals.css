@@ -359,18 +359,58 @@ html[data-header-an] .duoi-header { top: 0; }
   .hero-art:hover img { transform: none; }
 }
 
-/* Leaflet price pill markers */
-.price-pin .pp {
-  background: #1c1c1e; color: #fff; font-weight: 700; font-size: 12px;
-  padding: 4px 9px; border-radius: 4px; white-space: nowrap;
-  box-shadow: 0 3px 10px rgba(0,0,0,.35); transform: translate(-50%, -120%);
-  position: relative; width: max-content;
+/* ===== Bản đồ MapLibre (lib/map-layers.ts) - pin giá, popup, nút theo ZEN (26/10) ===== */
+.maplibregl-map { font: inherit; background: var(--surface); }
+
+/* Pin giá: viên Emerald đậm (#047857 - chữ trắng 12px đạt tương phản 5.5:1), mũi nhọn chỉ đúng điểm */
+.ndr-pin {
+  position: relative; margin-bottom: 6px; padding: 4px 8px;
+  background: #047857; color: #fff; font-size: 12px; font-weight: 700; line-height: 1.2; white-space: nowrap;
+  border: 1px solid rgb(255 255 255 / .9); border-radius: 4px; cursor: pointer;
+  box-shadow: 0 2px 6px rgb(15 23 42 / .28);
+  transition: transform .15s ease, background-color .15s ease;
 }
-.price-pin .pp::after {
-  content: ""; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
-  border: 5px solid transparent; border-top-color: #1c1c1e; border-bottom: 0;
+.ndr-pin::after {
+  content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: #047857; border-bottom: 0;
 }
-.leaflet-container { font: inherit; background: var(--surface); }
+.ndr-pin:hover, .ndr-pin:focus-visible { background: #065f46; transform: translateY(-2px); z-index: 2; outline: none; }
+.ndr-pin:hover::after, .ndr-pin:focus-visible::after { border-top-color: #065f46; }
+.maplibregl-marker:has(.ndr-pin:hover) { z-index: 2; }
+@media (prefers-reduced-motion: reduce) { .ndr-pin { transition: none; } .ndr-pin:hover { transform: none; } }
+
+/* Popup */
+.ndr-popup .maplibregl-popup-content {
+  padding: 10px 12px; border-radius: 4px; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); box-shadow: 0 6px 20px rgb(15 23 42 / .18);
+}
+.ndr-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: var(--surface); }
+.ndr-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--surface); }
+.ndr-popup-tin { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink); text-decoration: none; }
+.ndr-popup-tin b { font-weight: 600; line-height: 1.35; }
+.ndr-popup-tin span, .ndr-popup-gia a { color: rgb(var(--brand-text-rgb)); font-weight: 700; font-size: 12px; text-decoration: none; }
+.ndr-popup-gia { display: flex; flex-direction: column; gap: 2px; }
+.ndr-popup-gia b { font-size: 15px; font-weight: 800; }
+.ndr-popup-gia small { font-size: 12px; color: var(--ink-soft); }
+.ndr-popup-gia a { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+
+/* Nút điều khiển: vuông góc 4px, viền mảnh, 36px (44px trên màn cảm ứng - NN/g vùng chạm) */
+.maplibregl-ctrl-group { border-radius: 4px !important; box-shadow: 0 1px 4px rgb(15 23 42 / .18) !important; border: 1px solid var(--line); overflow: hidden; }
+.maplibregl-ctrl-group button { width: 36px !important; height: 36px !important; }
+.ndr-lop { display: flex; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 1px 4px rgb(15 23 42 / .18); }
+.ndr-lop button { height: 36px; padding: 0 12px; font-size: 13px; font-weight: 600; background: var(--surface); color: var(--ink-soft); cursor: pointer; }
+.ndr-lop button + button { border-left: 1px solid var(--line); }
+.ndr-lop button[aria-pressed="true"] { background: #047857; color: #fff; }
+@media (pointer: coarse) {
+  .maplibregl-ctrl-group button { width: 44px !important; height: 44px !important; }
+  .ndr-lop button { height: 44px; }
+}
+html.dark .maplibregl-ctrl-group { background: var(--surface); }
+html.dark .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .maplibregl-ctrl-group { background: var(--surface); }
+  :root:not(.light) .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+}
 
 /* Track vuốt ảnh (Gallery): ẩn thanh cuộn nhưng vẫn cuộn được */
 .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }

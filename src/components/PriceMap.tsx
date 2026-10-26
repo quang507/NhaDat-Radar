@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
+import type { Map as BanDo, Marker } from "maplibre-gl";
 import { escHtml } from "@/lib/format";
+import { taoBanDo, ghimGia } from "@/lib/map-layers";
 
 export type MapPoint = {
   lat: number;
@@ -13,7 +15,7 @@ export type MapPoint = {
   searchUrl?: string;
 };
 
-// Leaflet + OpenStreetMap. Hỗ trợ zoom trực tiếp khi click quận từ danh sách xếp hạng.
+// MapLibre + OpenFreeMap (lib/map-layers). Hỗ trợ zoom trực tiếp khi click quận từ danh sách xếp hạng.
 export default function PriceMap({
   points,
   selectedDistrict,
@@ -26,102 +28,55 @@ export default function PriceMap({
   height?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const markersRef = useRef<Map<string, any>>(new Map());
+  const mapRef = useRef<BanDo | null>(null);
+  const markersRef = useRef<Map<string, Marker>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const L = (await import("leaflet")).default;
-      if (cancelled || !ref.current) return;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      if (!ref.current) return;
       markersRef.current.clear();
-
-      const map = L.map(ref.current, { scrollWheelZoom: false }).setView([16.05, 108.2], 6);
+      const { ml, map } = await taoBanDo(ref.current, [16.05, 108.2], 6);
+      if (cancelled) { map.remove(); return; }
       mapRef.current = map;
 
-      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      if (token) {
-        L.tileLayer(
-          `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${token}`,
-          { tileSize: 512, zoomOffset: -1, attribution: "© Mapbox © OpenStreetMap" },
-        ).addTo(map);
-      } else {
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap",
-          maxZoom: 19,
-        }).addTo(map);
-      }
-
-      const bounds: [number, number][] = [];
+      const bounds = new ml.LngLatBounds();
       for (const p of points) {
-        const icon = L.divIcon({
-          className: "price-pin",
-          html: `<div class="pp">${escHtml(p.label)}</div>`,
-          iconSize: [1, 1],
-        });
-
-        const searchLink = p.searchUrl
-          ? `<div style="margin-top:6px;padding-top:4px;border-top:1px solid #e2e8f0"><a href="${escHtml(p.searchUrl)}" style="color:#059669;font-weight:700;font-size:12px;text-decoration:none">Xem danh sách tin ›</a></div>`
-          : "";
-
-        const popupHtml = `
-          <div style="font-family:system-ui,sans-serif;padding:2px">
-            <div style="font-size:15px;font-weight:800;color:#0f172a">${escHtml(p.label)}</div>
-            <div style="font-size:12px;color:#64748b;margin-top:2px">${escHtml(p.sub)}</div>
-            ${searchLink}
-          </div>
-        `;
-
-        const marker = L.marker([p.lat, p.lng], { icon })
-          .addTo(map)
-          .bindPopup(popupHtml);
-
+        const searchLink = p.searchUrl ? `<a href="${escHtml(p.searchUrl)}">Xem danh sách tin ›</a>` : "";
+        const popupHtml = `<div class="ndr-popup-gia"><b>${escHtml(p.label)}</b><small>${escHtml(p.sub)}</small>${searchLink}</div>`;
+        const marker = ghimGia(ml, map, [p.lng, p.lat], p.label, popupHtml);
         if (p.district) {
           markersRef.current.set(p.district, marker);
-          marker.on("click", () => {
-            onSelectDistrict?.(p.district!);
-          });
+          marker.getElement().addEventListener("click", () => onSelectDistrict?.(p.district!));
         }
-
-        bounds.push([p.lat, p.lng]);
+        bounds.extend([p.lng, p.lat]);
       }
-
-      if (bounds.length) {
-        map.fitBounds(bounds, { padding: [44, 44], maxZoom: 13 });
-      }
+      if (points.length) map.fitBounds(bounds, { padding: 48, maxZoom: 13, duration: 0 });
     })();
 
     return () => {
       cancelled = true;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+      mapRef.current?.remove();
+      mapRef.current = null;
     };
   }, [points, onSelectDistrict]);
 
   // Zoom và mở popup khi selectedDistrict thay đổi từ danh sách bên ngoài
   useEffect(() => {
-    if (!selectedDistrict || !mapRef.current) return;
+    const map = mapRef.current;
+    if (!selectedDistrict || !map) return;
     const marker = markersRef.current.get(selectedDistrict);
-    if (marker) {
-      const ll = marker.getLatLng();
-      mapRef.current.flyTo([ll.lat, ll.lng], 13, { duration: 0.8 });
-      marker.openPopup();
-    }
+    if (!marker) return;
+    map.flyTo({ center: marker.getLngLat(), zoom: 13, duration: 800 });
+    const popup = marker.getPopup();
+    if (popup && !popup.isOpen()) marker.togglePopup();
   }, [selectedDistrict]);
 
   return (
     <div
       ref={ref}
       style={{ height }}
-      className="w-full overflow-hidden rounded-xl border border-slate-200 shadow-xs z-0"
+      className="w-full overflow-hidden rounded-sm border border-[var(--line)] shadow-xs z-0"
     />
   );
 }

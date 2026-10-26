@@ -1,38 +1,35 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
+import type { Map as BanDo } from "maplibre-gl";
 import { escHtml, catChu } from "@/lib/format";
-import { ganLopNen } from "@/lib/map-layers";
+import { taoBanDo, ghimGia } from "@/lib/map-layers";
 
 export type MapItem = { id: string; lat: number; lng: number; label: string; title: string };
 
 // Bản đồ kết quả tìm kiếm (kiểu batdongsan): mỗi tin 1 pin giá, click mở trang chi tiết.
 export default function MapResults({ items }: { items: MapItem[] }) {
   const ref = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<BanDo | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const L = (await import("leaflet")).default;
-      if (cancelled || !ref.current) return;
-      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
-      const map = L.map(ref.current, { scrollWheelZoom: false }).setView([16.05, 108.2], 5);
+      if (!ref.current) return;
+      const { ml, map } = await taoBanDo(ref.current, [16.05, 108.2], 5);
+      if (cancelled) { map.remove(); return; }
       mapRef.current = map;
-      ganLopNen(L, map);
-      const bounds: [number, number][] = [];
+      const bounds = new ml.LngLatBounds();
       for (const it of items) {
-        const icon = L.divIcon({ className: "price-pin", html: `<div class="pp">${escHtml(it.label)}</div>`, iconSize: [1, 1] });
-        const popup = `<div style="font-weight:600;margin-bottom:4px;max-width:200px">${escHtml(catChu(it.title, 80))}</div><a href="/listings/${encodeURIComponent(it.id)}" style="color:#b23a1e;font-weight:600">Xem chi tiết ›</a>`;
-        L.marker([it.lat, it.lng], { icon }).addTo(map).bindPopup(popup);
-        bounds.push([it.lat, it.lng]);
+        const popup = `<a class="ndr-popup-tin" href="/listings/${encodeURIComponent(it.id)}"><b>${escHtml(catChu(it.title, 80))}</b><span>Xem chi tiết ›</span></a>`;
+        ghimGia(ml, map, [it.lng, it.lat], it.label, popup);
+        bounds.extend([it.lng, it.lat]);
       }
-      if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      if (items.length) map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
     })();
-    return () => { cancelled = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+    return () => { cancelled = true; mapRef.current?.remove(); mapRef.current = null; };
   }, [items]);
 
-  return <div ref={ref} className="w-full h-full rounded-lg border border-[var(--line)] z-0" />;
+  return <div ref={ref} className="w-full h-full rounded-sm border border-[var(--line)] overflow-hidden z-0" />;
 }
