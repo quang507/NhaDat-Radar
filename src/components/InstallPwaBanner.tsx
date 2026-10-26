@@ -17,10 +17,6 @@ export default function InstallPwaBanner() {
   const [isIos, setIsIos] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
 
-  // Không hiển thị banner che khuất màn hình khi đang xem tin đăng hoặc trong trang admin
-  if (pathname?.startsWith("/listings/") || pathname?.startsWith("/admin")) {
-    return null;
-  }
 
   useEffect(() => {
     // 1. Kiểm tra nếu đã mở dưới dạng App standalone (đã cài đặt)
@@ -81,6 +77,11 @@ export default function InstallPwaBanner() {
     setShowIosGuide(false);
     localStorage.setItem("ndr_pwa_dismissed", String(Date.now()));
   };
+
+  // Không hiển thị banner che khuất màn hình khi đang xem tin đăng hoặc trong trang admin
+  if (pathname?.startsWith("/listings/") || pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   if (!showBanner) return null;
 

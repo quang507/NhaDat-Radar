@@ -277,7 +277,7 @@ export default async function ListingDetail({
   // có bộ thông số riêng (đất: mặt tiền/chiều dài/hình dáng; nhà: số tầng/nội thất/thang máy).
   const specs = (x.specs ?? null) as Record<string, string> | null;
   // các nhãn đã có ô riêng ở trên -> không lặp lại ở phần thông số nguồn
-  const daCo = /^(hướng (nhà|đất)|pháp lý|giấy tờ pháp lý|loại sổ|tình trạng sổ|số tầng|nội thất|tổng diện tích đất|diện tích)/i;
+  const daCo = /^(hướng (nhà|đất)|pháp lý|giấy tờ pháp lý|loại sổ|tình trạng sổ|số tầng|nội thất|tổng diện tích đất|diện tích|phòng ngủ|phòng tắm|số phòng ngủ|số phòng tắm)/i;
 
   // BẢNG 5 CHI PHÍ (audit 25/10): khách thuê quyết định liên hệ hay không dựa trên TỔNG tiền/tháng, không
   // chỉ giá phòng. Trước đây Điện/Nước/Phí quản lý (EvoHome ghi vào specs) lẫn trong lưới thông số, thiếu
@@ -514,8 +514,8 @@ export default async function ListingDetail({
               </span>
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-              {thongTin.map((d) => (
-                <div key={d[0]} className="border-l-2 border-[var(--line)] pl-3 min-w-0">
+              {thongTin.map((d, idx) => (
+                <div key={`${d[0]}-${idx}`} className="border-l-2 border-[var(--line)] pl-3 min-w-0">
                   <div className="text-xs text-[var(--ink-soft)]">{d[0]}</div>
                   <div className="font-semibold text-sm break-words">{d[1]}</div>
                 </div>

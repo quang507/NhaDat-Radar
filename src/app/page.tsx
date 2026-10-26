@@ -180,18 +180,62 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ===== BANNER QUẢNG CÁO ĐỐI TÁC (public/hero.jpg) - dời xuống DƯỚI ô tìm kiếm (30/9), giữ nguyên
-          tỉ lệ (cắt thấp thì mất chữ quảng cáo "40 phút từ Sài Gòn"). Gắn nhãn "Quảng cáo" (minh bạch), link NEXT_PUBLIC_HERO_LINK. ===== */}
-      {!hasFilter && hero && (
-        <section className="hero-art relative overflow-hidden rounded-xl shadow-sm mb-2">
-          {(() => {
-            // banner Villa Ny'ah -> trang Nhã Đạt (anh Quang chốt 16/8); env ghi đè được khi đổi đối tác
-            const link = process.env.NEXT_PUBLIC_HERO_LINK || "https://nhadat.company/";
-            /* eslint-disable-next-line @next/next/no-img-element */
-            const img = <img src={hero} alt={process.env.NEXT_PUBLIC_HERO_ALT || "Quảng cáo đối tác"} className="w-full h-auto" />;
-            return link ? <a href={link} target="_blank" rel="noopener sponsored" aria-label="Xem quảng cáo đối tác">{img}</a> : img;
-          })()}
-          <span className="absolute top-2 right-3 text-[0.65rem] font-semibold px-1.5 py-0.5 rounded bg-black/45 text-white/90 tracking-wide">Quảng cáo</span>
+      {/* ===== BANNER TIÊU ĐIỂM: NHÀ COMPOUND BÌNH PHÚ Q.6 (26/10) ===== */}
+      {!hasFilter && (
+        <section className="relative overflow-hidden rounded-lg border border-emerald-500/30 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white shadow-sm mb-4">
+          <Link
+            href="/listings/df3a7f4f-048a-4cce-a271-bc9c19ad32f5"
+            className="group flex flex-col md:flex-row items-stretch overflow-hidden transition"
+          >
+            {/* Ảnh phòng khách thông tầng giếng trời */}
+            <div className="relative md:w-5/12 h-52 md:h-auto min-h-[190px] overflow-hidden shrink-0">
+              <img
+                src="https://nalcvzwsescsxfzsxirg.supabase.co/storage/v1/object/public/anh-zalo/hau-giang-q6/living-room.jpg"
+                alt="Cho thuê nhà compound Bình Phú Quận 6"
+                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+              />
+              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] tracking-wide uppercase shadow">
+                ★ Tiêu điểm nổi bật
+              </span>
+            </div>
+
+            {/* Nội dung thông tin & CTA */}
+            <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Tin độc quyền xác minh thực tế
+                  </span>
+                  <span className="text-slate-400 text-xs">·</span>
+                  <span className="text-xs text-slate-300">Đường Hậu Giang, P.11, Q.6</span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition leading-snug mb-2">
+                  Cho thuê nhà compound Bình Phú · 60m² · 4 tầng · Xe hơi vô nhà
+                </h3>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-300 mb-3">
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 Phòng ngủ</span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 WC</span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Đường 10m</span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Full nội thất</span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Cạnh CV Phú Lâm</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 mt-auto">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400">Giá thuê trực tiếp</div>
+                  <div className="text-lg sm:text-xl font-extrabold text-emerald-400">
+                    24 triệu<span className="text-xs font-normal text-slate-300">/tháng</span>
+                  </div>
+                </div>
+                <span className="btn !py-2 !px-4 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-md transition inline-flex items-center gap-1.5 shadow-sm">
+                  <span>Xem nhà ngay</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </div>
+          </Link>
         </section>
       )}
 

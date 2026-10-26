@@ -9,34 +9,49 @@
 // là tự bóp số cuộc gọi. Thứ bị chặn sau đăng nhập là SĐT người đăng (xem DangNhapDeXem).
 
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
-import { LinkTheoDoi } from "./TheoDoi";
+import { NutZalo } from "./TheoDoi";
 import HienSoRadar from "./HienSoRadar";
 import { MessageCircle } from "lucide-react";
+import { maPhong } from "@/lib/ro-hang";
 
 export { HOTLINE, HOTLINE_ZALO };
 
 export default function TuVanRadar({ listingId }: { listingId?: string }) {
-  // có listingId (trang chi tiết tin) -> ghi sự kiện gọi/Zalo; nơi khác dùng <a> thường
-  const A = ({ loai, ...p }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { loai: "goi" | "zalo" }) =>
-    listingId ? <LinkTheoDoi loai={loai} listingId={listingId} {...p} /> : <a {...p} />;
+  const tinNhanZalo = `Chào Radar, mình đang cần tư vấn căn này (Mã: ${listingId ? maPhong(listingId) : ""}) trên website, tư vấn giúp mình nhé!`;
+
   return (
     <div className="mt-3 pt-3 border-t border-[var(--line)]">
-      <div className="text-xs text-[var(--ink-soft)] mb-1.5">
+      <div className="text-xs text-[var(--ink-soft)] mb-2">
         Cần tư vấn nhanh tin này? Gọi <b>Radar</b> - miễn phí, không phải người đăng tin.
       </div>
-      <div className="flex gap-2">
-        {/* 2/10: "Bấm để hiện số" - đăng nhập hoặc để lại SĐT mới hiện số (ra lead) */}
-        <HienSoRadar listingId={listingId} className="flex-1 !w-auto" />
-        <A
-          loai="zalo"
-          href={HOTLINE_ZALO}
-          target="_blank"
-          rel="noopener"
-          className="btn flex-1 text-center whitespace-nowrap border border-[#0068ff] text-[#0068ff] font-semibold flex items-center justify-center gap-1.5"
-        >
-          <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
-          <span>Chat Zalo</span>
-        </A>
+      <div className="flex flex-col gap-2">
+        {/* Nút Gọi Hotline trực tiếp */}
+        <HienSoRadar listingId={listingId} className="w-full justify-center" />
+
+        {/* Nút Chat Zalo: dùng NutZalo tự động chép mã phòng + link để khách Dán vào Zalo */}
+        {listingId ? (
+          <NutZalo
+            listingId={listingId}
+            tinNhan={tinNhanZalo}
+            href={HOTLINE_ZALO}
+            target="_blank"
+            rel="noopener"
+            className="btn w-full text-center border border-[#0068ff] text-[#0068ff] hover:bg-[#0068ff]/5 font-semibold flex items-center justify-center gap-2 py-2.5 rounded-lg shadow-2xs"
+          >
+            <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+            <span>Chat Zalo tư vấn miễn phí</span>
+          </NutZalo>
+        ) : (
+          <a
+            href={HOTLINE_ZALO}
+            target="_blank"
+            rel="noopener"
+            className="btn w-full text-center border border-[#0068ff] text-[#0068ff] hover:bg-[#0068ff]/5 font-semibold flex items-center justify-center gap-2 py-2.5 rounded-lg shadow-2xs"
+          >
+            <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+            <span>Chat Zalo tư vấn</span>
+          </a>
+        )}
       </div>
     </div>
   );
