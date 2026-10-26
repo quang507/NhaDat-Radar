@@ -9,7 +9,10 @@
 // Mặc định giờ là "Bản đồ" (gọn, nhìn ra ngay đường đi); vệ tinh bấm 1 chạm ở góc trên bên trái.
 import type { Map as BanDo, IControl, LngLatLike } from "maplibre-gl";
 
-type MapLibre = typeof import("maplibre-gl");
+export type MapLibre = typeof import("maplibre-gl");
+
+/** Gốc máy chủ bản đồ - các component gọi preconnect() tới đây ngay lúc render để bắt tay TLS sớm. */
+export const MAY_CHU_BAN_DO = "https://tiles.openfreemap.org";
 
 const KIEU_SANG = "https://tiles.openfreemap.org/styles/positron";
 const KIEU_TOI = "https://tiles.openfreemap.org/styles/dark";

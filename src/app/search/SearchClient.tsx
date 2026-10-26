@@ -99,6 +99,10 @@ export default function SearchClient({
   const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  // 26/10: page.tsx dựng lại SearchClient mỗi lần đổi trang/bộ lọc (key=searchParams) -> chế độ bản đồ bị tắt,
+  // khách phải bấm lại và bản đồ tải lại từ đầu. Nhớ lựa chọn trong phiên (lỗi storage thì thôi, mặc định danh sách).
+  useEffect(() => { try { if (sessionStorage.getItem("ndr:xem-ban-do") === "1") setShowMap(true); } catch { /* riêng tư */ } }, []);
+  useEffect(() => { try { sessionStorage.setItem("ndr:xem-ban-do", showMap ? "1" : "0"); } catch { /* riêng tư */ } }, [showMap]);
   const [f, setF] = useState(tuParams(params));
   const places = useMemo(() => buildPlaces(geo), [geo]);
   const pickPlace = (p: Place) => {
