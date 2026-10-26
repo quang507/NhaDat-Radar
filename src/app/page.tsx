@@ -174,7 +174,7 @@ export default async function Home() {
             </div>
             <div>
               <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Hỗ trợ 24/7</div>
-              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Hotline: 0346 689 460</div>
+              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Hotline: 0387 365 020</div>
             </div>
           </div>
         </div>
@@ -356,7 +356,7 @@ export default async function Home() {
               </p>
             </div>
             <a
-              href="https://zalo.me/0346689460?text=Chào%20Radar,%20mình%20cần%20tìm%20bất%20động%20sản%20phù%20hợp,%20nhờ%20bạn%20tư%20vấn%20giúp%20nhé!"
+              href="https://zalo.me/0387365020?text=Chào%20Radar,%20mình%20cần%20tìm%20bất%20động%20sản%20phù%20hợp,%20nhờ%20bạn%20tư%20vấn%20giúp%20nhé!"
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-primary whitespace-nowrap px-5 py-2.5 rounded-md font-bold text-sm shrink-0 shadow-xs"

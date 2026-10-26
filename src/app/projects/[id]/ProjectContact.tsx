@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { PhoneCall } from "lucide-react";
 import { createLead, type LeadState } from "@/app/listings/actions";
 
 const initial: LeadState = { ok: false };
@@ -16,8 +17,9 @@ export default function ProjectContact({ projectId, projectName }: { projectId: 
 
   if (!open) {
     return (
-      <button className="btn btn-primary w-full mt-4" onClick={() => setOpen(true)} type="button">
-        📞 Liên hệ tư vấn
+      <button className="btn btn-primary w-full mt-4 flex items-center justify-center gap-2 font-bold" onClick={() => setOpen(true)} type="button">
+        <PhoneCall className="w-4 h-4" />
+        <span>Liên hệ tư vấn</span>
       </button>
     );
   }
@@ -26,8 +28,8 @@ export default function ProjectContact({ projectId, projectName }: { projectId: 
     <form action={formAction} className="flex flex-col gap-3 mt-4">
       <input type="hidden" name="listing_id" value="" />
       <input type="hidden" name="project_id" value={projectId} />
-      <input className="inp" name="name" placeholder="Tên của bạn" required />
-      <input className="inp" name="phone" placeholder="Số điện thoại" required />
+      <input className="inp" name="name" placeholder="Tên của bạn" autoComplete="name" required />
+      <input className="inp" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="Số điện thoại" required />
       <textarea className="inp" name="message" rows={2}
         defaultValue={`Tôi quan tâm đến dự án: ${projectName.slice(0, 60)}`} />
       {state.error ? <div className="text-red-600 text-sm">{state.error}</div> : null}

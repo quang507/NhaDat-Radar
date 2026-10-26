@@ -32,8 +32,8 @@ export default function LienHePage() {
               </div>
               <div>
                 <span className="text-xs text-[var(--ink-faint)] block">Hotline tư vấn (8:00 - 21:00)</span>
-                <a href="tel:0346689460" className="text-base font-bold text-brand hover:underline">
-                  0346 689 460
+                <a href="tel:0387365020" className="text-base font-bold text-brand hover:underline">
+                  0387 365 020
                 </a>
               </div>
             </div>

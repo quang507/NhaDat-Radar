@@ -388,11 +388,6 @@ html[data-header-an] .duoi-header { top: 0; }
 .ndr-pin.ndr-pin-chinh:hover, .ndr-pin.ndr-pin-chinh:focus-visible { background: #1e293b; }
 .ndr-pin.ndr-pin-chinh:hover::after, .ndr-pin.ndr-pin-chinh:focus-visible::after { border-top-color: #1e293b; }
 .maplibregl-marker:has(.ndr-pin.ndr-pin-chinh) { z-index: 10; }
-/* Pin phòng trọ / cho thuê lân cận: tông Teal dễ phân biệt với tin bán */
-.ndr-pin.ndr-pin-thue { background: #0d9488; }
-.ndr-pin.ndr-pin-thue::after { border-top-color: #0d9488; }
-.ndr-pin.ndr-pin-thue:hover, .ndr-pin.ndr-pin-thue:focus-visible { background: #0f766e; }
-.ndr-pin.ndr-pin-thue:hover::after, .ndr-pin.ndr-pin-thue:focus-visible::after { border-top-color: #0f766e; }
 
 /* Popup */
 .ndr-popup .maplibregl-popup-content {

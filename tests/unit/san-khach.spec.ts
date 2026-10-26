@@ -24,6 +24,6 @@ test("tinNhanRieng: gọi tên, kèm link từng phòng + số Radar", () => {
   const t = tinNhanRieng("Trần Ngọc Hân", nc, phong);
   expect(t.startsWith("Chào Hân,")).toBe(true);
   expect(t).toContain("/listings/11111111-1111-1111-1111-111111111111");
-  expect(t).toContain("0346 689 460");
+  expect(t).toContain("0387 365 020");
   expect(tinNhanRieng(null, nc, [])).toContain("/nha-dat-cho-thue");
 });

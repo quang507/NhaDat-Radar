@@ -48,6 +48,13 @@ export default function MoiDienSdt() {
 
   // "Để sau" (chủ ý) = im 7 ngày; bấm ra NỀN TỐI (thường là lỡ tay) chỉ đóng phiên này,
   // không ghi mốc - đỡ cảnh trượt chuột một cái là mất luôn cả tuần cơ hội xin số.
+  useEffect(() => {
+    if (!hien) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setHien(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hien]);
+
   const deSau = () => { setHien(false); ghiKho(KHOA_NHAC, String(Date.now())); };
   const dongTam = () => setHien(false);
 

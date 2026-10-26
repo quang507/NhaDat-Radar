@@ -219,7 +219,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                   <p className="text-xs text-emerald-100 mt-0.5">Chuyên viên Radar hỗ trợ tra cứu quy hoạch, kiểm tra sổ hồng và định giá thị trường miễn phí.</p>
                 </div>
                 <a
-                  href={`https://zalo.me/0346689460?text=${encodeURIComponent(`Chào chuyên viên Radar, mình vừa định giá tài sản (${PROP[f.kind] || "nhà đất"} tại ${f.district ? f.district + ", " : ""}${f.province}). Nhờ bạn hỗ trợ thẩm định thực tế và kiểm tra pháp lý giúp mình nhé!`)}`}
+                  href={`https://zalo.me/0387365020?text=${encodeURIComponent(`Chào chuyên viên Radar, mình vừa định giá tài sản (${PROP[f.kind] || "nhà đất"} tại ${f.district ? f.district + ", " : ""}${f.province}). Nhờ bạn hỗ trợ thẩm định thực tế và kiểm tra pháp lý giúp mình nhé!`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 rounded-md bg-[var(--surface)] text-emerald-900 hover:bg-emerald-50 font-bold text-sm shadow-xs whitespace-nowrap active:scale-95 transition-all shrink-0"

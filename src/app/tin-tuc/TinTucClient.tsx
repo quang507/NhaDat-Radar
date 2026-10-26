@@ -41,6 +41,7 @@ export default function TinTucClient({
         {CATEGORIES.map((cat) => (
           <button
             key={cat.id}
+            type="button"
             onClick={() => setActiveTab(cat.id)}
             className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === cat.id

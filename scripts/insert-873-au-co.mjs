@@ -67,7 +67,7 @@ Cơ hội đầu tư BĐS dòng tiền và khai thác thương mại đỉnh cao
 - Giá cho thuê: 70 Triệu / tháng (Hợp đồng dài hạn, tạo dòng tiền ổn định).
 
 ☎️ LIÊN HỆ XEM NHÀ & LÀM VIỆC TRỰC TIẾP:
-- Hotline / Zalo Radar Nhà Đất: 0346 689 460 (Hỗ trợ 24/7, dẫn xem thực tế và hỗ trợ đàm phán giá tốt nhất).`;
+- Hotline / Zalo Radar Nhà Đất: 0387 365 020 (Hỗ trợ 24/7, dẫn xem thực tế và hỗ trợ đàm phán giá tốt nhất).`;
 
 async function main() {
   const imageUrl = await uploadImage();
@@ -93,8 +93,8 @@ async function main() {
     // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
     ...lechToaDo(10.79685, 106.63640, "doc_quyen|insert-873-au-co"),
     contact_name: "Radar Nhà Đất",
-    contact_phone: "0346689460",
-    phone_masked: "0346 689 xxx",
+    contact_phone: "0387365020",
+    phone_masked: "0387 365 xxx",
     ai_score: 99,
     trust_score: 100,
     poster_role_guess: "chu_nha",

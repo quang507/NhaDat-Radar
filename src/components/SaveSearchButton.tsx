@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PROP } from "@/lib/format";
@@ -28,6 +28,13 @@ const giaNgan = (v?: string) => {
 export default function SaveSearchButton({ filters, compact = false }: { filters: Filters; compact?: boolean }) {
   const [state, setState] = useState<"idle" | "open" | "busy" | "done">("idle");
   const router = useRouter();
+
+  useEffect(() => {
+    if (state !== "open") return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setState("idle"); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [state]);
 
   const tomTat = [
     filters.deal === "cho_thue" ? "Cho thuê" : filters.deal === "ban" ? "Mua bán" : "Mua bán & cho thuê",

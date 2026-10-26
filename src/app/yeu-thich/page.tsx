@@ -43,7 +43,7 @@ export default function FavouritesPage() {
           </p>
         </div>
         {!!items?.length && items.length >= 2 && (
-          <button className={`btn text-sm inline-flex items-center gap-1.5 ${compare ? "!border-brand !text-brand" : ""}`} onClick={() => setCompare((v) => !v)}>
+          <button type="button" className={`btn text-sm inline-flex items-center gap-1.5 ${compare ? "!border-brand !text-brand" : ""}`} onClick={() => setCompare((v) => !v)}>
             {compare ? (
               <>
                 <LayoutGrid className="w-4 h-4" />

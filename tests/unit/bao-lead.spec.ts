@@ -5,6 +5,7 @@ import { baoLeadMoi } from "../../src/lib/bao-lead";
 test("baoLeadMoi: tiêu đề có tên/SĐT/lịch hẹn, nội dung thoát HTML, gửi về LEAD_NOTIFY_EMAIL", async () => {
   const goi: { url: string; body: Record<string, unknown> }[] = [];
   const fetchCu = globalThis.fetch;
+  process.env.TELEGRAM_DISABLE = "1";
   process.env.RESEND_API_KEY = "test";
   process.env.LEAD_NOTIFY_EMAIL = "a@x.com, b@y.com";
   globalThis.fetch = (async (url: string, init: RequestInit) => {
@@ -15,6 +16,7 @@ test("baoLeadMoi: tiêu đề có tên/SĐT/lịch hẹn, nội dung thoát HTML
     await baoLeadMoi({ listing_id: null, name: "An <b>", phone: "0912 345 678", message: "[HẸN XEM Chiều 30/09/2026] Cho em xem tối nay" });
   } finally {
     globalThis.fetch = fetchCu;
+    delete process.env.TELEGRAM_DISABLE;
   }
   expect(goi).toHaveLength(1);
   expect(goi[0].url).toBe("https://api.resend.com/emails");
@@ -32,8 +34,12 @@ test("baoLeadMoi: tiêu đề có tên/SĐT/lịch hẹn, nội dung thoát HTML
 
 test("baoLeadMoi: thiếu RESEND_API_KEY thì bỏ qua êm, không gọi mạng", async () => {
   const fetchCu = globalThis.fetch; let goi = 0;
+  process.env.TELEGRAM_DISABLE = "1";
   delete process.env.RESEND_API_KEY;
   globalThis.fetch = (async () => { goi++; return new Response("{}"); }) as typeof fetch;
-  try { await baoLeadMoi({ listing_id: null, name: "A", phone: "0912345678", message: "" }); } finally { globalThis.fetch = fetchCu; }
+  try { await baoLeadMoi({ listing_id: null, name: "A", phone: "0912345678", message: "" }); } finally {
+    globalThis.fetch = fetchCu;
+    delete process.env.TELEGRAM_DISABLE;
+  }
   expect(goi).toBe(0);
 });

@@ -24,7 +24,7 @@ Hẻm 73 Trần Văn Cẩn rộng, sạch sẽ, khu dân cư yên tĩnh. Vị tr
 Pháp lý và giá bán:
 Sổ hồng riêng chính chủ, hoàn công đầy đủ tháng 7/2026 (số vào sổ CN 4971), đất ở đô thị lâu dài, không vướng quy hoạch lộ giới.
 Giá bán: 8 tỷ (thương lượng trực tiếp với chủ nhà).
-Liên hệ xem nhà thực tế: 0346 689 460 (Radar Nhà Đất).`;
+Liên hệ xem nhà thực tế: 0387 365 020 (Radar Nhà Đất).`;
 
 const des2 = `Nhà 1 trệt 1 lầu tại hẻm 137 Phan Anh, khu phố 12, phường Bình Trị Đông, quận Bình Tân, vị trí giáp ranh quận Tân Phú. Nhà hiện để trống, sạch sẽ, có thể dọn vào ở ngay.
 
@@ -40,7 +40,7 @@ Nhà nằm trong hẻm 137 Phan Anh, cách ngã tư Bốn Xã khoảng 2 phút c
 Pháp lý và giá bán:
 Sổ hồng riêng chính chủ, mua bán công chứng ngay trong ngày.
 Giá bán: 3 tỷ 300 triệu (thương lượng trực tiếp với chủ nhà, hỗ trợ vay ngân hàng).
-Liên hệ xem nhà: 0346 689 460 (Radar Nhà Đất).`;
+Liên hệ xem nhà: 0387 365 020 (Radar Nhà Đất).`;
 
 async function run() {
   const t1 = "Bán nhà 4 tầng hẻm 73 Trần Văn Cẩn, phường Phú Thạnh, Tân Phú (4,2 x 13,5m)";

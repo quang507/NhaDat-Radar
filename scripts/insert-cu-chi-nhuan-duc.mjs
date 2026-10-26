@@ -72,7 +72,7 @@ Bán nhanh lô đất vườn vuông vức tại khu vực giáp ranh Xã Nhuậ
 - Đơn giá chỉ ~1.32 triệu/m² - mức giá đáy thị trường cho một lô đất TP.HCM gần 1.000m²!
 
 ☎️ LIÊN HỆ XEM ĐẤT & LÀM VIỆC CHÍNH CHỦ:
-- Hotline / Zalo Radar Nhà Đất: 0346 689 460 (Dẫn xem đất thực tế 24/7, kiểm tra quy hoạch miễn phí).`;
+- Hotline / Zalo Radar Nhà Đất: 0387 365 020 (Dẫn xem đất thực tế 24/7, kiểm tra quy hoạch miễn phí).`;
 
 async function main() {
   const images = await uploadImages();
@@ -95,8 +95,8 @@ async function main() {
     // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
     ...lechToaDo(11.08250, 106.46850, "doc_quyen|insert-cu-chi-nhuan-duc"),
     contact_name: "Radar Nhà Đất",
-    contact_phone: "0346689460",
-    phone_masked: "0346 689 xxx",
+    contact_phone: "0387365020",
+    phone_masked: "0387 365 xxx",
     ai_score: 98,
     trust_score: 100,
     poster_role_guess: "chu_nha",

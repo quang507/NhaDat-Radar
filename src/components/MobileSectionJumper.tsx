@@ -46,8 +46,8 @@ export default function MobileSectionJumper() {
   };
 
   return (
-    <div ref={hang} className="cuon-ngang duoi-header lg:hidden sticky top-14 z-20 -mx-4 px-4 py-2 bg-[var(--surface)]/95 backdrop-blur-md border-b border-[var(--line)] shadow-xs overflow-x-auto [scrollbar-width:none] overscroll-x-contain">
-      <div className="flex items-center gap-2 min-w-max" role="tablist" aria-label="Đi tới mục">
+    <div ref={hang} className="duoi-header lg:hidden sticky top-14 z-20 -mx-4 px-4 py-2 bg-[var(--surface)]/95 backdrop-blur-md border-b border-[var(--line)] shadow-xs overflow-x-auto [scrollbar-width:none] overscroll-x-contain">
+      <div className="cuon-ngang flex items-center gap-2 min-w-max" role="tablist" aria-label="Đi tới mục">
         {SECTIONS.filter((s) => coMuc.includes(s.id)).map(({ id, label, icon: Icon }) => {
           const on = id === dangXem;
           return (

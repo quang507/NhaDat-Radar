@@ -650,13 +650,25 @@ export default async function ListingDetail({
           <div id="vi-tri-tien-ich" className="scroll-mt-28" />
           {x.amenities?.length ? (
             <div className="card rounded-lg p-5">
-              <h3 className="font-bold mb-3">Tiện ích</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold">Tiện ích</h3>
+                <span className="text-xs text-[var(--ink-faint)]">Bấm để tìm thêm căn tương tự</span>
+              </div>
               <div className="flex flex-wrap gap-2 text-sm">
-                {x.amenities.map((a) => (
-                  <span key={a} className="px-2.5 py-1 rounded-lg border border-[var(--line)] bg-[var(--bg)]">
-                    {AMEN[a] || nhanTienIch(a) || a}
-                  </span>
-                ))}
+                {x.amenities.map((a) => {
+                  const ten = AMEN[a] || nhanTienIch(a) || a;
+                  const searchUrl = `/search?deal=${x.deal || "cho_thue"}${x.province ? `&province=${encodeURIComponent(x.province)}` : ""}${x.district ? `&district=${encodeURIComponent(x.district)}` : ""}&ti=${encodeURIComponent(a)}`;
+                  return (
+                    <Link
+                      key={a}
+                      href={searchUrl}
+                      title={`Tìm bất động sản có ${ten} tại ${x.district || x.province || "khu vực này"}`}
+                      className="px-2.5 py-1 rounded-lg border border-[var(--line)] bg-[var(--bg)] hover:border-brand hover:text-brand transition text-sm inline-flex items-center gap-1.5"
+                    >
+                      <span>{ten}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           ) : null}

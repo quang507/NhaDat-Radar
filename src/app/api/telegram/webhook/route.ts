@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       `• <i>"tìm căn hộ 1PN Bình Thạnh ban công"</i>\n` +
       `• <i>"mặt bằng kinh doanh Quận 1 dưới 20 triệu"</i>\n\n` +
       `🏠 <b>RỔ HÀNG XÁC THỰC:</b> Hơn 2.500+ căn phòng trống có toạ độ thực, giá niêm yết rõ ràng.\n\n` +
-      `☎️ <b>Hotline hỗ trợ:</b> <code>0346689460</code>\n` +
+      `☎️ <b>Hotline hỗ trợ:</b> <code>0387365020</code>\n` +
       `🆔 <b>Chat ID của bạn:</b> <code>${chatId}</code>`;
 
     await sendTelegramMessage(welcomeText, {
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
             { text: "🌐 Mở Web NhaDat Radar", url: SITE_URL },
             { text: "🔍 Tìm phòng trống ngay", url: `${SITE_URL}/search` },
           ],
-          [{ text: "💬 Zalo Hotline: 0346689460", url: "https://zalo.me/0346689460" }],
+          [{ text: "💬 Zalo Hotline: 0387365020", url: "https://zalo.me/0387365020" }],
         ],
       },
     });
@@ -197,7 +197,7 @@ export async function POST(req: Request) {
 
       buttons.push([
         { text: "🔍 Tìm kiếm thêm trên web", url: `${SITE_URL}/search` },
-        { text: "💬 Zalo Hotline: 0346689460", url: "https://zalo.me/0346689460" },
+        { text: "💬 Zalo Hotline: 0387365020", url: "https://zalo.me/0387365020" },
       ]);
 
       await sendTelegramMessage(resp, {
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
           reply_markup: {
             inline_keyboard: [
               [{ text: "🔍 Xem tất cả phòng trống", url: `${SITE_URL}/search` }],
-              [{ text: "💬 Zalo Hotline: 0346689460", url: "https://zalo.me/0346689460" }],
+              [{ text: "💬 Zalo Hotline: 0387365020", url: "https://zalo.me/0387365020" }],
             ],
           },
         }
@@ -237,7 +237,7 @@ export async function POST(req: Request) {
     reply_markup: {
       inline_keyboard: [
         [{ text: "🌐 Khám phá NhaDat Radar", url: SITE_URL }],
-        [{ text: "💬 Zalo Hotline: 0346689460", url: "https://zalo.me/0346689460" }],
+        [{ text: "💬 Zalo Hotline: 0387365020", url: "https://zalo.me/0387365020" }],
       ],
     },
   });

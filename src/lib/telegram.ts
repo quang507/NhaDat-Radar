@@ -18,6 +18,9 @@ export async function sendTelegramMessage(
     disable_web_page_preview?: boolean;
   }
 ): Promise<boolean> {
+  if (process.env.TELEGRAM_DISABLE === "1") {
+    return false;
+  }
   const token = process.env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
   const chatId = options?.chatId || process.env.TELEGRAM_CHAT_ID || DEFAULT_CHAT_ID;
   if (!token || !chatId) {
@@ -74,6 +77,9 @@ export type LeadDetails = {
 };
 
 export async function baoLeadTelegram(data: LeadDetails): Promise<void> {
+  if (process.env.TELEGRAM_DISABLE === "1") {
+    return;
+  }
   const token = process.env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID || DEFAULT_CHAT_ID;
   if (!token || !chatId) return;

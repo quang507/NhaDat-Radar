@@ -46,7 +46,7 @@ Tọa lạc tại vị trí trung tâm Phường Phú Thạnh, Quận Tân Phú,
 - Cam kết: Hình ảnh thực tế và video quay thật 100% tại nhà.
 
 ☎️ LIÊN HỆ XEM NHÀ & ĐÀM PHÁN CHÍNH CHỦ:
-- Hotline / Zalo Radar Nhà Đất: 0346 689 460 (Hỗ trợ xem nhà 24/7, tư vấn pháp lý và đàm phán giá tốt nhất).`;
+- Hotline / Zalo Radar Nhà Đất: 0387 365 020 (Hỗ trợ xem nhà 24/7, tư vấn pháp lý và đàm phán giá tốt nhất).`;
 
 const listingData = {
   id: listingId,
@@ -71,7 +71,7 @@ const listingData = {
   // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
   ...lechToaDo(10.76235, 106.62895, "doc_quyen|insert-tran-van-can"),
   contact_name: "Radar Nhà Đất",
-  contact_phone: "0346689460",
+  contact_phone: "0387365020",
   ai_score: 99,
   trust_score: 100,
   poster_role_guess: "chu_nha",

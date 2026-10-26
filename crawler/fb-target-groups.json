@@ -1,0 +1,65 @@
+[
+  {
+    "name": "PHÒNG TRỌ QUẬN 10",
+    "query": "phòng trọ tphcm",
+    "category": "phong_tro",
+    "district": "Quận 10",
+    "status": "requested"
+  },
+  {
+    "name": "Phòng Trọ TPHCM",
+    "query": "phòng trọ tphcm",
+    "category": "phong_tro",
+    "district": "Hồ Chí Minh",
+    "status": "requested"
+  },
+  {
+    "name": "PHÒNG TRỌ TP.HCM",
+    "query": "phòng trọ tphcm",
+    "category": "phong_tro",
+    "district": "Hồ Chí Minh",
+    "status": "requested"
+  },
+  {
+    "name": "Cho Thuê phòng trọ và căn hộ dịch vụ TPHCM",
+    "query": "căn hộ cho thuê tphcm",
+    "category": "can_ho",
+    "district": "Hồ Chí Minh",
+    "status": "requested"
+  },
+  {
+    "name": "Cho Thuê Căn Hộ Theo Ngày Và Ngắn Hạn Tp HCM",
+    "query": "căn hộ cho thuê tphcm",
+    "category": "can_ho",
+    "district": "Hồ Chí Minh",
+    "status": "requested"
+  },
+  {
+    "name": "Cho Thuê Căn Hộ Sài Gòn",
+    "query": "căn hộ cho thuê tphcm",
+    "category": "can_ho",
+    "district": "Hồ Chí Minh",
+    "status": "requested"
+  },
+  {
+    "name": "MUA BÁN NHÀ ĐẤT SÀI GÒN",
+    "query": "bất động sản tphcm",
+    "category": "nha_dat",
+    "district": "Hồ Chí Minh",
+    "status": "requested"
+  },
+  {
+    "name": "BẤT ĐỘNG SẢN TP. HỒ CHÍ MINH",
+    "query": "bất động sản tphcm",
+    "category": "nha_dat",
+    "district": "Hồ Chí Minh",
+    "status": "requested"
+  },
+  {
+    "name": "Mua Bán Nhà Đất TP.HCM",
+    "query": "bất động sản tphcm",
+    "category": "nha_dat",
+    "district": "Hồ Chí Minh",
+    "status": "requested"
+  }
+]

@@ -147,7 +147,7 @@ export default function TimPhongNhanh() {
                   className="font-bold text-slate-800 hover:text-brand inline-flex items-center gap-1"
                 >
                   <PhoneCall className="w-3.5 h-3.5 text-brand" />
-                  <span>0346 689 460</span>
+                  <span>0387 365 020</span>
                 </a>
               </div>
             </div>

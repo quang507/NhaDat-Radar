@@ -40,11 +40,11 @@ export default function ContactForm({
       <input type="hidden" name="listing_id" value={listingId} />
       <label className="block">
         <span className="block text-xs font-semibold text-[var(--ink-soft)] mb-1">Tên của bạn</span>
-        <input className="inp" name="name" placeholder="Tên của bạn" required />
+        <input className="inp" name="name" autoComplete="name" placeholder="Tên của bạn" required />
       </label>
       <label className="block">
         <span className="block text-xs font-semibold text-[var(--ink-soft)] mb-1">Số điện thoại</span>
-        <input className="inp" name="phone" placeholder="SĐT của bạn" required />
+        <input className="inp" name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="SĐT của bạn (Zalo)" required />
       </label>
       {datLich && (
         <div className="grid grid-cols-2 gap-2">

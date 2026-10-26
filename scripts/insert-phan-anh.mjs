@@ -39,7 +39,7 @@ Cơ hội sở hữu nhà riêng phân khúc tài chính vàng 3 tỷ nhỉnh t�
 - Đơn giá chỉ ~80.8 triệu/m² - mức giá cực tốt so với mặt bằng khu vực!
 
 ☎️ LIÊN HỆ XEM NHÀ & THƯƠNG LƯỢNG CHÍNH CHỦ:
-- Hotline / Zalo Radar Nhà Đất: 0346 689 460 (Xem nhà thực tế 24/7, hỗ trợ đàm phán giá tốt nhất).`;
+- Hotline / Zalo Radar Nhà Đất: 0387 365 020 (Xem nhà thực tế 24/7, hỗ trợ đàm phán giá tốt nhất).`;
 
 const listingData = {
   id: listingId,
@@ -61,7 +61,7 @@ const listingData = {
   // toạ độ CÔNG KHAI lệch 20-35 m (bán kính an toàn, CLAUDE.md 4.2); toạ độ thật chỉ ở exact_lat/exact_lng bên dưới
   ...lechToaDo(10.77250, 106.62215, "doc_quyen|insert-phan-anh"),
   contact_name: "Radar Nhà Đất",
-  contact_phone: "0346689460",
+  contact_phone: "0387365020",
   ai_score: 98,
   trust_score: 100,
   poster_role_guess: "chu_nha",

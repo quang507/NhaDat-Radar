@@ -37,9 +37,17 @@ export default function MobileMenu() {
   }, []);
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
     <div className="xl:hidden">
       <button
+        type="button"
         aria-label={open ? "Đóng menu" : "Mở menu"}
         className="btn !p-2 text-slate-700 hover:text-brand"
         onClick={() => setOpen((v) => !v)}

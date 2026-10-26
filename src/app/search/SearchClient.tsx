@@ -78,7 +78,7 @@ function nhanKhoang(min: string, max: string, fmt: (n: number) => string) {
 
 // Mọi ô lọc (URL <-> state). 1/10 thêm: phòng tắm, tiện ích (ti), dự án, tên đường, hình ảnh, khoảng cách (gan + bk)
 const O_LOC = ["q", "deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax",
-  "bedrooms", "bathrooms", "legal", "direction", "ti", "project", "street", "anh", "gan", "bk", "gan_ten"] as const;
+  "bedrooms", "bathrooms", "legal", "direction", "ti", "project", "street", "anh", "gan", "bk", "gan_ten", "agent"] as const;
 type BoLoc = Record<(typeof O_LOC)[number], string>;
 const tuParams = (p: Record<string, string | undefined>): BoLoc =>
   Object.fromEntries(O_LOC.map((k) => [k, p[k] || ""])) as BoLoc;
@@ -245,7 +245,7 @@ export default function SearchClient({
     <nav className={`flex items-center justify-center gap-1.5 ${lop}`} aria-label="Phân trang">
       {trang > 1
         ? <Link className="btn !px-3 text-sm flex items-center justify-center" href={linkTrang(trang - 1)} rel="prev" aria-label="Trang trước"><ChevronLeft className="w-4 h-4" /></Link>
-        : <span className="btn !px-3 text-sm opacity-40 flex items-center justify-center" aria-hidden><ChevronLeft className="w-4 h-4" /></span>}
+        : <span className="btn !px-3 text-sm opacity-40 cursor-not-allowed pointer-events-none select-none flex items-center justify-center" aria-hidden><ChevronLeft className="w-4 h-4" /></span>}
       {Array.from({ length: totalPages }, (_, i) => i + 1)
         .filter((n) => n === 1 || n === totalPages || Math.abs(n - trang) <= 2)
         .map((n, i, arr) => (
@@ -259,7 +259,7 @@ export default function SearchClient({
         ))}
       {trang < totalPages
         ? <Link className="btn !px-3 text-sm flex items-center justify-center" href={linkTrang(trang + 1)} rel="next" aria-label="Trang sau"><ChevronRight className="w-4 h-4" /></Link>
-        : <span className="btn !px-3 text-sm opacity-40 flex items-center justify-center" aria-hidden><ChevronRight className="w-4 h-4" /></span>}
+        : <span className="btn !px-3 text-sm opacity-40 cursor-not-allowed pointer-events-none select-none flex items-center justify-center" aria-hidden><ChevronRight className="w-4 h-4" /></span>}
     </nav>
   );
   const dauTrang = (
@@ -269,8 +269,16 @@ export default function SearchClient({
         <Link href="/" className="hover:text-brand">Trang chủ</Link>
         <span>/</span>
         <Link href={`/search${f.deal ? `?deal=${f.deal}` : ""}`} className="hover:text-brand">{dealWord}</Link>
-        {f.province && (<><span>/</span><button className="hover:text-brand" onClick={() => push({ ...f, district: "", ward: "" })}>{f.province}</button></>)}
+        {f.province && (<><span>/</span><button type="button" className="hover:text-brand" onClick={() => push({ ...f, district: "", ward: "" })}>{f.province}</button></>)}
         {f.district && (<><span>/</span><span className="text-[var(--ink)]">{f.district}</span></>)}
+        {goc.agent && (
+          <span className="inline-flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded bg-brand/10 text-brand text-xs font-semibold">
+            <span>Tin người bán</span>
+            <button type="button" aria-label="Bỏ lọc người bán" onClick={() => push({ ...goc, agent: "" })} className="hover:text-red-500 transition-colors">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </span>
+        )}
       </nav>
 
       {/* ===== Thanh header kết quả ===== */}
@@ -331,6 +339,7 @@ export default function SearchClient({
         </form>
         {/* Bản đồ chỉ render ở lg+ (MapResults hidden lg:block) -> ẩn nút ở màn nhỏ, tránh nút bấm không có tác dụng (UX audit) */}
         <button
+          type="button"
           className={`hidden lg:inline-flex btn text-sm font-semibold whitespace-nowrap items-center gap-1.5 ${showMap ? "!bg-[var(--accent)] !border-[var(--accent)] !text-white" : "!text-[var(--accent)] !border-[var(--accent)]"}`}
           aria-pressed={showMap}
           onClick={() => setShowMap((v) => !v)}
@@ -365,6 +374,7 @@ export default function SearchClient({
   const hangLocMua = (
     <div className="cuon-ngang flex items-center gap-2 pb-4 mb-4 border-b border-[var(--line)] text-sm overflow-x-auto sm:overflow-visible sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
       <button
+        type="button"
         className={`shrink-0 h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition
           ${showFilter || soLoc ? "border-brand text-brand bg-brand/5 font-semibold" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
         aria-expanded={showFilter}
@@ -451,6 +461,7 @@ export default function SearchClient({
         </div>
         <span className="sm:ml-2"><ChipLoc label="Mới nhất" options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} /></span>
         <button
+          type="button"
           className={`h-10 px-4 rounded-lg border text-sm font-semibold flex items-center gap-2 transition
             ${showFilter || soLoc ? "border-brand text-brand bg-brand/5" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
           aria-expanded={showFilter}
@@ -865,6 +876,7 @@ export default function SearchClient({
                         <span>Nhắn Zalo nhờ Radar tìm giúp</span>
                       </a>
                       <button
+                        type="button"
                         className="w-full sm:w-auto btn px-4 py-2 text-xs rounded-md border border-[var(--line-strong)] text-[var(--ink-soft)] cursor-pointer"
                         onClick={clear}
                       >

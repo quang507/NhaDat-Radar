@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
-import { Bot, Sparkles, X, Send, PhoneCall, Home, MessageCircle } from "lucide-react";
+import { Bot, Sparkles, X, Send, PhoneCall, Home, MessageCircle, ChevronUp } from "lucide-react";
 
 type MiniListing = { id: string; title: string; price: string; meta: string; image: string | null };
 // link (26/10): nút mở trang liên quan - "xem cả N tin quanh dự án trên bản đồ", "trang dự án"
@@ -38,6 +38,16 @@ export default function ChatWidget() {
   const anThanhDay = !!dangXem || pathname === "/lap-phong" || pathname?.startsWith("/admin") || pathname?.startsWith("/dashboard");
 
   const [open, setOpen] = useState(false);
+  const [daMoRong, setDaMoRong] = useState(false);
+  const [reChuot, setReChuot] = useState(false);
+  const moRong = daMoRong || reChuot || open;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   const [msgs, setMsgs] = useState<Msg[]>([
     dangXem
       ? {
@@ -130,41 +140,81 @@ export default function ChatWidget() {
         </>
       )}
 
-      {/* Máy tính: cụm nút liên hệ nhanh góc phải: Zalo + Gọi điện + Hỏi AI */}
-      <div className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end gap-2.5">
-        {/* Nút Gọi Hotline trực tiếp */}
-        <a
-          href={`tel:${HOTLINE}`}
-          aria-label={`Gọi Hotline ${HOTLINE}`}
-          className="animate-pulse-zoom origin-right flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all border border-emerald-600 hover:[animation-play-state:paused]"
+      {/* Máy tính: cụm liên hệ nhanh góc phải (co lại mặc định, hover hoặc click để xổ ra) */}
+      <div
+        className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end gap-2"
+        onMouseEnter={() => setReChuot(true)}
+        onMouseLeave={() => setReChuot(false)}
+      >
+        {/* Menu xổ ra: Hotline + Zalo + Hỏi AI */}
+        <div
+          className={`flex flex-col items-end gap-2 transition-all duration-300 origin-bottom ${
+            moRong
+              ? "opacity-100 translate-y-0 pointer-events-auto max-h-60"
+              : "opacity-0 translate-y-3 pointer-events-none max-h-0 overflow-hidden"
+          }`}
         >
-          <PhoneCall className="w-4 h-4" />
-          <span className="hidden sm:inline">Hotline: 0346 689 460</span>
-          <span className="sm:hidden font-extrabold text-[11px]">Gọi điện</span>
-        </a>
+          {/* Nút Gọi Hotline trực tiếp */}
+          <a
+            href={`tel:${HOTLINE}`}
+            aria-label={`Gọi Hotline ${HOTLINE}`}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all border border-emerald-600"
+          >
+            <PhoneCall className="w-4 h-4" />
+            <span>Hotline: 0387 365 020</span>
+          </a>
 
-        {/* Nút Chat Zalo (kênh chuyển đổi mạnh nhất tại VN) */}
-        <a
-          href={HOTLINE_ZALO}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Nhắn Zalo tư vấn phòng"
-          className="animate-pulse-zoom-delay origin-right flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-xs font-bold shadow-md hover:shadow-lg hover:border-blue-700 active:scale-95 transition-all border border-blue-600 hover:[animation-play-state:paused]"
-        >
-          <MessageCircle className="w-4 h-4 fill-current" />
-          <span className="hidden sm:inline">Nhắn Zalo tư vấn 24/7</span>
-          <span className="sm:hidden font-extrabold text-[11px]">Chat Zalo</span>
-        </a>
+          {/* Nút Chat Zalo */}
+          <a
+            href={HOTLINE_ZALO}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Nhắn Zalo tư vấn phòng"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-xs font-bold shadow-md hover:shadow-lg hover:border-blue-700 active:scale-95 transition-all border border-blue-600"
+          >
+            <MessageCircle className="w-4 h-4 fill-current" />
+            <span>Nhắn Zalo tư vấn 24/7</span>
+          </a>
 
-        {/* Nút Trợ lý AI (tuỳ chọn mở rộng) */}
+          {/* Nút Trợ lý AI */}
+          <button
+            type="button"
+            aria-label="Mở trợ lý AI"
+            onClick={() => {
+              setOpen((v) => !v);
+              setDaMoRong(false);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-semibold shadow-md transition active:scale-95 cursor-pointer border border-slate-800"
+          >
+            {open ? <X className="w-3.5 h-3.5 text-slate-300" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
+            <span>{open ? "Đóng trợ lý AI" : "Hỏi trợ lý AI"}</span>
+          </button>
+        </div>
+
+        {/* Nút chính thu gọn: Click hoặc Hover vào đây để xổ menu 3 nút ra */}
         <button
           type="button"
-          aria-label="Mở trợ lý AI"
-          onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-medium shadow-xs transition active:scale-95 cursor-pointer border border-slate-800"
+          aria-expanded={moRong}
+          aria-label={moRong ? "Thu gọn cụm liên hệ" : "Mở liên hệ nhanh và hỏi AI"}
+          onClick={() => setDaMoRong((v) => !v)}
+          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer border ${
+            moRong
+              ? "bg-slate-800 hover:bg-slate-900 border-slate-700 text-slate-200"
+              : "bg-emerald-700 hover:bg-emerald-800 border-emerald-600 animate-pulse-zoom"
+          }`}
         >
-          {open ? <X className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
-          <span className="hidden sm:inline">{open ? "Đóng AI" : "Hỏi AI"}</span>
+          {moRong ? (
+            <>
+              <X className="w-4 h-4" />
+              <span>Thu gọn</span>
+            </>
+          ) : (
+            <>
+              <MessageCircle className="w-4 h-4" />
+              <span>Liên hệ &amp; Hỏi AI</span>
+              <ChevronUp className="w-3.5 h-3.5 text-emerald-200" />
+            </>
+          )}
         </button>
       </div>
 
@@ -201,7 +251,7 @@ export default function ChatWidget() {
               className="font-semibold text-brand hover:underline flex items-center gap-1"
             >
               <PhoneCall className="w-3 h-3" />
-              <span>Hotline: 0346 689 460</span>
+              <span>Hotline: 0387 365 020</span>
             </a>
           </div>
 

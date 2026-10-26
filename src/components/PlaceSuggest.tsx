@@ -69,6 +69,7 @@ export default function PlaceSuggest({ value, places, onPick, onPickDuAn, classN
           type="button" role="option" aria-selected={i === hi}
           onMouseEnter={() => setHi(i)}
           onMouseDown={(e) => { e.preventDefault(); onPick(p); setOpen(false); }}
+          onClick={(e) => { e.preventDefault(); onPick(p); setOpen(false); }}
           className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-2 min-h-[44px] ${i === hi ? "bg-[var(--surface-2)]" : ""}`}
         >
           <span className="text-[var(--ink-faint)] text-xs w-14 shrink-0">{p.level === "province" ? "Tỉnh/TP" : p.level === "district" ? "Quận" : "Phường"}</span>
@@ -83,6 +84,7 @@ export default function PlaceSuggest({ value, places, onPick, onPickDuAn, classN
             <button
               key={d.id} type="button" role="option" aria-selected={false}
               onMouseDown={(e) => { e.preventDefault(); onPickDuAn(d); setOpen(false); }}
+              onClick={(e) => { e.preventDefault(); onPickDuAn(d); setOpen(false); }}
               className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-2 min-h-[44px] hover:bg-[var(--surface-2)]"
             >
               <span className="text-[var(--ink-faint)] text-xs w-14 shrink-0">Dự án</span>

@@ -58,6 +58,7 @@ export default function ThongKeView({
           </div>
           {selectedDistrict && (
             <button
+              type="button"
               onClick={() => setSelectedDistrict(null)}
               className="text-xs text-brand font-semibold hover:underline cursor-pointer"
             >
@@ -104,6 +105,14 @@ export default function ThongKeView({
               return (
                 <div
                   key={r.district}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedDistrict(r.district);
+                    }
+                  }}
                   onClick={() => setSelectedDistrict(r.district)}
                   className={`group px-3 py-2 rounded-xl transition-all cursor-pointer border ${
                     isSelected

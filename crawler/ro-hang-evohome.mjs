@@ -25,7 +25,7 @@ import { cheDiaChi } from "./che-dia-chi.mjs";
 // 2/10: dùng chung cho mọi đối tác rổ hàng cùng khuôn file - RO_HANG_PARTNER=hifriendz (crawler/hifriendz-fetch.mjs)
 const PARTNER = process.env.RO_HANG_PARTNER || "evohome";
 if (!/^[a-z0-9_]+$/.test(PARTNER)) { console.error(`RO_HANG_PARTNER không hợp lệ: ${PARTNER}`); process.exit(1); }
-const HOTLINE = "0346689460";
+const HOTLINE = "0387365020";
 const FILE = process.argv[2] || `crawler/private/${PARTNER}.json`;
 const OUT = `crawler/private/${PARTNER}-rows.json`;
 

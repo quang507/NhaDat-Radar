@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { baoSuKien } from "@/lib/su-kien-client";
 import { Share2, Check, Copy } from "lucide-react";
 
@@ -11,6 +11,19 @@ import { Share2, Check, Copy } from "lucide-react";
 export default function ChiaSe({ url, title, listingId }: { url: string; title: string; listingId?: string }) {
   const [mo, setMo] = useState(false);
   const [daChep, setDaChep] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!mo) return;
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setMo(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMo(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [mo]);
 
   async function bam() {
     baoSuKien("chia_se", listingId);
@@ -32,7 +45,7 @@ export default function ChiaSe({ url, title, listingId }: { url: string; title: 
   }
 
   return (
-    <span className="relative">
+    <span className="relative" ref={ref}>
       <button
         type="button"
         onClick={bam}

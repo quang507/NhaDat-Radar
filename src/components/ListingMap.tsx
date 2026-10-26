@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { preconnect } from "react-dom";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as BanDo, Marker } from "maplibre-gl";
+import { Search, RotateCcw } from "lucide-react";
 import { escHtml, shortPrice, fmtPrice, catChu, PROP } from "@/lib/format";
 import { taoBanDo, MAY_CHU_BAN_DO } from "@/lib/map-layers";
 import { KhungChoBanDo } from "./MapResults";
 import { createClient } from "@/lib/supabase/client";
+import { cheTinDocQuyen } from "@/lib/doc-quyen";
 
 // Bản đồ 1 tin (MapLibre + OpenFreeMap) kèm tính năng hiện BĐS lân cận khi người dùng zoom ra
 export default function ListingMap({
@@ -54,10 +56,10 @@ export default function ListingMap({
       const mainEl = document.createElement("button");
       mainEl.type = "button";
       mainEl.className = "ndr-pin ndr-pin-chinh";
-      mainEl.innerHTML = "<span>📍 Vị trí</span>";
+      mainEl.textContent = "Vị trí";
       const mainPopupHtml = `
         <div class="ndr-popup-tin">
-          <span style="font-size:11px;font-weight:700;color:#f59e0b;">📍 BĐS bạn đang xem</span>
+          <span style="font-size:11px;font-weight:700;color:#f59e0b;">BĐS bạn đang xem</span>
           <b>${escHtml(catChu(title, 80))}</b>
           ${priceVnd ? `<div class="ndr-popup-gia"><b>${fmtPrice(priceVnd, deal)}</b></div>` : ""}
         </div>
@@ -67,7 +69,7 @@ export default function ListingMap({
         .setPopup(new ml.Popup({ offset: 12, closeButton: false, maxWidth: "260px", className: "ndr-popup" }).setHTML(mainPopupHtml))
         .addTo(map);
 
-      // Hàm tìm và vẽ BĐS lân cận khi zoom ra (zoom < 15.2)
+      // Hàm tìm và vẽ BĐS lân cận khi zoom ra (zoom <= 14.8)
       const fetchNearby = async () => {
         if (cancelled || !map) return;
         const curZoom = map.getZoom();
@@ -91,13 +93,14 @@ export default function ListingMap({
           const sb = createClient();
           let q = sb
             .from("listings")
-            .select("id,title,price_vnd,deal,kind,lat,lng,images,area_m2")
+            .select("id,source,source_site,title,price_vnd,deal,kind,lat,lng,images,area_m2")
             .eq("status", "published")
             .eq("deal", targetDeal)
             .gte("lat", sw.lat)
             .lte("lat", ne.lat)
             .gte("lng", sw.lng)
             .lte("lng", ne.lng)
+            .order("ai_score", { ascending: false, nullsFirst: false })
             .limit(30);
 
           if (currentId) q = q.neq("id", currentId);
@@ -105,8 +108,24 @@ export default function ListingMap({
           const { data, error } = await q;
           if (cancelled || error || !data) return;
 
-          setNearbyCount(data.length);
-          const newIds = new Set(data.map((d) => d.id));
+          // CLAUDE.md mục 4: che SĐT trên tin độc quyền (FB, Zalo, rổ hàng) trước khi đưa lên UI
+          type RawItem = {
+            id: string;
+            source?: string | null;
+            source_site?: string | null;
+            title?: string | null;
+            price_vnd: number | null;
+            deal?: string;
+            kind: string;
+            lat: number | null;
+            lng: number | null;
+            images?: string[] | null;
+            area_m2?: number | null;
+          };
+          const items = (data as unknown as RawItem[]).map(cheTinDocQuyen);
+
+          setNearbyCount(items.length);
+          const newIds = new Set(items.map((d) => d.id));
 
           // Gỡ các pin không còn trong khung nhìn
           nearbyMarkersRef.current.forEach((m, id) => {
@@ -117,23 +136,24 @@ export default function ListingMap({
           });
 
           // Thêm pin mới
-          data.forEach((it) => {
+          items.forEach((it) => {
             if (nearbyMarkersRef.current.has(it.id)) return;
             if (it.lat == null || it.lng == null) return;
 
             const el = document.createElement("button");
             el.type = "button";
-            el.className = `ndr-pin ${it.deal === "cho_thue" ? "ndr-pin-thue" : ""}`;
+            el.className = "ndr-pin";
             el.textContent = shortPrice(it.price_vnd);
 
             const loaiBds = PROP[it.kind] || (it.deal === "cho_thue" ? "Phòng trọ" : "Nhà đất");
+            const imgUrl = it.images?.[0] || null;
             const popupHtml = `
               <a class="ndr-popup-tin" href="/listings/${encodeURIComponent(it.id)}" target="_blank" rel="noopener">
-                ${it.images?.[0] ? `<img src="${escHtml(it.images[0])}" class="w-full h-24 object-cover rounded mb-1 bg-slate-100 dark:bg-slate-800" alt="" loading="lazy" />` : ""}
-                <div style="font-size:11px;font-weight:700;color:${it.deal === "cho_thue" ? "#0d9488" : "#047857"};">
+                ${imgUrl ? `<img src="${escHtml(imgUrl)}" referrerpolicy="no-referrer" class="w-full h-24 object-cover rounded mb-1 bg-slate-100 dark:bg-slate-800" alt="" loading="lazy" />` : ""}
+                <div style="font-size:11px;font-weight:700;color:#047857;">
                   ${escHtml(loaiBds)}
                 </div>
-                <b>${escHtml(catChu(it.title, 75))}</b>
+                <b>${escHtml(catChu(it.title || "", 75))}</b>
                 <div class="ndr-popup-gia">
                   <b>${fmtPrice(it.price_vnd, it.deal)} ${it.area_m2 ? `<small style="font-weight:400;color:var(--ink-soft);"> · ${it.area_m2}m²</small>` : ""}</b>
                   <small style="color:rgb(var(--brand-text-rgb));font-weight:700;margin-top:4px;">Xem chi tiết ›</small>
@@ -184,6 +204,8 @@ export default function ListingMap({
     }
   };
 
+  const soLuongHienThi = nearbyCount >= 30 ? "30+" : String(nearbyCount);
+
   return (
     <div className="relative w-full h-[460px]">
       <div ref={ref} className="w-full h-full rounded-sm border border-[var(--line)] overflow-hidden z-0 bg-[var(--bg)]" />
@@ -195,23 +217,28 @@ export default function ListingMap({
           <button
             type="button"
             onClick={handleToggleZoom}
-            aria-label={zoomLevel >= 14.8 ? "Thu nhỏ bản đồ để xem BĐS xung quanh" : "Về lại vị trí tin này"}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-[var(--surface)]/95 backdrop-blur-md border border-[var(--line)] shadow-sm hover:border-brand text-xs transition cursor-pointer"
+            aria-label={zoomLevel >= 14.8 ? `Thu nhỏ bản đồ để xem BĐS ${nhanDeal} xung quanh` : "Về lại vị trí tin này"}
+            className="min-h-11 flex items-center gap-2 px-3 py-2 rounded bg-[var(--surface)] border border-[var(--line)] shadow-sm hover:border-brand text-xs text-[var(--ink)] font-medium transition cursor-pointer select-none"
           >
             {loadingNearby ? (
-              <span className="text-[var(--ink-soft)] flex items-center gap-1">
+              <span className="text-[var(--ink-soft)] flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
-                Đang tìm BĐS {nhanDeal} quanh đây…
+                <span>Đang tìm BĐS {nhanDeal} quanh đây…</span>
               </span>
             ) : zoomLevel < 14.8 ? (
-              <span className="text-[var(--ink)] font-semibold flex items-center gap-1">
+              <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                {nearbyCount > 0 ? `${nearbyCount} BĐS ${nhanDeal} lân cận` : `Chưa có thêm BĐS ${nhanDeal} trong vùng này`}
-                <span className="text-[10px] text-[var(--ink-faint)] font-normal ml-1">(Bấm để về vị trí cũ)</span>
+                <span className="font-semibold">
+                  {nearbyCount > 0 ? `${soLuongHienThi} BĐS ${nhanDeal} lân cận` : `Chưa có thêm BĐS ${nhanDeal} trong vùng này`}
+                </span>
+                <span className="text-[var(--ink-soft)] flex items-center gap-1 ml-1 border-l border-[var(--line)] pl-2">
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Vị trí cũ</span>
+                </span>
               </span>
             ) : (
-              <span className="text-[var(--ink-soft)] hover:text-brand flex items-center gap-1">
-                <span>🔍</span>
+              <span className="text-[var(--ink-soft)] hover:text-brand flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5 text-brand" />
                 <span>Thu nhỏ xem BĐS {nhanDeal} xung quanh</span>
               </span>
             )}

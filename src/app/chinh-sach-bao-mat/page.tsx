@@ -134,7 +134,7 @@ export default function ChinhSachBaoMatPage() {
           </p>
           <div className="mt-3 space-y-1">
             <p><strong>Ban Quản trị NhaDat Radar</strong></p>
-            <p>Hotline: <a href="tel:0346689460" className="text-brand font-bold">0346 689 460</a></p>
+            <p>Hotline: <a href="tel:0387365020" className="text-brand font-bold">0387 365 020</a></p>
             <p>Email: <a href="mailto:contact@nhadatradar.com" className="text-brand">contact@nhadatradar.com</a></p>
             <p>Website: <Link href="/" className="text-brand">https://nhadatradar.com</Link></p>
           </div>

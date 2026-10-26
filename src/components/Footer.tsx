@@ -51,9 +51,9 @@ export default function Footer() {
           <div className="space-y-3 text-[var(--ink-soft)]">
             <div>
               <span className="text-xs text-[var(--ink-faint)] block mb-0.5">Hotline hỗ trợ (8:00 - 21:00):</span>
-              <a href="tel:0346689460" className="inline-flex items-center gap-2 text-base font-extrabold text-brand hover:underline">
+              <a href="tel:0387365020" className="inline-flex items-center gap-2 text-base font-extrabold text-brand hover:underline">
                 <Phone className="w-4 h-4" />
-                0346 689 460
+                0387 365 020
               </a>
             </div>
             <div className="flex items-center gap-2 text-xs">

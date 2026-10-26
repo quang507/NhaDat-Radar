@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import { maPhong } from "@/lib/ro-hang";
 import { NutZalo } from "./TheoDoi";
@@ -8,6 +8,13 @@ import { Lock, MessageCircle, PhoneCall, ShieldCheck, X } from "lucide-react";
 
 export default function DangNhapDeXem({ listingId, listingTitle }: { listingId?: string; listingTitle?: string }) {
   const [mo, setMo] = useState(false);
+
+  useEffect(() => {
+    if (!mo) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMo(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mo]);
 
   // zalo.me KHÔNG điền sẵn tin nhắn (bỏ qua ?text=) -> NutZalo chép nội dung + mã vào clipboard, khách chỉ cần Dán.
   // Mã = maPhong: tra được ở /rh/[mã] và ô tra mã admin cho MỌI tin (không riêng rổ hàng)
@@ -87,7 +94,7 @@ export default function DangNhapDeXem({ listingId, listingTitle }: { listingId?:
                 className="w-full min-h-11 py-2.5 px-4 rounded-md font-bold text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 text-center"
               >
                 <PhoneCall className="w-3.5 h-3.5 text-brand dark:text-emerald-400" />
-                <span>Hoặc gọi Hotline Radar: 0346 689 460</span>
+                <span>Hoặc gọi Hotline Radar: 0387 365 020</span>
               </a>
 
               <div className="pt-3 border-t border-slate-100 dark:border-slate-700/80 mt-3 text-center">
