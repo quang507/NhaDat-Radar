@@ -4,7 +4,6 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/ChatWidget";
-import InstallPwaBanner from "@/components/InstallPwaBanner";
 import Clarity from "@/components/Clarity";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import GoogleAdSense from "@/components/GoogleAdSense";
@@ -85,7 +84,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="max-w-6xl mx-auto px-4 sm:px-5 py-4 sm:py-6">{children}</main>
         <Footer />
         <ChatWidget />
-        <InstallPwaBanner />
         <Clarity />
         <GoogleAnalytics />
         <GoogleAdSense />
