@@ -4,7 +4,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ShieldCheck, MapPin, Handshake, Award, Network, Zap, Users } from "lucide-react";
 
-export const metadata = { title: "Người bán chuyên nghiệp - NhaDat Radar" };
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Mạng Lưới Môi Giới & Người Bán Chuyên Nghiệp Đã Xác Minh | NhaDat Radar",
+  description: "Danh bạ chuyên viên tư vấn, môi giới bất động sản uy tín, am hiểu sâu thị trường khu vực và pháp lý giao dịch nhà đất tại Việt Nam.",
+  alternates: { canonical: "/agents" },
+};
 
 type AgentRow = {
   id: string; full_name: string | null; avatar_url: string | null; bio: string | null;

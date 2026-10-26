@@ -1,4 +1,4 @@
-export const revalidate = 1800;   // 23/9: trang chủ cache 5 phút (dữ liệu chỉ đổi mỗi lượt crawl)
+export const revalidate = 1800;
 
 import fs from "node:fs";
 import path from "node:path";

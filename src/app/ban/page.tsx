@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { CircleDollarSign, Megaphone, Handshake } from "lucide-react";
 
-export const metadata = { title: "Đăng bán bất động sản - NhaDat Radar" };
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Đăng Bán & Cho Thuê Bất Động Sản Tiếp Cận Khách Thật | NhaDat Radar",
+  description: "Đăng tin bán nhà đất, căn hộ hoàn toàn miễn phí trên NhaDat Radar. Tiếp cận hàng nghìn người mua và thuê thật mỗi ngày, định giá AI hỗ trợ chốt nhanh.",
+  alternates: { canonical: "/ban" },
+};
 
 const WHY = [
   { icon: CircleDollarSign, title: "Giá trị tối đa", desc: "Thống kê giá theo khu vực và AI định giá giúp bạn đặt giá tốt nhất cho bất động sản." },

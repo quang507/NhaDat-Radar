@@ -1,6 +1,12 @@
 import GuidePage from "@/components/GuidePage";
 
-export const metadata = { title: "Hướng dẫn mua & thuê nhà - NhaDat Radar" };
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Cẩm Nang Hướng Dẫn Mua & Thuê Nhà An Toàn, Đúng Giá | NhaDat Radar",
+  description: "Quy trình từng bước giúp bạn tìm kiếm, thẩm định giá, kiểm tra pháp lý và đàm phán hợp đồng mua bán hoặc thuê nhà đất an toàn tuyệt đối.",
+  alternates: { canonical: "/huong-dan/mua" },
+};
 
 export default function BuyerGuidePage() {
   return (

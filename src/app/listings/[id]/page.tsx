@@ -214,6 +214,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     alternates: { canonical: `/listings/${id}` },
     ...(data.status === "gone" ? { robots: { index: false, follow: true } } : {}),
     openGraph: { type: "article", url: `${SITE_URL}/listings/${id}`, title, description, ...(img ? { images: [{ url: img }] } : {}) },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      ...(img ? { images: [img] } : {}),
+    },
   };
 }
 
@@ -936,6 +942,55 @@ export default async function ListingDetail({
         </section>
       )}
       {/* NN/g #6: nhớ tin đã xem (localStorage) + hiện dải "Đã xem gần đây" */}
+      {/* SEO Internal Linking: Điều hướng ngữ cảnh theo khu vực */}
+      {(x.district || x.province) && (
+        <section className="mt-12 p-5 rounded-2xl bg-[var(--surface)] border border-[var(--line)] text-sm">
+          <h2 className="font-bold text-base mb-3 text-[var(--ink)]">
+            Khám phá bất động sản tại {x.district ? `${x.district}, ${x.province || ""}` : x.province}
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {x.province && (
+              <Link href={areaPath(x.deal, x.province, x.district, x.kind)} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+                {PROP[x.kind] || "Bất động sản"} {x.district || x.province} ›
+              </Link>
+            )}
+            {x.province && x.deal === "cho_thue" && (
+              <>
+                <Link href={areaPath("cho_thue", x.province, x.district, "phong_tro")} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+                  Phòng trọ {x.district || x.province} ›
+                </Link>
+                <Link href={areaPath("cho_thue", x.province, x.district, "can_ho")} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+                  Căn hộ dịch vụ {x.district || x.province} ›
+                </Link>
+              </>
+            )}
+            {x.province && x.deal === "ban" && (
+              <>
+                <Link href={areaPath("ban", x.province, x.district, "nha")} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+                  Nhà riêng {x.district || x.province} ›
+                </Link>
+                <Link href={areaPath("ban", x.province, x.district, "can_ho")} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+                  Căn hộ bán {x.district || x.province} ›
+                </Link>
+              </>
+            )}
+            {x.province && (
+              <Link href={areaPath(x.deal === "ban" ? "cho_thue" : "ban", x.province, x.district)} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+                {x.deal === "ban" ? "Cho thuê nhà đất" : "Nhà đất bán"} {x.district || x.province} ›
+              </Link>
+            )}
+            {x.province && (
+              <Link href={`/thong-ke?deal=${x.deal}&city=${encodeURIComponent(x.province)}`} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+                Biến động giá tại {x.province} ›
+              </Link>
+            )}
+            <Link href="/dinh-gia" className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+              Định giá BĐS bằng AI ›
+            </Link>
+          </div>
+        </section>
+      )}
+
       <GhiXemTin listingId={x.id} />
       <RecentlyViewedTracker item={{ id: x.id, title: x.title, price: fmtPrice(x.price_vnd, x.deal), where: [x.district, x.province].filter(Boolean).join(", "), img: images[0] || null }} />
       <RecentlyViewed excludeId={x.id} />

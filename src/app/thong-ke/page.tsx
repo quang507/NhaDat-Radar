@@ -1,4 +1,18 @@
 export const dynamic = "force-dynamic";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Thống Kê Giá Nhà Đất & Biểu Đồ Biến Động Giá BĐS | NhaDat Radar",
+  description: "Báo cáo thống kê giá bán và giá thuê nhà đất, căn hộ chi tiết theo từng quận tại TP.HCM, Hà Nội và Đà Nẵng. Dữ liệu tổng hợp từ thị trường thực tế.",
+  alternates: { canonical: "/thong-ke" },
+  openGraph: {
+    type: "website",
+    title: "Thống Kê Giá Nhà Đất & Biểu Đồ Biến Động Giá BĐS | NhaDat Radar",
+    description: "Báo cáo thống kê giá bán và giá thuê nhà đất, căn hộ chi tiết theo từng quận.",
+    url: "https://nhadatradar.com/thong-ke",
+  },
+};
+
 
 import Link from "next/link";
 import { createAnonClient } from "@/lib/supabase/anon";

@@ -6,6 +6,7 @@ export async function generateStaticParams() {
   return [];
 }
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAnonClient } from "@/lib/supabase/anon";
@@ -19,7 +20,56 @@ import RichText from "@/components/RichText";
 import type { Project, Listing } from "@/lib/types";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
 import { docToaDoWkb, khoangCachKm } from "@/lib/du-an";
+import { ldJson, SITE_URL } from "@/lib/ld";
+import { catChu } from "@/lib/format";
 import { ChevronLeft, Building2, MapPin, ChevronDown, ChevronUp } from "lucide-react";
+
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = createAnonClient();
+  const { data: proj } = await supabase.from("projects").select("id,name,investor,province,district,address,description,images").eq("id", id).maybeSingle();
+  if (!proj) {
+    return {
+      title: "Dự án không tồn tại | NhaDat Radar",
+      robots: { index: false, follow: true },
+    };
+  }
+  const p = proj as { id: string; name: string; investor?: string; province?: string; district?: string; address?: string; description?: string; images?: string[] };
+  const where = [p.district, p.province].filter(Boolean).join(", ");
+  const title = `Dự án ${p.name}${where ? " - " + where : ""}: Bảng giá & Căn hộ bán, cho thuê | NhaDat Radar`;
+  const desc = p.description
+    ? `Thông tin dự án ${p.name} tại ${p.address || where}. ${catChu(p.description.replace(/\s+/g, " "), 140)}`
+    : `Dự án ${p.name} tại ${where}. Xem thông tin chủ đầu tư ${p.investor || "uy tín"}, vị trí, bảng giá và căn hộ bán hoặc cho thuê trên NhaDat Radar.`;
+  const imgs = cleanImages(p.images || []);
+  const ogImg = imgs[0] || `${SITE_URL}/og-default.png`;
+  const url = `${SITE_URL}/projects/${p.id}`;
+
+  return {
+    title,
+    description: desc,
+    alternates: { canonical: `/projects/${p.id}` },
+    openGraph: {
+      type: "website",
+      title,
+      description: desc,
+      url,
+      siteName: "NhaDat Radar",
+      locale: "vi_VN",
+      images: [{ url: ogImg, width: 1200, height: 630, alt: p.name }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: desc,
+      images: [ogImg],
+    },
+  };
+}
 
 export default async function ProjectDetail({
   params,
@@ -71,8 +121,48 @@ export default async function ProjectDetail({
     related = listings.length > 0;
   }
 
+
+  const imgs = cleanImages(p.images || []);
+  const ldProject = [
+    {
+      "@context": "https://schema.org",
+      "@type": "ApartmentComplex",
+      name: p.name,
+      url: `${SITE_URL}/projects/${p.id}`,
+      ...(p.description ? { description: catChu(p.description, 500) } : {}),
+      ...(imgs.length ? { image: imgs.slice(0, 5) } : {}),
+      ...(p.address || p.district || p.province ? {
+        address: {
+          "@type": "PostalAddress",
+          addressCountry: "VN",
+          ...(p.province ? { addressRegion: p.province } : {}),
+          ...(p.district ? { addressLocality: p.district } : {}),
+          ...(p.address ? { streetAddress: p.address } : {}),
+        },
+      } : {}),
+      ...(td ? { geo: { "@type": "GeoCoordinates", latitude: td.lat, longitude: td.lng } } : {}),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: "Dự án BĐS", item: `${SITE_URL}/projects` },
+        ...(p.province ? [{ "@type": "ListItem", position: 3, name: p.province, item: `${SITE_URL}/projects?province=${encodeURIComponent(p.province)}` }] : []),
+        { "@type": "ListItem", position: p.province ? 4 : 3, name: p.name, item: `${SITE_URL}/projects/${p.id}` },
+      ],
+    },
+  ];
+
   return (
     <div>
+      {ldProject.map((o, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldJson(o) }} />)}
+      <nav className="text-xs text-[var(--ink-soft)] mb-3 flex flex-wrap items-center gap-1">
+        <Link href="/" className="hover:text-brand">Trang chủ</Link><span>/</span>
+        <Link href="/projects" className="hover:text-brand">Dự án</Link>
+        {p.province ? <><span>/</span><Link href={`/projects?province=${encodeURIComponent(p.province)}`} className="hover:text-brand">{p.province}</Link></> : null}
+        {p.district ? <><span>/</span><span className="text-[var(--ink)]">{p.district}</span></> : null}
+      </nav>
       <Link href="/projects" className="inline-flex items-center gap-1.5 text-sm text-[var(--ink-soft)] hover:text-brand font-semibold transition">
         <ChevronLeft className="w-4 h-4" />
         <span>Về danh sách dự án</span>

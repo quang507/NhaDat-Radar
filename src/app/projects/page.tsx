@@ -9,7 +9,19 @@ import { tinhMoi } from "@/lib/sap-nhap";
 import type { Project } from "@/lib/types";
 import { Building2, ChevronLeft, ChevronRight } from "lucide-react";
 
-export const metadata = { title: "Dự án bất động sản - NhaDat Radar" };
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Danh mục 2.300+ Dự án Bất Động Sản Toàn Quốc | NhaDat Radar",
+  description: "Tổng hợp thông tin, tiến độ, bảng giá và căn hộ bán & cho thuê tại hơn 2.300 dự án bất động sản trên toàn quốc. Cập nhật dữ liệu minh bạch, hình ảnh thực tế.",
+  alternates: { canonical: "/projects" },
+  openGraph: {
+    type: "website",
+    title: "Danh mục 2.300+ Dự án Bất Động Sản Toàn Quốc | NhaDat Radar",
+    description: "Tổng hợp thông tin, tiến độ, bảng giá và căn hộ bán & cho thuê tại hơn 2.300 dự án bất động sản trên toàn quốc.",
+    url: "https://nhadatradar.com/projects",
+  },
+};
 
 const PER_PAGE = 24;
 

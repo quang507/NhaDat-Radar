@@ -7,7 +7,19 @@ import Link from "next/link";
 import RentVsBuyCalc from "./RentVsBuyCalc";
 import { TrendingUp, ArrowUpRight } from "lucide-react";
 
-export const metadata = { title: "Thuê hay Mua? Tỷ suất cho thuê theo quận - NhaDat Radar" };
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Nên Thuê Hay Mua Nhà? Bảng Tỷ Suất Cho Thuê Theo Quận | NhaDat Radar",
+  description: "Phân tích bài toán tài chính nên thuê hay mua nhà, so sánh tỷ suất lợi nhuận cho thuê (rental yield) và dòng tiền đầu tư tại các quận TP.HCM và Hà Nội.",
+  alternates: { canonical: "/thue-hay-mua" },
+  openGraph: {
+    type: "website",
+    title: "Nên Thuê Hay Mua Nhà? Bảng Tỷ Suất Cho Thuê Theo Quận | NhaDat Radar",
+    description: "Bảng tỷ suất sinh lời cho thuê theo từng quận huyện trên NhaDat Radar.",
+    url: "https://nhadatradar.com/thue-hay-mua",
+  },
+};
 
 export default async function RentVsBuyPage() {
   const supabase = createAnonClient();

@@ -61,5 +61,71 @@
     "category": "nha_dat",
     "district": "Hồ Chí Minh",
     "status": "requested"
+  },
+  {
+    "name": "Cho Thuê Nhà Nguyên Căn Giá Rẻ Tại TPHCM",
+    "query": "nhà nguyên căn tphcm",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:04:52.796Z"
+  },
+  {
+    "name": "Nhà Nguyên Căn Cho Thuê TPHCM",
+    "query": "nhà nguyên căn tphcm",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:04:59.519Z"
+  },
+  {
+    "name": "HỘI CHO THUÊ MẶT BẰNG - NHÀ NGUYÊN CĂN TẠI HCM",
+    "query": "nhà nguyên căn tphcm",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:05:06.200Z"
+  },
+  {
+    "name": "NHÓM CHO THUÊ NHÀ NGUYÊN CĂN TP.HCM",
+    "query": "nhà nguyên căn tphcm",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:05:11.752Z"
+  },
+  {
+    "name": "CHO THUÊ NHÀ QUẬN 6",
+    "query": "cho thuê nhà quận 6",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:05:25.693Z"
+  },
+  {
+    "name": "Cho thuê Nhà Quận 6 Giá Rẻ",
+    "query": "cho thuê nhà quận 6",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:05:32.348Z"
+  },
+  {
+    "name": "Cho Thuê Nhà Quận 6 - Quận 11 - Bình Tân",
+    "query": "cho thuê nhà quận 6",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:05:39.062Z"
+  },
+  {
+    "name": "Dân Quận 6™Cho Thuê Nhà Quận 6 Giá Rẻ",
+    "query": "cho thuê nhà quận 6",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:05:45.707Z"
+  },
+  {
+    "name": "Nhà Đất Tân Phú - Bình Tân - Tân Bình",
+    "query": "nhà đất bình tân",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:06:00.040Z"
+  },
+  {
+    "name": "NHÀ ĐẤT CHÍNH CHỦ TÂN PHÚ - TÂN BÌNH - BÌNH TÂN HCM",
+    "query": "nhà đất bình tân",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:06:06.706Z"
+  },
+  {
+    "name": "Nhà Đất Bình Tân - Tân Phú - Tân Bình TPHCM",
+    "query": "nhà đất bình tân",
+    "status": "requested",
+    "joined_at": "2026-10-26T18:06:13.394Z"
   }
 ]

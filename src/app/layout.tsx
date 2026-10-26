@@ -44,7 +44,6 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
-  alternates: { canonical: "/" },
   openGraph: {
     type: "website", siteName: "NhaDat Radar", locale: "vi_VN", url: SITE_URL,
     title: "NhaDat Radar - Sàn nhà đất bán & cho thuê",

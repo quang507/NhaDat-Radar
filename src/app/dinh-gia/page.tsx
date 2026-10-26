@@ -3,7 +3,19 @@ export const dynamic = "force-dynamic";
 import { getAreas } from "@/lib/geo";
 import ValuationClient from "./ValuationClient";
 
-export const metadata = { title: "AI định giá bất động sản - NhaDat Radar" };
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "AI Định Giá Bất Động Sản - Ước Tính Giá Nhà Đất Chuẩn Xác | NhaDat Radar",
+  description: "Công cụ định giá nhà đất thông minh ứng dụng AI: so sánh tức thì với giá thị trường theo quận, diện tích, mặt tiền, số tầng và vị trí tại Hà Nội & TP.HCM.",
+  alternates: { canonical: "/dinh-gia" },
+  openGraph: {
+    type: "website",
+    title: "AI Định Giá Bất Động Sản - Ước Tính Giá Nhà Đất Chuẩn Xác | NhaDat Radar",
+    description: "Công cụ định giá nhà đất thông minh ứng dụng AI: so sánh giá thị trường theo quận, diện tích, vị trí.",
+    url: "https://nhadatradar.com/dinh-gia",
+  },
+};
 
 export default async function ValuationPage() {
   // Cây khu vực từ lib/geo (cache 10', phân trang tới 20k dòng, quận đã canonDistrict).
