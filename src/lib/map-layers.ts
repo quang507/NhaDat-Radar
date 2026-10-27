@@ -87,8 +87,10 @@ export async function taoBanDo(el: HTMLElement, center: [number, number], zoom: 
     style: webDangToi() ? KIEU_TOI : KIEU_SANG,
     center: [center[1], center[0]],
     zoom,
-    // cuộn trang không bị bản đồ "nuốt" (trước đây scrollWheelZoom:false - không phóng to bằng chuột được luôn)
-    cooperativeGestures: true,
+    // cuộn trang không bị bản đồ "nuốt" (trước đây scrollWheelZoom:false - không phóng to bằng chuột được luôn).
+    // 27/10 (anh Quang): máy tính đưa chuột vào bản đồ cuộn là phóng to luôn, không bắt giữ Ctrl -> chỉ bật
+    // chế độ "2 ngón để kéo" trên màn cảm ứng, nơi vuốt 1 ngón vẫn phải cuộn được trang.
+    cooperativeGestures: matchMedia("(pointer: coarse)").matches,
     attributionControl: { compact: true },
     dragRotate: false,
     pitchWithRotate: false,

@@ -50,17 +50,22 @@ export default function ThePhong({ x }: { x: Listing }) {
         ) : (
           <PropertyPlaceholder kind={x.kind} />
         )}
-        {roHang && (
-          <span className="absolute top-2 left-2 text-[0.62rem] font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-sm flex items-center gap-1 tracking-wide">
-            <ShieldCheck className="w-3 h-3 shrink-0" />
-            <span>XÁC MINH</span>
-          </span>
-        )}
-        {anh.video && (
-          <span className="absolute top-2 right-10 text-[0.62rem] font-bold px-2 py-0.5 rounded-md bg-rose-600 text-white shadow-sm flex items-center gap-1 tracking-wide">
-            <Play className="w-2.5 h-2.5 fill-current" />
-            <span>VIDEO</span>
-          </span>
+        {/* 27/10: 2 nhãn chung 1 hàng, chừa chỗ nút tim (bản cũ VIDEO neo right-10 đè lên "XÁC MINH" ở thẻ hẹp) */}
+        {(roHang || anh.video) && (
+          <div className="absolute top-2 left-2 right-12 flex flex-wrap gap-1">
+            {roHang && (
+              <span className="text-[0.62rem] font-bold px-1.5 py-0.5 rounded-sm bg-emerald-700 text-white shadow-sm flex items-center gap-1 tracking-wide whitespace-nowrap">
+                <ShieldCheck className="w-3 h-3 shrink-0" />
+                <span>XÁC MINH</span>
+              </span>
+            )}
+            {anh.video && (
+              <span className="text-[0.62rem] font-bold px-1.5 py-0.5 rounded-sm bg-rose-600 text-white shadow-sm flex items-center gap-1 tracking-wide whitespace-nowrap">
+                <Play className="w-2.5 h-2.5 fill-current" />
+                <span>VIDEO</span>
+              </span>
+            )}
+          </div>
         )}
         {anh.so > 1 && <span className="absolute bottom-2 right-2 text-[0.62rem] font-semibold px-2 py-0.5 rounded-md bg-black/75 text-white backdrop-blur-md">{anh.so} ảnh</span>}
       </Link>

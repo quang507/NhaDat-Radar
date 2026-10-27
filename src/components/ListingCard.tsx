@@ -38,16 +38,16 @@ export default function ListingCard({ x }: { x: Listing }) {
           <PropertyPlaceholder kind={x.kind} />
         )}
 
-        {/* Top-left badges: Tối đa 2 badge tinh gọn */}
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap max-w-[85%]">
+        {/* Top-left badges: Tối đa 2 badge tinh gọn. right-14 chừa nút tim 40px (max-w-[85%] cũ để "ĐÃ XÁC MINH" chui dưới tim) */}
+        <div className="absolute top-2.5 left-2.5 right-14 flex items-center gap-1.5 flex-wrap">
           {xacThuc && (
-            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-emerald-600/95 text-white shadow-xs tracking-wide">
+            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded-sm whitespace-nowrap bg-emerald-600/95 text-white shadow-xs tracking-wide">
               <ShieldCheck className="w-3 h-3 stroke-[2.5]" />
-              ĐÃ XÁC MINH
+              XÁC MINH
             </span>
           )}
           {anh.video && (
-            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-rose-600/95 text-white shadow-xs tracking-wide">
+            <span className="inline-flex items-center gap-1 text-[0.65rem] font-bold px-1.5 py-0.5 rounded-sm whitespace-nowrap bg-rose-600/95 text-white shadow-xs tracking-wide">
               <Play className="w-2.5 h-2.5 fill-current" />
               CÓ VIDEO
             </span>
@@ -116,11 +116,12 @@ export default function ListingCard({ x }: { x: Listing }) {
             nhãn giữ 1 dòng (bản cũ rounded-full bị bóp thành viên thuốc 3 dòng "Đã / xác / minh") */}
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mt-auto pt-2.5 border-t border-slate-100 dark:border-slate-700/60 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className={`px-1.5 py-0.5 rounded-sm whitespace-nowrap font-bold text-[11px] ${
-              isAgent ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50" : roHang ? "text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50" : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60"
+            {/* rổ hàng: nhãn nguồn = "Đã xác minh", trùng nhãn trên ảnh -> không lặp lại */}
+            {!roHang && <span className={`px-1.5 py-0.5 rounded-sm whitespace-nowrap font-bold text-[11px] ${
+              isAgent ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50" : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60"
             }`}>
               {tenNguon(x)}
-            </span>
+            </span>}
             {multi && (
               <span className="px-1.5 py-0.5 rounded whitespace-nowrap text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 font-semibold text-[11px]" title={`Cùng tin xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
                 {x.source_count} nguồn
