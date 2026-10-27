@@ -121,6 +121,68 @@ export default async function Home() {
   const hero = HERO;
   return (
     <div>
+      {/* ===== BANNER TIÊU ĐIỂM: NHÀ COMPOUND BÌNH PHÚ Q.6 (26/10) =====
+          27/10 (anh Quang): đưa lên đầu trang, trên ô tìm kiếm. Máy tính: ảnh phủ tuyệt đối theo chiều cao phần chữ
+          (~210px) - bản cũ ảnh tự cao ~430px, đặt ở đầu thì đẩy ô tìm kiếm xuống quá xa. */}
+      {!hasFilter && (
+        <section className="relative overflow-hidden rounded-lg border border-emerald-500/30 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white shadow-sm mt-1 sm:mt-3 mb-4">
+          <Link
+            href="/listings/df3a7f4f-048a-4cce-a271-bc9c19ad32f5"
+            className="group flex flex-col md:flex-row items-stretch overflow-hidden transition"
+          >
+            {/* Ảnh phòng khách thông tầng giếng trời */}
+            <div className="relative md:w-5/12 h-40 sm:h-52 md:h-auto overflow-hidden shrink-0">
+              <img
+                src="https://nalcvzwsescsxfzsxirg.supabase.co/storage/v1/object/public/anh-zalo/hau-giang-q6/living-room.jpg"
+                alt="Cho thuê nhà compound Bình Phú Quận 6"
+                fetchPriority="high"
+                className="w-full h-full md:absolute md:inset-0 object-cover group-hover:scale-105 transition duration-500"
+              />
+              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] tracking-wide uppercase shadow">
+                ★ Tiêu điểm nổi bật
+              </span>
+            </div>
+
+            {/* Nội dung thông tin & CTA */}
+            <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Tin độc quyền xác minh thực tế
+                  </span>
+                  <span className="text-slate-400 text-xs">·</span>
+                  <span className="text-xs text-slate-300">Đường Hậu Giang, P.11, Q.6</span>
+                </div>
+                <h2 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition leading-snug mb-2">
+                  Cho thuê nhà compound Bình Phú · 60m² · 4 tầng · Xe hơi vô nhà
+                </h2>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-300 mb-3">
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 Phòng ngủ</span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 WC</span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Đường 10m</span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Full nội thất</span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Cạnh CV Phú Lâm</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 mt-auto">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400">Giá thuê trực tiếp</div>
+                  <div className="text-lg sm:text-xl font-extrabold text-emerald-400">
+                    24 triệu<span className="text-xs font-normal text-slate-300">/tháng</span>
+                  </div>
+                </div>
+                <span className="btn !py-2 !px-4 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-md transition inline-flex items-center gap-1.5 shadow-sm">
+                  <span>Xem nhà ngay</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </span>
+              </div>
+            </div>
+          </Link>
+        </section>
+      )}
+
       {/* ===== HERO: Sàn thực tế ===== */}
       <section className="pt-1 sm:pt-3 pb-5 sm:pb-6">
         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-3">
@@ -178,65 +240,6 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
-      {/* ===== BANNER TIÊU ĐIỂM: NHÀ COMPOUND BÌNH PHÚ Q.6 (26/10) ===== */}
-      {!hasFilter && (
-        <section className="relative overflow-hidden rounded-lg border border-emerald-500/30 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white shadow-sm mb-4">
-          <Link
-            href="/listings/df3a7f4f-048a-4cce-a271-bc9c19ad32f5"
-            className="group flex flex-col md:flex-row items-stretch overflow-hidden transition"
-          >
-            {/* Ảnh phòng khách thông tầng giếng trời */}
-            <div className="relative md:w-5/12 h-52 md:h-auto min-h-[190px] overflow-hidden shrink-0">
-              <img
-                src="https://nalcvzwsescsxfzsxirg.supabase.co/storage/v1/object/public/anh-zalo/hau-giang-q6/living-room.jpg"
-                alt="Cho thuê nhà compound Bình Phú Quận 6"
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              />
-              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] tracking-wide uppercase shadow">
-                ★ Tiêu điểm nổi bật
-              </span>
-            </div>
-
-            {/* Nội dung thông tin & CTA */}
-            <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Tin độc quyền xác minh thực tế
-                  </span>
-                  <span className="text-slate-400 text-xs">·</span>
-                  <span className="text-xs text-slate-300">Đường Hậu Giang, P.11, Q.6</span>
-                </div>
-                <h2 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition leading-snug mb-2">
-                  Cho thuê nhà compound Bình Phú · 60m² · 4 tầng · Xe hơi vô nhà
-                </h2>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-300 mb-3">
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 Phòng ngủ</span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 WC</span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Đường 10m</span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Full nội thất</span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Cạnh CV Phú Lâm</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 mt-auto">
-                <div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400">Giá thuê trực tiếp</div>
-                  <div className="text-lg sm:text-xl font-extrabold text-emerald-400">
-                    24 triệu<span className="text-xs font-normal text-slate-300">/tháng</span>
-                  </div>
-                </div>
-                <span className="btn !py-2 !px-4 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-md transition inline-flex items-center gap-1.5 shadow-sm">
-                  <span>Xem nhà ngay</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </div>
-          </Link>
-        </section>
-      )}
 
       {hasFilter ? (
         <section className="mt-2">
