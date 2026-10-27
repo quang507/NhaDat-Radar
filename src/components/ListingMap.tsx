@@ -32,11 +32,13 @@ export default function ListingMap({
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<BanDo | null>(null);
   const [daVe, setDaVe] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(15);
   const [nearbyCount, setNearbyCount] = useState(0);
   const [loadingNearby, setLoadingNearby] = useState(false);
   const nearbyMarkersRef = useRef<Map<string, Marker>>(new Map());
   const fetchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // 27/10 (anh Quang): đã thu nhỏ tìm lân cận 1 lần thì các pin GIỮ LẠI khi phóng to về, kéo sang vùng khác thì
+  // tải thêm pin vùng đó (cộng dồn, không xoá vùng cũ). Trước lần thu nhỏ đầu tiên bản đồ vẫn chỉ có pin chính.
+  const [daTim, setDaTim] = useState(false);
 
   const targetDeal = deal === "cho_thue" ? "cho_thue" : "ban";
   const nhanDeal = targetDeal === "cho_thue" ? "phòng trọ & thuê" : "bán";
@@ -69,21 +71,18 @@ export default function ListingMap({
         .setPopup(new ml.Popup({ offset: 12, closeButton: false, maxWidth: "260px", className: "ndr-popup" }).setHTML(mainPopupHtml))
         .addTo(map);
 
-      // Hàm tìm và vẽ BĐS lân cận khi zoom ra (zoom <= 14.8)
+      // Tìm và vẽ BĐS lân cận: bật từ lần đầu thu nhỏ (zoom <= 14.8), sau đó mọi lần kéo/zoom đều tải thêm
+      let daBat = false;
       const fetchNearby = async () => {
         if (cancelled || !map) return;
         const curZoom = map.getZoom();
-        setZoomLevel(curZoom);
 
-        // Khi zoom cận cảnh (> 14.8): giữ bản đồ sạch, chỉ hiện tin chính
-        if (curZoom > 14.8) {
-          nearbyMarkersRef.current.forEach((m) => m.remove());
-          nearbyMarkersRef.current.clear();
-          setNearbyCount(0);
-          return;
-        }
+        // Chưa thu nhỏ lần nào: giữ bản đồ sạch, chỉ hiện tin chính
+        if (!daBat && curZoom > 14.8) return;
+        daBat = true;
+        setDaTim(true);
 
-        // Khi zoom ra (<= 14.8): tìm BĐS cùng loại (bán hoặc phòng trọ/thuê) trong khung nhìn
+        // Tìm BĐS cùng loại (bán hoặc phòng trọ/thuê) trong khung nhìn hiện tại
         setLoadingNearby(true);
         try {
           const bounds = map.getBounds();
@@ -124,18 +123,7 @@ export default function ListingMap({
           };
           const items = (data as unknown as RawItem[]).map(cheTinDocQuyen);
 
-          setNearbyCount(items.length);
-          const newIds = new Set(items.map((d) => d.id));
-
-          // Gỡ các pin không còn trong khung nhìn
-          nearbyMarkersRef.current.forEach((m, id) => {
-            if (!newIds.has(id)) {
-              m.remove();
-              nearbyMarkersRef.current.delete(id);
-            }
-          });
-
-          // Thêm pin mới
+          // Thêm pin mới - pin vùng cũ GIỮ NGUYÊN (cộng dồn khi kéo bản đồ)
           items.forEach((it) => {
             if (nearbyMarkersRef.current.has(it.id)) return;
             if (it.lat == null || it.lng == null) return;
@@ -168,6 +156,16 @@ export default function ListingMap({
 
             nearbyMarkersRef.current.set(it.id, m);
           });
+
+          // Trần 300 pin: kéo khắp thành phố thì gỡ bớt pin nạp sớm nhất (Map giữ thứ tự thêm vào), trừ pin vùng đang xem
+          const dangXem = new Set(items.map((d) => d.id));
+          for (const [id, m] of nearbyMarkersRef.current) {
+            if (nearbyMarkersRef.current.size <= 300) break;
+            if (dangXem.has(id)) continue;
+            m.remove();
+            nearbyMarkersRef.current.delete(id);
+          }
+          setNearbyCount(nearbyMarkersRef.current.size);
         } catch (e) {
           console.error("ListingMap nearby fetch error:", e);
         } finally {
@@ -194,17 +192,15 @@ export default function ListingMap({
     };
   }, [lat, lng, title, deal, currentId, priceVnd, targetDeal]);
 
-  // Hành vi bấm vào thanh trạng thái: nếu đang zoom gần (>= 14.8) thì zoom ra 13.5; nếu đang zoom xa thì bay về vị trí gốc 15
+  // Bấm thanh trạng thái: chưa tìm lân cận thì thu nhỏ về 13.5 để tìm; đã tìm rồi thì bay về vị trí tin (pin vẫn giữ)
   const handleToggleZoom = () => {
     if (!mapRef.current) return;
-    if (zoomLevel >= 14.8) {
+    if (!daTim) {
       mapRef.current.zoomTo(13.5, { duration: 500 });
     } else {
       mapRef.current.flyTo({ center: [lng, lat], zoom: 15, duration: 500 });
     }
   };
-
-  const soLuongHienThi = nearbyCount >= 30 ? "30+" : String(nearbyCount);
 
   return (
     <div className="relative w-full h-[460px]">
@@ -217,7 +213,7 @@ export default function ListingMap({
           <button
             type="button"
             onClick={handleToggleZoom}
-            aria-label={zoomLevel >= 14.8 ? `Thu nhỏ bản đồ để xem BĐS ${nhanDeal} xung quanh` : "Về lại vị trí tin này"}
+            aria-label={daTim ? "Về lại vị trí tin này" : `Thu nhỏ bản đồ để xem BĐS ${nhanDeal} xung quanh`}
             className="min-h-11 flex items-center gap-2 px-3 py-2 rounded bg-[var(--surface)] border border-[var(--line)] shadow-sm hover:border-brand text-xs text-[var(--ink)] font-medium transition cursor-pointer select-none"
           >
             {loadingNearby ? (
@@ -225,11 +221,11 @@ export default function ListingMap({
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
                 <span>Đang tìm BĐS {nhanDeal} quanh đây…</span>
               </span>
-            ) : zoomLevel < 14.8 ? (
+            ) : daTim ? (
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                 <span className="font-semibold">
-                  {nearbyCount > 0 ? `${soLuongHienThi} BĐS ${nhanDeal} lân cận` : `Chưa có thêm BĐS ${nhanDeal} trong vùng này`}
+                  {nearbyCount > 0 ? `${nearbyCount} BĐS ${nhanDeal} trên bản đồ` : `Chưa có thêm BĐS ${nhanDeal} trong vùng này`}
                 </span>
                 <span className="text-[var(--ink-soft)] flex items-center gap-1 ml-1 border-l border-[var(--line)] pl-2">
                   <RotateCcw className="w-3.5 h-3.5" />
