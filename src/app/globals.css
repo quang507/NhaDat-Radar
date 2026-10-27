@@ -389,6 +389,26 @@ html[data-header-an] .duoi-header { top: 0; }
 .ndr-pin.ndr-pin-chinh:hover::after, .ndr-pin.ndr-pin-chinh:focus-visible::after { border-top-color: #1e293b; }
 .maplibregl-marker:has(.ndr-pin.ndr-pin-chinh) { z-index: 10; }
 
+/* Bong bóng gom cụm "N phòng" (lib/map-layers lopGomCum, 27/10): Emerald đậm, viền trắng + vòng mờ để tách khỏi pin giá */
+.ndr-cum {
+  min-height: 32px; padding: 6px 12px; border-radius: 4px; cursor: pointer; white-space: nowrap;
+  background: #047857; color: #fff; font-size: 13px; font-weight: 700; line-height: 1.2;
+  border: 2px solid #fff; box-shadow: 0 0 0 4px rgb(4 120 87 / .22), 0 3px 10px rgb(15 23 42 / .25);
+  transition: transform .15s ease, background-color .15s ease;
+}
+.ndr-cum:hover, .ndr-cum:focus-visible { background: #065f46; transform: scale(1.06); outline: none; }
+.maplibregl-marker:has(.ndr-cum:hover) { z-index: 3; }
+@media (pointer: coarse) { .ndr-cum { min-height: 40px; padding: 8px 14px; } }
+@media (prefers-reduced-motion: reduce) { .ndr-cum { transition: none; } .ndr-cum:hover { transform: none; } }
+
+/* Danh sách phòng cùng một toà (cụm không tách được nữa) */
+.ndr-popup-ds { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; font-size: 13px; }
+.ndr-popup-ds small { font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+.ndr-popup-ds a { display: flex; gap: 8px; align-items: baseline; padding: 6px 4px; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.ndr-popup-ds a:hover { background: var(--surface-2); }
+.ndr-popup-ds a b { color: rgb(var(--brand-text-rgb)); font-weight: 800; flex-shrink: 0; }
+.ndr-popup-ds a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Popup */
 .ndr-popup .maplibregl-popup-content {
   padding: 10px 12px; border-radius: 4px; background: var(--surface); color: var(--ink);

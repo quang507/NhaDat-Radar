@@ -897,7 +897,7 @@ export default function SearchClient({
         </div>
         {showMap && mapItems.length > 0 ? (
           <div className="hidden lg:block sticky top-20 h-[calc(100vh-7rem)]">
-            <MapResults items={mapItems} />
+            <MapResults items={mapItems} donVi={choThue ? "phòng" : "tin"} />
           </div>
         ) : dieuHuong || muaBan ? (
           // mua bán: thêm "Lọc theo khoảng giá / diện tích" trên cùng cột phải (kiểu batdongsan)

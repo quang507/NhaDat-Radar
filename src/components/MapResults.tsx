@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { preconnect } from "react-dom";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Map as BanDo, Marker } from "maplibre-gl";
+import type { Map as BanDo } from "maplibre-gl";
 import { escHtml, catChu } from "@/lib/format";
-import { taoBanDo, ghimGia, MAY_CHU_BAN_DO, type MapLibre } from "@/lib/map-layers";
+import { taoBanDo, lopGomCum, MAY_CHU_BAN_DO, type MapLibre } from "@/lib/map-layers";
 
 /** Khung chờ phủ lên bản đồ tới khi vẽ xong lần đầu - trước đây là ô trắng 1-3 giây, nhìn như hỏng. */
 export function KhungChoBanDo() {
@@ -21,10 +21,11 @@ export type MapItem = { id: string; lat: number; lng: number; label: string; tit
 // Bản đồ kết quả tìm kiếm (kiểu batdongsan): mỗi tin 1 pin giá, click mở trang chi tiết.
 // 26/10: tạo bản đồ MỘT lần, đổi trang/bộ lọc chỉ thay pin - bản cũ huỷ cả bản đồ rồi tải lại kiểu, font, ô
 // bản đồ mỗi lần items đổi (anh Quang: "load lâu thế").
-export default function MapResults({ items }: { items: MapItem[] }) {
+// 27/10: pin gần nhau gom thành bong bóng "N phòng" kiểu HiFriendz (lib/map-layers lopGomCum).
+export default function MapResults({ items, donVi = "tin" }: { items: MapItem[]; donVi?: string }) {
   preconnect(MAY_CHU_BAN_DO, { crossOrigin: "anonymous" });
   const ref = useRef<HTMLDivElement>(null);
-  const [banDo, setBanDo] = useState<{ ml: MapLibre; map: BanDo } | null>(null);
+  const [banDo, setBanDo] = useState<{ ml: MapLibre; map: BanDo; lop: ReturnType<typeof lopGomCum> } | null>(null);
   const [daVe, setDaVe] = useState(false);
 
   useEffect(() => {
@@ -36,23 +37,24 @@ export default function MapResults({ items }: { items: MapItem[] }) {
       map = tao.map;
       if (cancelled) { map.remove(); return; }
       map.once("load", () => setDaVe(true));
-      setBanDo(tao);
+      setBanDo({ ...tao, lop: lopGomCum(tao.ml, map, donVi) });
     })();
     return () => { cancelled = true; map?.remove(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!banDo) return;
-    const { ml, map } = banDo;
-    const pins: Marker[] = [];
+    const { ml, map, lop } = banDo;
     const bounds = new ml.LngLatBounds();
-    for (const it of items) {
-      const popup = `<a class="ndr-popup-tin" href="/listings/${encodeURIComponent(it.id)}"><b>${escHtml(catChu(it.title, 80))}</b><span>Xem chi tiết ›</span></a>`;
-      pins.push(ghimGia(ml, map, [it.lng, it.lat], it.label, popup));
+    lop.datDiem(items.map((it) => {
       bounds.extend([it.lng, it.lat]);
-    }
+      return {
+        id: it.id, lat: it.lat, lng: it.lng, nhan: it.label, tieuDe: catChu(it.title, 70),
+        popup: `<a class="ndr-popup-tin" href="/listings/${encodeURIComponent(it.id)}"><b>${escHtml(catChu(it.title, 80))}</b><span>Xem chi tiết ›</span></a>`,
+      };
+    }));
     if (items.length) map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
-    return () => pins.forEach((p) => p.remove());
   }, [banDo, items]);
 
   return (

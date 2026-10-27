@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { preconnect } from "react-dom";
 import "maplibre-gl/dist/maplibre-gl.css";
-import type { Map as BanDo, Marker } from "maplibre-gl";
+import type { Map as BanDo } from "maplibre-gl";
 import { Search, RotateCcw } from "lucide-react";
 import { escHtml, shortPrice, fmtPrice, catChu, PROP } from "@/lib/format";
-import { taoBanDo, MAY_CHU_BAN_DO } from "@/lib/map-layers";
+import { taoBanDo, lopGomCum, MAY_CHU_BAN_DO, type DiemBanDo } from "@/lib/map-layers";
 import { KhungChoBanDo } from "./MapResults";
 import { createClient } from "@/lib/supabase/client";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
@@ -34,7 +34,7 @@ export default function ListingMap({
   const [daVe, setDaVe] = useState(false);
   const [nearbyCount, setNearbyCount] = useState(0);
   const [loadingNearby, setLoadingNearby] = useState(false);
-  const nearbyMarkersRef = useRef<Map<string, Marker>>(new Map());
+  const nearbyRef = useRef<Map<string, DiemBanDo>>(new Map());
   const fetchTimerRef = useRef<NodeJS.Timeout | null>(null);
   // 27/10 (anh Quang): đã thu nhỏ tìm lân cận 1 lần thì các pin GIỮ LẠI khi phóng to về, kéo sang vùng khác thì
   // tải thêm pin vùng đó (cộng dồn, không xoá vùng cũ). Trước lần thu nhỏ đầu tiên bản đồ vẫn chỉ có pin chính.
@@ -70,6 +70,9 @@ export default function ListingMap({
         .setLngLat([lng, lat])
         .setPopup(new ml.Popup({ offset: 12, closeButton: false, maxWidth: "260px", className: "ndr-popup" }).setHTML(mainPopupHtml))
         .addTo(map);
+
+      // 27/10: tin lân cận vẽ qua lớp gom cụm (bong bóng "N phòng" kiểu HiFriendz, bấm để tách) - lib/map-layers
+      const lop = lopGomCum(ml, map, targetDeal === "cho_thue" ? "phòng" : "tin");
 
       // Tìm và vẽ BĐS lân cận: bật từ lần đầu thu nhỏ (zoom <= 14.8), sau đó mọi lần kéo/zoom đều tải thêm
       let daBat = false;
@@ -123,16 +126,9 @@ export default function ListingMap({
           };
           const items = (data as unknown as RawItem[]).map(cheTinDocQuyen);
 
-          // Thêm pin mới - pin vùng cũ GIỮ NGUYÊN (cộng dồn khi kéo bản đồ)
-          items.forEach((it) => {
-            if (nearbyMarkersRef.current.has(it.id)) return;
-            if (it.lat == null || it.lng == null) return;
-
-            const el = document.createElement("button");
-            el.type = "button";
-            el.className = "ndr-pin";
-            el.textContent = shortPrice(it.price_vnd);
-
+          // Cộng dồn điểm - vùng cũ GIỮ NGUYÊN khi kéo bản đồ
+          for (const it of items) {
+            if (nearbyRef.current.has(it.id) || it.lat == null || it.lng == null) continue;
             const loaiBds = PROP[it.kind] || (it.deal === "cho_thue" ? "Phòng trọ" : "Nhà đất");
             const imgUrl = it.images?.[0] || null;
             const popupHtml = `
@@ -148,24 +144,20 @@ export default function ListingMap({
                 </div>
               </a>
             `;
-
-            const m = new ml.Marker({ element: el, anchor: "bottom" })
-              .setLngLat([it.lng, it.lat])
-              .setPopup(new ml.Popup({ offset: 12, closeButton: false, maxWidth: "260px", className: "ndr-popup" }).setHTML(popupHtml))
-              .addTo(map);
-
-            nearbyMarkersRef.current.set(it.id, m);
-          });
-
-          // Trần 300 pin: kéo khắp thành phố thì gỡ bớt pin nạp sớm nhất (Map giữ thứ tự thêm vào), trừ pin vùng đang xem
-          const dangXem = new Set(items.map((d) => d.id));
-          for (const [id, m] of nearbyMarkersRef.current) {
-            if (nearbyMarkersRef.current.size <= 300) break;
-            if (dangXem.has(id)) continue;
-            m.remove();
-            nearbyMarkersRef.current.delete(id);
+            nearbyRef.current.set(it.id, {
+              id: it.id, lat: it.lat, lng: it.lng, nhan: shortPrice(it.price_vnd),
+              tieuDe: catChu(it.title || "", 70), popup: popupHtml,
+            });
           }
-          setNearbyCount(nearbyMarkersRef.current.size);
+
+          // Trần 300 điểm: kéo khắp thành phố thì bỏ bớt điểm nạp sớm nhất (Map giữ thứ tự thêm vào), trừ vùng đang xem
+          const dangXem = new Set(items.map((d) => d.id));
+          for (const id of nearbyRef.current.keys()) {
+            if (nearbyRef.current.size <= 300) break;
+            if (!dangXem.has(id)) nearbyRef.current.delete(id);
+          }
+          lop.datDiem([...nearbyRef.current.values()]);
+          setNearbyCount(nearbyRef.current.size);
         } catch (e) {
           console.error("ListingMap nearby fetch error:", e);
         } finally {
@@ -185,8 +177,7 @@ export default function ListingMap({
     return () => {
       cancelled = true;
       if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
-      nearbyMarkersRef.current.forEach((m) => m.remove());
-      nearbyMarkersRef.current.clear();
+      nearbyRef.current.clear();
       mapRef.current?.remove();
       mapRef.current = null;
     };
