@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { PROP } from "@/lib/format";
-import { Search, Sparkles, ArrowRight } from "lucide-react";
+import { Search, Sparkles, ArrowRight, Map } from "lucide-react";
 
 // Ô tìm kiếm trang chủ: tab Thuê | Mua | Định giá + chip lối tắt khu vực/giá.
 // Mặc định tab THUÊ: hàng chủ lực là rổ hàng phòng trống cho thuê. Form gửi thẳng sang /search (GET) -
@@ -82,6 +82,12 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
               <button className="btn btn-primary min-h-11 min-w-11 !px-3 sm:!px-6 rounded-md flex items-center gap-1.5 whitespace-nowrap shadow-xs" type="submit" aria-label="Tìm kiếm">
                 <Search className="w-4 h-4" />
                 <span className="hidden sm:inline">Tìm kiếm</span>
+              </button>
+              {/* 27/10: cùng bộ lọc nhưng mở /search ở chế độ bản đồ (SearchClient đọc ban_do=1). Bản đồ kết quả chỉ có
+                  ở màn lg+ (MapResults) -> ẩn nút ở màn nhỏ như nút "Xem bản đồ" của trang tìm kiếm */}
+              <button className="hidden lg:inline-flex btn min-h-11 !px-5 rounded-md items-center gap-1.5 whitespace-nowrap font-semibold !text-[var(--accent)] !border-[var(--accent)]" type="submit" name="ban_do" value="1">
+                <Map className="w-4 h-4" />
+                <span>Xem bản đồ</span>
               </button>
             </div>
 

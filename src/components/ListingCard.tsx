@@ -112,15 +112,17 @@ export default function ListingCard({ x }: { x: Listing }) {
         </div>
 
         {/* Footer Meta */}
-        <div className="flex items-center justify-between gap-2 mt-auto pt-2.5 border-t border-slate-100 dark:border-slate-700/60 text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-1.5">
-            <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+        {/* thẻ hẹp (~180px, 4 cột) không đủ chỗ cho nhãn nguồn + "12 ngày trước" -> cho thời gian xuống dòng,
+            nhãn giữ 1 dòng (bản cũ rounded-full bị bóp thành viên thuốc 3 dòng "Đã / xác / minh") */}
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mt-auto pt-2.5 border-t border-slate-100 dark:border-slate-700/60 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`px-1.5 py-0.5 rounded-sm whitespace-nowrap font-bold text-[11px] ${
               isAgent ? "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50" : roHang ? "text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50" : "text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/60"
             }`}>
               {tenNguon(x)}
             </span>
             {multi && (
-              <span className="px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 font-semibold text-[11px]" title={`Cùng tin xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
+              <span className="px-1.5 py-0.5 rounded whitespace-nowrap text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 font-semibold text-[11px]" title={`Cùng tin xuất hiện trên: ${(x.source_sites || []).join(", ")}`}>
                 {x.source_count} nguồn
               </span>
             )}
@@ -128,7 +130,7 @@ export default function ListingCard({ x }: { x: Listing }) {
           {ageMin != null && (
             <span
               suppressHydrationWarning
-              className="font-medium text-slate-500 dark:text-slate-400 shrink-0"
+              className="font-medium text-slate-500 dark:text-slate-400 shrink-0 whitespace-nowrap"
               title={`Radar thấy tin: ${new Date(x.first_seen_at!).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" })}`}
             >
               {fresh(ageMin)}

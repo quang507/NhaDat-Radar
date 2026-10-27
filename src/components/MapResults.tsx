@@ -6,6 +6,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as BanDo } from "maplibre-gl";
 import { escHtml, catChu } from "@/lib/format";
 import { taoBanDo, lopGomCum, MAY_CHU_BAN_DO, type MapLibre } from "@/lib/map-layers";
+import type { MapItem } from "@/lib/ban-do-tin";
 
 /** Khung chờ phủ lên bản đồ tới khi vẽ xong lần đầu - trước đây là ô trắng 1-3 giây, nhìn như hỏng. */
 export function KhungChoBanDo() {
@@ -16,7 +17,7 @@ export function KhungChoBanDo() {
   );
 }
 
-export type MapItem = { id: string; lat: number; lng: number; label: string; title: string };
+export type { MapItem };
 
 // Bản đồ kết quả tìm kiếm (kiểu batdongsan): mỗi tin 1 pin giá, click mở trang chi tiết.
 // 26/10: tạo bản đồ MỘT lần, đổi trang/bộ lọc chỉ thay pin - bản cũ huỷ cả bản đồ rồi tải lại kiểu, font, ô
@@ -51,7 +52,10 @@ export default function MapResults({ items, donVi = "tin" }: { items: MapItem[];
       bounds.extend([it.lng, it.lat]);
       return {
         id: it.id, lat: it.lat, lng: it.lng, nhan: it.label, tieuDe: catChu(it.title, 70),
-        popup: `<a class="ndr-popup-tin" href="/listings/${encodeURIComponent(it.id)}"><b>${escHtml(catChu(it.title, 80))}</b><span>Xem chi tiết ›</span></a>`,
+        // ảnh hỏng (link crawl chết) thì gỡ hẳn thẻ img, popup co lại như cũ
+        popup: `<a class="ndr-popup-tin" href="/listings/${encodeURIComponent(it.id)}">${
+          it.img ? `<img class="ndr-popup-anh" src="${escHtml(it.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""
+        }<b>${escHtml(catChu(it.title, 80))}</b>${it.gia ? `<em>${escHtml(it.gia)}</em>` : ""}<span>Xem chi tiết ›</span></a>`,
       };
     }));
     if (items.length) map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });

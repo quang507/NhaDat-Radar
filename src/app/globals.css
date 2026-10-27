@@ -418,6 +418,10 @@ html[data-header-an] .duoi-header { top: 0; }
 .ndr-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--surface); }
 .ndr-popup-tin { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink); text-decoration: none; }
 .ndr-popup-tin b { font-weight: 600; line-height: 1.35; }
+/* MapLibre tự focus link đầu tiên khi mở popup -> viền đen quanh cả thẻ dù khách bấm chuột */
+.ndr-popup-tin:focus:not(:focus-visible) { outline: none; }
+.ndr-popup-anh { display: block; width: 100%; height: 120px; object-fit: cover; border-radius: 2px; background: var(--surface-2); margin-bottom: 2px; }
+.ndr-popup-tin em { font-style: normal; font-size: 14px; font-weight: 800; color: rgb(var(--brand-text-rgb)); }
 .ndr-popup-tin span, .ndr-popup-gia a { color: rgb(var(--brand-text-rgb)); font-weight: 700; font-size: 12px; text-decoration: none; }
 .ndr-popup-gia { display: flex; flex-direction: column; gap: 2px; }
 .ndr-popup-gia b { font-size: 15px; font-weight: 800; }

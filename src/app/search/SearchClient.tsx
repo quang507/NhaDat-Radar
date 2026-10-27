@@ -7,6 +7,7 @@ import ListingRow from "@/components/ListingRow";
 import ThePhong from "@/components/ThePhong";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import MapResults, { type MapItem } from "@/components/MapResults";
+import { tinLenBanDo } from "@/lib/ban-do-tin";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import ChipLoc from "@/components/ChipLoc";
 import { TIEN_ICH, docTienIch } from "@/lib/tien-ich";
@@ -101,7 +102,9 @@ export default function SearchClient({
   const [showMap, setShowMap] = useState(false);
   // 26/10: page.tsx dựng lại SearchClient mỗi lần đổi trang/bộ lọc (key=searchParams) -> chế độ bản đồ bị tắt,
   // khách phải bấm lại và bản đồ tải lại từ đầu. Nhớ lựa chọn trong phiên (lỗi storage thì thôi, mặc định danh sách).
-  useEffect(() => { try { if (sessionStorage.getItem("ndr:xem-ban-do") === "1") setShowMap(true); } catch { /* riêng tư */ } }, []);
+  // 27/10: nút "Xem bản đồ" ở ô tìm kiếm trang chủ gửi kèm ban_do=1 -> mở thẳng chế độ bản đồ
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { try { if (params.ban_do === "1" || sessionStorage.getItem("ndr:xem-ban-do") === "1") setShowMap(true); } catch { /* riêng tư */ } }, []);
   useEffect(() => { try { sessionStorage.setItem("ndr:xem-ban-do", showMap ? "1" : "0"); } catch { /* riêng tư */ } }, [showMap]);
   const [f, setF] = useState(tuParams(params));
   const places = useMemo(() => buildPlaces(geo), [geo]);
@@ -193,9 +196,7 @@ export default function SearchClient({
   const tachKhoang = (v: string) => { const [a = "", b = ""] = v.split("-"); return [a, b]; };
 
   const mapItems: MapItem[] = useMemo(
-    () => listings
-      .filter((x) => x.lat != null && x.lng != null)
-      .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, label: shortPrice(x.price_vnd), title: x.title })),
+    () => listings.flatMap(tinLenBanDo),
     [listings],
   );
 

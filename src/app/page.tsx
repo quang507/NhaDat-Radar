@@ -20,7 +20,8 @@ import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Bui
 const uuTienDocQuyen = (x: Listing) =>
   !laTinDocQuyen(x) ? 3 : (x.source_site || "").startsWith("zalo") || x.source === "zalo_oa" || x.source === "zalo_miniapp" ? 0 : laRoHang(x) ? 1 : 2;
 import MapResults, { type MapItem } from "@/components/MapResults";
-import { fmtPrice, PROP, shortPrice } from "@/lib/format";
+import { tinLenBanDo } from "@/lib/ban-do-tin";
+import { fmtPrice, PROP } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
 import type { Listing, Project } from "@/lib/types";
 import { cheTinDocQuyen } from "@/lib/doc-quyen";
@@ -115,9 +116,7 @@ export default async function Home() {
     .filter((c) => c.n > 0).sort((a, b) => b.n - a.n).slice(0, 10);
   const chip = { cho_thue: chipQuan("cho_thue"), ban: chipQuan("ban") };
   const hasFilter = false;
-  const mapItems: MapItem[] = listings
-    .filter((x) => x.lat != null && x.lng != null)
-    .map((x) => ({ id: x.id, lat: x.lat!, lng: x.lng!, label: shortPrice(x.price_vnd), title: x.title }));
+  const mapItems: MapItem[] = listings.flatMap(tinLenBanDo);
 
   const hero = HERO;
   return (
