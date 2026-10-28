@@ -1,0 +1,7 @@
+[Unit]
+Description=Nhadatradar - viec nen (crawler ro hang, bot Zalo), nhuong CPU cho gatemonitor
+
+[Slice]
+# gatemonitor/openwa mặc định 100 -> khi tranh CPU, radar chỉ được ~1/11 phần
+CPUWeight=10
+MemoryMax=1800M

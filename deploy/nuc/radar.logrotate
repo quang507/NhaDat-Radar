@@ -1,0 +1,9 @@
+/home/quang/radar/logs/ro-hang.log /home/quang/radar/logs/zalo-bot.log {
+    weekly
+    rotate 8
+    compress
+    missingok
+    notifempty
+    copytruncate
+    su quang quang
+}

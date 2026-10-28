@@ -1,0 +1,7 @@
+[Unit]
+Description=Nhadatradar - ghi muc ban CPU/RAM cua NUC
+
+[Service]
+Type=oneshot
+User=quang
+ExecStart=/home/quang/radar/do-tai.sh

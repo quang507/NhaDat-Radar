@@ -14,7 +14,8 @@ Tài liệu này là chỉ dẫn cốt lõi dành cho AI (Claude, Antigravity) v
   * EvoHome + HiFriendz: `~/radar/ro-hang.sh full` (06:00, 11:30, 17:00, 22:00) và `~/radar/ro-hang.sh evohome` (09:00, 14:30, 19:30), chạy bằng systemd `radar-ro-hang@.service` + `radar-ro-hang-full.timer` / `radar-ro-hang-evohome.timer` (Nice 15, CPUQuota 70% để nhường hệ thống gatemonitor cùng máy). Mỗi lượt `git pull` code mới nhất trong `~/radar/NhaDat-Radar`. Log: `~/radar/logs/ro-hang.log`.
   * Chỉ được diệt Chromium của Playwright (`ms-playwright/chromium`): openwa trên NUC cũng chạy Chrome.
   * HiFriendz chỉ đọc lại toà có dấu vân tay đổi (`crawler/private/hifriendz-toa.json`), toà không đổi lấy phòng từ lượt trước; quá 20 giờ hoặc sửa `hifriendz-fetch.mjs` thì tự quét đủ. Ép quét đủ: `HF_QUET_DU=1`.
-  * `cron-ro-hang.sh` / `cron-evohome.sh` trong repo là bản cũ của VPS (đường dẫn `/root/work`), không còn lịch nào gọi.
+  * Bot Zalo nghe nhóm BĐS (`crawler/zalo-bot.mjs`) chạy 24/7 bằng `radar-zalo-bot.service`, acc clone đăng nhập qua `zalo-agent-cli`.
+  * Toàn bộ script + unit systemd + cách cài lại: [`deploy/nuc/`](deploy/nuc/README.md). Sửa ở đó rồi chạy lại `deploy/nuc/cai-dat.sh` trên NUC.
 * **VPS `103.126.162.93` (sắp hết hạn) không còn chạy gì của Radar.** Các dịch vụ còn lại trên đó thuộc dự án khác: AOND (`aond-core` FastAPI 127.0.0.1:8000, bridge Zalo `nhadat-bridge*`), `goi-bot`, `stock-bot`.
 * **Crawler trên GitHub Actions:** `daily-crawl.yml`, `ro-hang.yml`, `db-prune.yml`, `e2e.yml`.
 

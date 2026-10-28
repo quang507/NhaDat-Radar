@@ -1,0 +1,9 @@
+[Unit]
+Description=Nhadatradar - ghi muc ban CPU/RAM moi phut
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

@@ -6,3 +6,6 @@
 
 # Script chay tren Linux (GitHub Actions) thi nguoc lai
 *.sh text eol=lf
+
+# Cấu hình NUC (systemd, logrotate, script bash) chạy trên Linux
+deploy/nuc/** text eol=lf

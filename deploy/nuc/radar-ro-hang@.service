@@ -1,0 +1,18 @@
+[Unit]
+Description=Nhadatradar - ro hang EvoHome/HiFriendz (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=quang
+ExecStart=/home/quang/radar/ro-hang.sh %i
+# Nhường gatemonitor: radar.slice CPUWeight 10 (Nice chỉ có tác dụng trong cùng cgroup), tối đa 0,7 nhân, trần RAM
+Slice=radar.slice
+Nice=15
+IOSchedulingClass=idle
+CPUQuota=70%
+MemoryMax=1500M
+TimeoutStartSec=90min
+StandardOutput=append:/home/quang/radar/logs/ro-hang.log
+StandardError=append:/home/quang/radar/logs/ro-hang.log

@@ -98,8 +98,8 @@ Code đã lên production (commit `ec7cac4`). Thiếu bảng thì trang vẫn 40
 
 - **Trước khi push**: `npm run build` - trang chủ `○ (Static)`, `/listings/[id]` và `/projects/[id]` `● (SSG/ISR)`.
 - **Làm mới cache**: `GET /api/revalidate?secret=<REVALIDATE_SECRET>`, hoặc header `x-revalidate-secret`. Tham số tuỳ chọn `path=` / `tag=`. Thiếu biến thì 503, sai mã thì 401.
-- **VPS**:
-  - `cron-ro-hang.sh` chạy 4 lượt/ngày, `cron-evohome.sh` 3 lượt/ngày.
+- **NUC công ty** (thay VPS từ 28/10/2026, chi tiết + cách cài lại: [`deploy/nuc/README.md`](../deploy/nuc/README.md)):
+  - Rổ hàng: `ro-hang.sh full` 4 lượt/ngày, `ro-hang.sh evohome` 3 lượt/ngày (systemd timer). Bot Zalo `radar-zalo-bot` chạy 24/7.
   - Mỗi lượt `git pull origin main` → code crawler push lên là lượt sau chạy bản mới.
   - Thay đổi dữ liệu mà crawler phụ thuộc thì push code TRƯỚC, sửa dữ liệu SAU.
 - **Dọn tin**: `crawler/daily.mjs` hạ `gone` tin crawl không thấy lại, xoá tin gone sau 21 ngày và mọi tin crawl sau 45 ngày. Từ 036, mỗi lần xoá đều có bia mộ.

@@ -1,0 +1,20 @@
+[Unit]
+Description=Nhadatradar - bot Zalo (nghe group BDS -> boc tin), crawler/zalo-bot.mjs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=quang
+WorkingDirectory=/home/quang/radar/NhaDat-Radar
+Environment=PATH=/home/quang/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/node --env-file=.env.local crawler/zalo-bot.mjs
+Restart=always
+RestartSec=10
+Slice=radar.slice
+Nice=10
+MemoryMax=400M
+StandardOutput=append:/home/quang/radar/logs/zalo-bot.log
+StandardError=append:/home/quang/radar/logs/zalo-bot.log
+
+[Install]
+WantedBy=multi-user.target
