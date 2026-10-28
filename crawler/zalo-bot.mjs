@@ -893,24 +893,6 @@ function startListener() {
   child.on("exit", (code) => { console.error("zalo-agent listen thoát, code", code, "- thử chạy lại sau 5s"); setTimeout(startListener, 5000); });
 }
 
-// ---- Chế độ ĐĂNG tin lên group: node zalo-bot.mjs post ----
-async function postToGroups() {
-  const groups = JSON.parse(process.env.ZALO_POST_GROUPS || "[]"); // ["groupId1","groupId2"]
-  if (!groups.length) { console.error("Thiếu ZALO_POST_GROUPS trong .env.local (mảng id group)."); process.exit(1); }
-  const { data } = await sb.from("listings")
-    .select("id,title,price_vnd,area_m2,district,province,deal")
-    .eq("status", "published").order("first_seen_at", { ascending: false }).limit(40);
-  const pick = (data || []).sort(() => Math.random() - 0.5).slice(0, Number(process.env.ZALO_POST_COUNT || 3));
-  for (const g of groups) {
-    for (const x of pick) {
-      const msg = `🏠 ${x.title}\n💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""}\n📍 ${[x.district, x.province].filter(Boolean).join(", ")}\n🔗 ${SITE}/listings/${x.id}`;
-      sendReply(g, msg, { group: true });
-      console.log("→ group", g, ":", x.title?.slice(0, 40));
-      await new Promise((r) => setTimeout(r, 5000)); // giãn 5s tránh bị Zalo gắn cờ spam
-    }
-  }
-  console.log(`Đã đăng ${pick.length} tin lên ${groups.length} group.`);
-}
-
-if (process.argv[2] === "post") { await postToGroups(); process.exit(0); }
+// Đăng tin lên nhóm đã chuyển sang crawler/zalo-dang-nhom.mjs (29/10: theo khu vực, 1 tin/nhóm/ngày, chỉ rổ hàng).
+if (process.argv[2] === "post") { console.error("Chế độ post đã bỏ - dùng: node --env-file=.env.local crawler/zalo-dang-nhom.mjs"); process.exit(1); }
 startListener();

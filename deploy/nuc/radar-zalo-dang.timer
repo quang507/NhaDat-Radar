@@ -1,0 +1,10 @@
+[Unit]
+Description=Nhadatradar - luot dang nhom Zalo moi 15 phut, 08:30-19:45 (script tu rai gio, toi da 1 tin/nhom/ngay)
+
+[Timer]
+OnCalendar=*-*-* 08:30,45:00
+OnCalendar=*-*-* 09..19:00,15,30,45:00
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

@@ -8,6 +8,7 @@ nền của Radar thay cho VPS Vinahost `103.126.162.93`:
 | Rổ hàng EvoHome + HiFriendz (`ro-hang.sh full`) | `radar-ro-hang@full` ← `radar-ro-hang-full.timer` | 06:00, 11:30, 17:00, 22:00 | `~/radar/logs/ro-hang.log` |
 | Quét nhanh EvoHome (`ro-hang.sh evohome`) | `radar-ro-hang@evohome` ← `radar-ro-hang-evohome.timer` | 09:00, 14:30, 19:30 | như trên |
 | Bot Zalo nghe nhóm BĐS (`crawler/zalo-bot.mjs`) | `radar-zalo-bot` (chạy liên tục, tự bật lại) | 24/7 | `~/radar/logs/zalo-bot.log` |
+| Đăng 1 phòng rổ hàng lên nhóm Zalo CHO THUÊ đúng khu vực (`crawler/zalo-dang-nhom.mjs`) | `radar-zalo-dang` ← `radar-zalo-dang.timer` | 15 phút/lần 08:30–19:45; mỗi nhóm ≤ 1 tin/ngày | `~/radar/logs/zalo-dang.log` |
 | Ghi mức bận CPU/RAM | `radar-do-tai` ← `radar-do-tai.timer` | mỗi phút | `~/radar/logs/tai-<ngày>.csv` |
 
 Máy này còn chạy **gatemonitor** (đếm xe camera), **openwa** (WhatsApp, có Chrome) và Tailscale Funnel `/` → `:8765`
@@ -44,12 +45,16 @@ bộ và quét đủ, không hỏng gì.
 
 ## Bot Zalo
 
-- Dùng acc Zalo **clone** (không bao giờ dùng hotline 0346 689 460), đăng nhập bằng `zalo-agent-cli` 1.6.2 tại
+- Dùng acc Zalo **clone** (không bao giờ dùng số hotline của web, `src/lib/hotline.ts`), đăng nhập bằng `zalo-agent-cli` 1.6.2 tại
   `~/.local/bin/zalo-agent`, phiên lưu ở `~/.zalo-agent-cli/`.
 - Chỉ đọc tin trong nhóm, bỏ qua tin 1-1. Acc vào thêm nhóm BĐS thì bot tự đọc, không cần khởi động lại.
 - Phiên hết hạn (log báo "Not logged in"): trên máy Windows bấm `ZALO-LOGIN.bat` ở thư mục gốc repo → mở QR qua
   Tailscale → quét bằng acc clone → bot tự bật lại. Xem nhanh tình trạng: `KIEM-TRA-ZALO.bat`.
 - Không chạy bot ở hai máy cùng lúc với cùng một acc: Zalo sẽ đá một phiên.
+- Đăng nhóm: nhóm nào cho thuê / mua bán, khu vực nào nằm ở `crawler/private/zalo-nhom.json` (không vào git). Acc vào
+  nhóm mới thì chạy `node --env-file=.env.local crawler/zalo-dang-nhom.mjs nhom` (thêm nhóm dạng `chua_xep`), sửa
+  `loai` + `khu_vuc`, rồi xem trước bằng `... zalo-dang-nhom.mjs --thu`. Gửi lỗi thì tự dừng 24 giờ + báo Telegram;
+  muốn đăng lại sớm thì xoá `tamDungDen` trong `crawler/private/zalo-dang-trang-thai.json`. Hướng dẫn đủ: `crawler/ZALO-BOT.md`.
 
 ## Kiểm tra nhanh
 
@@ -63,7 +68,7 @@ grep -E "BAT DAU|XONG" ~/radar/logs/ro-hang.log | tail
 ## Tắt / quay lui
 
 ```bash
-sudo systemctl disable --now radar-ro-hang-full.timer radar-ro-hang-evohome.timer radar-zalo-bot radar-do-tai.timer
+sudo systemctl disable --now radar-ro-hang-full.timer radar-ro-hang-evohome.timer radar-zalo-bot radar-zalo-dang.timer radar-do-tai.timer
 ```
 
 VPS cũ còn giữ crontab rổ hàng dạng comment `#NUC#` (bản sao `/root/crontab.bak-20261028-nuc`) cho tới khi hết hạn.

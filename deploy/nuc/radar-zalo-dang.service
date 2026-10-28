@@ -1,0 +1,16 @@
+[Unit]
+Description=Nhadatradar - dang 1 phong ro hang len nhom Zalo cho thue (crawler/zalo-dang-nhom.mjs)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=quang
+WorkingDirectory=/home/quang/radar/NhaDat-Radar
+Environment=PATH=/home/quang/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/node --env-file=.env.local crawler/zalo-dang-nhom.mjs
+Slice=radar.slice
+Nice=10
+TimeoutStartSec=10min
+StandardOutput=append:/home/quang/radar/logs/zalo-dang.log
+StandardError=append:/home/quang/radar/logs/zalo-dang.log

@@ -22,13 +22,14 @@ command -v "$HOME/.local/bin/zalo-agent" >/dev/null || nice -n 10 npm i -g --pre
 echo "== systemd + logrotate"
 sudo install -m 644 "$DIR"/radar.slice "$DIR"/radar-ro-hang@.service "$DIR"/radar-ro-hang-full.timer \
   "$DIR"/radar-ro-hang-evohome.timer "$DIR"/radar-zalo-bot.service "$DIR"/radar-do-tai.service \
-  "$DIR"/radar-do-tai.timer /etc/systemd/system/
+  "$DIR"/radar-do-tai.timer "$DIR"/radar-zalo-dang.service "$DIR"/radar-zalo-dang.timer /etc/systemd/system/
 sudo install -m 644 "$DIR/radar.logrotate" /etc/logrotate.d/radar-ro-hang
 sudo systemctl daemon-reload
 sudo systemctl enable --now radar-ro-hang-full.timer radar-ro-hang-evohome.timer radar-do-tai.timer
 
 if [ -f "$REPO/.env.local" ] && "$HOME/.local/bin/zalo-agent" status 2>/dev/null | grep -q "Logged in"; then
   sudo systemctl enable radar-zalo-bot && sudo systemctl restart radar-zalo-bot
+  sudo systemctl enable --now radar-zalo-dang.timer   # không có crawler/private/zalo-nhom.json thì lượt đăng tự bỏ qua
   echo "== bot Zalo: $(systemctl is-active radar-zalo-bot)"
 else
   echo "== bot Zalo CHƯA bật: thiếu .env.local hoặc chưa đăng nhập Zalo (README.md mục Bot Zalo)"

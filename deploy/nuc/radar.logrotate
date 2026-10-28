@@ -1,4 +1,4 @@
-/home/quang/radar/logs/ro-hang.log /home/quang/radar/logs/zalo-bot.log {
+/home/quang/radar/logs/ro-hang.log /home/quang/radar/logs/zalo-bot.log /home/quang/radar/logs/zalo-dang.log {
     weekly
     rotate 8
     compress
