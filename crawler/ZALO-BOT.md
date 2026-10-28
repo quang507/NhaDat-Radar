@@ -30,7 +30,7 @@ Nhóm nào cho thuê / mua bán và thuộc khu vực nào nằm ở `crawler/pr
 ```
 { "nhom": [ { "id": "<mã nhóm>", "ten": "Phòng trọ Gò Vấp", "loai": "thue", "khu_vuc": ["Gò Vấp", "Quận 12"] } ] }
 ```
-`loai`: `thue` / `ca_hai` (được đăng), `ban` / `chua_xep` (chỉ đọc). `khu_vuc`: tên quận (`Gò Vấp`, `Quận 7`, `Thủ Đức` gồm cả Quận 2, 9 cũ, `Dĩ An`) hoặc cả tỉnh (`Hồ Chí Minh`, `Bình Dương`). `kind` tuỳ chọn, mặc định `["phong_tro", "can_ho"]`.
+`loai`: `thue` / `ca_hai` (được đăng), `ban` / `chua_xep` (chỉ đọc). `khu_vuc`: tên quận (`Gò Vấp`, `Quận 7`, `Thủ Đức` gồm cả Quận 2, 9 cũ, `Dĩ An`) hoặc cả tỉnh (`Hồ Chí Minh`, `Bình Dương`). `kind` tuỳ chọn, mặc định `["phong_tro", "can_ho"]`. `gia` tuỳ chọn: `[3, 5]` = phòng từ 3 đến dưới 5 triệu (nhóm chia theo mức giá), `null` ở một đầu = không chặn.
 
 ## Chạy
 - **Nghe group + trợ lý 1-1** (chạy nền liên tục):

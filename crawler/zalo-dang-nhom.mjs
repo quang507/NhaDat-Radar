@@ -14,7 +14,8 @@
 //  Cấu hình nhóm: crawler/private/zalo-nhom.json (KHÔNG vào git - repo public)
 //    { "nhom": [ { "id": "<mã nhóm>", "ten": "...", "loai": "thue" | "ban" | "ca_hai" | "chua_xep",
 //                  "khu_vuc": ["Gò Vấp", "Quận 7", "Thủ Đức", "Dĩ An", "Hồ Chí Minh"],
-//                  "kind": ["phong_tro", "can_ho"] } ] }        (kind bỏ trống = phòng trọ + căn hộ)
+//                  "kind": ["phong_tro", "can_ho"], "gia": [3, 5] } ] }   (kind bỏ trống = phòng trọ + căn hộ;
+//                  gia = khoảng giá triệu/tháng cho nhóm chia theo mức giá, null = không chặn)
 //    Chỉ nhóm "thue" / "ca_hai" có khu_vuc mới được đăng. "ban" và "chua_xep": bot chỉ đọc.
 //
 //  Chạy:
@@ -135,6 +136,9 @@ async function phongChoNhom(g) {
       .select("id,title,price_vnd,area_m2,ward,district,province,kind,images,specs,amenities")
       .eq("source", "ro_hang").eq("status", "published").eq("deal", "cho_thue").in("kind", kind);
     q = TINH.includes(kv) ? q.eq("province", kv) : q.in("district", bienTheQuan(kv));
+    // nhóm chia theo mức giá ("Phòng trọ Bình Thạnh 3x-4x"): gia = [từ, đến] triệu, null = không chặn
+    if (g.gia?.[0] != null) q = q.gte("price_vnd", g.gia[0] * 1e6);
+    if (g.gia?.[1] != null) q = q.lt("price_vnd", g.gia[1] * 1e6);
     const { data, error } = await q.order("first_seen_at", { ascending: false }).limit(150);
     if (error) throw new Error(error.message);
     for (const x of data) gop.set(x.id, x);
