@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import PlaceSuggest, { type Place, type DuAnGoiY } from "./PlaceSuggest";
 import { PROP } from "@/lib/format";
 import { Search, Sparkles, ArrowRight, Map } from "lucide-react";
 
@@ -25,8 +27,12 @@ const LOAI: Record<"cho_thue" | "ban", string[]> = {
 const TINH: [string, string][] = [["Hồ Chí Minh", "TP.HCM"], ["Hà Nội", "Hà Nội"], ["Đà Nẵng", "Đà Nẵng"], ["Bình Dương", "Bình Dương"], ["Đồng Nai", "Đồng Nai"]];
 const tenGon = (d: string) => d.replace(/^(Quận|Huyện|Thị xã|Thành phố) (?=\D)/, "");
 
-export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban", ChipKhuVuc[]> }) {
+// 28/10: places = tỉnh + quận của các tỉnh trong ô chọn (page.tsx dựng, ~3KB) - gõ "go vapp" xổ "Quận Gò Vấp"
+export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" | "ban", ChipKhuVuc[]>; places: Place[] }) {
   const [tab, setTab] = useState<Tab>("cho_thue");
+  const [q, setQ] = useState("");
+  const oTim = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const deal = tab === "dinh_gia" ? null : tab;
 
   const nut = (t: Tab, nhan: ReactNode) => (
@@ -47,6 +53,9 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
 
   const sel = "inp appearance-none pr-6 cursor-pointer text-sm min-h-11 !py-2 !px-2.5 sm:!px-3 rounded-md border-[var(--line-strong)] bg-[var(--surface)] truncate";
   const qs = (o: Record<string, string>) => "/search?" + new URLSearchParams(Object.entries(o).filter(([, v]) => v)).toString();
+  // chọn gợi ý: đi thẳng tới kết quả đúng quận (không qua bộ bóc câu), giống chọn gợi ý ở trang tìm kiếm
+  const chonNoi = (p: Place) => router.push(qs({ deal: deal || "", province: p.province, district: p.district || "", ward: p.ward || "" }));
+  const chonDuAn = (d: DuAnGoiY) => router.push(qs({ deal: deal || "", gan: `${d.lat},${d.lng}`, bk: "2", gan_ten: d.name }));
 
   return (
     <div className="card rounded-lg p-3 sm:p-5 shadow-xs border border-[var(--line)]">
@@ -72,11 +81,16 @@ export default function HeroTimKiem({ chip }: { chip: Record<"cho_thue" | "ban",
             <div className="flex gap-2">
               <div className="relative flex-1 min-w-0">
                 <input
+                  ref={oTim}
                   name="q"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  autoComplete="off"
                   aria-label="Từ khoá khu vực"
                   placeholder={deal === "cho_thue" ? "Quận, đường, trường gần đó…" : "Quận, đường, dự án…"}
                   className="inp flex-1 min-w-0 min-h-11 pr-4 pl-3.5 !py-2 rounded-md text-base sm:text-sm"
                 />
+                <PlaceSuggest value={q} places={places} onPick={chonNoi} onPickDuAn={chonDuAn} inputRef={oTim} />
               </div>
               {/* mobile: nút vuông 44px chỉ icon - nhường chỗ cho ô gõ (placeholder cũ bị cắt chữ) */}
               <button className="btn btn-primary min-h-11 min-w-11 !px-3 sm:!px-6 rounded-md flex items-center gap-1.5 whitespace-nowrap shadow-xs" type="submit" aria-label="Tìm kiếm">

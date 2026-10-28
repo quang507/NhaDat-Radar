@@ -10,6 +10,7 @@ import DaiDocQuyen from "@/components/DaiDocQuyen";
 import TimPhongNhanh from "@/components/TimPhongNhanh";
 import HangVuot from "@/components/HangVuot";
 import HeroTimKiem, { type ChipKhuVuc } from "@/components/HeroTimKiem";
+import { buildPlaces } from "@/lib/goi-y-noi";
 import { laTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang, laRoHang } from "@/lib/ro-hang";
 import { BAI_VIET } from "@/lib/bai-viet";
@@ -115,6 +116,18 @@ export default async function Home() {
     .map(([district, c]) => ({ province: "Hồ Chí Minh", district, n: c[d] }))
     .filter((c) => c.n > 0).sort((a, b) => b.n - a.n).slice(0, 10);
   const chip = { cho_thue: chipQuan("cho_thue"), ban: chipQuan("ban") };
+  // Gợi ý ô tìm kiếm (28/10): tỉnh + quận của 5 tỉnh trong ô chọn - đủ cho gõ sai tên quận, không kéo cả cây phường
+  // (~20k tên) vào HTML trang chủ tĩnh. Trang /search vẫn gợi ý tới cấp phường.
+  // DB còn biến thể tên quận ("Q. Bình Thạnh" lẫn "Quận Bình Thạnh") -> mỗi tên chỉ giữ biến thể nhiều tin nhất,
+  // không thì gợi ý xếp "Q. Bình Thạnh" (vài tin) lên trước vì tên ngắn hơn.
+  const loiQuan = (d: string) => d.toLowerCase().replace(/^(quận|q\.|huyện|h\.|thị xã|tx\.|thành phố|tp\.)\s*/, "").trim();
+  const goiY = buildPlaces(Object.fromEntries(["Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Bình Dương", "Đồng Nai"]
+    .filter((p) => areas.geo[p]).map((p) => {
+      const so = (d: string) => { const c = areas.counts[p]?.districts[d]; return c ? c.ban + c.cho_thue : 0; };
+      const tot = new Map<string, string>();
+      for (const d of Object.keys(areas.geo[p])) { const k = loiQuan(d), cu = tot.get(k); if (!cu || so(d) > so(cu)) tot.set(k, d); }
+      return [p, Object.fromEntries([...tot.values()].map((d) => [d, [] as string[]]))];
+    })));
   const hasFilter = false;
   const mapItems: MapItem[] = listings.flatMap(tinLenBanDo);
 
@@ -199,7 +212,7 @@ export default async function Home() {
         <p className="hidden sm:block text-base text-[var(--ink-soft)] mb-6 max-w-2xl leading-relaxed">
           Hơn 14.000 căn phòng và nhà đất có video thực tế, định vị chuẩn xác và cam kết giá thuê trực tiếp từ chủ nhà, không tin ảo kê giá.
         </p>
-        <HeroTimKiem chip={chip} />
+        <HeroTimKiem chip={chip} places={goiY} />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-5 text-xs">
           <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">

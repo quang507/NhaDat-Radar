@@ -17,6 +17,40 @@ test("trang chủ → gõ khu vực → kết quả → chi tiết tin", async (
   expect(js).toEqual([]);
 });
 
+test("trang chủ: gõ SAI tên quận → xổ tên đúng → chọn (chuột) → kết quả đúng quận", async ({ page }) => {
+  const js = ghiLoiJs(page);
+  await mo(page, "/");
+  await page.locator('input[name="q"]:visible').first().fill("go vapp");
+  const goiY = page.getByRole("option", { name: /Gò Vấp/ }).first();
+  await expect(goiY, "gõ 'go vapp' phải gợi ý quận Gò Vấp").toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("Có phải bạn muốn tìm:")).toBeVisible();
+  await goiY.click();
+  await page.waitForURL(/district=/, { timeout: 30_000 });
+  expect(new URL(page.url()).searchParams.get("district")).toBe("Quận Gò Vấp");
+  await expect(page.locator('a[href^="/listings/"]:visible').first(), "quận Gò Vấp phải có tin").toBeVisible({ timeout: 20_000 });
+  expect(js).toEqual([]);
+});
+
+test("trang chủ: gõ sai 'bihn thanh' → ↓ Enter chọn bằng bàn phím", async ({ page }) => {
+  const o = page.locator('input[name="q"]:visible').first();
+  await mo(page, "/");
+  await o.fill("bihn thanh");
+  await expect(page.getByRole("option", { name: /Bình Thạnh/ }).first()).toBeVisible({ timeout: 10_000 });
+  await o.press("ArrowDown");
+  await o.press("Enter");
+  await page.waitForURL(/district=/, { timeout: 30_000 });
+  // DB có cả biến thể "Q. Bình Thạnh" (ít tin) - gợi ý phải đưa về tên chuẩn nhiều tin nhất
+  expect(new URL(page.url()).searchParams.get("district")).toBe("Quận Bình Thạnh");
+});
+
+test("trang chủ: gõ tên đường rồi Enter (không bấm ↓) vẫn tìm theo chữ, không bị gợi ý cướp", async ({ page }) => {
+  await mo(page, "/");
+  const o = page.locator('input[name="q"]:visible').first();
+  await o.fill("Quang Trung");
+  await o.press("Enter");
+  await page.waitForURL(/\/search\?.*q=Quang/, { timeout: 30_000 });
+});
+
 test("trang chủ → Xem bản đồ → bấm pin → popup ảnh + giá → chi tiết", async ({ page }) => {
   test.skip(laHep(page), "nút Xem bản đồ + bản đồ kết quả chỉ có từ lg (1024px)");
   const js = ghiLoiJs(page);
