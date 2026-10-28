@@ -51,6 +51,9 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SER
 if (!url || !key) { console.error("Thiếu SUPABASE env (.env.local)"); process.exit(1); }
 if (!KEYS.length) { console.error("Thiếu GEMINI_API_KEY* (.env.local) - bot không phân loại được tin"); process.exit(1); } // audit 16/8: trước im lặng chào hỏi mãi
 const sb = createClient(url, key, { auth: { persistSession: false } });
+// Nhóm acc clone có mặt nhưng KHÔNG phải nhóm BĐS (nhóm nội bộ, nhóm riêng) -> bot không đọc, không gửi
+// Gemini. Mã nhóm để trong .env.local (repo public), cách nhau dấu phẩy: ZALO_BO_QUA_NHOM=id1,id2
+const BO_QUA_NHOM = new Set((process.env.ZALO_BO_QUA_NHOM || "").split(/[\s,]+/).filter(Boolean));
 
 // Link gửi cho khách phải là domain public - .env.local dev hay đặt localhost nên phải lọc
 const rawSite = process.env.NEXT_PUBLIC_SITE_URL || "";
@@ -854,6 +857,7 @@ function startListener() {
     // YÊU CẦU ĐẶC BIỆT: Tài khoản này dùng cho business khác của chủ tài khoản
     // -> BỎ QUA HOÀN TOÀN TIN NHẮN RIÊNG 1-1, KHÔNG ĐỤNG VÀO, KHÔNG TRẢ LỜI
     if (!isGroup) return;
+    if (BO_QUA_NHOM.has(String(fromId))) return;
 
     // Khoá ghép ảnh-với-chữ: group phải kèm NGƯỜI GỬI (uidFrom) - không thì ảnh của người A
     // đang chat cùng lúc bị ghép vào tin của người B.

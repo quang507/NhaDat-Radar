@@ -1,75 +1,34 @@
 @echo off
 chcp 65001 >nul
+title NhaDat Radar - Quet QR Zalo cho bot tren NUC
+
 REM ============================================================
 REM  ZALO LOGIN - bam dup la xong.
-REM  Goi thang duong dan day du cua zalo-agent-cli nen KHONG phu
-REM  thuoc PATH (cua so CMD mo truoc luc cai se bao 'zalo-agent'
-REM  is not recognized).
-REM
-REM  Viec no lam: hien QR -> quet bang Zalo CLONE tren dien thoai
-REM  -> luu phien vao %USERPROFILE%\.zalo-agent-cli\credentials
-REM  -> bat lai bot zalo tren pm2.
+REM  Bot Zalo chay tren NUC cong ty (systemd radar-zalo-bot, tu 28/10/2026).
+REM  File nay mo ma QR cua NUC ngay tren trinh duyet may nay (qua Tailscale),
+REM  quet bang Zalo CLONE tren dien thoai -> phien luu tren NUC -> bot bat lai.
 REM
 REM  LUU Y: file .bat PHAI luu bang line ending CRLF. Neu chi co LF
 REM  thi cmd.exe doc hong, moi chu thanh 1 lenh. Xem .gitattributes.
 REM ============================================================
-cd /d "%~dp0"
 
-set "ZALO=%APPDATA%\npm\node_modules\zalo-agent-cli\src\index.js"
-
-if not exist "%ZALO%" (
-  echo [LOI] Chua cai zalo-agent-cli.
-  echo Chay lenh:  npm i -g zalo-agent-cli
+echo.
+echo   Vai giay nua trinh duyet mo trang QR: http://localhost:18927
+echo   Mo Zalo CLONE tren dien thoai, bieu tuong QR o thanh tim kiem, quet ma do.
+echo   API Zalo khong chinh thuc, acc co the bi khoa. Chi dung so clone.
+echo.
+start "" cmd /c "timeout /t 8 >nul & start http://localhost:18927"
+ssh -L 18927:127.0.0.1:18927 quang@nuc "~/.local/bin/zalo-agent login --qr-url 2>&1 | grep -v unofficial && sudo systemctl restart radar-zalo-bot && echo && echo Bot da bat lai: $(systemctl is-active radar-zalo-bot)"
+if errorlevel 1 (
+  echo.
+  echo [LOI] Dang nhap that bai hoac khong vao duoc NUC. Dong roi chay lai file nay.
   echo.
   pause
   exit /b 1
 )
-
-echo [1/3] Trang thai hien tai:
-call node "%ZALO%" status
-echo.
-
-echo [2/3] Dang nhap. Quet QR bang Zalo CLONE tren dien thoai.
-echo       Neu QR trong cua so nay bi vo, mo trinh duyet:
-echo          http://localhost:18927
-echo       Hoac mo file anh:
-echo          %USERPROFILE%\.zalo-agent-cli\qr.png
-echo.
-echo       API Zalo khong chinh thuc, acc co the bi khoa. Dung so clone.
-echo.
-call node "%ZALO%" login
-if errorlevel 1 (
-  echo.
-  echo [LOI] Dang nhap that bai. Dong roi chay lai file nay.
-  echo.
-  pause
-  exit /b 1
-)
-
-echo.
-echo [3/3] Bat lai bot zalo tren pm2...
-REM Goi pm2 bang duong dan day du: cua so CMD mo truoc luc `npm i -g pm2` khong thay
-REM lenh nay -> 'pm2' is not recognized (su co 17/8, giong het zalo-agent).
-set "PM2=%APPDATA%\npm\pm2.cmd"
-if not exist "%PM2%" (
-  echo [BO QUA] Chua cai pm2. Bot van chua duoc bat lai.
-  echo Chay lenh:  npm i -g pm2
-  echo Roi chay:   pm2 start ecosystem.config.cjs ^&^& pm2 save
-  echo.
-  pause
-  exit /b 0
-)
-call "%PM2%" describe zalo-bot >nul 2>&1
-if errorlevel 1 (
-  call "%PM2%" start ecosystem.config.cjs
-) else (
-  call "%PM2%" restart zalo-bot
-)
-call "%PM2%" save
-call "%PM2%" status
 
 echo.
 echo ============================================================
-echo   XONG. Xem log bot:  pm2 logs zalo-bot
+echo   XONG. Kiem tra bot: KIEM-TRA-ZALO.bat
 echo ============================================================
 pause
