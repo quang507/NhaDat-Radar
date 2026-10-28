@@ -14,7 +14,9 @@ const BOT_CHAN = [
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
-      { userAgent: "*", allow: "/", disallow: ["/dashboard", "/admin", "/account", "/tin-nhan", "/api/"] },
+      // 28/10: trang tìm kiếm có tham số lọc không cache được (mỗi lượt dựng ~260KB), tổ hợp lọc vô hạn ->
+      // bot cào làm vượt Fast Origin Transfer. Chặn bản CÓ tham số; /search trơn và trang khu vực vẫn mở.
+      { userAgent: "*", allow: "/", disallow: ["/dashboard", "/admin", "/account", "/tin-nhan", "/api/", "/search?", "/nha-dat-ban?", "/nha-dat-cho-thue?"] },
       { userAgent: BOT_CHAN, disallow: "/" },
     ],
     sitemap: `${SITE}/sitemap.xml`,

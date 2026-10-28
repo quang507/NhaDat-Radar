@@ -1,4 +1,7 @@
-export const revalidate = 3600; // Cache ISR 1 giờ trên CDN Vercel - bot cào không tốn egress Supabase
+// Cache ISR 6 giờ trên CDN Vercel - bot cào không tốn egress Supabase. 28/10: từ 1 giờ lên 6 giờ vì ~15.000 tin
+// x 220KB dựng lại mỗi giờ làm vượt hạn mức Fast Origin Transfer. Không lên 1 ngày: tin bị xoá bởi db-prune
+// không gọi revalidate, trang tin đã xoá còn hiện tới hết hạn cache (gỡ tin trong admin thì mất ngay).
+export const revalidate = 21600;
 
 // Audit 25/10 (đo bằng `next start`): thiếu hàm này thì route [id] là ƒ Dynamic - header trả
 // "private, no-cache, no-store", `revalidate` ở trên KHÔNG có tác dụng, CDN không giữ trang nào.

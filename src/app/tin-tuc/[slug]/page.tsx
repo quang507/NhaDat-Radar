@@ -11,6 +11,10 @@ import AdSenseBanner from "@/components/AdSenseBanner";
 import { Home, ChevronRight, Calendar, Clock, MessageCircle, ShieldCheck, ArrowRight, Share2, BookOpen } from "lucide-react";
 
 export const revalidate = 43200;
+// 28/10: thiếu hàm này thì route là ƒ Dynamic, `revalidate` vô tác dụng (Vercel trả no-store). [] = dựng lần đầu rồi cache ISR.
+export async function generateStaticParams() {
+  return [];
+}
 const TIEN_TO = "gia-thue-phong-tro-";
 
 async function timQuan(slug: string) {
