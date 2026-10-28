@@ -1,4 +1,4 @@
-export const revalidate = 3600; // Cache ISR 1 giờ trên CDN Vercel - bot cào không tốn egress Supabase
+export const revalidate = 43200; // Cache ISR 12 giờ = khớp cache dữ liệu layTinCongKhai; gỡ tin vẫn revalidateTag("listings") ngay. 28/10: 1 giờ x ~22.000 tin làm vượt 200K ISR Writes gói Hobby
 
 // Audit 25/10 (đo bằng `next start`): thiếu hàm này thì route [id] là ƒ Dynamic - header trả
 // "private, no-cache, no-store", `revalidate` ở trên KHÔNG có tác dụng, CDN không giữ trang nào.

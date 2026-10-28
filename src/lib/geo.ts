@@ -77,5 +77,5 @@ export const getAreas = unstable_cache(
     );
   },
   ["areas-v5"],   // v5: làm mới sau khi nạp rổ hàng EvoHome
-  { revalidate: 1800, tags: ["areas"] },
+  { revalidate: 10800, tags: ["areas"] },   // 28/10: 30 phút -> 3 giờ (dữ liệu đổi theo lượt crawl 4 tiếng). Next 15 lấy MIN với revalidate trang -> 1800 kéo mọi trang tin/khu vực xuống 30 phút, vượt ISR Writes
 );
