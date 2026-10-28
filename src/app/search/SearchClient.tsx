@@ -195,6 +195,13 @@ export default function SearchClient({
   // "a-b" -> {min, max}; chuỗi rỗng = bỏ lọc
   const tachKhoang = (v: string) => { const [a = "", b = ""] = v.split("-"); return [a, b]; };
 
+  const chipDangAp = (nhan: string, aria: string, bo: () => void, key?: string) => (
+    <button key={key} type="button" onClick={bo} aria-label={aria}
+      className="inline-flex items-center gap-1 h-9 sm:h-7 px-2.5 rounded bg-[var(--surface-2)] text-[var(--ink-soft)] font-medium hover:text-red-600 transition">
+      {nhan} <X className="w-3 h-3" />
+    </button>
+  );
+
   const mapItems: MapItem[] = useMemo(
     () => listings.flatMap(tinLenBanDo),
     [listings],
@@ -746,42 +753,15 @@ export default function SearchClient({
           {soLoc > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 mb-3.5 text-xs">
               <span className="text-[var(--ink-soft)] font-medium mr-1">Bộ lọc đang áp:</span>
-              {goc.province && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-                  {goc.province}
-                  <button type="button" onClick={() => push({ ...goc, province: "", district: "", ward: "" })} aria-label="Bỏ lọc tỉnh" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
-                </span>
-              )}
-              {goc.district && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-                  {goc.district}
-                  <button type="button" onClick={() => push({ ...goc, district: "", ward: "" })} aria-label="Bỏ lọc quận" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
-                </span>
-              )}
-              {goc.ward && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-                  {goc.ward}
-                  <button type="button" onClick={() => push({ ...goc, ward: "" })} aria-label="Bỏ lọc phường" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
-                </span>
-              )}
-              {goc.q && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-                  “{goc.q}”
-                  <button type="button" onClick={() => push({ ...goc, q: "" })} aria-label="Bỏ lọc từ khoá" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
-                </span>
-              )}
-              {nhanGia && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-                  {nhanGia}
-                  <button type="button" onClick={() => push({ ...goc, priceMin: "", priceMax: "" })} aria-label="Bỏ lọc giá" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
-                </span>
-              )}
-              {nhanDt && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-                  {nhanDt}
-                  <button type="button" onClick={() => push({ ...goc, areaMin: "", areaMax: "" })} aria-label="Bỏ lọc diện tích" className="hover:text-red-500 cursor-pointer"><X className="w-3 h-3" /></button>
-                </span>
-              )}
+              {/* 28/10: cả chip là nút bỏ lọc (trước chỉ icon X 12px - khó bấm trên điện thoại); thêm tiện ích vì
+                  điện thoại không còn hàng tick tiện ích ngoài trang (xem HangTienIch) */}
+              {goc.province && chipDangAp(goc.province, "Bỏ lọc tỉnh", () => push({ ...goc, province: "", district: "", ward: "" }))}
+              {goc.district && chipDangAp(goc.district, "Bỏ lọc quận", () => push({ ...goc, district: "", ward: "" }))}
+              {goc.ward && chipDangAp(goc.ward, "Bỏ lọc phường", () => push({ ...goc, ward: "" }))}
+              {goc.q && chipDangAp(`“${goc.q}”`, "Bỏ lọc từ khoá", () => push({ ...goc, q: "" }))}
+              {nhanGia && chipDangAp(nhanGia, "Bỏ lọc giá", () => push({ ...goc, priceMin: "", priceMax: "" }))}
+              {nhanDt && chipDangAp(nhanDt, "Bỏ lọc diện tích", () => push({ ...goc, areaMin: "", areaMax: "" }))}
+              {docTienIch(goc.ti).map((t) => chipDangAp(t.ten, `Bỏ lọc ${t.ten}`, () => push({ ...goc, ti: doiTi(goc.ti, t.k) }), t.k))}
               <button type="button" onClick={clear} className="text-brand font-semibold hover:underline ml-1 cursor-pointer">
                 Xóa tất cả
               </button>

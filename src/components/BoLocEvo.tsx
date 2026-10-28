@@ -14,11 +14,12 @@ export const doiTi = (s: string, k: string) => {
   return (a.includes(k) ? a.filter((x) => x !== k) : [...a, k]).join(",");
 };
 
-/** "Tiện ích: [☐ Điều hòa] [☐ Nước nóng] ..." - tick là lọc ngay */
+/** "Tiện ích: [☐ Điều hòa] [☐ Nước nóng] ..." - tick là lọc ngay.
+ *  28/10: điện thoại ẩn hàng này - đã có trong popup "Bộ lọc", tiện ích đang tick vẫn hiện ở "Bộ lọc đang áp". */
 export function HangTienIch({ ti, onDoi }: { ti: string; onDoi: (k: string) => void }) {
   const chon = tachTi(ti);
   return (
-    <div className="flex items-start gap-2 mb-3">
+    <div className="hidden sm:flex items-start gap-2 mb-3">
       <span className="hidden sm:block text-xs font-semibold text-[var(--ink-soft)] pt-2 shrink-0">Tiện ích:</span>
       <div className="cuon-ngang flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]">
         {TIEN_ICH.map((t) => {
@@ -95,8 +96,9 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
   return (
     <div className="mb-3">
       <div className="flex flex-wrap items-center gap-2 mb-2">
-        {/* mobile: dải tỉnh cuộn ngang 1 hàng (trước rớt 2 hàng), máy tính: xuống dòng như cũ */}
-        <div className="cuon-ngang flex gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible sm:flex-wrap [scrollbar-width:none] -mx-4 px-4 sm:mx-0 sm:px-0">
+        {/* mobile: dải tỉnh cuộn ngang 1 hàng (trước rớt 2 hàng), máy tính: xuống dòng như cũ.
+            28/10: đã chọn tỉnh thì điện thoại ẩn chip "Tỉnh ✕" - trùng chip ở "Bộ lọc đang áp" ngay bên dưới */}
+        <div className={`cuon-ngang ${province ? "hidden sm:flex" : "flex"} gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible sm:flex-wrap [scrollbar-width:none] -mx-4 px-4 sm:mx-0 sm:px-0`}>
         {province ? (
           <button type="button" className={pill(true)} onClick={() => onTinh("")} title="Bỏ chọn tỉnh">{province} <X className="w-3.5 h-3.5 ml-1 inline" /></button>
         ) : tinhs.slice(0, 8).map((p) => (
@@ -110,7 +112,7 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
           <div className={`flex gap-2 flex-1 min-w-0 ${du ? "flex-wrap" : "cuon-ngang overflow-x-auto [scrollbar-width:thin] pb-1"}`}>
             {districts.map((d) => (
               <button key={d} type="button" onClick={() => onQuan(d === district ? "" : d)}
-                className={`shrink-0 h-8 px-3.5 rounded-full text-sm whitespace-nowrap transition
+                className={`shrink-0 h-10 sm:h-8 px-3.5 rounded text-sm whitespace-nowrap transition
                   ${d === district ? "bg-brand text-white font-semibold" : "border border-[var(--line)] bg-[var(--surface)] hover:border-brand"}`}>
                 {tenGon(d)}
               </button>
@@ -118,7 +120,7 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
           </div>
           {districts.length > 8 && (
             <button type="button" onClick={() => setDu((v) => !v)}
-              className="shrink-0 h-8 px-3 rounded-full bg-brand/10 text-brand text-sm font-semibold whitespace-nowrap">
+              className="shrink-0 h-10 sm:h-8 px-3 rounded bg-brand/10 text-brand text-sm font-semibold whitespace-nowrap">
               {du ? "Thu gọn ▴" : "Xem thêm ▾"}
             </button>
           )}

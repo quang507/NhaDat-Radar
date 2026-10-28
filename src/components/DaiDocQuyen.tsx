@@ -26,7 +26,8 @@ export default function DaiDocQuyen({ listings, toiDa = 6 }: { listings: Listing
           <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           Tin đã xác minh
         </h2>
-        <span className="text-xs text-[var(--ink-soft)]">
+        {/* điện thoại: câu mô tả rớt 2 dòng đẩy tin xuống - nhãn "Tin đã xác minh" đã đủ nghĩa */}
+        <span className="hidden sm:inline text-xs text-[var(--ink-soft)]">
           Thông tin và pháp lý đã được Radar kiểm tra thực tế
         </span>
       </div>
