@@ -1,5 +1,5 @@
 // 1/10: ISR 10 phút, client ẩn danh (dữ liệu công khai) - trước đây mỗi lượt xem là 2-3 truy vấn
-export const revalidate = 600;
+export const revalidate = 21600; // 28/10: 10 phút -> 6 giờ, khớp cache lib/du-an.ts, giảm ISR Writes (~2.300 dự án)
 // 26/10: thiếu hàm này thì route [id] là ƒ Dynamic và `revalidate` bị bỏ qua (no-store) - giống trang tin (listings/[id]).
 // Trả [] = không dựng sẵn ~2.300 dự án lúc build; dựng lần đầu có người mở rồi cache ISR.
 export async function generateStaticParams() {
