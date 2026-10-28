@@ -59,6 +59,9 @@ Sửa một màn thì đi lại cả luồng chứa nó, không chỉ chỗ đư
 - HTML popup bản đồ là chuỗi: escape bằng `escHtml`, che SĐT tin độc quyền bằng `cheSoVanBan`; class Tailwind trong chuỗi vẫn được quét nhưng ưu tiên class `.ndr-*` ở globals.css.
 - MapLibre tự focus link đầu trong popup → đã tắt viền bằng `:focus:not(:focus-visible)`.
 - Giữ CRLF ở file đang CRLF (`file <tệp>` để xem). Sửa bằng Edit là giữ được.
+- Logo: 4 SVG trong `public/` (logo, logo-dark, logo-negative, icon) dùng chung toạ độ hình R (x 119.4-205.8, y 54.8-162.3).
+  Sửa hình thì sửa cả 4, rồi `node scripts/xuat-logo.mjs --kiem` (bố cục khớp ảnh cũ) → `node scripts/xuat-logo.mjs`
+  để xuất lại icon PWA, apple-touch, favicon.ico, logo Google, og-default. Soi ở cỡ thật 32px, đừng chỉ nhìn bản phóng to.
 
 ## Kiểm chứng
 
