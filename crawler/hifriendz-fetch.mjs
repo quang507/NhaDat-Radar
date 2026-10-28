@@ -11,6 +11,13 @@
 //
 // Lọc (chốt 2/10): chỉ phòng TRỐNG có ẢNH, mỗi toà TỐI ĐA 5 phòng trải đều khoảng giá - toà 140 phòng
 // giống nhau không được lấp kín trang kết quả.
+//
+// Tăng tốc (28/10): bước 2 tốn ~20 phút vì đọc lần lượt ~7.450 trang toà. Danh sách toà ở bước 1 đã có số
+// phòng, số phòng trống, khoảng giá, loại phòng, ảnh -> so dấu vân tay toà với lượt trước, toà không đổi thì
+// lấy lại phòng của nó trong file cũ, chỉ đọc trang toà đã đổi. Phòng đổi mà số đếm/giá không đổi (thuê 1
+// phòng, trống 1 phòng khác cùng giá) không lộ ra ở danh sách -> cứ quá 20 giờ thì quét đủ một lượt; sửa file
+// này cũng tự quét đủ. Ép quét đủ: HF_QUET_DU=1.
+import crypto from "node:crypto";
 import fs from "node:fs";
 
 const OUT = "crawler/private/hifriendz.json";
@@ -20,6 +27,8 @@ const MOI_TOA = 5;
 const SONG_SONG = 4;             // nhẹ tay với máy chủ đối tác
 const TOI_THIEU_TOA = 1000;      // ít hơn = API đổi / lỗi -> KHÔNG ghi đè file cũ
 const GIOI_HAN = Number(process.env.HF_GIOI_HAN) || Infinity;   // thử nhanh: HF_GIOI_HAN=50
+const FILE_VT = "crawler/private/hifriendz-toa.json";           // dấu vân tay toà của lượt trước
+const QUET_DU_SAU = 20 * 3600 * 1000;
 
 const LOAI = { "Gác": "Gác lửng", Duplex: "Duplex", Studio: "Studio", "1PN": "1 Phòng ngủ", "2PN": "2 Phòng ngủ", "3PN": "3 Phòng ngủ" };
 const tien = (n) => (!n ? "Thỏa thuận" : n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, "") + " triệu" : n.toLocaleString("vi-VN") + " đ");
@@ -132,14 +141,49 @@ console.log(`Có ${dsToa.length} toà còn phòng trống`);
 if (GIOI_HAN === Infinity && dsToa.length < TOI_THIEU_TOA) { console.error(`Quá ít toà (<${TOI_THIEU_TOA}) - giữ nguyên ${OUT} cũ`); process.exit(1); }
 
 // ---- 2. phòng của từng toà ------------------------------------------------------------------
+// mã phiên bản = nội dung file này: sửa cách chuẩn hoá thì phòng lấy lại từ file cũ đã lỗi thời -> quét đủ
+const PHIEN_BAN = crypto.createHash("sha1").update(fs.readFileSync(new URL(import.meta.url))).digest("base64").slice(0, 12);
+const vanTayToa = (p) => crypto.createHash("sha1").update(JSON.stringify([
+  p.roomCount, p.availableRoomCount, p.priceMin, p.priceMax, p.listingTypes, p.features, p.cover, p.images,
+  p.street, p.ward, p.newWard, p.district, p.publicLatitude, p.publicLongitude,
+])).digest("base64");
+let vtCu = {};
+try { vtCu = JSON.parse(fs.readFileSync(FILE_VT, "utf8")); } catch { /* lần đầu */ }
+let quetDu = process.env.HF_QUET_DU === "1" || vtCu.phienBan !== PHIEN_BAN || !(Date.now() - Date.parse(vtCu.quetDuLuc || 0) < QUET_DU_SAU);
+const phongCu = new Map();   // mã toà -> phòng đã chuẩn hoá ở lượt trước
+if (!quetDu) {
+  try {
+    for (const x of JSON.parse(fs.readFileSync(OUT, "utf8"))) {
+      const id = x.specs?.["Mã toà HiFriendz"];
+      if (!phongCu.has(id)) phongCu.set(id, []);
+      phongCu.get(id).push(x);
+    }
+  } catch { quetDu = true; }   // mất file phòng cũ thì dấu vân tay vô nghĩa
+}
+console.log(quetDu ? "Quét đủ mọi toà" : `Chỉ đọc toà đã đổi (lần quét đủ gần nhất ${vtCu.quetDuLuc})`);
+
 const out = [];
-let xong = 0, loi = 0, tongPhong = 0;
+const vtMoi = {};
+let xong = 0, loi = 0, tongPhong = 0, dungLai = 0;
 const hang = [...dsToa];
 async function tho() {
   for (let p; (p = hang.shift()); ) {
+    const vt = vanTayToa(p);
+    if (!quetDu && vtCu.toa?.[p.id] === vt) {
+      xong++; dungLai++;
+      vtMoi[p.id] = vt;
+      out.push(...(phongCu.get(p.id) || []));   // toà không có phòng trống có ảnh thì không có dòng nào
+      continue;
+    }
     const rooms = await phongCuaToa(p.id);
     xong++;
-    if (rooms === null) { loi++; continue; }
+    if (rooms === null) {
+      // đọc hỏng: giữ phòng lượt trước (nếu có) thay vì để bước đồng bộ hạ cả toà; không ghi vân tay -> lượt sau đọc lại
+      loi++;
+      out.push(...(phongCu.get(p.id) || []));
+      continue;
+    }
+    vtMoi[p.id] = vt;
     tongPhong += rooms.length;
     const trong = rooms.filter((r) => !r.isRented && (!r.status || r.status === "Trống") && (r.images || []).length > 0 && r.price > 0);
     for (const r of chonDeu(trong, MOI_TOA)) out.push(chuanHoa(r, p));
@@ -191,9 +235,10 @@ function chuanHoa(r, p) {
 }
 
 await Promise.all(Array.from({ length: SONG_SONG }, tho));
-console.log(`Đọc ${xong} toà (${loi} lỗi) · ${tongPhong} phòng · lấy ${out.length} phòng trống có ảnh (tối đa ${MOI_TOA}/toà)`);
+console.log(`Đọc ${xong - dungLai} toà, dùng lại ${dungLai} toà không đổi (${loi} lỗi) · ${tongPhong} phòng ở toà đã đọc · tổng ${out.length} phòng trống có ảnh (tối đa ${MOI_TOA}/toà)`);
 if (LA.size) console.log("Tiện ích HiFriendz chưa map:", Object.fromEntries([...LA].sort((a, b) => b[1] - a[1]).slice(0, 30)));
 if (GIOI_HAN === Infinity && loi > dsToa.length * 0.2) { console.error(`Lỗi quá nhiều (${loi}) - giữ nguyên ${OUT} cũ`); process.exit(1); }
 fs.mkdirSync("crawler/private", { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(out));
+fs.writeFileSync(FILE_VT, JSON.stringify({ phienBan: PHIEN_BAN, quetDuLuc: quetDu ? new Date().toISOString() : vtCu.quetDuLuc, toa: vtMoi }));
 console.log(`✓ Ghi ${out.length} phòng -> ${OUT}`);

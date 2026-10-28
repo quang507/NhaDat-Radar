@@ -16,7 +16,7 @@ Tài liệu cho đội tiếp nhận (Antigravity). Đọc kèm [`CLAUDE.md`](..
 | Google Cloud cũ | project `Quangpr0` (`gen-lang-client-0010758189`) | Dùng chung cho AI Ơi Nhà Đất + 2 app khác. Client cũ của Radar `797157676134-btdi…` đã gỡ redirect URI, giữ lại dự phòng |
 | SEO | Google Search Console `nhadatradar.com` | |
 | Đo lường | GA4 `G-FJ8QKCLWJZ` (chính) + `G-1XRXV857VE`; Microsoft Clarity "NhaDatRadar" | |
-| VPS | `103.126.162.93` (SSH) | Crawler cron, worker tin tức, FastAPI `aioi.server:app` cổng 8000, `goi-bot`, `stock-bot` |
+| NUC công ty | `ssh quang@nuc` (Tailscale) | Crawler rổ hàng EvoHome + HiFriendz (systemd timer `radar-ro-hang-*`, từ 28/10/2026). VPS `103.126.162.93` cũ không còn chạy gì của Radar |
 | CI | GitHub Actions: `daily-crawl.yml`, `ro-hang.yml`, `db-prune.yml`, `e2e.yml` | |
 | Thiết kế | Figma file Nhadatradar + thư viện ZEN (đã đổi Brand sang Emerald) | |
 | Tên miền | Nơi quản lý DNS `nhadatradar.com` | |

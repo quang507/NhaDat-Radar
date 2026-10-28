@@ -10,11 +10,12 @@ Tài liệu này là chỉ dẫn cốt lõi dành cho AI (Claude, Antigravity) v
 * **Hosting:** Vercel Global Edge CDN (Hỗ trợ Incremental Static Regeneration - ISR Caching).
 * **Cơ sở dữ liệu & Auth:** Supabase PostgreSQL (`nalcvzwsescsxfzsxirg.supabase.co`) với Row Level Security (RLS).
 * **Kho dự án nguồn:** Supabase “AI Ơi Nhà Đất” `rqxmmqmctpklqcmbfxuj` (chỉ đọc).
-* **VPS Crawler & Dịch vụ Nền (`103.126.162.93`):**
-  * Cronjob cào và chuẩn hóa dữ liệu đối tác: `cron-ro-hang.sh` (4 lượt/ngày), `cron-evohome.sh` (3 lượt/ngày). Mỗi lượt tự động chạy `git pull` lấy code mới nhất.
-  * Node.js worker đồng bộ tin tức (`index.mjs`).
-  * Backend API Python FastAPI (`aioi.server:app` chạy trên port 8000).
-  * Bot viễn thông (`goi-bot`) và Bot chứng khoán Telegram (`stock-bot`).
+* **Crawler rổ hàng trên NUC công ty (từ 28/10/2026, `ssh quang@nuc` qua Tailscale):**
+  * EvoHome + HiFriendz: `~/radar/ro-hang.sh full` (06:00, 11:30, 17:00, 22:00) và `~/radar/ro-hang.sh evohome` (09:00, 14:30, 19:30), chạy bằng systemd `radar-ro-hang@.service` + `radar-ro-hang-full.timer` / `radar-ro-hang-evohome.timer` (Nice 15, CPUQuota 70% để nhường hệ thống gatemonitor cùng máy). Mỗi lượt `git pull` code mới nhất trong `~/radar/NhaDat-Radar`. Log: `~/radar/logs/ro-hang.log`.
+  * Chỉ được diệt Chromium của Playwright (`ms-playwright/chromium`): openwa trên NUC cũng chạy Chrome.
+  * HiFriendz chỉ đọc lại toà có dấu vân tay đổi (`crawler/private/hifriendz-toa.json`), toà không đổi lấy phòng từ lượt trước; quá 20 giờ hoặc sửa `hifriendz-fetch.mjs` thì tự quét đủ. Ép quét đủ: `HF_QUET_DU=1`.
+  * `cron-ro-hang.sh` / `cron-evohome.sh` trong repo là bản cũ của VPS (đường dẫn `/root/work`), không còn lịch nào gọi.
+* **VPS `103.126.162.93` (sắp hết hạn) không còn chạy gì của Radar.** Các dịch vụ còn lại trên đó thuộc dự án khác: AOND (`aond-core` FastAPI 127.0.0.1:8000, bridge Zalo `nhadat-bridge*`), `goi-bot`, `stock-bot`.
 * **Crawler trên GitHub Actions:** `daily-crawl.yml`, `ro-hang.yml`, `db-prune.yml`, `e2e.yml`.
 
 ---
