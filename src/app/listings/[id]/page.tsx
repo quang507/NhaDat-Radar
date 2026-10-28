@@ -405,8 +405,10 @@ export default async function ListingDetail({
           {lastSeen != null ? fresh(lastSeen) : "một thời gian"}. Tin đã ẩn khỏi kết quả tìm kiếm; giữ lại để tham khảo giá.
         </div>
       )}
+      {/* 28/10: điện thoại - giá đứng cạnh tiêu đề (shrink-0) bóp cột tiêu đề còn ~190px, chữ 24px vỡ 6 dòng và đẩy
+          ảnh xuống cuối màn đầu. Dưới sm: tiêu đề full ngang cỡ h3, giá xuống ngay dưới tiêu đề; từ sm giữ 2 cột. */}
       <div className="flex flex-wrap justify-between gap-4 items-start mt-2">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-full sm:basis-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             {roHang && (
               <span className="font-mono text-xs font-black bg-[var(--ink)] text-[var(--bg)] px-2.5 py-0.5 rounded-md shadow-xs select-all inline-flex items-center gap-1" title="Mã căn - gửi kèm khi nhắn Zalo">
@@ -420,9 +422,13 @@ export default async function ListingDetail({
             )}
           </div>
           {/* audit 25/10: text-slate-900 gán cứng -> tiêu đề TÀNG HÌNH ở dark mode (chữ tối trên nền tối). Dùng token theme. */}
-          <h1 className="heading-1 text-[var(--ink)] leading-snug">{x.title}</h1>
+          <h1 className="heading-1 max-sm:!text-h3 text-[var(--ink)] leading-snug">{x.title}</h1>
+          <div className="sm:hidden mt-1.5 flex items-baseline gap-2">
+            <span className="text-h2 text-brand font-extrabold tracking-tight">{fmtPrice(x.price_vnd, x.deal)}</span>
+            {myPpm2 ? <span className="text-caption text-[var(--ink-faint)]">{fmtPpm2(myPpm2)}</span> : null}
+          </div>
           <div className="text-[var(--ink-soft)] text-sm mt-1.5 flex items-center gap-1.5 font-medium">
-            <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+            <MapPin className="w-4 h-4 text-[var(--ink-faint)] shrink-0" />
             <span>{diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}</span>
           </div>
           {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
@@ -438,9 +444,9 @@ export default async function ListingDetail({
             <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
           )}
         </div>
-        <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
+        <div className="hidden sm:flex text-right shrink-0 flex-col items-end gap-1.5">
           <div className="heading-1 text-brand tracking-tight font-extrabold">{fmtPrice(x.price_vnd, x.deal)}</div>
-          {myPpm2 ? <div className="text-xs text-slate-500 font-semibold">{fmtPpm2(myPpm2)}</div> : null}
+          {myPpm2 ? <div className="text-caption text-[var(--ink-faint)] font-semibold">{fmtPpm2(myPpm2)}</div> : null}
           {/* audit 25/10: bỏ cặp Yêu thích/Chia sẻ thứ 2 (đã có ở thanh trên) - bản này còn share sai domain radarnhadat.vn */}
         </div>
       </div>
