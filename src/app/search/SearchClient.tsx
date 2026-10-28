@@ -486,8 +486,8 @@ export default function SearchClient({
 
       <HangTienIch ti={goc.ti} onDoi={(k) => push({ ...goc, ti: doiTi(goc.ti, k) })} />
       {/* 25/10 mobile gọn: Dự án + Tên đường đã có trong popup "Bộ lọc" -> ngoài trang chỉ hiện từ sm (trước đây
-          khách phải cuộn ~1 màn hình bộ lọc mới tới tin đầu tiên ở 375px) */}
-      {duAn.length > 0 && <div className="hidden sm:block"><ChonDuAn duAn={duAn} value={goc.project} onChon={(id) => push({ ...goc, project: id })} /></div>}
+          khách phải cuộn ~1 màn hình bộ lọc mới tới tin đầu tiên ở 375px). 28/10: nâng lên lg - tablet 768px cũng vậy */}
+      {duAn.length > 0 && <div className="hidden lg:block"><ChonDuAn duAn={duAn} value={goc.project} onChon={(id) => push({ ...goc, project: id })} /></div>}
 
       <RecentSearches />
 
@@ -525,7 +525,7 @@ export default function SearchClient({
       />
 
       {/* TÊN ĐƯỜNG: lọc theo địa chỉ (Enter để áp) */}
-      <form className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-4 mb-5" onSubmit={(e) => { e.preventDefault(); push({ ...goc, street: f.street.trim() }); }}>
+      <form className="hidden lg:flex flex-wrap items-center gap-2 sm:gap-4 mb-5" onSubmit={(e) => { e.preventDefault(); push({ ...goc, street: f.street.trim() }); }}>
         <span className="text-xs font-bold tracking-wide text-[var(--ink-soft)]">TÊN ĐƯỜNG</span>
         <label className="h-10 w-full sm:w-[28rem] px-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] flex items-center gap-2 text-sm">
           <svg className="w-4 h-4 text-[var(--ink-soft)] shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="9" cy="9" r="5.5" /><path d="M13.5 13.5L17 17" strokeLinecap="round" /></svg>
@@ -761,6 +761,8 @@ export default function SearchClient({
               {goc.q && chipDangAp(`“${goc.q}”`, "Bỏ lọc từ khoá", () => push({ ...goc, q: "" }))}
               {nhanGia && chipDangAp(nhanGia, "Bỏ lọc giá", () => push({ ...goc, priceMin: "", priceMax: "" }))}
               {nhanDt && chipDangAp(nhanDt, "Bỏ lọc diện tích", () => push({ ...goc, areaMin: "", areaMax: "" }))}
+              {goc.project && chipDangAp(duAn.find((d) => d.id === goc.project)?.name || "Dự án", "Bỏ lọc dự án", () => push({ ...goc, project: "" }))}
+              {goc.street && chipDangAp(goc.street, "Bỏ lọc tên đường", () => push({ ...goc, street: "" }))}
               {docTienIch(goc.ti).map((t) => chipDangAp(t.ten, `Bỏ lọc ${t.ten}`, () => push({ ...goc, ti: doiTi(goc.ti, t.k) }), t.k))}
               <button type="button" onClick={clear} className="text-brand font-semibold hover:underline ml-1 cursor-pointer">
                 Xóa tất cả

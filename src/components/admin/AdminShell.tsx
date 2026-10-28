@@ -161,7 +161,7 @@ function ThanhNav() {
         >
           {/* logo R negative trên nền tối của thanh admin (25/10, thay ô chữ "NR") */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-negative.svg" alt="" aria-hidden width={25} height={32} className="h-8 w-auto" />
+          <img src="/logo-negative.svg" alt="" aria-hidden width={26} height={32} className="h-8 w-auto" />
           <span className="hidden leading-tight md:block">
             <span className="block text-sm font-bold tracking-tight text-white">NhaDat Radar</span>
             <span className="block text-[10px] font-semibold uppercase tracking-wider text-emerald-400">

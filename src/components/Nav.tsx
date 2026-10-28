@@ -18,9 +18,9 @@ export default function Nav() {
           {/* Logo R mới (25/10): 2 bản màu phẳng theo theme - logo.svg cho nền sáng, logo-dark.svg (emerald sáng hơn) cho nền slate.
               Chữ thương hiệu là chữ HTML Inter: file Illustrator gốc dùng FranklinGothic không nhúng -> trình duyệt hiện Times. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="NhaDat Radar" width={25} height={32} className="h-8 w-auto shrink-0 dark:hidden" />
+          <img src="/logo.svg" alt="NhaDat Radar" width={26} height={32} className="h-8 w-auto shrink-0 dark:hidden" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-dark.svg" alt="" aria-hidden width={25} height={32} className="h-8 w-auto shrink-0 hidden dark:block" />
+          <img src="/logo-dark.svg" alt="" aria-hidden width={26} height={32} className="h-8 w-auto shrink-0 hidden dark:block" />
           <span className="hidden min-[480px]:inline text-[var(--ink)] font-extrabold tracking-tight uppercase">NhaDat&nbsp;<span className="text-brand">Radar</span></span>
         </Link>
 
