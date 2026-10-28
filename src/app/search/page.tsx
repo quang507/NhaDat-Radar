@@ -105,13 +105,24 @@ const timKiemCoCache = unstable_cache(
   const clean = (s: string) => s.replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
   // 3/10: lọc tỉnh bằng .in(tên tỉnh CÓ THẬT trong DB) thay cho ilike "%...%" (quét cả bảng, đếm HEAD từng mất 4s/500).
   // Tên tỉnh lấy từ cây khu vực đã cache; gộp biến thể nguồn ghi ("Thành phố Hồ Chí Minh", "TP.HCM").
-  const tenTinh = Object.keys((await getAreas()).counts);
+  const cay = (await getAreas()).counts;
+  const tenTinh = Object.keys(cay);
   const khopTinh = (p: string): string[] => {
     const k = khongDau(p);
     if (!k) return [];
     const bd = k === "ho chi minh" || k === "tp.hcm" || k === "hcm" ? ["ho chi minh", "tp.hcm", "tphcm"] : [k];
     return tenTinh.filter((t) => { const n = khongDau(t); return bd.some((b) => n.includes(b)); });
   };
+  // 28/10: gõ "Gò Vấp" ở ô tìm kiếm -> bocTruyVanBDS trả district "Gò Vấp", DB ghi "Quận Gò Vấp" -> .eq() ra 0 tin
+  // (bộ test tests/ui/luong.spec.ts bắt được). Quy về tên quận CÓ THẬT của tỉnh, so bỏ tiền tố Quận/Huyện/TP.
+  const boTienTo = (s: string) => khongDau(s).replace(/^(quan|huyen|thi xa|thanh pho|tp\.?)\s+/, "");
+  const quanThat = (() => {
+    if (!district) return undefined;
+    const goc = canonDistrict(district);
+    const ds = (province ? khopTinh(province) : tenTinh).flatMap((t) => Object.keys(cay[t]?.districts || {}));
+    if (ds.includes(goc)) return goc;
+    return ds.find((d) => boTienTo(d) === boTienTo(goc)) || goc;
+  })();
   // Bộ lọc dùng chung cho danh sách + đếm (cùng điều kiện)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any; in: any }>(query: T): T => {
@@ -135,7 +146,7 @@ const timKiemCoCache = unstable_cache(
       else query = query.ilike("province", `%${clean(province)}%`);
     }
     // district trong DB đã chuẩn hoá (merge.mjs canonDistrict + UPDATE 16/8) -> so KHỚP CHÍNH XÁC, không còn prefix + post-filter
-    if (district) query = query.eq("district", canonDistrict(district));
+    if (quanThat) query = query.eq("district", quanThat);
     if (ward) query = query.ilike("ward", `%${clean(ward)}%`);
     if (priceMin && !Number.isNaN(Number(priceMin))) query = query.gte("price_vnd", Number(priceMin));
     if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));

@@ -52,11 +52,11 @@ export default function ListingCard({ x }: { x: Listing }) {
               CÓ VIDEO
             </span>
           )}
-          <span className="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
+          <span className="text-[0.65rem] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap bg-black/60 text-white">
             {x.deal === "ban" ? "Bán" : "Cho thuê"}
           </span>
           {isNew && !xacThuc && !anh.video && (
-            <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-amber-600 text-white shadow-xs">
+            <span className="text-[0.65rem] font-bold px-1.5 py-0.5 rounded whitespace-nowrap bg-amber-600 text-white shadow-xs">
               Mới
             </span>
           )}
