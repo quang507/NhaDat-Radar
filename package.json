@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "playwright test --project=unit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:ui": "playwright test tests/ui",
+    "test:ui:local": "playwright test tests/ui"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

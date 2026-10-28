@@ -73,6 +73,16 @@ Sửa một màn thì đi lại cả luồng chứa nó, không chỉ chỗ đư
    Đè nhau / tràn chữ thì đo bằng `getBoundingClientRect` qua `javascript_tool` - chắc hơn nhìn ảnh.
 5. Nhiều trang cùng lúc: `node scripts/chup-man-hinh.mjs` (cần next-prod đang chạy) → ảnh ở `scratch/ui-shots/`.
 6. Trả viewport về `desktop`, dừng server.
+7. **BẮT BUỘC trước khi commit/push giao diện:** `npm run test:ui:local` (chạy nền, ~5 phút; tự bật `next start :3001`
+   nếu chưa chạy - nhớ build trước). Bộ `tests/ui` gồm:
+   - `bo-cuc.spec.ts` - 8 trang × 4 khổ (375/768/1024/1440) × sáng/tối: tràn ngang, nhãn đè nút, nhãn vỡ dòng,
+     ảnh hỏng, chữ tàng hình, nút < 40px trên điện thoại, ô tìm kiếm / tin đầu / tiêu đề / ảnh phải trong màn đầu.
+   - `luong.spec.ts` - luồng: trang chủ → tìm → chi tiết; Xem bản đồ → pin → popup → chi tiết; bỏ lọc trên chip;
+     Zalo chép mã phòng; tin web có đường liên hệ.
+   - `anh-chuan.spec.ts` - so ảnh menu/logo/ô tìm kiếm/popup Bộ lọc/chân trang với bản chuẩn (chỉ chạy trên máy).
+     Đổi giao diện CÓ CHỦ Ý → `npm run test:ui:local -- tests/ui/anh-chuan.spec.ts --update-snapshots`, xem ảnh mới rồi commit kèm.
+   Đỏ thì sửa hoặc giải thích cho anh trước khi push. Sau push, GitHub Actions tự chạy lại toàn bộ trên production
+   khi Vercel deploy xong (e2e.yml, sự kiện deployment_status).
 
 ## Giao việc
 

@@ -2,6 +2,9 @@ name: E2E tests
 
 on:
   pull_request: {}          # mỗi PR chạy toàn bộ unit + e2e trên web production
+  # 28/10: code push thẳng lên main (không qua PR) -> trước đây không có gì kiểm sau deploy. Vercel báo GitHub
+  # "deployment_status" khi build xong: Production thành công thì chạy toàn bộ e2e + bộ giao diện tests/ui.
+  deployment_status: {}
   workflow_dispatch:
     inputs:
       base_url:
@@ -14,6 +17,7 @@ jobs:
   # Build bản của PR: job "test" bên dưới chỉ gọi web production nên KHÔNG bắt được lỗi build
   # (22/9: HEAD 846ff3b vỡ type-check ở admin/page.tsx mà CI vẫn xanh).
   build:
+    if: github.event_name != 'deployment_status'   # Vercel đã build rồi
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -35,8 +39,12 @@ jobs:
           NEXT_TELEMETRY_DISABLED: "1"
 
   test:
+    # deployment_status: chỉ khi bản Production deploy XONG (bỏ preview, bỏ trạng thái pending/failure)
+    if: >-
+      github.event_name != 'deployment_status' ||
+      (github.event.deployment_status.state == 'success' && contains(github.event.deployment.environment, 'Production'))
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
