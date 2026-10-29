@@ -85,11 +85,21 @@ async function choQuaDay(e, lan429, viec) {
   await ngu(cho);
 }
 
+// Mỗi lần gọi có hạn 30 s bằng hẹn giờ thường (giữ tiến trình sống). 29/10 lượt 11:30: một trang toà treo, không còn
+// gì giữ vòng sự kiện -> Node thoát ở toà 7400/7455 ("unsettled top-level await"), mất cả lượt quét 20 phút.
+async function docCoHan(url, opts) {
+  const ac = new AbortController();
+  const hen = setTimeout(() => ac.abort(new Error("quá 30 s không trả lời")), 30_000);
+  try {
+    const r = await fetch(url, { ...opts, signal: ac.signal });
+    if (!r.ok) throw loiHttp(r);
+    return await r.text();
+  } finally { clearTimeout(hen); }
+}
+
 async function layJson(body, lan = 0, lan429 = 0) {
   try {
-    const r = await fetch(`${GOC}/api/search/public`, { method: "POST", headers: { ...UA, "content-type": "application/json" }, body: JSON.stringify(body) });
-    if (!r.ok) throw loiHttp(r);
-    return await r.json();
+    return JSON.parse(await docCoHan(`${GOC}/api/search/public`, { method: "POST", headers: { ...UA, "content-type": "application/json" }, body: JSON.stringify(body) }));
   } catch (e) {
     if (e instanceof QuaDay && lan429 < CHO_429.length) { await choQuaDay(e, lan429, `trang ${body.page}`); return layJson(body, lan, lan429 + 1); }
     if (lan >= 3) throw e;
@@ -101,9 +111,7 @@ async function layJson(body, lan = 0, lan429 = 0) {
 /** mảng "rooms" trong payload RSC của trang toà nhà (bóc theo cặp ngoặc - payload không phải JSON trọn vẹn) */
 async function phongCuaToa(id, lan = 0, lan429 = 0) {
   try {
-    const r = await fetch(`${GOC}/du-an/${encodeURIComponent(id)}`, { headers: { ...UA, RSC: "1" } });
-    if (!r.ok) throw loiHttp(r);
-    const t = await r.text();
+    const t = await docCoHan(`${GOC}/du-an/${encodeURIComponent(id)}`, { headers: { ...UA, RSC: "1" } });
     const k = t.indexOf('"rooms":[');
     if (k < 0) return [];
     let sau = 0, i = k + 8;
