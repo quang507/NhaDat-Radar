@@ -27,7 +27,8 @@ export default function LegalHint({ value }: { value: string | null | undefined 
     <details className="inline-block">
       <summary className="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
         <span>{value}</span>{" "}
-        <span className={`text-[0.65rem] font-bold px-1.5 py-0.5 rounded ${tone}`}>{label} ⓘ</span>
+        {/* nowrap: giá trị dài ("Sổ hồng riêng, công chứng ngay") đẩy nhãn xuống cuối dòng ở 375px -> "pháp lý / rõ ⓘ" vỡ đôi */}
+        <span className={`text-overline font-bold px-1.5 py-0.5 rounded whitespace-nowrap ${tone}`}>{label} ⓘ</span>
       </summary>
       <div className="mt-2 text-xs leading-relaxed text-[var(--ink-soft)] max-w-md rounded-lg border border-[var(--line)] p-2.5 bg-[var(--bg)]">
         <b className="text-[var(--ink)]">{g.name}:</b> {g.meaning}

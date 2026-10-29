@@ -45,7 +45,7 @@ export default function ListingRow({ x }: { x: Listing }) {
             )}
           </div>
         ) : (
-          <PropertyPlaceholder kind={x.kind} className="h-44 sm:h-52" />
+          <div className="relative h-44 sm:h-52"><PropertyPlaceholder kind={x.kind} /></div>
         )}
         <span className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {laTinDocQuyen(x) && (
@@ -123,7 +123,7 @@ function MobileThumb({ x }: { x: Listing }) {
       {img ? (
         <SafeImg src={img} alt={docQuyen ? cheSoVanBan(x.title) : x.title} className="w-full h-full object-cover" />
       ) : (
-        <PropertyPlaceholder kind={x.kind} className="w-full h-full" />
+        <PropertyPlaceholder kind={x.kind} />
       )}
       {docQuyen && (
         <span className="absolute top-1.5 left-1.5 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full text-white bg-emerald-600 shadow-sm flex items-center gap-0.5">

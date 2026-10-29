@@ -67,7 +67,9 @@ export const getAreas = unstable_cache(
     // Dự phòng (rpc chưa có / lỗi): quét phân trang như cũ
     const rows: { province: string | null; district: string | null; ward: string | null; deal: string; kind: string | null; source: string; source_site: string | null }[] = [];
     for (let from = 0; ; from += 1000) {
-      const { data } = await sb.from("listings").select("province,district,ward,deal,kind,source,source_site").eq("status", "published").order("id").range(from, from + 999);
+      const { data, error: loi } = await sb.from("listings").select("province,district,ward,deal,kind,source,source_site").eq("status", "published").order("id").range(from, from + 999);
+      // DB lỗi -> ném, không để unstable_cache giữ cây rỗng/thiếu 30 phút (trang ISR giữ bản cũ, search quy quận sai)
+      if (loi) throw loi;
       rows.push(...(data ?? []));
       if (!data || data.length < 1000) break;
     }

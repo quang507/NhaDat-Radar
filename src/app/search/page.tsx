@@ -77,6 +77,10 @@ const soTrang = (p?: string) => Math.min(TRANG_TOI_DA, Math.max(1, parseInt(p ||
 
 const khongDau = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase().replace(/^(thanh pho|tp\.?|tinh)\s+/, "").trim();
 
+// Supabase lỗi (timeout, quá tải) mà vẫn trả "0 tin" thì unstable_cache giữ kết quả rỗng đó 15 phút cho MỌI khách
+// cùng bộ lọc. Ném lỗi để không lưu cache; SearchPage bắt lại, hiện rỗng đúng 1 lượt rồi lượt sau truy vấn lại.
+const neuLoi = (...loi: unknown[]) => { const e = loi.find(Boolean); if (e) throw e; };
+
 const KHOA_LOC = ["page", "deal", "kind", "province", "district", "ward", "priceMin", "priceMax", "areaMin", "areaMax", "bedrooms", "bathrooms", "ti", "project", "street", "anh", "gan", "bk", "q", "sort", "own", "legal", "direction", "newAddr", "agent", "gan_ten"] as const;
 const timKiemCoCache = unstable_cache(
   async (sp: Record<string, string | undefined>) => {
@@ -115,13 +119,14 @@ const timKiemCoCache = unstable_cache(
   };
   // 28/10: gõ "Gò Vấp" ở ô tìm kiếm -> bocTruyVanBDS trả district "Gò Vấp", DB ghi "Quận Gò Vấp" -> .eq() ra 0 tin
   // (bộ test tests/ui/luong.spec.ts bắt được). Quy về tên quận CÓ THẬT của tỉnh, so bỏ tiền tố Quận/Huyện/TP.
-  const boTienTo = (s: string) => khongDau(s).replace(/^(quan|huyen|thi xa|thanh pho|tp\.?)\s+/, "");
-  const quanThat = (() => {
-    if (!district) return undefined;
+  // 29/10: lấy MỌI biến thể có thật rồi .in(), không chọn 1 cái: bot Zalo (zalo_group) ghi tên trần "Gò Vấp",
+  // "Bình Thạnh" bên cạnh "Quận Gò Vấp" -> khớp đúng chuỗi "Gò Vấp" chỉ ra 2 tin bán, 0 tin thuê.
+  const boTienTo = (s: string) => khongDau(s).replace(/^(?:(?:quan|huyen|thi xa|thanh pho|tp)\s+|(?:q|h|tx|tp)\.\s*)/, "");
+  const dsQuan = (() => {
+    if (!district) return [];
     const goc = canonDistrict(district);
     const ds = (province ? khopTinh(province) : tenTinh).flatMap((t) => Object.keys(cay[t]?.districts || {}));
-    if (ds.includes(goc)) return goc;
-    return ds.find((d) => boTienTo(d) === boTienTo(goc)) || goc;
+    return [...new Set([goc, ...ds.filter((d) => boTienTo(d) === boTienTo(goc))])];
   })();
   // Bộ lọc dùng chung cho danh sách + đếm (cùng điều kiện)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -146,7 +151,8 @@ const timKiemCoCache = unstable_cache(
       else query = query.ilike("province", `%${clean(province)}%`);
     }
     // district trong DB đã chuẩn hoá (merge.mjs canonDistrict + UPDATE 16/8) -> so KHỚP CHÍNH XÁC, không còn prefix + post-filter
-    if (quanThat) query = query.eq("district", quanThat);
+    if (dsQuan.length === 1) query = query.eq("district", dsQuan[0]);
+    else if (dsQuan.length > 1) query = query.in("district", dsQuan);
     if (ward) query = query.ilike("ward", `%${clean(ward)}%`);
     if (priceMin && !Number.isNaN(Number(priceMin))) query = query.gte("price_vnd", Number(priceMin));
     if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
@@ -208,7 +214,8 @@ const timKiemCoCache = unstable_cache(
   // Lọc theo khoảng cách: DB chỉ lọc được khung vuông -> vẫn tải tối đa 200 tin trong khung, cắt đúng
   // bán kính + xếp gần trước ở đây, rồi mới chia trang (tổng = số tin thật sự trong bán kính).
   if (tam) {
-    const [{ data }, { count: newToday }] = await Promise.all([query.limit(200), newTodayQuery]);
+    const [{ data, error: e1 }, { count: newToday, error: e2 }] = await Promise.all([query.limit(200), newTodayQuery]);
+    neuLoi(e1, e2);
     const gop = ((data ?? []) as Listing[]).filter((x) => x.lat != null && x.lng != null && kmGiua(tam, x.lat!, x.lng!) <= tam.km);
     if (!sort) gop.sort((a, b) => kmGiua(tam, a.lat!, a.lng!) - kmGiua(tam, b.lat!, b.lng!));
     return { listings: gon(gop.slice(tu, tu + MOI_TRANG)), newToday: newToday ?? 0, total: gop.length, trang };
@@ -216,29 +223,32 @@ const timKiemCoCache = unstable_cache(
 
   // Sắp xếp chủ động (giá, diện tích, điểm...): lấy thẳng đoạn của trang
   if (!tronMacDinh) {
-    const [{ data }, { count: newToday }, { count: total }] = await Promise.all([query.range(tu, tu + MOI_TRANG - 1), newTodayQuery, totalQuery]);
+    const [{ data, error: e1 }, { count: newToday, error: e2 }, { count: total, error: e3 }] = await Promise.all([query.range(tu, tu + MOI_TRANG - 1), newTodayQuery, totalQuery]);
+    neuLoi(e1, e2, e3);
     return { listings: gon((data ?? []) as Listing[]), newToday: newToday ?? 0, total: total ?? 0, trang };
   }
 
   // Mặc định: trộn rổ hàng 2:1 (lib/ro-hang). Đếm 2 bên trước -> biết trang này cần đoạn nào của mỗi bên
   // (oTronRoHang) -> tải đúng 2 đoạn đó, nhịp trộn liền mạch qua các trang.
-  const [{ count: newToday }, { count: total }, { count: soRh }] = await Promise.all([
+  const [{ count: newToday, error: e1 }, { count: total, error: e2 }, { count: soRh, error: e3 }] = await Promise.all([
     newTodayQuery, totalQuery,
     applyFilters(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published")).eq("source", "ro_hang"),
   ]);
+  neuLoi(e1, e2, e3);
   const R = soRh ?? 0, K = Math.max(0, (total ?? 0) - R);
   const o = oTronRoHang(R, K, tu, MOI_TRANG);
-  const [{ data: khac }, { data: rh }] = await Promise.all([
-    o.khacSo ? query.neq("source", "ro_hang").range(o.khacTu, o.khacTu + o.khacSo - 1) : Promise.resolve({ data: [] as Listing[] }),
+  const [{ data: khac, error: e4 }, { data: rh, error: e5 }] = await Promise.all([
+    o.khacSo ? query.neq("source", "ro_hang").range(o.khacTu, o.khacTu + o.khacSo - 1) : Promise.resolve({ data: [] as Listing[], error: null }),
     o.rhSo
       ? applyFilters(supabase.from("listings").select(LISTING_SEARCH_COLS).eq("status", "published")).eq("source", "ro_hang")
           .order("first_seen_at", { ascending: false, nullsFirst: false }).order("id", { ascending: true }).range(o.rhTu, o.rhTu + o.rhSo - 1)
-      : Promise.resolve({ data: [] as Listing[] }),
+      : Promise.resolve({ data: [] as Listing[], error: null }),
   ]);
+  neuLoi(e4, e5);
   const listings = gon(xepTheoThuTu(o.thuTu, (rh ?? []) as Listing[], (khac ?? []) as Listing[]));
   return { listings, newToday: newToday ?? 0, total: total ?? listings.length, trang };
   },
-  ["search-v9"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10); v9: tin da xac minh
+  ["search-v10"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10); v9: tin da xac minh; v10: quận khớp mọi biến thể tên (29/10)
   { revalidate: 900, tags: ["listings"] },   // 15 phút (2/10, egress)
 );
 
@@ -253,7 +263,13 @@ export default async function SearchPage({
   // khoá cache chỉ gồm tham số lọc (bỏ utm/fbclid... để không mỗi link quảng cáo là một bản cache riêng)
   const loc = Object.fromEntries(KHOA_LOC.filter((k) => sp[k]).map((k) => [k, sp[k]!.slice(0, 120)]));
   // cây Tỉnh -> Quận -> Phường: dùng bản cache 10' (lib/geo) thay vì select 2.000 dòng mỗi request
-  const [{ listings, newToday, total: totalCount, trang }, areas, duAn] = await Promise.all([timKiemCoCache(loc), getAreas(), layDuAn()]);
+  const [{ listings, newToday, total: totalCount, trang }, areas, duAn] = await Promise.all([
+    timKiemCoCache(loc).catch((e) => {
+      console.error("[search] truy vấn lỗi, không cache:", e);
+      return { listings: [] as Listing[], newToday: 0, total: 0, trang: soTrang(sp.page) };
+    }),
+    getAreas(), layDuAn(),
+  ]);
   const geo = areas.geo;
 
   // ĐIỀU HƯỚNG KHU VỰC (29/9, kiểu Mogi "Quận 1 (1.629)"): tính sẵn ở server từ bảng đếm đã cache
