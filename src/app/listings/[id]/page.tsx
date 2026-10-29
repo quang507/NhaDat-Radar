@@ -224,8 +224,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const gia = fmtPrice(data.price_vnd, data.deal);
   const vids = (data.images || []).some((u) => typeof u === "string" && /\.(mp4|mov|webm)$/i.test(u.split(/[?#]/)[0]));
   const videoPrefix = vids ? "▶ [Có Video] " : "";
-  const tagHien = data.deal === "cho_thue" ? "Phòng thật · Giá chuẩn" : "Chính chủ";
-  const title = `${videoPrefix}${baseTitle} - ${gia} (${tagHien}) | NhaDat Radar`;
+  // 29/10 (Screaming Frog): title trung vị 98 ký tự, Google cắt giữa chừng và mất luôn giá + tên site ở đuôi.
+  // Giữ đuôi " - <giá> | NhaDat Radar" nguyên vẹn, cắt phần tên tin (ở ranh giới từ) cho tổng <= 60 ký tự.
+  const duoi = ` - ${gia} | NhaDat Radar`;
+  const choTen = Math.max(20, 60 - videoPrefix.length - duoi.length);
+  const tenGon = Array.from(baseTitle).length <= choTen ? baseTitle : `${catChu(baseTitle, choTen - 1).replace(/\s+\S*$/, "").trim()}…`;
+  const title = `${videoPrefix}${tenGon}${duoi}`;
 
   const moTa = docQuyen ? cheSoVanBan(data.description) : data.description || "";
   const description = catChu(

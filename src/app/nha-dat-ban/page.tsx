@@ -2,7 +2,7 @@
 // dùng chung engine /search nhưng khoá deal=ban + metadata riêng.
 import SearchPage from "../search/page";
 
-export const metadata = { title: "Mua bán nhà đất toàn quốc - NhaDat Radar" };
+export const metadata = { title: "Mua bán nhà đất toàn quốc - NhaDat Radar", alternates: { canonical: "/nha-dat-ban" } };
 export const dynamic = "force-dynamic";
 
 export default function NhaDatBan({

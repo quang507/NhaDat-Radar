@@ -2,7 +2,7 @@
 // dùng chung engine /search nhưng khoá deal=cho_thue + metadata riêng.
 import SearchPage from "../search/page";
 
-export const metadata = { title: "Cho thuê nhà đất toàn quốc - NhaDat Radar" };
+export const metadata = { title: "Cho thuê nhà đất toàn quốc - NhaDat Radar", alternates: { canonical: "/nha-dat-cho-thue" } };
 export const dynamic = "force-dynamic";
 
 export default function NhaDatChoThue({
