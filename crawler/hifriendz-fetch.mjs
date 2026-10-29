@@ -72,23 +72,37 @@ function tienIch(r) {
   return [...ti];
 }
 
-async function layJson(body, lan = 0) {
+// 429 = HiFriendz chặn vì gọi dày (29/10: lượt 06:00 trên NUC chết ở trang danh sách sau 3 lần thử cách vài giây).
+// Gặp 429 thì chờ theo Retry-After, không có thì 30 s -> 1 phút -> 2 phút -> 4 phút rồi mới bỏ.
+const CHO_429 = [30_000, 60_000, 120_000, 240_000];
+class QuaDay extends Error {
+  constructor(r) { super("HTTP 429"); const s = Number(r.headers.get("retry-after")); this.cho = s > 0 ? Math.min(s, 600) * 1000 : 0; }
+}
+const loiHttp = (r) => (r.status === 429 ? new QuaDay(r) : new Error(`HTTP ${r.status}`));
+async function choQuaDay(e, lan429, viec) {
+  const cho = e.cho || CHO_429[lan429];
+  console.warn(`  HiFriendz báo gọi quá dày (429) ở ${viec} - chờ ${Math.round(cho / 1000)} s`);
+  await ngu(cho);
+}
+
+async function layJson(body, lan = 0, lan429 = 0) {
   try {
     const r = await fetch(`${GOC}/api/search/public`, { method: "POST", headers: { ...UA, "content-type": "application/json" }, body: JSON.stringify(body) });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) throw loiHttp(r);
     return await r.json();
   } catch (e) {
+    if (e instanceof QuaDay && lan429 < CHO_429.length) { await choQuaDay(e, lan429, `trang ${body.page}`); return layJson(body, lan, lan429 + 1); }
     if (lan >= 3) throw e;
     await ngu(2000 * (lan + 1));
-    return layJson(body, lan + 1);
+    return layJson(body, lan + 1, lan429);
   }
 }
 
 /** mảng "rooms" trong payload RSC của trang toà nhà (bóc theo cặp ngoặc - payload không phải JSON trọn vẹn) */
-async function phongCuaToa(id, lan = 0) {
+async function phongCuaToa(id, lan = 0, lan429 = 0) {
   try {
     const r = await fetch(`${GOC}/du-an/${encodeURIComponent(id)}`, { headers: { ...UA, RSC: "1" } });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) throw loiHttp(r);
     const t = await r.text();
     const k = t.indexOf('"rooms":[');
     if (k < 0) return [];
@@ -101,9 +115,10 @@ async function phongCuaToa(id, lan = 0) {
     }
     return JSON.parse(t.slice(k + 8, i + 1));
   } catch (e) {
+    if (e instanceof QuaDay && lan429 < CHO_429.length) { await choQuaDay(e, lan429, `toà ${id}`); return phongCuaToa(id, lan, lan429 + 1); }
     if (lan >= 2) { console.warn(`Bỏ toà ${id}: ${e.message}`); return null; }
     await ngu(3000 * (lan + 1));
-    return phongCuaToa(id, lan + 1);
+    return phongCuaToa(id, lan + 1, lan429);
   }
 }
 
@@ -134,7 +149,7 @@ for (let p = 2; p <= soTrang && toa.size < GIOI_HAN; p++) {
   const j = await layJson({ page: p, pageSize: 48, groupByProject: true });
   for (const x of j.projects || []) toa.set(x.id, x);
   if (p % 25 === 0) console.log(`  danh sách: trang ${p}/${soTrang} · ${toa.size} toà`);
-  await ngu(150);
+  await ngu(400);   // 150 ms từng bị 429 (29/10)
 }
 const dsToa = [...toa.values()].filter((p) => (p.availableRoomCount ?? p.roomCount ?? 1) > 0).slice(0, GIOI_HAN);
 console.log(`Có ${dsToa.length} toà còn phòng trống`);
