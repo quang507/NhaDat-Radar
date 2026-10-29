@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PROP } from "@/lib/format";
+import { NutZalo } from "@/components/TheoDoi";
+import { HOTLINE_ZALO } from "@/lib/hotline";
 import { Tag, Bot, BarChart3, Sparkles } from "lucide-react";
 
 const VND = new Intl.NumberFormat("vi-VN");
@@ -218,14 +220,15 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                   <h4 className="font-bold text-base text-white">Cần thẩm định thực tế &amp; kiểm tra pháp lý?</h4>
                   <p className="text-xs text-emerald-100 mt-0.5">Chuyên viên Radar hỗ trợ tra cứu quy hoạch, kiểm tra sổ hồng và định giá thị trường miễn phí.</p>
                 </div>
-                <a
-                  href={`https://zalo.me/0387365020?text=${encodeURIComponent(`Chào chuyên viên Radar, mình vừa định giá tài sản (${PROP[f.kind] || "nhà đất"} tại ${f.district ? f.district + ", " : ""}${f.province}). Nhờ bạn hỗ trợ thẩm định thực tế và kiểm tra pháp lý giúp mình nhé!`)}`}
+                <NutZalo
+                  tinNhan={`Chào chuyên viên Radar, mình vừa định giá tài sản (${PROP[f.kind] || "nhà đất"} tại ${f.district ? f.district + ", " : ""}${f.province}). Nhờ bạn hỗ trợ thẩm định thực tế và kiểm tra pháp lý giúp mình nhé!`}
+                  href={HOTLINE_ZALO}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2 rounded-md bg-[var(--surface)] text-emerald-900 hover:bg-emerald-50 font-bold text-sm shadow-xs whitespace-nowrap active:scale-95 transition-all shrink-0"
                 >
                   Nhắn Zalo thẩm định
-                </a>
+                </NutZalo>
               </div>
 
               <p className="text-xs text-[var(--ink-faint)]">

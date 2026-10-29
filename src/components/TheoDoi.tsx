@@ -29,7 +29,8 @@ export function LinkTheoDoi({ loai, listingId, ...a }: AnchorHTMLAttributes<HTML
  * rồi không biết hỏi gì / quên mã phòng -> Radar không biết khách hỏi phòng nào. Bấm là chép sẵn
  * "Chào Radar, em muốn xem phòng RH1A2B3C ..." vào bộ nhớ tạm + nhắc "dán vào Zalo", rồi mở Zalo như cũ.
  */
-export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttributes<HTMLAnchorElement> & { listingId: string; tinNhan: string }) {
+// 29/10: listingId không bắt buộc - trang chủ, định giá, tìm kiếm cũng chép sẵn tin nhắn (trước dùng ?text= nên khách mở ra khung trống)
+export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttributes<HTMLAnchorElement> & { listingId?: string | null; tinNhan: string }) {
   const [daChep, setDaChep] = useState(false);
   return (
     <>
@@ -46,7 +47,7 @@ export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttrib
           <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
             <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
           </span>
-          <span>Đã chép nội dung &amp; mã phòng - mở Zalo và chọn <b>Dán</b> để gửi</span>
+          <span>Đã chép nội dung{listingId ? <> &amp; mã phòng</> : null} - mở Zalo và chọn <b>Dán</b> để gửi</span>
         </span>
       )}
     </>

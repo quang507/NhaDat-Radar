@@ -21,7 +21,8 @@ import { SidebarKhuVuc, type DieuHuong } from "@/components/DieuHuongKhuVuc";
 import { HangTienIch, ChonDuAn, KhuVucChip, OKhoangCach, doiTi } from "@/components/BoLocEvo";
 import { PopLoai, PopKhoang, CongTac, NhomNut, SidebarKhoang, KHOANG_GIA_MUA, KHOANG_DT_MUA, LOAI_MUA, ICON_LOAI, tachDs } from "@/components/BoLocMuaBan";
 import NhanTinNhaGiaTot from "@/components/NhanTinNhaGiaTot";
-import { HOTLINE } from "@/lib/hotline";
+import { HOTLINE_ZALO } from "@/lib/hotline";
+import { NutZalo } from "@/components/TheoDoi";
 import { Search, SearchX, Check, MapPin, Map, LayoutList, X, ChevronLeft, ChevronRight, ShieldCheck, MessageCircle } from "lucide-react";
 
 const TIEU_DE = "text-xs font-bold tracking-wide text-[var(--ink)] mb-2.5";
@@ -845,19 +846,19 @@ export default function SearchClient({
                     nhanGia ? `tầm giá ${nhanGia}` : "",
                   ].filter(Boolean).join(" ");
                   const tinZalo = `Chào Radar, mình đang cần tìm ${tieuChi}, trên web hiện chưa có căn khớp 100%. Nhờ chuyên viên lọc giúp mình 3-5 căn tương tự trong khu vực nhé!`;
-                  const linkZalo = `https://zalo.me/${HOTLINE}?text=${encodeURIComponent(tinZalo)}`;
 
                   return (
                     <div className="pt-4 border-t border-[var(--line)] flex flex-col sm:flex-row items-center justify-center gap-2.5">
-                      <a
-                        href={linkZalo}
+                      <NutZalo
+                        tinNhan={tinZalo}
+                        href={HOTLINE_ZALO}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full sm:w-auto btn btn-primary px-4 py-2 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <MessageCircle className="w-4 h-4 fill-current shrink-0" />
                         <span>Nhắn Zalo nhờ Radar tìm giúp</span>
-                      </a>
+                      </NutZalo>
                       <button
                         type="button"
                         className="w-full sm:w-auto btn px-4 py-2 text-xs rounded-md border border-[var(--line-strong)] text-[var(--ink-soft)] cursor-pointer"

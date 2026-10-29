@@ -8,6 +8,8 @@ import { LISTING_COLS, LISTING_THE_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen from "@/components/DaiDocQuyen";
 import TimPhongNhanh from "@/components/TimPhongNhanh";
+import { NutZalo } from "@/components/TheoDoi";
+import { HOTLINE_ZALO } from "@/lib/hotline";
 import HangVuot from "@/components/HangVuot";
 import HeroTimKiem, { type ChipKhuVuc } from "@/components/HeroTimKiem";
 import { buildPlaces } from "@/lib/goi-y-noi";
@@ -370,14 +372,15 @@ export default async function Home() {
                 Chuyên viên Radar lọc sẵn 3–5 căn sát nhu cầu, đúng giá chủ nhà và gửi kèm ảnh/sổ hồng trực tiếp qua Zalo trong 15 phút.
               </p>
             </div>
-            <a
-              href="https://zalo.me/0387365020?text=Chào%20Radar,%20mình%20cần%20tìm%20bất%20động%20sản%20phù%20hợp,%20nhờ%20bạn%20tư%20vấn%20giúp%20nhé!"
+            <NutZalo
+              tinNhan="Chào Radar, mình cần tìm bất động sản phù hợp, nhờ bạn tư vấn giúp nhé!"
+              href={HOTLINE_ZALO}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-primary whitespace-nowrap px-5 py-2.5 rounded-md font-bold text-sm shrink-0 shadow-xs"
             >
               Nhận tư vấn Zalo miễn phí
-            </a>
+            </NutZalo>
           </section>
 
           {/* ===== Duyệt theo danh mục ===== */}

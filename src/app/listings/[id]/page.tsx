@@ -180,6 +180,31 @@ async function khuVucCuaTin(x: BiaMo): Promise<string> {
   return areaPath(deal, x.province);
 }
 
+/** Link khu vực cuối trang tin - chỉ trỏ tới trang CÒN TIN. Audit 29/10: link loại BĐS khu vực chưa có tin
+ *  (vd phòng trọ Hóc Môn) ra 404 (AreaLanding notFound) -> Google gặp link hỏng từ trang tin. */
+async function linkKhuVuc(x: { deal: string; province?: string | null; district?: string | null; kind?: string | null }) {
+  const links: { href: string; nhan: string }[] = [];
+  if (!x.province) return links;
+  const deal = x.deal === "cho_thue" ? "cho_thue" : "ban";
+  const { counts } = await getAreas();
+  const tinh = counts[x.province];
+  if (!tinh) return links;
+  const d = x.district ? canonDistrict(x.district) : "";
+  const quan = d ? tinh.districts[d] : undefined;
+  const noi = quan ? d : null;   // quận không có trong cây khu vực -> link cấp tỉnh
+  const node = quan ?? tinh;
+  const them = (dl: "ban" | "cho_thue", k: string | null | undefined, nhan: string) => {
+    const n = k ? (node.kinds?.[k]?.[dl] ?? 0) : node[dl];
+    const href = areaPath(dl, x.province!, noi, k);
+    if (n > 0 && !links.some((l) => l.href === href)) links.push({ href, nhan: `${nhan} ${noi || x.province}` });
+  };
+  them(deal, x.kind, (x.kind && PROP[x.kind]) || "Bất động sản");
+  if (deal === "cho_thue") { them("cho_thue", "phong_tro", "Phòng trọ"); them("cho_thue", "can_ho", "Căn hộ dịch vụ"); }
+  else { them("ban", "nha", "Nhà riêng"); them("ban", "can_ho", "Căn hộ bán"); }
+  them(deal === "ban" ? "cho_thue" : "ban", null, deal === "ban" ? "Cho thuê nhà đất" : "Nhà đất bán");
+  return links;
+}
+
 function agoMin(iso: string | null): number | null {
   if (!iso) return null;
   return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -276,6 +301,7 @@ export default async function ListingDetail({
   const tinNhanZalo = roHang
     ? `Chào Radar, em muốn xem ${x.deal === "ban" ? "căn" : "phòng"} ${ma} - ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Em xem được lúc:`
     : `Chào Radar, em quan tâm tin Mã: ${ma} - ${x.title} (${fmtPrice(x.price_vnd, x.deal)}). Nhờ Radar tư vấn giúp em.`;
+  const linkKV = await linkKhuVuc(x);
   const giuPhong = tagGiuPhong(x);
   const reasons = (x.poster_reasons || []).map(posterReasonText);
   const fmtDT = (iso: string | null | undefined) =>
@@ -674,9 +700,13 @@ export default async function ListingDetail({
                   const ten = AMEN[a] || nhanTienIch(a) || a;
                   const searchUrl = `/search?deal=${x.deal || "cho_thue"}${x.province ? `&province=${encodeURIComponent(x.province)}` : ""}${x.district ? `&district=${encodeURIComponent(x.district)}` : ""}&ti=${encodeURIComponent(a)}`;
                   return (
+                    // 29/10: /search là trang động không cache -> nofollow (bot khỏi cào tổ hợp lọc) + tắt prefetch
+                    // (mỗi lượt xem tin không bắn thêm request /search tốn Fast Origin Transfer)
                     <Link
                       key={a}
                       href={searchUrl}
+                      prefetch={false}
+                      rel="nofollow"
                       title={`Tìm bất động sản có ${ten} tại ${x.district || x.province || "khu vực này"}`}
                       className="px-2.5 py-1 rounded-lg border border-[var(--line)] bg-[var(--bg)] hover:border-brand hover:text-brand transition text-sm inline-flex items-center gap-1.5"
                     >
@@ -953,41 +983,16 @@ export default async function ListingDetail({
       {/* NN/g #6: nhớ tin đã xem (localStorage) + hiện dải "Đã xem gần đây" */}
       {/* SEO Internal Linking: Điều hướng ngữ cảnh theo khu vực */}
       {(x.district || x.province) && (
-        <section className="mt-12 p-5 rounded-2xl bg-[var(--surface)] border border-[var(--line)] text-sm">
+        <section className="mt-12 p-5 rounded-md bg-[var(--surface)] border border-[var(--line)] text-sm">
           <h2 className="font-bold text-base mb-3 text-[var(--ink)]">
             Khám phá bất động sản tại {x.district ? `${x.district}, ${x.province || ""}` : x.province}
           </h2>
           <div className="flex flex-wrap gap-2">
-            {x.province && (
-              <Link href={areaPath(x.deal, x.province, x.district, x.kind)} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
-                {PROP[x.kind] || "Bất động sản"} {x.district || x.province} ›
+            {linkKV.map((l) => (
+              <Link key={l.href} href={l.href} className="px-3 py-1.5 rounded border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
+                {l.nhan} ›
               </Link>
-            )}
-            {x.province && x.deal === "cho_thue" && (
-              <>
-                <Link href={areaPath("cho_thue", x.province, x.district, "phong_tro")} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
-                  Phòng trọ {x.district || x.province} ›
-                </Link>
-                <Link href={areaPath("cho_thue", x.province, x.district, "can_ho")} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
-                  Căn hộ dịch vụ {x.district || x.province} ›
-                </Link>
-              </>
-            )}
-            {x.province && x.deal === "ban" && (
-              <>
-                <Link href={areaPath("ban", x.province, x.district, "nha")} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
-                  Nhà riêng {x.district || x.province} ›
-                </Link>
-                <Link href={areaPath("ban", x.province, x.district, "can_ho")} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
-                  Căn hộ bán {x.district || x.province} ›
-                </Link>
-              </>
-            )}
-            {x.province && (
-              <Link href={areaPath(x.deal === "ban" ? "cho_thue" : "ban", x.province, x.district)} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
-                {x.deal === "ban" ? "Cho thuê nhà đất" : "Nhà đất bán"} {x.district || x.province} ›
-              </Link>
-            )}
+            ))}
             {x.province && (
               <Link href={`/thong-ke?deal=${x.deal}&city=${encodeURIComponent(x.province)}`} className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-brand hover:text-brand transition text-xs font-medium">
                 Biến động giá tại {x.province} ›

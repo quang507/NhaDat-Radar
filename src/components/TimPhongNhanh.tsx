@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
+import { NutZalo } from "@/components/TheoDoi";
 import { MessageCircle, ShieldCheck, Video, Clock, CheckCircle2, PhoneCall } from "lucide-react";
 
 const QUAN_HOT = [
@@ -39,7 +40,6 @@ export default function TimPhongNhanh() {
   const [type, setType] = useState(LOAI_HINH[0]);
 
   const tinNhan = `Chào Radar, mình đang cần tìm ${type} tại khu vực ${district}, tài chính khoảng ${budget}. Gửi giúp mình 3 - 5 căn còn trống có video thực tế nhé!`;
-  const zaloUrl = `https://zalo.me/${HOTLINE}?text=${encodeURIComponent(tinNhan)}`;
 
   return (
     <section className="my-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-5 sm:p-6 shadow-xs">
@@ -130,15 +130,16 @@ export default function TimPhongNhanh() {
             </div>
 
             <div className="pt-2">
-              <a
-                href={zaloUrl}
+              <NutZalo
+                tinNhan={tinNhan}
+                href={HOTLINE_ZALO}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 px-4 rounded-md font-bold text-sm text-white bg-[#0068ff] hover:bg-[#0057d9] active:scale-[0.99] transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4 fill-current" />
                 <span>Nhận 3 - 5 phòng phù hợp qua Zalo</span>
-              </a>
+              </NutZalo>
 
               <div className="mt-2.5 text-center flex items-center justify-center gap-2 text-xs text-slate-500">
                 <span>Hoặc gọi hỗ trợ trực tiếp:</span>

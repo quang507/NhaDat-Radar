@@ -46,8 +46,10 @@ export default function MobileSectionJumper() {
   };
 
   return (
-    <div ref={hang} className="duoi-header lg:hidden sticky top-14 z-20 -mx-4 px-4 py-2 bg-[var(--surface)]/95 backdrop-blur-md border-b border-[var(--line)] shadow-xs overflow-x-auto [scrollbar-width:none] overscroll-x-contain">
-      <div className="cuon-ngang flex items-center gap-2 min-w-max" role="tablist" aria-label="Đi tới mục">
+    // 29/10: div ngoài chỉ là thanh dính (nền đặc, không blur); div trong là KHUNG CUỘN mang .cuon-ngang - mép mờ
+    // báo "còn chip" và hít chip chỉ chạy trên phần tử đang cuộn (để ở div min-w-max thì vô tác dụng)
+    <div className="duoi-header lg:hidden sticky top-14 z-20 -mx-4 py-2 bg-[var(--surface)] border-b border-[var(--line)] shadow-xs">
+      <div ref={hang} className="cuon-ngang relative flex items-center gap-2 px-4 overflow-x-auto [scrollbar-width:none]" role="tablist" aria-label="Đi tới mục">
         {SECTIONS.filter((s) => coMuc.includes(s.id)).map(({ id, label, icon: Icon }) => {
           const on = id === dangXem;
           return (
@@ -58,7 +60,7 @@ export default function MobileSectionJumper() {
               role="tab"
               aria-selected={on}
               onClick={() => scrollTo(id)}
-              className={`inline-flex items-center gap-1.5 min-h-10 px-3 rounded text-xs font-semibold border transition-colors cursor-pointer ${
+              className={`shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 min-h-10 px-3 rounded text-xs font-semibold border transition-colors cursor-pointer ${
                 on ? "bg-brand/10 text-brand border-brand/40" : "bg-[var(--surface-2)] text-[var(--ink-soft)] border-[var(--line)]"
               }`}
             >
