@@ -47,7 +47,7 @@ import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
 import ChiaSe from "@/components/ChiaSe";
-import { GhiXemTin, NutZalo } from "@/components/TheoDoi";
+import { GhiXemTin, NutZalo, NutChepMa } from "@/components/TheoDoi";
 import MoTaThuGon from "@/components/MoTaThuGon";
 import HangVuot from "@/components/HangVuot";
 import AppointmentForm from "@/components/AppointmentForm";
@@ -440,9 +440,7 @@ export default async function ListingDetail({
         <div className="min-w-0 flex-1 basis-full sm:basis-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             {roHang && (
-              <span className="font-mono text-xs font-black bg-[var(--ink)] text-[var(--bg)] px-2.5 py-0.5 rounded-md shadow-xs select-all inline-flex items-center gap-1" title="Mã căn - gửi kèm khi nhắn Zalo">
-                <span>Mã: {maPhong(x.id)}</span>
-              </span>
+              <NutChepMa ma={maPhong(x.id)} className="font-mono text-xs font-black bg-[var(--ink)] text-[var(--bg)] px-2.5 py-1 rounded-md shadow-xs inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:scale-95 transition" />
             )}
             {roHang && (
               <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-xs border border-emerald-200">

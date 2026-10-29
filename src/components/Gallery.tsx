@@ -242,13 +242,20 @@ export default function Gallery({ images, title, videos = [], roomCode }: { imag
               onScroll={box.onScroll}
               className="flex h-full w-full overflow-x-auto snap-x snap-mandatory scrollbar-none overscroll-x-contain"
             >
+              {/* 29/10 (Clarity: dead click trên ảnh lightbox): bấm ảnh = ảnh sau (ảnh cuối quay về ảnh đầu), bấm vùng đen quanh ảnh = đóng,
+                  như thư viện ảnh quen thuộc. Vuốt không phát click nên không đụng thao tác vuốt trên điện thoại. */}
               {images.map((img, i) => (
-                <div key={i} className="w-full h-full shrink-0 snap-center grid place-items-center px-2 pb-2">
+                <div
+                  key={i}
+                  className="w-full h-full shrink-0 snap-center grid place-items-center px-2 pb-2"
+                  onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+                >
                   <Img
                     src={img}
                     alt={title}
                     eager={Math.abs(i - idx) <= 1}
-                    className="max-h-full max-w-full object-contain select-none"
+                    className={`max-h-full max-w-full object-contain select-none ${n > 1 ? "cursor-pointer" : ""}`}
+                    onClick={n > 1 ? () => box.scrollTo(idx >= n - 1 ? 0 : idx + 1) : undefined}
                   />
                 </div>
               ))}

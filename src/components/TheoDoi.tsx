@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type AnchorHTMLAttributes } from "react";
 import { baoSuKien } from "@/lib/su-kien-client";
-import { Check } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 // Theo dõi quan tâm (30/9) - xem lib/su-kien-client + migration 031.
 
@@ -51,5 +51,29 @@ export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttrib
         </span>
       )}
     </>
+  );
+}
+
+/**
+ * Nhãn "Mã: RH…" bấm để chép (29/10): Clarity ghi dead click nhiều nhất trang tin ở đúng nhãn này - khách bấm
+ * vào mã để chép mà không có gì xảy ra. Chép xong đổi chữ thành "Đã chép" 2 giây (không cần toast).
+ */
+export function NutChepMa({ ma, className }: { ma: string; className?: string }) {
+  const [daChep, setDaChep] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-label={`Chép mã ${ma}`}
+      title="Bấm để chép mã - gửi kèm khi nhắn Zalo"
+      className={className}
+      onClick={() => {
+        try {
+          void navigator.clipboard?.writeText(ma).then(() => { setDaChep(true); setTimeout(() => setDaChep(false), 2000); });
+        } catch { /* trình duyệt chặn clipboard: mã vẫn bôi đen chép tay được */ }
+      }}
+    >
+      {daChep ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-70" />}
+      <span aria-live="polite">{daChep ? "Đã chép mã" : `Mã: ${ma}`}</span>
+    </button>
   );
 }
