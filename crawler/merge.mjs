@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import { isJunk } from "./junk.mjs";
 import { gopTrung, nguongGiaLech, coLech, CUM_TOI_THIEU, NGUOI_DANG_TOI_THIEU, LECH_TOI_THIEU } from "./gop.mjs";
-import { canonProvince, suaChuHong, boSurrogateLe, soNguyen, soThuc } from "./chung.mjs";
+import { canonProvince, canonDistrict, suaChuHong, boSurrogateLe, soNguyen, soThuc } from "./chung.mjs";
 import { PHONE_RE } from "./quality-gate.mjs";
 import { createHash } from "node:crypto";
 
@@ -52,33 +52,7 @@ function heuristicScore(x) {
   return Math.max(45, Math.min(95, s));
 }
 
-// "Quận 9 (P. Long Bình mới)" -> district "Quận 9", phần ngoặc bù vào ward nếu trống
-// Chuẩn hoá tiền tố quận/huyện về 1 dạng (audit 16/8: batdongsan "Q. Bình Thạnh / H. Hóc Môn / TP. Thủ Đức",
-// chotot/mogi "Quận Bình Thạnh / Huyện Hóc Môn / Thành phố Thủ Đức / Quận Thủ Đức" -> cùng quận bị chẻ 2-3 bucket
-// -> bộ lọc, trang khu vực, cụm so sánh giá đều sai). Chuẩn: "Quận X" · "Huyện X" · "TP. X" · "Thị xã X".
-function canonDistrictName(d) {
-  let s = d.replace(/\s+/g, " ").trim();
-  s = s.replace(/^(q\.\s*|q\s+)/i, "Quận ").replace(/^quận\s+/i, "Quận ")     // "Q. Bình Thạnh", "Q.1", "Q 7"
-       .replace(/^(h\.\s*|h\s+)/i, "Huyện ").replace(/^huyện\s+/i, "Huyện ")   // "H. Hóc Môn", "H.Nhà Bè"
-       .replace(/^(tp\.?|thành phố|thanh pho)\s+/i, "TP. ")
-       .replace(/^(tx\.?|thị xã|thi xa)\s+/i, "Thị xã ");
-  if (/^(Quận )?Thủ Đức$/i.test(s)) s = "TP. Thủ Đức";        // Thủ Đức đã lên TP (2021) - "Thủ Đức" trần cũng gộp (21/8: DB tách 53 tin bucket riêng)
-  if (/^Thủ Dầu Một$/i.test(s)) s = "TP. Thủ Dầu Một";
-  s = s.replace(/^Quận\s+0?(\d{1,2})$/, "Quận $1");             // "Quận 07" -> "Quận 7"
-  return s;
-}
-function canonDistrict(raw) {
-  const s = (raw || "").trim();
-  if (!s) return { district: null, wardHint: null };
-  const m = s.match(/\(\s*(?:P\.|Phường)?\s*([^)]*?)\s*(?:mới)?\s*\)\s*$/i);
-  const base = s.replace(/\s*\([^)]*\)\s*$/, "").trim();
-  const district = base ? canonDistrictName(base) : null;
-  // Ngoặc KHÔNG phải lúc nào cũng là phường: batdongsan ghi "Quận 9 (TP. Thủ Đức mới)" -> bản cũ đẻ ra
-  // "Phường TP. Thủ Đức" rồi đem đi geocode (audit 22/9). Có tiền tố cấp quận/TP -> không phải phường.
-  const hintTho = m && m[1] ? m[1].replace(/^(P\.|Phường)\s*/i, "").trim() : null;
-  const wardHint = hintTho && !/^(tp\.?|thành phố|quận|huyện|thị xã|tx\.?|q\.)\s*/i.test(hintTho) ? "Phường " + hintTho : null;
-  return { district, wardHint };
-}
+// canonDistrictName / canonDistrict / quanTheoDB nằm ở chung.mjs (29/10: bot Zalo dùng chung)
 
 const DEALS = new Set(["ban", "cho_thue"]);
 const KINDS = new Set(["phong_tro", "can_ho", "nha", "dat", "mat_bang", "khac"]);

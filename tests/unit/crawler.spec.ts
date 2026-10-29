@@ -129,3 +129,20 @@ test("soVN: dấu chấm là ngăn nghìn hay thập phân tuỳ vị trí", asy
   expect(soVN("950")).toBe(950);
   expect(soVN("")).toBeNull();
 });
+
+test("quanTheoDB: tên quận trần của bot Zalo quy về tên chuẩn đã có trong DB", async () => {
+  const { quanTheoDB } = await import(CRAWLER + "chung.mjs");
+  // 29/10: "Gò Vấp" nằm cạnh "Quận Gò Vấp" -> /search lọc nhầm bucket 2 tin, ô tìm kiếm ra 0 tin thuê
+  const dq = [
+    ["Hồ Chí Minh", "Quận Gò Vấp", 1787], ["Hồ Chí Minh", "Gò Vấp", 2], ["Hồ Chí Minh", "Q. Gò Vấp (P. An Nhơn mới)", 1],
+    ["Hồ Chí Minh", "Huyện Hóc Môn", 300], ["Hà Nội", "Quận Cầu Giấy", 50],
+  ];
+  expect(quanTheoDB("Gò Vấp", "Hồ Chí Minh", dq).district).toBe("Quận Gò Vấp");
+  expect(quanTheoDB("Hóc Môn", "Hồ Chí Minh", dq).district).toBe("Huyện Hóc Môn");     // không đoán bừa "Quận"
+  expect(quanTheoDB("Q.7", "Hồ Chí Minh", dq).district).toBe("Quận 7");
+  expect(quanTheoDB("Thủ Đức", "Hồ Chí Minh", dq).district).toBe("TP. Thủ Đức");
+  expect(quanTheoDB("Q. Gò Vấp (P. An Nhơn mới)", "Hồ Chí Minh", dq)).toEqual({ district: "Quận Gò Vấp", wardHint: "Phường An Nhơn" });
+  expect(quanTheoDB("Cầu Giấy", "Hồ Chí Minh", dq).district).toBe("Cầu Giấy");         // khác tỉnh -> không gán bừa
+  expect(quanTheoDB("Gò Vấp", "Hồ Chí Minh", []).district).toBe("Gò Vấp");             // chưa có cây (rpc lỗi) -> giữ nguyên
+  expect(quanTheoDB(null, "Hồ Chí Minh", dq).district).toBeNull();
+});

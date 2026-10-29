@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
+import { canonProvince, quanTheoDB } from "./chung.mjs";
 
 // Windows: spawn/execFileSync KHÔNG chạy được shim .cmd của npm (ENOENT/EINVAL)
 // -> tìm file bin thật của zalo-agent-cli trong npm global rồi gọi `node <bin>`.
@@ -243,8 +244,23 @@ async function guongAnhVeKho(tatCa = false) {
 setTimeout(() => guongAnhVeKho(true), 15_000);
 setInterval(() => guongAnhVeKho(false), 5 * 60_000);
 
+// Tên quận có thật trong DB [[tỉnh, quận, số tin]] - để quy "Gò Vấp" (Gemini) về "Quận Gò Vấp" (quanTheoDB).
+// Đếm lại 6 giờ/lần; rpc lỗi thì dùng bản cũ (lần đầu lỗi -> rỗng, tin vẫn lưu với tên đã canonDistrict).
+let demQuan = [], demQuanLuc = 0;
+async function layDemQuan() {
+  if (Date.now() - demQuanLuc < 6 * 3600_000) return demQuan;
+  demQuanLuc = Date.now();
+  const { data, error } = await sb.rpc("cay_khu_vuc");
+  if (!error && Array.isArray(data?.c)) demQuan = data.c.map(([p, d, , , n]) => [p, d, n]);
+  else console.error("[quan] rpc cay_khu_vuc lỗi:", error?.message);
+  return demQuan;
+}
+
 // Lưu 1 BĐS vào DB (dùng cho cả DM đăng tin lẫn tin bóc từ group)
 async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
+  // 29/10: chuẩn hoá tỉnh/quận như merge.mjs - trước ghi nguyên văn Gemini, DB tách "Gò Vấp" khỏi "Quận Gò Vấp"
+  const province = canonProvince(L.province ?? null);
+  const quan = quanTheoDB(L.district, province, await layDemQuan());
   const { data, error } = await sb.from("listings").insert({
     source: fromGroup ? "zalo_miniapp" : "zalo_oa",
     source_site: fromGroup ? "zalo_group" : "zalo_bot",
@@ -253,7 +269,7 @@ async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
     price_vnd: L.price_vnd ?? null, area_m2: L.area_m2 ?? null, bedrooms: L.bedrooms ?? null,
     deal: L.listing_type === "ban" ? "ban" : "cho_thue",
     kind: KIND.includes(L.property_type || "") ? L.property_type : "khac",
-    province: L.province ?? null, district: L.district ?? null, ward: L.ward ?? null,
+    province, district: quan.district, ward: L.ward ?? quan.wardHint ?? null,
     legal_status: L.legal ?? null, amenities: L.amenities || [], contact_phone: L.contact_phone ?? null,
     // đặc điểm riêng theo loại BĐS (21/8): cùng các cột tin guland dùng -> trang chi tiết tự
     // hiện bảng "Đặc điểm bất động sản", có gì hiện nấy, không có thì thôi

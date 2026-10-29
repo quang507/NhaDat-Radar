@@ -51,6 +51,55 @@ export function canonProvince(p) {
   return p || null;
 }
 
+// "Quận 9 (P. Long Bình mới)" -> district "Quận 9", phần ngoặc bù vào ward nếu trống
+// Chuẩn hoá tiền tố quận/huyện về 1 dạng (audit 16/8: batdongsan "Q. Bình Thạnh / H. Hóc Môn / TP. Thủ Đức",
+// chotot/mogi "Quận Bình Thạnh / Huyện Hóc Môn / Thành phố Thủ Đức / Quận Thủ Đức" -> cùng quận bị chẻ 2-3 bucket
+// -> bộ lọc, trang khu vực, cụm so sánh giá đều sai). Chuẩn: "Quận X" · "Huyện X" · "TP. X" · "Thị xã X".
+export function canonDistrictName(d) {
+  let s = d.replace(/\s+/g, " ").trim();
+  s = s.replace(/^(q\.\s*|q\s+)/i, "Quận ").replace(/^quận\s+/i, "Quận ")     // "Q. Bình Thạnh", "Q.1", "Q 7"
+       .replace(/^(h\.\s*|h\s+)/i, "Huyện ").replace(/^huyện\s+/i, "Huyện ")   // "H. Hóc Môn", "H.Nhà Bè"
+       .replace(/^(tp\.?|thành phố|thanh pho)\s+/i, "TP. ")
+       .replace(/^(tx\.?|thị xã|thi xa)\s+/i, "Thị xã ");
+  if (/^(Quận )?Thủ Đức$/i.test(s)) s = "TP. Thủ Đức";        // Thủ Đức đã lên TP (2021) - "Thủ Đức" trần cũng gộp (21/8: DB tách 53 tin bucket riêng)
+  if (/^Thủ Dầu Một$/i.test(s)) s = "TP. Thủ Dầu Một";
+  s = s.replace(/^Quận\s+0?(\d{1,2})$/, "Quận $1");             // "Quận 07" -> "Quận 7"
+  return s;
+}
+export function canonDistrict(raw) {
+  const s = (raw || "").trim();
+  if (!s) return { district: null, wardHint: null };
+  const m = s.match(/\(\s*(?:P\.|Phường)?\s*([^)]*?)\s*(?:mới)?\s*\)\s*$/i);
+  const base = s.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  const district = base ? canonDistrictName(base) : null;
+  // Ngoặc KHÔNG phải lúc nào cũng là phường: batdongsan ghi "Quận 9 (TP. Thủ Đức mới)" -> bản cũ đẻ ra
+  // "Phường TP. Thủ Đức" rồi đem đi geocode (audit 22/9). Có tiền tố cấp quận/TP -> không phải phường.
+  const hintTho = m && m[1] ? m[1].replace(/^(P\.|Phường)\s*/i, "").trim() : null;
+  const wardHint = hintTho && !/^(tp\.?|thành phố|quận|huyện|thị xã|tx\.?|q\.)\s*/i.test(hintTho) ? "Phường " + hintTho : null;
+  return { district, wardHint };
+}
+
+// Tên quận TRẦN ("Gò Vấp", "Hóc Môn" - Gemini bóc từ tin nhóm Zalo) -> tên chuẩn ĐÃ CÓ trong DB của tỉnh
+// ("Quận Gò Vấp", "Huyện Hóc Môn"). Không tự đoán Quận hay Huyện: lấy biến thể có tiền tố nhiều tin nhất.
+// 29/10: bot Zalo ghi "Gò Vấp" cạnh "Quận Gò Vấp" -> /search chọn nhầm bucket 2 tin, ô tìm kiếm ra 0 tin thuê.
+// demQuan: [[tỉnh, quận, số tin], ...] (rpc cay_khu_vuc hoặc tự đếm). Không khớp -> giữ tên đã canonDistrict.
+const loiQuan = (d) => d.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[đĐ]/g, "d").toLowerCase()
+  .replace(/^(quan|huyen|tp\.|thi xa)\s+/, "").trim();
+const coTienTo = (d) => /^(Quận|Huyện|TP\.|Thị xã) /.test(d);
+export function quanTheoDB(raw, province, demQuan) {
+  const { district, wardHint } = canonDistrict(raw);
+  if (!district || coTienTo(district) || !province) return { district, wardHint };
+  const loi = loiQuan(district);
+  const dem = new Map();
+  for (const [p, d, so] of demQuan || []) {
+    if (p !== province || !d) continue;
+    const c = canonDistrict(d).district;
+    if (c && coTienTo(c) && loiQuan(c) === loi) dem.set(c, (dem.get(c) || 0) + (Number(so) || 0));
+  }
+  const tot = [...dem].sort((a, b) => b[1] - a[1])[0]?.[0];
+  return { district: tot || district, wardHint };
+}
+
 // ---- Chuỗi & số an toàn cho seed (audit 22/9) ----
 // Surrogate UTF-16 lẻ (nửa emoji) -> Postgres/PostgREST từ chối cả request JSON
 // ("invalid input syntax for type json") -> CẢ LÔ insert chết. Đã xảy ra thật: lượt CI
