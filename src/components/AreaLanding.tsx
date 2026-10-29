@@ -3,7 +3,7 @@
 // MỌI con số đều tính từ listings đang published - không hardcode.
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
 import { unstable_cache } from "next/cache";
 import { fmtPrice, fmtPpm2, PROP, startOfDayVN } from "@/lib/format";
@@ -165,12 +165,25 @@ const layTinKhuVuc = unstable_cache(
   { revalidate: 10800, tags: ["listings"] },   // 3 giờ: dữ liệu chỉ đổi mỗi lượt crawl (4 tiếng)
 );
 
+/** Trang cha gần nhất CÒN TIN: quận (cho trang loại BĐS) -> tỉnh -> trang mua/thuê toàn quốc */
+function trangChaConTin(deal: Deal, area: AreaInfo, district: string | null, kind?: string | null): string {
+  if (district && kind && areaCount(area, deal, district) > 0) return areaPath(deal, area.province, district);
+  if (areaCount(area, deal) > 0) return areaPath(deal, area.province);
+  return deal === "ban" ? "/nha-dat-ban" : "/nha-dat-cho-thue";
+}
+
 export default async function AreaLanding({ deal, provinceSlug, districtSlug, kind }: { deal: Deal; provinceSlug: string; districtSlug?: string; kind?: string | null }) {
   const r = await resolveArea(provinceSlug, districtSlug);
-  if (!r) notFound();
+  if (!r) {
+    // 29/10 (Search Console): quận không còn trong cây khu vực (hết tin / xã cũ) trả 404 dù Google còn xếp hạng URL.
+    // Tỉnh còn thì về trang tỉnh; tỉnh cũng không có mới 404. Chuyển hướng TẠM (307): nguồn tin đổi theo từng lượt crawl.
+    const tinh = districtSlug ? await resolveArea(provinceSlug) : null;
+    if (tinh) redirect(trangChaConTin(deal, tinh.area, null));
+    notFound();
+  }
   const { province, district, area } = r;
-  // trang theo loại BĐS chỉ tồn tại khi khu vực đó thực sự có tin loại đó (tránh đẻ URL rỗng)
-  if (kind && areaCount(area, deal, district, kind) < 1) notFound();
+  // trang quận / loại BĐS chỉ có nội dung khi khu vực thực sự có tin: hết tin thì về trang cha còn tin thay vì 404 hay trang rỗng
+  if ((kind || district) && areaCount(area, deal, district, kind) < 1) redirect(trangChaConTin(deal, area, district, kind));
   const kindWord = kind ? (PROP[kind] || kind) : null;
   const { data, hien, newToday, coAnh } = await layTinKhuVuc(deal, province, district, kind ?? null);
   const rows = (data ?? []) as Listing[];                               // cột số liệu - để tính thống kê
