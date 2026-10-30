@@ -140,7 +140,7 @@ export default async function Home() {
           27/10 (anh Quang): đưa lên đầu trang, trên ô tìm kiếm. Máy tính: ảnh phủ tuyệt đối theo chiều cao phần chữ
           (~210px) - bản cũ ảnh tự cao ~430px, đặt ở đầu thì đẩy ô tìm kiếm xuống quá xa. */}
       {!hasFilter && (
-        <section className="relative overflow-hidden rounded-lg border border-emerald-500/30 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 text-white shadow-sm mt-1 sm:mt-3 mb-4">
+        <section className="band-zalo mt-1 sm:mt-3 mb-4">
           <Link
             href="/listings/df3a7f4f-048a-4cce-a271-bc9c19ad32f5"
             className="group flex flex-col md:flex-row items-stretch overflow-hidden transition"
@@ -153,7 +153,7 @@ export default async function Home() {
                 fetchPriority="high"
                 className="w-full h-full md:absolute md:inset-0 object-cover group-hover:scale-105 transition duration-500"
               />
-              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] tracking-wide uppercase shadow">
+              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-sm bg-amber-500 text-emerald-950 font-extrabold text-overline tracking-wide uppercase shadow-xs">
                 ★ Tiêu điểm nổi bật
               </span>
             </div>
@@ -166,29 +166,29 @@ export default async function Home() {
                     <ShieldCheck className="w-3.5 h-3.5" />
                     Tin độc quyền xác minh thực tế
                   </span>
-                  <span className="text-slate-400 text-xs">·</span>
-                  <span className="text-xs text-slate-300">Đường Hậu Giang, P.11, Q.6</span>
+                  <span className="text-white/50 text-xs">·</span>
+                  <span className="text-xs text-white/80">Đường Hậu Giang, P.11, Q.6</span>
                 </div>
                 <h2 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-300 transition leading-snug mb-2">
                   Cho thuê nhà compound Bình Phú · 60m² · 4 tầng · Xe hơi vô nhà
                 </h2>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-300 mb-3">
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 Phòng ngủ</span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">3 WC</span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Đường 10m</span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Full nội thất</span>
-                  <span className="px-2 py-0.5 rounded bg-white/10 text-white font-medium">Cạnh CV Phú Lâm</span>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-white/90 mb-3">
+                  <span className="px-2 py-0.5 rounded-sm bg-emerald-950/70 border border-emerald-400/25 text-white font-medium">3 Phòng ngủ</span>
+                  <span className="px-2 py-0.5 rounded-sm bg-emerald-950/70 border border-emerald-400/25 text-white font-medium">3 WC</span>
+                  <span className="px-2 py-0.5 rounded-sm bg-emerald-950/70 border border-emerald-400/25 text-white font-medium">Đường 10m</span>
+                  <span className="px-2 py-0.5 rounded-sm bg-emerald-950/70 border border-emerald-400/25 text-white font-medium">Full nội thất</span>
+                  <span className="px-2 py-0.5 rounded-sm bg-emerald-950/70 border border-emerald-400/25 text-white font-medium">Cạnh CV Phú Lâm</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 mt-auto">
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/15 mt-auto">
                 <div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400">Giá thuê trực tiếp</div>
-                  <div className="text-lg sm:text-xl font-extrabold text-emerald-400">
-                    24 triệu<span className="text-xs font-normal text-slate-300">/tháng</span>
+                  <div className="text-overline uppercase tracking-wider text-white/65">Giá thuê trực tiếp</div>
+                  <div className="text-lg sm:text-xl font-extrabold text-amber-400">
+                    24 triệu<span className="text-xs font-normal text-white/80">/tháng</span>
                   </div>
                 </div>
-                <span className="btn !py-2 !px-4 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-md transition inline-flex items-center gap-1.5 shadow-sm">
+                <span className="btn !py-2 !px-4 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-emerald-950 border-emerald-400 rounded-md transition inline-flex items-center gap-1.5 shadow-xs">
                   <span>Xem nhà ngay</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </span>
@@ -199,58 +199,74 @@ export default async function Home() {
       )}
 
       {/* ===== HERO: Sàn thực tế ===== */}
-      <section className="pt-1 sm:pt-3 pb-5 sm:pb-6">
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-3">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          {/* mobile: 1 dòng ngắn (câu dài cũ rớt 2 dòng, đẩy ô tìm kiếm xuống) */}
-          <span className="sm:hidden">1.380+ phòng trống mới hôm nay</span>
-          <span className="hidden sm:inline">Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay (Xác minh trực tiếp)</span>
-        </div>
+      <section className="hero-radar-bg px-3.5 pt-2.5 pb-4 sm:p-6 mb-4">
+        {/* Vòng sóng Radar trang trí góc phải (chỉ hiện trên sm+, aria-hidden để bỏ qua kiểm tra chồng lấp) */}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 240 240"
+          className="hidden sm:block pointer-events-none absolute -top-12 -right-12 w-64 h-64 text-brand/15"
+          fill="none"
+        >
+          <circle cx="120" cy="120" r="40" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 4" />
+          <circle cx="120" cy="120" r="75" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="120" cy="120" r="110" stroke="currentColor" strokeWidth="1" strokeDasharray="6 6" />
+          <line x1="120" y1="0" x2="120" y2="240" stroke="currentColor" strokeWidth="1" />
+          <line x1="0" y1="120" x2="240" y2="120" stroke="currentColor" strokeWidth="1" />
+        </svg>
 
-        <h1 className={`heading-1 mb-3 text-[var(--ink)] tracking-tight text-balance ${hasFilter ? "text-xl md:text-2xl" : "!text-[1.375rem] sm:!text-3xl md:!text-4xl"}`}>
-          Sàn Nhà Đất &amp; Phòng Trọ Xác Minh Thực Tế
-        </h1>
-        {/* mobile: ẩn đoạn giới thiệu - để ô tìm kiếm lên màn hình đầu (ZEN: gọn trên điện thoại) */}
-        <p className="hidden sm:block text-base text-[var(--ink-soft)] mb-6 max-w-2xl leading-relaxed">
-          Hơn 14.000 căn phòng và nhà đất có video thực tế, định vị chuẩn xác và cam kết giá thuê trực tiếp từ chủ nhà, không tin ảo kê giá.
-        </p>
-        <HeroTimKiem chip={chip} places={goiY} />
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-sm bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-2.5 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            {/* mobile: 1 dòng ngắn (câu dài cũ rớt 2 dòng, đẩy ô tìm kiếm xuống) */}
+            <span className="sm:hidden">1.380+ phòng trống mới hôm nay</span>
+            <span className="hidden sm:inline">Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay (Xác minh trực tiếp)</span>
+          </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-5 text-xs">
-          <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">
-            <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
+          <h1 className={`heading-1 mb-2.5 sm:mb-3 text-[var(--ink)] tracking-tight text-balance ${hasFilter ? "text-xl md:text-2xl" : "text-h2 sm:!text-3xl md:!text-4xl"}`}>
+            Sàn Nhà Đất &amp; Phòng Trọ <span className="text-brand">Xác Minh Thực Tế</span>
+          </h1>
+          {/* mobile: ẩn đoạn giới thiệu - để ô tìm kiếm lên màn hình đầu (ZEN: gọn trên điện thoại) */}
+          <p className="hidden sm:block text-base text-[var(--ink-soft)] mb-5 max-w-2xl leading-relaxed">
+            Hơn 14.000 căn phòng và nhà đất có video thực tế, định vị chuẩn xác và cam kết giá thuê trực tiếp từ chủ nhà, không tin ảo kê giá.
+          </p>
+          <HeroTimKiem chip={chip} places={goiY} />
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-3.5 sm:mt-5 text-xs">
+            <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-emerald-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs">
+              <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
+              </div>
+              <div>
+                <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">100% Tin xác minh</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal">Tự động gỡ phòng đã thuê</div>
+              </div>
             </div>
-            <div>
-              <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">100% Tin xác minh</div>
-              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Tự động gỡ phòng đã thuê</div>
+            <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-rose-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs">
+              <div className="w-7 h-7 rounded-md bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <Play className="w-4 h-4 stroke-[2.2]" />
+              </div>
+              <div>
+                <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Có video thực tế</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal">Xem phòng &amp; hẻm trước</div>
+              </div>
             </div>
-          </div>
-          <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">
-            <div className="w-7 h-7 rounded-md bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-              <Play className="w-4 h-4 stroke-[2.2]" />
+            <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-amber-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs">
+              <div className="w-7 h-7 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Store className="w-4 h-4 stroke-[2.2]" />
+              </div>
+              <div>
+                <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Đúng giá chủ nhà</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal">Không chênh giá môi giới</div>
+              </div>
             </div>
-            <div>
-              <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Có video thực tế</div>
-              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Xem phòng &amp; hẻm trước</div>
-            </div>
-          </div>
-          <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">
-            <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-brand dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <Store className="w-4 h-4 stroke-[2.2]" />
-            </div>
-            <div>
-              <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Đúng giá chủ nhà</div>
-              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Không chênh giá môi giới</div>
-            </div>
-          </div>
-          <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-none">
-            <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <Clock className="w-4 h-4 stroke-[2.2]" />
-            </div>
-            <div>
-              <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Hỗ trợ 24/7</div>
-              <div className="hidden sm:block text-[11px] text-[var(--ink-faint)]">Hotline: 0387 365 020</div>
+            <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-blue-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs">
+              <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4 stroke-[2.2]" />
+              </div>
+              <div>
+                <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Hỗ trợ 24/7</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal">Hotline: 0387 365 020</div>
+              </div>
             </div>
           </div>
         </div>
@@ -291,9 +307,9 @@ export default async function Home() {
           {projects.length > 0 && (
             <Section title="Dự án nổi bật" href="/projects">
               <HangVuot motHang items={projects.slice(0, 4).map((p) => ({ key: p.id, node: (
-                  <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 group w-full border border-[var(--line)]">
+                  <Link href={`/projects/${p.id}`} className="card rounded-lg overflow-hidden transition-all duration-200 group w-full border border-[var(--line)]">
                     {/* Ảnh chiếm ~2/3 card (16:10), mô tả gọn 1 khối - ảnh là thứ bán dự án */}
-                    <div className="aspect-[16/10] bg-[#0f172a] grid place-items-center overflow-hidden">
+                    <div className="aspect-[16/10] bg-dark-stage grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
@@ -325,50 +341,58 @@ export default async function Home() {
           })}
 
           {/* ===== Bộ công cụ thực tế cho người tìm nhà ===== */}
-          <section className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { href: "/dinh-gia", icon: Sparkles, t: "Định Giá Nhà Đất", d: "Tra cứu giá thị trường theo m² từ dữ liệu giao dịch mới nhất", tag: "Tra cứu nhanh" },
-              { href: "/tinh-lai-vay", icon: Calculator, t: "Bảng Tính Lãi Vay", d: "Tính số tiền gốc và lãi trả góp hàng tháng theo các gói ngân hàng", tag: "Tài chính" },
-              { href: "/thue-hay-mua", icon: Scale, t: "So Sánh Thuê Hay Mua", d: "Phân tích bài toán dòng tiền và tích luỹ nhà ở cho gia đình trẻ", tag: "Lời khuyên" },
-              { href: "/thong-ke", icon: BarChart3, t: "Bản Đồ Giá BĐS", d: "Biến động giá bán và cho thuê thực tế tại các quận huyện TP.HCM", tag: "Thị trường" },
-            ].map(({ href, icon: Icon, t, d, tag }) => (
-              <Link
-                key={href}
-                href={href}
-                className="card rounded-lg p-4 sm:p-5 hover:border-slate-300 hover:shadow-sm transition-all group flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-8 h-8 rounded-md bg-brand/10 text-brand flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-colors">
-                      <Icon className="w-4 h-4" />
+          <section className="mt-14">
+            <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+              <div>
+                <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-[var(--ink)]">Công cụ phân tích &amp; Định giá BĐS</h2>
+                <p className="text-xs sm:text-sm text-[var(--ink-soft)] pl-4 mt-1">Dữ liệu thực tế hỗ trợ ra quyết định thuê, mua và tính dòng tiền chuẩn xác</p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { href: "/dinh-gia", icon: Sparkles, t: "Định Giá Nhà Đất", d: "Tra cứu giá thị trường theo m² từ dữ liệu giao dịch mới nhất", tag: "Tra cứu nhanh", border: "border-t-2 border-t-emerald-500", iconCls: "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 group-hover:bg-brand group-hover:text-white" },
+                { href: "/tinh-lai-vay", icon: Calculator, t: "Bảng Tính Lãi Vay", d: "Tính số tiền gốc và lãi trả góp hàng tháng theo các gói ngân hàng", tag: "Tài chính", border: "border-t-2 border-t-amber-500", iconCls: "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500 group-hover:text-white" },
+                { href: "/thue-hay-mua", icon: Scale, t: "So Sánh Thuê Hay Mua", d: "Phân tích bài toán dòng tiền và tích luỹ nhà ở cho gia đình trẻ", tag: "Lời khuyên", border: "border-t-2 border-t-blue-500", iconCls: "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 group-hover:text-white" },
+                { href: "/thong-ke", icon: BarChart3, t: "Bản Đồ Giá BĐS", d: "Biến động giá bán và cho thuê thực tế tại các quận huyện TP.HCM", tag: "Thị trường", border: "border-t-2 border-t-rose-500", iconCls: "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white" },
+              ].map(({ href, icon: Icon, t, d, tag, border, iconCls }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`card rounded-lg p-4 sm:p-5 transition-all group flex flex-col justify-between ${border}`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors ${iconCls}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <span className="text-overline font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-[var(--surface-2)] text-[var(--ink-soft)]">
+                        {tag}
+                      </span>
                     </div>
-                    <span className="text-[0.68rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-slate-700 dark:text-slate-200">
-                      {tag}
-                    </span>
+                    <h3 className="font-bold text-sm text-[var(--ink)] group-hover:text-brand transition-colors">
+                      {t}
+                    </h3>
+                    <p className="text-xs text-[var(--ink-soft)] mt-1.5 leading-relaxed">
+                      {d}
+                    </p>
                   </div>
-                  <h3 className="font-bold text-sm text-[var(--ink)] group-hover:text-brand transition-colors">
-                    {t}
-                  </h3>
-                  <p className="text-xs text-[var(--ink-soft)] mt-1.5 leading-relaxed">
-                    {d}
-                  </p>
-                </div>
-                <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-brand">
-                  <span>Xem chi tiết</span>
-                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
-            ))}
+                  <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-brand">
+                    <span>Xem chi tiết</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
+              ))}
+            </div>
           </section>
 
           {/* ===== Trợ lý Zalo: Nhận bảng hàng giá tốt mới nhất ===== */}
-          <section className="mt-10 sm:mt-12 card p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 border border-[var(--line)] dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/80 rounded-lg">
-            <div className="w-10 h-10 rounded-md bg-brand/10 dark:bg-emerald-950/50 text-brand dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <MessageCircle className="w-5 h-5 text-brand dark:text-emerald-400" />
+          <section className="mt-10 sm:mt-12 band-spotlight p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+            <div className="w-11 h-11 rounded-md bg-brand text-white flex items-center justify-center shrink-0 shadow-xs">
+              <MessageCircle className="w-5 h-5" />
             </div>
             <div className="flex-1 text-center sm:text-left">
-              <h3 className="heading-3 text-[var(--ink)] dark:text-slate-100">Nhận danh sách căn giá tốt nhất qua Zalo</h3>
-              <p className="text-xs sm:text-sm text-[var(--ink-soft)] dark:text-slate-300 mt-1 leading-relaxed">
+              <h3 className="heading-3 text-[var(--ink)]">Nhận danh sách căn giá tốt nhất qua Zalo</h3>
+              <p className="text-xs sm:text-sm text-[var(--ink-soft)] mt-1 leading-relaxed">
                 Chuyên viên Radar lọc sẵn 3–5 căn sát nhu cầu, đúng giá chủ nhà và gửi kèm ảnh/sổ hồng trực tiếp qua Zalo trong 15 phút.
               </p>
             </div>
@@ -386,8 +410,8 @@ export default async function Home() {
           {/* ===== Duyệt theo danh mục ===== */}
           <section className="mt-10 sm:mt-12">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="heading-2 border-l-4 border-brand pl-3 text-[var(--ink)] dark:text-slate-100">Duyệt theo danh mục</h2>
-              <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Hơn 15.000 căn nhà đất có sẵn</span>
+              <h2 className="heading-2 border-l-4 border-brand pl-3 text-[var(--ink)]">Duyệt theo danh mục</h2>
+              <span className="text-xs sm:text-sm text-[var(--ink-faint)] font-medium">Hơn 15.000 căn nhà đất có sẵn</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
@@ -423,7 +447,7 @@ export default async function Home() {
                 <Link
                   key={kind}
                   href={`/search?kind=${kind}`}
-                  className="relative rounded-lg overflow-hidden min-h-[240px] group flex flex-col justify-between p-4 sm:p-5 text-white shadow-sm hover:shadow-md transition-all duration-300 border border-slate-800/40"
+                  className="relative rounded-lg overflow-hidden min-h-[240px] group flex flex-col justify-between p-4 sm:p-5 text-white shadow-sm hover:shadow-md transition-all duration-300 border border-[var(--line)]"
                 >
                   {/* Ảnh nền thực tế */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -437,7 +461,7 @@ export default async function Home() {
 
                   {/* Header thẻ: Icon danh mục */}
                   <div className="relative z-10 flex items-center justify-between">
-                    <div className="w-9 h-9 rounded-md bg-white/20 backdrop-blur-md text-white flex items-center justify-center border border-white/20 group-hover:bg-brand group-hover:border-brand transition-colors">
+                    <div className="w-9 h-9 rounded-md badge-glass-dark flex items-center justify-center group-hover:bg-brand group-hover:border-brand transition-colors">
                       <Icon className="w-5 h-5" />
                     </div>
                   </div>
@@ -464,10 +488,10 @@ export default async function Home() {
           <section className="mt-12 sm:mt-16">
             <div className="flex items-center justify-between gap-3 mb-6">
               <div>
-                <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-[var(--ink)] dark:text-slate-100">Tin tức &amp; Cẩm nang thị trường</h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 pl-4 mt-1">Kiến thức pháp lý, quy hoạch, lãi suất vay và kinh nghiệm giao dịch BĐS</p>
+                <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-[var(--ink)]">Tin tức &amp; Cẩm nang thị trường</h2>
+                <p className="text-xs sm:text-sm text-[var(--ink-faint)] pl-4 mt-1">Kiến thức pháp lý, quy hoạch, lãi suất vay và kinh nghiệm giao dịch BĐS</p>
               </div>
-              <Link href="/tin-tuc" className="group text-sm text-brand dark:text-emerald-400 font-semibold ml-auto whitespace-nowrap inline-flex items-center gap-1">
+              <Link href="/tin-tuc" className="group text-sm text-brand font-semibold ml-auto whitespace-nowrap inline-flex items-center gap-1">
                 <span>Xem tất cả tin tức</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
@@ -477,35 +501,35 @@ export default async function Home() {
                 <Link
                   key={b.slug}
                   href={`/tin-tuc/${b.slug}`}
-                  className="group card rounded-lg overflow-hidden border border-[var(--line)] dark:border-slate-700/80 bg-[var(--surface)] dark:bg-slate-800/90 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all duration-200 flex flex-col justify-between"
+                  className="group card rounded-lg overflow-hidden transition-all duration-200 flex flex-col justify-between"
                 >
                   <div>
-                    <div className="aspect-[16/10] relative overflow-hidden bg-[var(--surface-2)] dark:bg-slate-900">
+                    <div className="aspect-[16/10] relative overflow-hidden bg-[var(--surface-2)]">
                       <SafeImg
                         src={b.coverImage}
                         alt={b.tieuDe}
                         fallbackLabel={b.categoryName}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                      <span className="absolute top-2.5 left-2.5 px-1.5 py-0.5 rounded text-[0.65rem] font-bold bg-white/95 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200 shadow-xs backdrop-blur-xs">
+                      <span className="absolute top-2.5 left-2.5 px-1.5 py-0.5 rounded-sm text-overline font-bold badge-glass-dark shadow-xs">
                         {b.categoryName}
                       </span>
                     </div>
                     <div className="p-4">
-                      <div className="flex items-center gap-2 text-[0.7rem] text-[var(--ink-soft)] dark:text-slate-400 mb-1.5 font-medium">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" /> {b.readTime}</span>
+                      <div className="flex items-center gap-2 text-overline text-[var(--ink-faint)] mb-1.5 font-medium normal-case tracking-normal">
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-[var(--ink-faint)]" /> {b.readTime}</span>
                         <span>·</span>
                         <span>{b.ngay}</span>
                       </div>
-                      <h3 className="font-bold text-[var(--ink)] dark:text-slate-100 group-hover:text-brand dark:group-hover:text-emerald-400 transition-colors line-clamp-2 leading-snug text-sm">
+                      <h3 className="font-bold text-[var(--ink)] group-hover:text-brand transition-colors line-clamp-2 leading-snug text-sm">
                         {b.tieuDe}
                       </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">
+                      <p className="text-xs text-[var(--ink-soft)] line-clamp-2 mt-1.5 leading-relaxed">
                         {b.moTa}
                       </p>
                     </div>
                   </div>
-                  <div className="p-4 pt-0 flex items-center justify-between text-xs font-semibold text-brand dark:text-emerald-400">
+                  <div className="p-4 pt-0 flex items-center justify-between text-xs font-semibold text-brand">
                     <span>Đọc tiếp</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -529,7 +553,10 @@ function Section({ title, href, children }: { title: string; href: string; child
   return (
     <section className="mt-12 sm:mt-16">
       <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-        <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-[var(--ink)]">{title}</h2>
+        <div className="flex items-center gap-2.5">
+          <span className="w-1.5 h-6 rounded-sm bg-gradient-to-b from-brand to-amber-500 shrink-0" />
+          <h2 className="heading-2 text-[var(--ink)]">{title}</h2>
+        </div>
         <Link href={href} className="group text-sm text-brand font-bold ml-auto whitespace-nowrap inline-flex items-center gap-1 hover:text-brand-ink transition-colors">
           <span>Xem tất cả</span>
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -543,9 +570,9 @@ function Section({ title, href, children }: { title: string; href: string; child
 function Stat({ n, label }: { n: number; label: string }) {
   // "+" chỉ hợp lý với số lớn xấp xỉ; số nhỏ/đếm chính xác hiện đúng giá trị.
   return (
-    <div className="px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--line)] shadow-sm shrink-0">
+    <div className="px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--line)] shadow-sm shrink-0">
       <div className="text-lg sm:text-xl font-extrabold text-brand tabular-nums">{n.toLocaleString("vi-VN")}</div>
-      <div className="text-[0.7rem] sm:text-xs text-[var(--ink-soft)]">{label}</div>
+      <div className="text-overline sm:text-xs text-[var(--ink-soft)] normal-case tracking-normal">{label}</div>
     </div>
   );
 }

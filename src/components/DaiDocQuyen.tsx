@@ -20,20 +20,25 @@ export default function DaiDocQuyen({ listings, toiDa = 6 }: { listings: Listing
   const tins = locDocQuyen(listings, toiDa);
   if (!tins.length) return null;
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <h2 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/40">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          Tin đã xác minh
-        </h2>
-        {/* điện thoại: câu mô tả rớt 2 dòng đẩy tin xuống - nhãn "Tin đã xác minh" đã đủ nghĩa */}
-        <span className="hidden sm:inline text-xs text-[var(--ink-soft)]">
-          Thông tin và pháp lý đã được Radar kiểm tra thực tế
+    <section className="band-spotlight p-3 sm:p-4 lg:px-3.5 mb-6">
+      <div className="flex items-center justify-between gap-2 mb-3.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-brand text-white font-bold text-xs shadow-xs tracking-wide uppercase">
+            <ShieldCheck className="w-4 h-4" />
+            Tin đã xác minh
+          </h2>
+          {/* điện thoại: câu mô tả rớt 2 dòng đẩy tin xuống - nhãn "Tin đã xác minh" đã đủ nghĩa */}
+          <span className="hidden sm:inline text-xs font-medium text-[var(--ink-soft)]">
+            Thông tin, hình ảnh và giá thuê/bán đã được đội ngũ Radar kiểm tra thực tế
+          </span>
+        </div>
+        <span className="hidden md:inline-flex items-center gap-1.5 text-overline font-bold text-accent bg-amber-50 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/50 px-2 py-0.5 rounded-sm">
+          ★ Ưu tiên hiển thị
         </span>
       </div>
       {/* không đè thêm badge - ListingCard tự gắn tag "ĐÃ XÁC MINH" cho tin độc quyền */}
       {/* điện thoại: hàng vuốt ngang; sm+: lưới */}
       <HangVuot motHang items={tins.map((x) => ({ key: x.id, node: <ListingCard x={x} /> }))} />
-    </div>
+    </section>
   );
 }

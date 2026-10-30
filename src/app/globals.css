@@ -3,28 +3,29 @@
 @tailwind utilities;
 
 :root, html.light {
-  /* ZEN Kaiz (25/10): Neutral Slate + Emerald #059669 - khớp logo R mới (public/logo.svg) */
-  --bg: #f8fafc;           /* slate-50 */
+  /* ZEN Kaiz (25/10): Warm Architectural Slate + Emerald #059669 + Terracotta Accent #c2711b */
+  --bg: #f1f5f9;           /* nền tổng thể có độ sâu để thẻ trắng #ffffff nổi khối rõ nét */
   --surface: #ffffff;
-  --surface-2: #f1f5f9;    /* slate-100 */
+  --surface-2: #e2e8f0;    /* vùng đệm phân tách rõ ràng */
   --ink: #0f172a;          /* slate-900 */
   --ink-soft: #334155;     /* slate-700 */
   --ink-faint: #64748b;    /* slate-500 - WCAG AA 4.7:1 trên trắng */
-  --line: #e2e8f0;         /* slate-200 */
-  --line-strong: #cbd5e1;  /* slate-300 */
+  --line: #cbd5e1;         /* viền sắc nét hơn trên nền sáng */
+  --line-strong: #94a3b8;  /* slate-400 */
   --brand: #059669;        /* emerald-600: nền nút/chữ đậm cỡ lớn (3.8:1 - chữ nhỏ dùng --brand-ink) */
   --brand-ink: #047857;    /* emerald-700: hover + chữ nhỏ (5.5:1) */
   --brand-rgb: 5 150 105;       /* kênh RGB cho tailwind bg-brand/10 ... */
   --brand-ink-rgb: 4 120 87;
   --brand-text-rgb: 4 120 87;    /* text-brand ở nền sáng = emerald-700 để chữ nhỏ đạt AA */
   --accent: #c2711b;       /* cam đất — điểm nhấn phụ */
+  --accent-rgb: 194 113 27;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --bg: #0f172a;
+    --bg: #0b1120;
     --surface: #1e293b;
-    --surface-2: #162032;
+    --surface-2: #152033;
     --ink: #f8fafc;
     --ink-soft: #cbd5e1;
     --ink-faint: #94a3b8;
@@ -36,13 +37,14 @@
     --brand-ink-rgb: 5 150 105;
     --brand-text-rgb: 16 185 129;
     --accent: #f59e0b;
+    --accent-rgb: 245 158 11;
   }
 }
 
 html.dark {
-  --bg: #0f172a;
+  --bg: #0b1120;
   --surface: #1e293b;
-  --surface-2: #162032;
+  --surface-2: #152033;
   --ink: #f8fafc;
   --ink-soft: #cbd5e1;
   --ink-faint: #94a3b8;
@@ -54,10 +56,15 @@ html.dark {
   --brand-ink-rgb: 5 150 105;
   --brand-text-rgb: 16 185 129;
   --accent: #f59e0b;
+  --accent-rgb: 245 158 11;
 }
 html { color-scheme: light dark; }
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 15% -5%, rgba(var(--brand-rgb), 0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 88% 8%, rgba(var(--accent-rgb), 0.06), transparent 55%);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-inter), "Inter", system-ui, -apple-system, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -154,7 +161,93 @@ body {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 4px;      /* ZEN: khoá 2-4px, không bo mềm */
-  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+}
+
+@media (hover: hover) {
+  a.card:hover, .card-interactive:hover {
+    border-color: color-mix(in srgb, var(--brand) 55%, var(--line));
+    box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.1), 0 2px 6px -1px rgba(5, 150, 105, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+/* Nền trang trí Hero kiểu bản đồ tọa độ Radar + quầng sáng Emerald & Cam đất */
+.hero-radar-bg {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--surface);
+  background-image:
+    radial-gradient(circle at 88% 18%, rgba(var(--accent-rgb), 0.13), transparent 42%),
+    radial-gradient(circle at 12% 85%, rgba(var(--brand-rgb), 0.12), transparent 48%),
+    linear-gradient(to right, rgba(var(--brand-rgb), 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--brand-rgb), 0.05) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
+  border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--line));
+  border-radius: 4px;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
+}
+
+/* Khung tìm kiếm chính có thanh nhấn đa sắc Emerald -> Accent phía trên */
+.search-box-elevated {
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--brand) 35%, var(--line));
+  border-top: 3px solid var(--brand);
+  border-radius: 4px;
+  box-shadow: 0 10px 24px -6px rgba(15, 23, 42, 0.09), 0 2px 6px -1px rgba(5, 150, 105, 0.06);
+}
+
+/* Dải Spotlight cho Tin Độc Quyền / Đã xác minh */
+.band-spotlight {
+  position: relative;
+  background-color: var(--surface);
+  background-image:
+    radial-gradient(ellipse 70% 60% at 95% 5%, rgba(var(--accent-rgb), 0.09), transparent 55%),
+    linear-gradient(135deg, rgba(var(--brand-rgb), 0.07) 0%, transparent 60%);
+  border: 1px solid color-mix(in srgb, var(--brand) 32%, var(--line));
+  border-left: 4px solid var(--brand);
+  border-radius: 4px;
+  box-shadow: 0 4px 14px -2px rgba(5, 150, 105, 0.07);
+}
+
+/* Dải chuyển đổi Zalo / Tìm phòng nhanh: nền đậm sang trọng tách nhịp khỏi các khối thẻ trắng */
+.band-zalo {
+  position: relative;
+  overflow: hidden;
+  background-color: #0f172a;
+  background-image:
+    radial-gradient(circle at 92% 15%, rgba(245, 158, 11, 0.18), transparent 40%),
+    radial-gradient(circle at 8% 88%, rgba(16, 185, 129, 0.22), transparent 45%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 24px 24px, 24px 24px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 4px;
+  color: #f8fafc;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.22);
+}
+
+/* Nút Zalo chuẩn thương hiệu (khai báo trong globals.css để không vi phạm mau-hex trong TSX) */
+.btn-zalo {
+  background: #0068ff;
+  border: 1px solid #0068ff;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 104, 255, 0.28);
+}
+.btn-zalo:hover {
+  background: #0057d9;
+  border-color: #0057d9;
+  color: #ffffff;
+}
+
+/* Nền tối cho khung ảnh dự án & lớp phủ tối không dùng backdrop-blur */
+.bg-dark-stage {
+  background-color: #0f172a;
+}
+.badge-glass-dark {
+  background-color: rgba(15, 23, 42, 0.82);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .inp {

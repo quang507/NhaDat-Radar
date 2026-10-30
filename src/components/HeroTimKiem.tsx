@@ -43,8 +43,8 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
       onClick={() => setTab(t)}
       className={`min-h-10 sm:min-h-0 px-3.5 py-1.5 text-sm font-semibold rounded-sm transition-all ${
         tab === t
-          ? "bg-[var(--surface)] text-brand shadow-xs font-bold"
-          : "text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--surface)]/50"
+          ? "bg-brand text-white shadow-xs font-bold"
+          : "text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--surface)]"
       }`}
     >
       {nhan}
@@ -58,7 +58,7 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
   const chonDuAn = (d: DuAnGoiY) => router.push(qs({ deal: deal || "", gan: `${d.lat},${d.lng}`, bk: "2", gan_ten: d.name }));
 
   return (
-    <div className="card rounded-lg p-3 sm:p-5 shadow-xs border border-[var(--line)]">
+    <div className="search-box-elevated p-3 sm:p-5">
       {/* mobile: 3 tab chia đều cả hàng (dễ chạm), máy tính: gọn theo nội dung */}
       <div role="tablist" className="grid grid-cols-3 sm:flex items-center gap-1 p-1 bg-[var(--surface-2)] rounded-md border border-[var(--line)] sm:w-fit mb-3">
         {nut("cho_thue", "Cho thuê")}
@@ -141,7 +141,7 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
         {deal && (
           <div className="mt-3.5 flex flex-col gap-2 text-xs pt-3 border-t border-[var(--line)]">
             <div className="cuon-ngang flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1">
-              <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Giá:</span>
+              <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-overline uppercase tracking-wider font-semibold shrink-0">Giá:</span>
               {GIA[deal].map(([min, max, l]) => (
                 <Link
                   key={l}
@@ -154,14 +154,14 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
             </div>
             {chip[deal].length > 0 && (
               <div className="cuon-ngang flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center" title="Số tin đang có theo khu vực">
-                <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Khu vực:</span>
+                <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-overline uppercase tracking-wider font-semibold shrink-0">Khu vực:</span>
                 {chip[deal].map((c) => (
                   <Link
                     key={c.district}
                     href={qs({ deal, province: c.province, district: c.district })}
                     className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md bg-[var(--surface-2)] text-[var(--ink-soft)] hover:text-brand transition whitespace-nowrap text-xs font-medium"
                   >
-                    {tenGon(c.district)} <span className="text-[var(--ink-soft)] font-mono text-[0.7rem] font-medium">{c.n.toLocaleString("vi-VN")}</span>
+                    {tenGon(c.district)} <span className="text-brand font-mono text-overline font-bold">{c.n.toLocaleString("vi-VN")}</span>
                   </Link>
                 ))}
               </div>
@@ -169,7 +169,7 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
             {deal === "cho_thue" && (
               <>
                 <div className="hidden sm:flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
-                  <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Tiện ích:</span>
+                  <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-overline uppercase tracking-wider font-semibold shrink-0">Tiện ích:</span>
                   {[
                     ["thu_cung", "Nuôi thú cưng"],
                     ["gio_tu_do", "Giờ giấc tự do"],
@@ -182,14 +182,14 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
                     <Link
                       key={k}
                       href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", ti: k })}
-                      className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand dark:hover:border-emerald-500 hover:text-brand dark:hover:text-emerald-400 transition whitespace-nowrap text-slate-700 dark:text-slate-300 font-medium text-xs"
+                      className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md border border-[var(--line)] bg-[var(--surface)] hover:border-brand hover:text-brand transition whitespace-nowrap text-[var(--ink-soft)] font-medium text-xs"
                     >
                       {label}
                     </Link>
                   ))}
                 </div>
                 <div className="hidden sm:flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
-                  <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-[0.7rem] uppercase tracking-wider font-semibold shrink-0">Khu vực sinh viên:</span>
+                  <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-overline uppercase tracking-wider font-semibold shrink-0">Khu vực sinh viên:</span>
                   {[
                     ["Kinh Tế", "ĐH Kinh Tế"],
                     ["Bách Khoa", "ĐH Bách Khoa"],
