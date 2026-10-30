@@ -19,7 +19,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { smartGeocode, LOI } from "./geo.mjs";
-import { laAnh, laVideo, lechToaDo } from "./chung.mjs";
+import { laAnh, laVideo, lechToaDo, canonDistrictName } from "./chung.mjs";
 import { cheDiaChi } from "./che-dia-chi.mjs";
 
 // 2/10: dùng chung cho mọi đối tác rổ hàng cùng khuôn file - RO_HANG_PARTNER=hifriendz (crawler/hifriendz-fetch.mjs)
@@ -61,6 +61,10 @@ const tenQuan = (d) => {
   if (/^(quận|huyện|tp\.?|thành phố|thị xã)\s/i.test(s)) return s;
   return /^(bình chánh|nhà bè|hóc môn|củ chi|cần giờ)$/i.test(s) ? `Huyện ${s}` : `Quận ${s}`;
 };
+// Tên quận GHI DB + khoá lọc trùng: qua canonDistrictName như mọi nguồn khác (30/10). tenQuan trần ra "Quận Thủ Đức"
+// (EvoHome) còn HiFriendz ghi "Thành Phố Thủ Đức" -> Thủ Đức tách 3 tên trên web và phòng trùng 2 đối tác ở Thủ Đức
+// lọt lưới khoaTrung. Câu geocode vẫn dùng tenQuan (giữ cache toạ độ cũ).
+const quanChuan = (d) => { const t = tenQuan(d); return t ? canonDistrictName(t) : null; };
 const giaTrieu = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",")} triệu` : `${v.toLocaleString("vi-VN")} đ`);
 
 // ---- đọc tin cũ để giữ id / first_seen_at / toạ độ thật đã geocode --------------------------
@@ -146,7 +150,7 @@ const rows = [], priv = [];
 // đo 2/10 ~290/1.397 phòng) -> bỏ bản HiFriendz, giữ EvoHome (có số nhà thật + hoa hồng). Không thì khách thấy 2 thẻ y hệt.
 const boDau = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().trim();
 const tenDuong = (dau) => boDau(gon(dau).replace(/^(hẻm|hem|số|so)\s+/i, "").replace(/^[\w/-]*\d[\w/-]*\s+/, "").replace(/^(đường|duong)\s+/i, ""));
-const khoaTrung = (x) => [boDau(tenQuan(x.district)), tenDuong(String(x.address || "").split(",")[0]), x.price_vnd, Math.round(Number(x.area_m2) || 0)].join("|");
+const khoaTrung = (x) => [boDau(quanChuan(x.district)), tenDuong(String(x.address || "").split(",")[0]), x.price_vnd, Math.round(Number(x.area_m2) || 0)].join("|");
 let dsNhap = src;
 if (PARTNER === "hifriendz") {
   try {
@@ -165,7 +169,7 @@ for (const x of dsNhap) {
   const specs = x.specs || {};
   const dauDiaChi = gon(String(x.address || "").split(",")[0]);
   const diaChiChe = cheDiaChi(dauDiaChi);
-  const quan = tenQuan(x.district);
+  const quan = quanChuan(x.district);
   const loai = specs["Loại phòng"] || (x.kind === "can_ho" ? "Căn hộ" : "Phòng trọ");
   const dt = Number(x.area_m2) || null;
 

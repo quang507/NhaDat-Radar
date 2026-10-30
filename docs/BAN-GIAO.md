@@ -42,9 +42,9 @@ Tài liệu cho đội tiếp nhận (Antigravity). Đọc kèm [`CLAUDE.md`](..
 
 ## 3. Việc dở dang + cách kiểm thử
 
-### 3.1 Migration 036 - 301 cho tin đã xoá (CHƯA CHẠY)
+### 3.1 Migration 036 - 301 cho tin đã xoá (ĐÃ CHẠY 29/10)
 
-Code đã lên production (commit `ec7cac4`). Thiếu bảng thì trang vẫn 404 như cũ, không hỏng gì.
+Đã chạy trên Supabase production ngày 29/10 (bảng `listing_tombstones` có, lúc chạy 0 dòng). Các bước dưới giữ lại để kiểm: bước 3 (trigger ghi bia mộ sau lượt `daily.mjs`) CHƯA ai xác nhận.
 
 1. Supabase SQL Editor → dán toàn bộ [`supabase/migrations/036_listing_tombstones.sql`](../supabase/migrations/036_listing_tombstones.sql) → Run.
 2. Kiểm tra bằng một bia mộ GIẢ (service role, `node --env-file=.env.local`):
@@ -93,6 +93,27 @@ Code đã lên production (commit `ec7cac4`). Thiếu bảng thì trang vẫn 40
 - `CLAUDE.md` chưa commit và có 2 chỗ sai:
   - Ghi Tailwind v4, thực tế là **3.4.17**.
   - Mục Zalo prefill cần đối chiếu lại code (`NutZalo`, `maPhong`).
+
+### 3.7 Cập nhật 28-30/10 (Claude) + việc còn lại
+
+Đã lên production:
+
+- **Vercel vượt hạn mức Fast Origin Transfer** (15,6 / 10 GB gói Hobby, 28/10). Gốc: 6 route trang khu vực + `/tin-tuc/[slug]` có `revalidate` mà thiếu `generateStaticParams` → Vercel trả `no-store`, mỗi lượt bot dựng lại ~390 KB. Sửa ở `4974d6c` (+ tin 6 giờ, robots chặn `/search?`, `/nha-dat-ban?`, `/nha-dat-cho-thue?`), link Tiện ích trang tin `nofollow` + `prefetch={false}` ở `1cf77c6`. **Kiểm sau mỗi route động mới**: build ra `●` và `curl -I` lần 2 thấy `x-vercel-cache: HIT`.
+- `1cf77c6`: 4 nút Zalo `?text=` → `NutZalo` (không bắt buộc `listingId` nữa); cụm Gọi/Zalo máy tính luôn hiện (chỉ icon dưới `xl`); link khu vực cuối trang tin chỉ trỏ tới khu vực còn tin; `MobileSectionJumper` cuộn đúng.
+- `d54b066` (dead click theo Clarity): nhãn "Mã: RH…" bấm để chép (`NutChepMa` trong `components/TheoDoi.tsx`); lightbox bấm ảnh = ảnh sau, bấm nền = đóng.
+- `5a5bd46` / `eb8eb0b`: gõ "Gò Vấp" ra 0 tin; DB chuẩn hoá 164 tin về một tên quận (`scripts/chuan-hoa-quan.mjs`), bot Zalo ghi tên chuẩn. `b206748`: trang khu vực hết tin → 307 về trang cha còn tin thay vì 404.
+- 30/10: Thủ Đức tách 3 tên ("TP. Thủ Đức" / "Quận Thủ Đức" của EvoHome / "Thành phố Thủ Đức"). DB đã gộp 120 tin về **"TP. Thủ Đức"**; `crawler/ro-hang-evohome.mjs` ghi tên qua `canonDistrictName` (`quanChuan`) - commit cùng bản bàn giao này.
+- DB: 4.770 tin rổ hàng `contact_phone` → hotline duy nhất `0387365020`.
+
+Việc còn lại cho AG:
+
+1. **Theo dõi Vercel → Usage → Fast Origin Transfer** 3-5 ngày: cột mỗi ngày phải thấp hẳn mức ~1,3 GB của 28/10. Còn cao thì giảm RSC payload (HTML trang chủ ~480 KB, trang tin ~220 KB, một nửa là dữ liệu nhân đôi cho client component). Gói Hobby chỉ cho dự án phi thương mại - mở thêm tài khoản Hobby để né hạn mức là trái điều khoản; cần thì lên Pro.
+2. **Bảo mật (có từ trước)**: anon key đọc thẳng được `title`/`description` GỐC của tin độc quyền qua Supabase REST (`/rest/v1/listings?select=description&source_site=eq.facebook`). `cheTinDocQuyen` chỉ che lúc hiển thị nên SĐT trong mô tả vẫn lộ qua API. Hướng: view/RPC trả bản đã che, hoặc lưu sẵn cột mô tả đã che rồi thu quyền cột gốc (nhớ khối grant mục 3.2).
+3. **Hotline viết cứng ~20 chỗ** (`0387365020`, `0387 365 020` trong `src/`, `scripts/`, `crawler/`) → dùng `HOTLINE` / `HOTLINE_DISPLAY` / `HOTLINE_ZALO` ở `src/lib/hotline.ts` (crawler `.mjs` thì một hằng chung trong `crawler/chung.mjs`).
+4. **Clarity**: `components/Clarity.tsx` chưa bỏ qua `navigator.webdriver` (GA4 đã bỏ) → phiên Playwright `e2e.yml` chạy trên production sau mỗi deploy bị tính vào. Gắn nhãn phiên admin (`clarity("set", ...)`) để lọc lượt nội bộ (`/admin` chiếm nhiều lượt xem). Khoảng 12/11 xem lại Heatmaps → Dead clicks (trang tin, máy tính) xem 2 chỗ đã sửa còn bấm hụt không.
+5. Tiêu đề trang dự án `/projects/[id]` dài ~120 ký tự (Google cắt ~60).
+6. Nợ design system cũ theo `node scripts/kiem-tra-ui.mjs`: `app/page.tsx` 56 lỗi, `TimPhongNhanh.tsx` 44, `listings/[id]/page.tsx` 32 (màu `slate-*`/hex cứng, `backdrop-blur`).
+7. `internal_all.csv` ở gốc repo là bản xuất quét SEO (Screaming Frog) - không commit.
 
 ## 4. Vận hành
 
