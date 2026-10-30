@@ -38,3 +38,4 @@ crawler/private/
 supabase/DB/
 public/listings/
 scratch/
+internal_all.csv

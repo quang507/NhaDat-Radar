@@ -41,7 +41,11 @@ export async function generateMetadata({
   }
   const p = proj as { id: string; name: string; investor?: string; province?: string; district?: string; address?: string; description?: string; images?: string[] };
   const where = [p.district, p.province].filter(Boolean).join(", ");
-  const title = `Dự án ${p.name}${where ? " - " + where : ""}: Bảng giá & Căn hộ bán, cho thuê | NhaDat Radar`;
+  // 30/10: giữ đuôi " | NhaDat Radar", cắt phần tên dự án ở ranh giới từ để tổng <= 60 ký tự (Google cắt ~60).
+  const duoi = " | NhaDat Radar";
+  const goc = `Dự án ${p.name}${p.district ? ` - ${p.district}` : ""}`;
+  const cho = 60 - duoi.length;
+  const title = `${Array.from(goc).length <= cho ? goc : `${catChu(goc, cho - 1).replace(/\s+\S*$/, "").trim()}…`}${duoi}`;
   const desc = p.description
     ? `Thông tin dự án ${p.name} tại ${p.address || where}. ${catChu(p.description.replace(/\s+/g, " "), 140)}`
     : `Dự án ${p.name} tại ${where}. Xem thông tin chủ đầu tư ${p.investor || "uy tín"}, vị trí, bảng giá và căn hộ bán hoặc cho thuê trên NhaDat Radar.`;
