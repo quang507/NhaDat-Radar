@@ -44,16 +44,19 @@ export default function MoiDienSdt() {
     });
   }, []);
 
-  if (!hien) return null;
-
-  // "Để sau" (chủ ý) = im 7 ngày; bấm ra NỀN TỐI (thường là lỡ tay) chỉ đóng phiên này,
-  // không ghi mốc - đỡ cảnh trượt chuột một cái là mất luôn cả tuần cơ hội xin số.
+  // Esc đóng popup. PHẢI đứng TRƯỚC `if (!hien) return null`: hook sau lệnh return sớm làm số hook
+  // lệch giữa 2 lần render -> React ném lỗi, sập cả trang cho người đã đăng nhập chưa có SĐT (30/10).
   useEffect(() => {
     if (!hien) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setHien(false); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [hien]);
+
+  if (!hien) return null;
+
+  // "Để sau" (chủ ý) = im 7 ngày; bấm ra NỀN TỐI (thường là lỡ tay) chỉ đóng phiên này,
+  // không ghi mốc - đỡ cảnh trượt chuột một cái là mất luôn cả tuần cơ hội xin số.
 
   const deSau = () => { setHien(false); ghiKho(KHOA_NHAC, String(Date.now())); };
   const dongTam = () => setHien(false);
