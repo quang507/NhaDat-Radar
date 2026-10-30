@@ -32,7 +32,7 @@ echo.
 REM ---------- Cao Facebook + day len Supabase ----------
 echo Cao Facebook roi day len Supabase (20-40 phut, cu de day chay)...
 echo.
-node --env-file=.env.local crawlerdaily.mjs --fb-only
+node --env-file=.env.local crawler/daily.mjs --fb-only
 if errorlevel 1 (
   echo.
   echo       [LOI] That bai. Xem thong bao o tren.

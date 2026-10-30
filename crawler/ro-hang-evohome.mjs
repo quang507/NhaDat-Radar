@@ -98,6 +98,15 @@ if (sb) {
     for (const r of data) if (!cu.has(r.source_post_id)) cu.set(r.source_post_id, r);
     if (data.length < 1000) break;
   }
+  // Phòng "dòng mộ" (gone > 30 ngày) đã xoá khỏi listing_ro_hang nhưng vẫn giữ trong listings (source_site='radar')
+  // -> khi mở cho thuê lại cần nhận ra id cũ để tránh đụng uq_listings_source_post (30/10)
+  const chuaCo = [...new Set(src.map((x) => x.source_post_id).filter((id) => id && !cu.has(id)))];
+  for (let i = 0; i < chuaCo.length; i += 300) {
+    const { data, error } = await sb.from("listings").select(COT_CU)
+      .eq("source", "ro_hang").in("source_post_id", chuaCo.slice(i, i + 300));
+    if (error) throw error;
+    for (const r of data) if (!cu.has(r.source_post_id)) cu.set(r.source_post_id, r);
+  }
   console.log(`Đã có trong DB: ${cu.size}`);
 }
 

@@ -24,17 +24,27 @@ node scripts\daily-group-loop.mjs
 
 echo.
 echo ============================================================
-echo   BẠN CÓ MUỐN ĐĂNG BÀI NÀY LÊN FACEBOOK CÁ NHÂN NGAY KHÔNG?
+echo   CHỌN CHẾ ĐỘ CHẠY TỰ ĐỘNG FACEBOOK
 echo ============================================================
-echo   1. Có, đăng ngay lên Facebook
-echo   2. Bỏ qua, chỉ xem trước
+echo   1. Đăng bài rổ hàng lên Facebook cá nhân
+echo   2. Săn khách thông minh (Đọc khach_tim + Ghép phòng + Tự bình luận + Báo cáo ngày Telegram)
+echo   3. Chỉ gửi Báo cáo ngày về Telegram
+echo   4. Bỏ qua, chỉ xem trước
 echo.
-set /p choice="Nhập lựa chọn (1 hoặc 2): "
+set /p choice="Nhập lựa chọn (1, 2, 3 hoặc 4): "
 
 if "%choice%"=="1" (
   echo.
   echo [3/3] Đang tiến hành đăng bài lên Facebook cá nhân...
   node scripts\daily-group-loop.mjs --post-profile
+) else if "%choice%"=="2" (
+  echo.
+  echo [3/3] Đang chạy Săn khách thông minh & Tự động bình luận...
+  node scripts\daily-group-loop.mjs --san-khach
+) else if "%choice%"=="3" (
+  echo.
+  echo [3/3] Đang gửi Báo cáo ngày về Telegram...
+  node scripts\daily-group-loop.mjs --bao-cao-ngay
 ) else (
   echo.
   echo Đã bỏ qua lượt đăng bài.

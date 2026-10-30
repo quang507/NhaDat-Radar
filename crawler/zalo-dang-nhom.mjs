@@ -66,11 +66,12 @@ if (process.argv[2] === "nhom") {
     cfg.nhom.push({ id: g.threadId, ten: g.name, loai: "chua_xep", khu_vuc: [] });
     moi++;
   }
-  ghiJson(FILE_NHOM, cfg);
   const dangO = new Set(ds.map((g) => g.threadId));
   for (const g of cfg.nhom) {
+    if (!dangO.has(g.id) && !["da_roi", "bo_qua"].includes(g.loai)) g.loai = "da_roi";
     console.log(`${dangO.has(g.id) ? " " : "x"} ${g.loai.padEnd(8)} ${g.id}  ${g.ten}${g.khu_vuc?.length ? "  [" + g.khu_vuc.join(", ") + "]" : ""}`);
   }
+  ghiJson(FILE_NHOM, cfg);
   console.log(`\n${ds.length} nhóm acc đang ở · thêm mới ${moi} nhóm ("chua_xep" = chưa đăng, sửa ${FILE_NHOM}) · x = acc đã rời nhóm`);
   process.exit(0);
 }
@@ -222,6 +223,14 @@ try {
   fs.rmSync(dir, { recursive: true, force: true });
 }
 
+if (loi && /kh?ng t?n t?i|kh?ng c? quy?n|tr??ng nh?m/i.test(loi)) {
+  g.loai = "da_roi";
+  ghiJson(FILE_NHOM, cfg);
+  tt.homNay = [...daDangHomNay, g.id];
+  ghiJson(FILE_TT, tt);
+  console.warn(`[${bayGio}] Nh?m "${g.ten}" ?? r?i ho?c kho? chat (${loi}) -> chuy?n da_roi, kh?ng d?ng 24h`);
+  process.exit(0);
+}
 if (loi) {
   tt.tamDungDen = new Date(Date.now() + 24 * 3600_000).toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
   tt.lyDo = `gửi vào "${g.ten}" lỗi: ${loi}`;
