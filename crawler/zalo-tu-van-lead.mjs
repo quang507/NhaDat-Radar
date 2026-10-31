@@ -21,9 +21,14 @@ const nguCanhKhach = new Map(); // key: fromId -> { tin, roHang, luc: timestamp 
 const CONTEXT_TTL_MS = 4 * 60 * 60 * 1000;
 
 // Format giá hiển thị
-export function fmtGia(vnd, deal = "cho_thue") {
-  if (!vnd) return "Thoả thuận";
-  const s = deal === "cho_thue" ? "/tháng" : "";
+export function fmtGia(vnd, deal = "cho_thue", isEn = false) {
+  if (!vnd) return isEn ? "Negotiable" : "Thoả thuận";
+  const s = deal === "cho_thue" ? (isEn ? "/month" : "/tháng") : "";
+  if (isEn) {
+    if (vnd >= 1e9) return `${(vnd / 1e9).toFixed(1).replace(/\.0$/, "")} billion VND${s}`;
+    if (vnd >= 1e6) return `${(vnd / 1e6).toFixed(1).replace(/\.0$/, "")} million VND${s}`;
+    return `${vnd.toLocaleString("en-US")} VND${s}`;
+  }
   if (vnd >= 1e9) return (vnd / 1e9).toFixed(2).replace(/\.?0+$/, "") + " tỷ" + s;
   if (vnd >= 1e6) return (vnd / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",") + " triệu" + s;
   return vnd.toLocaleString("vi-VN") + " đ" + s;
@@ -65,17 +70,17 @@ export function laTiengAnh(text) {
 }
 
 // Phân tích số tầng từ mã phòng unit_code
-export function giaiNghiaTang(unitCode) {
-  if (!unitCode || unitCode === "-") return "Tầng thấp trong toà nhà";
+export function giaiNghiaTang(unitCode, isEn = false) {
+  if (!unitCode || unitCode === "-") return isEn ? "lower floor" : "tầng thấp trong toà";
   const code = String(unitCode).toUpperCase().trim();
-  if (/^(0|G|TRỆT|TRET)/.test(code)) return "Tầng trệt (Ground floor)";
+  if (/^(0|G|TRỆT|TRET)/.test(code)) return isEn ? "Ground floor" : "tầng trệt";
   const cleaned = code.replace(/^(P|PHÒNG|PHONG)[\s.]*/i, "").replace(/^\.+/, "").trim();
   const m = cleaned.match(/^([1-9])(?:\d{1,2}[A-Z]?|[A-Z]|$)/);
   if (m) {
     const tang = Number(m[1]);
-    return `Lầu ${tang} (Floor ${tang})`;
+    return isEn ? `Floor ${tang}` : `lầu ${tang}`;
   }
-  return `Phòng ${unitCode}`;
+  return isEn ? `Room ${unitCode}` : `phòng ${unitCode}`;
 }
 
 // Tra cứu dữ liệu phòng từ Supabase (bảng listings + bảng listing_ro_hang)
@@ -108,68 +113,64 @@ export async function traCuuPhong(sb, dinhDanh) {
   return { tin, roHang };
 }
 
-// Soạn câu trả lời cho khách (Hỗ trợ song ngữ, FAQ chi tiết, không lộ đối tác/số nhà thật)
+// Soạn câu trả lời cho khách (Humanized 100% tự nhiên, xưng mình - bạn, không robot)
 export function soanTraLoiKhach(tin, roHang, textKhach = "") {
   const isEn = laTiengAnh(textKhach);
   const t = textKhach.toLowerCase();
   const specs = tin.specs || {};
-  const giaVnd = fmtGia(tin.price_vnd, tin.deal);
+  const giaStr = fmtGia(tin.price_vnd, tin.deal, isEn);
   const dt = tin.area_m2 ? `${tin.area_m2}m²` : "25m²";
-  const loai = specs["Loại phòng"] || (tin.kind === "can_ho" ? "Căn hộ" : "Studio");
-  const noiThat = specs["Nội thất"] || "Cơ bản";
+  const loai = specs["Loại phòng"] || (tin.kind === "can_ho" ? (isEn ? "apartment" : "căn hộ") : (isEn ? "studio" : "studio"));
+  const noiThat = specs["Nội thất"] || (isEn ? "basic furniture" : "đồ cơ bản");
   const diaChi = [tin.address, tin.district].filter(Boolean).join(", ");
-  const tang = giaiNghiaTang(roHang?.unit_code);
+  const tang = giaiNghiaTang(roHang?.unit_code, isEn);
 
   // ----------------------------------------------------
-  // TRƯỜNG HỢP: KHÁCH HỎI TIẾNG ANH (ENGLISH SUPPORT)
+  // TRƯỜNG HỢP: KHÁCH HỎI TIẾNG ANH (NATURAL ENGLISH)
   // ----------------------------------------------------
   if (isEn) {
-    // 1. Hỏi tầng (floor)
     if (/\b(floor|level|which floor|what floor)\b/i.test(t)) {
-      return `This unit is on ${tang} (Room ${roHang?.unit_code || "10B"}). It is very convenient for moving in and daily access.\nWould you like to come and view it today or tomorrow?`;
+      return `This unit is on ${tang} (Room ${roHang?.unit_code || "10B"}), so it's super convenient to walk up without waiting for an elevator.\nWould you like to drop by and take a look today or tomorrow?`;
     }
-    // 2. Hỏi thú cưng (pet)
     if (/\b(pet|pets|cat|cats|dog|dogs)\b/i.test(t)) {
-      return `Regarding pets: The building policy requires asking management in advance based on your pet's size and breed. If you have a small pet, please let us know so we can check with the landlord for you!`;
+      return `Regarding pets, the building requires checking with management beforehand depending on the pet's size and breed. If your pet is well-behaved, it's usually easy to approve. Could you let me know what kind of pet you have so I can ask the landlord for you?`;
     }
-    // 3. Hỏi chi phí (cost / fees / bill)
     if (/\b(fee|fees|cost|electricity|water|wifi|park|bill)\b/i.test(t)) {
-      return `Here are the building utility fees:\n• Electricity: 4,000 VND/kWh\n• Water: 100,000 VND/person/month\n• Service fee: ~200,000 VND/room\n• Motorbike parking: Free (up to 2 bikes)\n• 24/7 access with fingerprint lock.`;
+      return `The utility fees here are very reasonable:\n• Electricity: 4,000 VND/kWh\n• Water: 100,000 VND/person\n• Motorbike parking: Free\n• 24/7 access with fingerprint lock.\nWhen are you looking to move in?`;
     }
-    // 4. Mặc định / Hỏi chi tiết tổng quan / còn phòng không (available)
-    return `Yes, this unit is still available!\n\nUnit details:\n• Rent: ${giaVnd} (1-month deposit, 1-year lease)\n• Size & Type: ${dt} ${loai}\n• Floor: ${tang}\n• Furnishing: ${noiThat} (A/C, bed, mattress, wardrobe, kitchen cabinet, private bathroom)\n• Location: ${diaChi}\n• Building amenities: 24/7 access, fingerprint lock, shared washing machine.\n\nWhen are you planning to move in, and would you like to schedule a viewing today or tomorrow?`;
+    return `Hi there! Yes, this unit is still available.\n\nIt's a ${dt} ${loai} on ${tang}, already furnished with ${noiThat} (A/C, bed with mattress, wardrobe, private kitchen area). Rent is ${giaStr} with a 1-month deposit. Building is very safe with 24/7 fingerprint access and free parking.\n\nWhen are you planning to move in? Feel free to let me know if you'd like to drop by and see the room today or tomorrow!`;
   }
 
   // ----------------------------------------------------
-  // TRƯỜNG HỢP: KHÁCH HỎI TIẾNG VIỆT
+  // TRƯỜNG HỢP: KHÁCH HỎI TIẾNG VIỆT (HUMANIZER CHUẨN ZALO)
   // ----------------------------------------------------
   // 1. Hỏi tầng mấy
   if (/tầng mấy|lầu mấy|ở lầu|ở tầng|thang bộ|thang máy/i.test(t)) {
-    return `Dạ căn này ở ${tang} nhé anh/chị ơi (đi lại rất tiện, không lo chờ thang). Anh/chị có tiện ghé xem phòng thực tế hôm nay hay mai không ạ?`;
+    return `Dạ căn này nằm ở ${tang} nhen bạn ơi, đi lại tiện lắm nè, đỡ phải chờ thang máy á. Bạn có tính ghé qua coi phòng thực tế hông dạ?`;
   }
 
   // 2. Hỏi thú cưng / chó mèo
   if (/thú cưng|chó|mèo|pet/i.test(t)) {
-    return `Dạ về nuôi thú cưng: Quy định toà nhà cần hỏi trước ban quản lý tuỳ theo loại và kích thước bé. Nếu mình nuôi bé ngoan và giữ vệ sinh sạch sẽ, anh/chị nhắn em bé loại gì để em xin ý kiến quản lý toà giúp mình nhé ạ!`;
+    return `Dạ toà này vụ thú cưng phải hỏi quản lý trước xíu á bạn, để xem bé nhà mình to hay nhỏ á. Bé ngoan với sạch sẽ là xin dễ lắm, bạn nhắn mình bé nhà mình là loại gì để mình check với chủ nhà liền cho nha!`;
   }
 
   // 3. Hỏi giá / cọc
   if (/giá|bao nhiêu|nhiêu tiền|cọc|tiền cọc/i.test(t) && !/địa chỉ|ở đâu|xem|nội thất/i.test(t)) {
-    return `Dạ căn này giá thuê niêm yết là ${giaVnd} ạ.\n• Tiền cọc thông thường là 1 tháng, hợp đồng 12 tháng.\n• Vị trí: ${diaChi}.\nAnh/chị dự kiến ngày nào dọn vào để em hỗ trợ nhé!`;
+    return `Dạ căn này giá thuê chuẩn là ${giaStr} nha bạn, cọc 1 tháng nè. Bạn qua coi phòng ưng bụng là bên mình hỗ trợ thương lượng thêm giá tốt với chủ nhà luôn nhen. Bạn tính khi nào ghé coi được dạ?`;
   }
 
   // 4. Hỏi nội thất / đồ đạc
-  if (/nội thất|đồ đạc|máy lạnh|tủ lạnh|máy giặt|giường/i.test(t)) {
-    return `Dạ phòng đã có sẵn: ${noiThat} (máy lạnh, giường nệm, tủ áo, kệ bếp, WC riêng).\n• Tiện ích toà: Khoá vân tay an ninh, giờ giấc tự do, máy giặt sân phơi chung.\n• Giá thuê: ${giaVnd}.\nAnh/chị có tiện ghé qua xem trực tiếp hôm nay hay ngày mai không ạ?`;
+  if (/nội thất|đồ đạc|đồ gì|có gì|máy lạnh|tủ lạnh|máy giặt|giường/i.test(t)) {
+    return `Dạ phòng có sẵn đồ cơ bản rồi á bạn, vô là có máy lạnh, giường nệm, tủ áo với khu bếp nấu ăn riêng luôn nè. Máy giặt với sân phơi thì dùng chung trên lầu nha. Bạn có rảnh hôm nay hay mai ghé coi thử hông nè?`;
   }
 
   // 5. Hỏi chi phí (điện, nước, xe)
   if (/điện|nước|phí|dịch vụ|xe|gửi xe/i.test(t)) {
-    return `Dạ chi phí toà nhà như sau ạ:\n• Điện: 4.000đ/kWh\n• Nước: 100.000đ/người\n• Phí dịch vụ: ~200.000đ/phòng\n• Gửi xe: Miễn phí xe máy\n• Giờ giấc tự do 24/7.\nAnh/chị cần xem phòng thực tế nhắn em giờ nhé!`;
+    return `Dạ phí toà này mềm lắm nè bạn: điện 4k/ký, nước 100k/người, xe máy thì free luôn á. Giờ giấc tự do 24/7 thoải mái nha. Bạn tính ngày nào dọn qua dạ?`;
   }
 
-  // 6. Mặc định (Khách gửi link / hỏi còn phòng không / hỏi chi tiết tổng quan)
-  return `Dạ căn này hiện vẫn còn trống nhé anh/chị ơi!\n\nThông tin chi tiết căn:\n• Diện tích: ${dt} (${loai})\n• Vị trí tầng: ${tang}\n• Giá thuê: ${giaVnd}\n• Nội thất: ${noiThat}\n• Khu vực: ${diaChi}\n• Toà nhà an ninh, khoá vân tay, giờ giấc ra vào tự do 24/7.\n\nAnh/chị dự kiến khi nào dọn vào và muốn ghé xem phòng thực tế lúc nào để em sắp xếp quản lý đón mình ạ?`;
+  // 6. Mặc định (Khách gửi link / hỏi còn phòng không / hỏi chi tiết)
+  return `Dạ bên mình vẫn còn căn này nha bạn ơi!\n\nCăn này là dạng ${loai} ${dt}, ở ${tang} đi lại tiện lắm nè. Trong phòng thì bên mình có sẵn ${noiThat} (máy lạnh, giường nệm, tủ áo với khu bếp nấu ăn riêng) rồi nhen. Giá thuê ${giaStr}, cọc 1 tháng, giờ giấc ra vào tự do 24/7 khóa vân tay an ninh lắm á.\n\nKhông biết bạn tính khi nào dọn qua dạ? Chiều nay hoặc mai bạn có rảnh ghé coi phòng thực tế hông, mình dắt bạn lên xem luôn nè!`;
 }
 
 // Soạn tin nhắn cảnh báo gửi Zalo Admin (0346689460)
@@ -280,13 +281,13 @@ export async function xuLyTinNhan11({ fromId, senderName, text, sb, cliFn }) {
   // TRƯỜNG HỢP: Khách nhắn chung mà chưa từng hỏi căn nào
   const isEn = laTiengAnh(text);
   if (isEn) {
-    const phanHoiEn = `Hello! I'm the assistant at NhaDat Radar.\nWhich district or area are you looking for an apartment in, and what is your monthly budget? I will find the best available rooms for you!`;
+    const phanHoiEn = `Hi there! Which district or area are you looking for an apartment in, and what is your approximate budget? Let me know and I'll find the best available units for you right away!`;
     await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiEn]).catch(() => {});
     return;
   }
 
   if (/phòng|thuê|căn hộ|chung cư|nhà|chào|alo|hello|hi\b/i.test(text)) {
-    const phanHoiChung = `Dạ em chào anh/chị! Em là trợ lý trực của NhaDat Radar.\nAnh/chị đang quan tâm căn phòng nào trên web nhadatradar.com, hoặc cần tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc căn trống đẹp nhất gửi mình nhé ạ!`;
+    const phanHoiChung = `Dạ alo bạn ơi, bạn đang tính tìm phòng ở khu vực nào với ngân sách tầm bao nhiêu á? Nhắn mình nhu cầu để mình kiếm mấy căn trống đẹp đúng ý gửi bạn xem liền nhen!`;
     await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiChung]).catch(() => {});
   }
 }
