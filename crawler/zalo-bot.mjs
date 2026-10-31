@@ -9,12 +9,13 @@
 //
 //  ⚠ Dùng tài khoản Zalo CLONE - API không chính thức có thể bị Zalo khoá.
 // ============================================================================
-import { spawn, execFileSync } from "node:child_process";
+import { spawn, execFileSync, execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 import { canonProvince, quanTheoDB } from "./chung.mjs";
+import { xuLyTinNhan11 } from "./zalo-tu-van-lead.mjs";
 
 // Windows: spawn/execFileSync KHÔNG chạy được shim .cmd của npm (ENOENT/EINVAL)
 // -> tìm file bin thật của zalo-agent-cli trong npm global rồi gọi `node <bin>`.
@@ -833,8 +834,14 @@ async function handle(text, anh = [], khoaAnh = null) {
 
 // Gửi tin nhắn trả lời (ĐÃ KHÓA HOÀN TOÀN THEO YÊU CẦU: tài khoản dùng cho việc kinh doanh khác)
 function sendReply(toId, text, { group = false } = {}) {
-  // TUYỆT ĐỐI KHÔNG gửi bất kỳ tin nhắn nào ra ngoài bằng tài khoản này.
-  return;
+  try {
+    const threadType = group ? "1" : "0";
+    execFileSync(CLI, [...ZALO.pre, "msg", "send", "-t", threadType, String(toId), text], { windowsHide: true, timeout: 30000 });
+    return true;
+  } catch (e) {
+    console.error(`Gửi Zalo tới ${toId} lỗi:`, e.message);
+    return false;
+  }
 }
 
 // Lắng nghe tin nhắn đến (stream JSON qua stdout)
@@ -870,9 +877,26 @@ function startListener() {
     const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
     if (!fromId || isSelf) return;
 
-    // YÊU CẦU ĐẶC BIỆT: Tài khoản này dùng cho business khác của chủ tài khoản
-    // -> BỎ QUA HOÀN TOÀN TIN NHẮN RIÊNG 1-1, KHÔNG ĐỤNG VÀO, KHÔNG TRẢ LỜI
-    if (!isGroup) return;
+    // XỬ LÝ TIN NHẮN 1-1: Tư vấn phòng tự động & Báo lead sang Zalo Admin
+    if (!isGroup) {
+      if (text) {
+        const senderName = d.sender?.name || d.displayName || d.name || "Khách Zalo";
+        console.log(`← [1-1 ${fromId} (${senderName})] ${text.slice(0, 80)}`);
+        await xuLyTinNhan11({
+          fromId,
+          senderName,
+          text,
+          sb,
+          cliFn: (args) => new Promise((resolve, reject) => {
+            execFile(CLI, [...ZALO.pre, "--json", ...args], { timeout: 30000 }, (err, stdout) => {
+              if (err) return reject(err);
+              resolve(stdout);
+            });
+          }),
+        }).catch((e) => console.error("xuLyTinNhan11 lỗi:", e.message));
+      }
+      return;
+    }
     if (BO_QUA_NHOM.has(String(fromId))) return;
 
     // Khoá ghép ảnh-với-chữ: group phải kèm NGƯỜI GỬI (uidFrom) - không thì ảnh của người A
