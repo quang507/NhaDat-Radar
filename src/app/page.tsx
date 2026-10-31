@@ -17,7 +17,7 @@ import { laTinDocQuyen } from "@/lib/doc-quyen";
 import { tronRoHang, laRoHang } from "@/lib/ro-hang";
 import { BAI_VIET } from "@/lib/bai-viet";
 import SafeImg from "@/components/SafeImg";
-import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Building2, LandPlot, Store, ArrowRight, Clock, Calendar, Newspaper, ShieldCheck, Play, MessageCircle } from "lucide-react";
+import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Building2, LandPlot, Store, ArrowRight, Clock, Calendar, Newspaper, ShieldCheck, Play, MessageCircle, SearchX } from "lucide-react";
 
 // thứ hạng ưu tiên trong lưới kết quả: tin Zalo (0) -> rổ hàng Radar (1) -> tin FB (2) -> nguồn web (3)
 const uuTienDocQuyen = (x: Listing) =>
@@ -310,7 +310,35 @@ export default async function Home() {
                   .map((x) => <ListingCard key={x.id} x={x} />)}
               </div>
               {!listings.length && (
-                <p className="text-[var(--ink-soft)] py-10 text-center">Không có tin khớp bộ lọc.</p>
+                <div className="band-spotlight p-6 sm:p-8 text-center max-w-xl mx-auto my-6">
+                  <div className="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
+                    <SearchX className="w-6 h-6 stroke-[2.2]" />
+                  </div>
+                  <h3 className="font-bold text-base sm:text-lg mb-1.5 text-[var(--ink)]">
+                    Khu vực này hiện đang hiếm phòng trống
+                  </h3>
+                  <p className="text-[var(--ink-soft)] text-xs sm:text-sm mb-4 leading-relaxed max-w-md mx-auto">
+                    Các phòng phù hợp có thể vừa được thuê hoặc tiêu chí đang lọc quá hẹp. Nhắn Zalo để chuyên viên Radar tìm căn mới và giữ chỗ ngay cho bạn trong 15 phút:
+                  </p>
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                    <NutZalo
+                      tinNhan="Chào Radar, mình đang cần tìm phòng phù hợp nhưng trên web đang hết căn khớp. Nhờ chuyên viên hỗ trợ tìm và giữ chỗ phòng mới giúp mình nhé!"
+                      href={HOTLINE_ZALO}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto btn btn-primary px-4 py-2 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <MessageCircle className="w-4 h-4 fill-current shrink-0" />
+                      <span>Nhắn Zalo nhờ Radar giữ chỗ phòng mới (15 phút)</span>
+                    </NutZalo>
+                    <Link
+                      href="/"
+                      className="w-full sm:w-auto btn px-4 py-2 text-xs rounded-md border border-[var(--line-strong)] text-[var(--ink-soft)] hover:text-brand"
+                    >
+                      Xóa bộ lọc
+                    </Link>
+                  </div>
+                </div>
               )}
             </div>
             {mapItems.length > 0 && (

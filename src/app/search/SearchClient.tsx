@@ -793,9 +793,9 @@ export default function SearchClient({
                 <div className="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
                   <SearchX className="w-6 h-6 stroke-[2.2]" />
                 </div>
-                <h3 className="font-bold text-base sm:text-lg mb-1.5 text-[var(--ink)]">Chưa tìm thấy căn phù hợp với bộ lọc này</h3>
+                <h3 className="font-bold text-base sm:text-lg mb-1.5 text-[var(--ink)]">Khu vực này hiện đang hiếm phòng trống</h3>
                 <p className="text-[var(--ink-soft)] text-xs sm:text-sm mb-4 leading-relaxed max-w-md mx-auto">
-                  Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể bấm nới lỏng nhanh tiêu chí hoặc để lại yêu cầu, chuyên viên Radar sẽ tìm và gửi video trực tiếp qua Zalo:
+                  Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể nới lỏng nhanh tiêu chí hoặc nhắn Zalo để chuyên viên Radar tìm phòng và giữ chỗ ngay cho bạn trong 15 phút:
                 </p>
 
                 <div className="flex flex-wrap justify-center gap-1.5 mb-5">
@@ -857,7 +857,7 @@ export default function SearchClient({
                         className="w-full sm:w-auto btn btn-primary px-4 py-2 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <MessageCircle className="w-4 h-4 fill-current shrink-0" />
-                        <span>Nhắn Zalo nhờ Radar tìm giúp (15 phút)</span>
+                        <span>Nhắn Zalo nhờ Radar giữ chỗ phòng mới (15 phút)</span>
                       </NutZalo>
                       <button
                         type="button"

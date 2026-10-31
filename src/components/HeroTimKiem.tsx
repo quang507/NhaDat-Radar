@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PlaceSuggest, { type Place, type DuAnGoiY } from "./PlaceSuggest";
 import { PROP } from "@/lib/format";
-import { Search, Sparkles, ArrowRight, Map } from "lucide-react";
+import { Search, Sparkles, ArrowRight, Map, GraduationCap } from "lucide-react";
 
 // Ô tìm kiếm trang chủ: tab Thuê | Mua | Định giá + chip lối tắt khu vực/giá.
 // Mặc định tab THUÊ: hàng chủ lực là rổ hàng phòng trống cho thuê. Form gửi thẳng sang /search (GET) -
@@ -188,22 +188,27 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
                     </Link>
                   ))}
                 </div>
-                <div className="hidden sm:flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center">
-                  <span className="hidden sm:inline text-[var(--ink-faint)] self-center mr-1 text-overline uppercase tracking-wider font-semibold shrink-0">Khu vực sinh viên:</span>
+                <div className="cuon-ngang flex gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 items-center" title="Phòng trọ gần các trường đại học">
+                  <span className="text-[var(--ink-faint)] self-center mr-1 text-overline uppercase tracking-wider font-semibold shrink-0">
+                    Sinh viên<span className="hidden sm:inline"> (Gần ĐH)</span>:
+                  </span>
                   {[
-                    ["Kinh Tế", "ĐH Kinh Tế"],
+                    ["Kinh Tế", "ĐH Kinh Tế (UEH)"],
                     ["Bách Khoa", "ĐH Bách Khoa"],
                     ["Hutech", "ĐH Hutech"],
                     ["Tôn Đức Thắng", "ĐH Tôn Đức Thắng"],
                     ["Công Nghiệp", "ĐH Công Nghiệp"],
+                    ["Sư Phạm", "ĐH Sư Phạm"],
+                    ["Y Dược", "ĐH Y Dược"],
                     ["Metro", "Tuyến Metro số 1"],
                   ].map(([qTerm, label]) => (
                     <Link
                       key={qTerm}
                       href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", q: qTerm })}
-                      className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition whitespace-nowrap font-medium text-xs"
+                      className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-2.5 sm:px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition whitespace-nowrap font-medium text-xs"
                     >
-                      {label}
+                      <GraduationCap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>{label}</span>
                     </Link>
                   ))}
                 </div>
