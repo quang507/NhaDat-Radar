@@ -72,29 +72,31 @@ export default function ThePhong({ x }: { x: Listing }) {
       <FavButton id={x.id} className="absolute top-2 right-2" />
 
       <div className="p-3 flex flex-col gap-1.5 flex-1">
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
-          {ma && <span className="shrink-0 text-overline font-bold px-1.5 py-0.5 rounded-sm border border-brand/40 text-brand bg-brand/5" title="Mã phòng - gửi kèm khi nhắn Zalo">{ma}</span>}
-          <span className="text-brand font-extrabold text-base leading-tight whitespace-nowrap">{giaThang(x.price_vnd)}</span>
-        </div>
-        <Link href={href} className="text-body-sm font-semibold leading-snug line-clamp-2 hover:text-brand" title={tieuDe}>{tieuDe}</Link>
-        <div className="text-caption text-[var(--ink-soft)] truncate">{diaChi}</div>
-
-        <div className="flex flex-wrap items-center gap-1 text-caption">
-          <span className="px-1.5 py-0.5 rounded bg-brand/10 text-brand font-semibold">{LOAI_NGAN[x.kind] || PROP[x.kind] || "Khác"}</span>
-          {x.area_m2 ? <span className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-soft)]">{x.area_m2} m²</span> : null}
-          {roHang && <span className="ml-auto px-1.5 py-0.5 rounded border border-emerald-500/50 text-emerald-600 font-semibold">Trống</span>}
-        </div>
-
-        {ti.length > 0 && (
-          <div className="flex items-center gap-1" title={ti.map((t) => t.ten).join(", ")}>
-            {ti.slice(0, 3).map((t) => (
-              <span key={t.k} className="grid place-items-center w-6 h-6 rounded-md bg-brand/10 text-caption" title={t.ten} aria-label={t.ten}>{t.icon}</span>
-            ))}
-            {ti.length > 3 && <span className="text-caption text-[var(--ink-soft)] ml-0.5">+{ti.length - 3} tiện ích</span>}
+        <Link href={href} className="flex flex-col gap-1.5 flex-1 group/body">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
+            {ma && <span className="shrink-0 text-overline font-bold px-1.5 py-0.5 rounded-sm border border-brand/40 text-brand bg-brand/5" title="Mã phòng - gửi kèm khi nhắn Zalo">{ma}</span>}
+            <span className="text-brand font-extrabold text-base leading-tight whitespace-nowrap">{giaThang(x.price_vnd)}</span>
           </div>
-        )}
+          <h3 className="text-body-sm font-semibold leading-snug line-clamp-2 text-[var(--ink)] group-hover/body:text-brand transition-colors" title={tieuDe}>{tieuDe}</h3>
+          <div className="text-caption text-[var(--ink-soft)] truncate">{diaChi}</div>
 
-        {ageMin != null && <div suppressHydrationWarning className="text-caption text-[var(--ink-faint)]">Đăng: {fresh(ageMin)}</div>}
+          <div className="flex flex-wrap items-center gap-1 text-caption">
+            <span className="px-1.5 py-0.5 rounded bg-brand/10 text-brand font-semibold">{LOAI_NGAN[x.kind] || PROP[x.kind] || "Khác"}</span>
+            {x.area_m2 ? <span className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-soft)]">{x.area_m2} m²</span> : null}
+            {roHang && <span className="ml-auto px-1.5 py-0.5 rounded border border-emerald-500/50 text-emerald-600 font-semibold">Trống</span>}
+          </div>
+
+          {ti.length > 0 && (
+            <div className="flex items-center gap-1" title={ti.map((t) => t.ten).join(", ")}>
+              {ti.slice(0, 3).map((t) => (
+                <span key={t.k} className="grid place-items-center w-6 h-6 rounded-md bg-brand/10 text-caption" title={t.ten} aria-label={t.ten}>{t.icon}</span>
+              ))}
+              {ti.length > 3 && <span className="text-caption text-[var(--ink-soft)] ml-0.5">+{ti.length - 3} tiện ích</span>}
+            </div>
+          )}
+
+          {ageMin != null && <div suppressHydrationWarning className="text-caption text-[var(--ink-faint)]">Đăng: {fresh(ageMin)}</div>}
+        </Link>
 
         <div className="mt-auto pt-2 flex gap-1.5">
           <button type="button" onClick={chep} title="Sao chép thông tin" aria-label="Sao chép thông tin"

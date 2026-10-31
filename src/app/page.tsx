@@ -215,12 +215,17 @@ export default async function Home() {
         </svg>
 
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-sm bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold mb-2.5 shadow-2xs">
+          <Link
+            href="/search?deal=cho_thue"
+            title="Xem danh sách hơn 1.380 phòng trống mới cập nhật hôm nay"
+            className="inline-flex items-center gap-2 px-2.5 py-1 rounded-sm bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:border-emerald-500 text-xs font-bold mb-2.5 shadow-2xs group transition-all"
+          >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {/* mobile: 1 dòng ngắn (câu dài cũ rớt 2 dòng, đẩy ô tìm kiếm xuống) */}
             <span className="sm:hidden">1.380+ phòng trống mới hôm nay</span>
             <span className="hidden sm:inline">Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay (Xác minh trực tiếp)</span>
-          </div>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform opacity-70 group-hover:opacity-100" />
+          </Link>
 
           <h1 className={`heading-1 mb-2.5 sm:mb-3 text-[var(--ink)] tracking-tight text-balance ${hasFilter ? "text-xl md:text-2xl" : "text-h2 sm:!text-3xl md:!text-4xl"}`}>
             Sàn Nhà Đất &amp; Phòng Trọ <span className="text-brand">Xác Minh Thực Tế</span>
