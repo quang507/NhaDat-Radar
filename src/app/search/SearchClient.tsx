@@ -393,7 +393,7 @@ export default function SearchClient({
           <path d="M3 4h14l-5.5 6.5V16l-3 1.5v-7L3 4z" strokeLinejoin="round" />
         </svg>
         Lọc
-        {soLoc > 0 && <span className="grid place-items-center min-w-5 h-5 px-1 rounded-full bg-brand text-white text-[0.7rem] font-bold">{soLoc}</span>}
+        {soLoc > 0 && <span className="grid place-items-center min-w-5 h-5 px-1 rounded-full bg-brand text-white text-overline font-bold">{soLoc}</span>}
       </button>
       <CongTac bat={own} onDoi={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
         title="Chỉ hiển thị các tin đã được Radar xác minh thực tế & pháp lý"
@@ -480,7 +480,7 @@ export default function SearchClient({
             <path d="M3 6h9M15 6h2M3 14h2M8 14h9" strokeLinecap="round" /><circle cx="13.5" cy="6" r="1.8" /><circle cx="6.5" cy="14" r="1.8" />
           </svg>
           Bộ lọc
-          {soLoc > 0 && <span className="grid place-items-center min-w-5 h-5 px-1 rounded-full bg-brand text-white text-[0.7rem] font-bold">{soLoc}</span>}
+          {soLoc > 0 && <span className="grid place-items-center min-w-5 h-5 px-1 rounded-full bg-brand text-white text-overline font-bold">{soLoc}</span>}
         </button>
         <span className="sm:hidden ml-auto"><SaveSearchButton filters={goc} compact /></span>
       </div>
@@ -507,7 +507,7 @@ export default function SearchClient({
             title="Chỉ hiển thị các tin đã được Radar xác minh thực tế & pháp lý"
           >
             <span className={`w-9 h-5 rounded-full transition relative ${own ? "bg-emerald-600" : "bg-[var(--line-strong)]"}`}>
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--surface)] transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
             </span>
             Tin đã xác minh
           </button>
@@ -518,7 +518,7 @@ export default function SearchClient({
             title="Bật: duyệt theo Tỉnh → Phường (hệ 2 cấp) và lọc theo địa giới 2025 - chọn Hồ Chí Minh sẽ gồm cả tin còn ghi Bình Dương / Bà Rịa - Vũng Tàu."
           >
             <span className={`w-9 h-5 rounded-full transition relative ${newAddr ? "bg-brand" : "bg-[var(--line-strong)]"}`}>
-              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--surface)] transition-all ${newAddr ? "left-[18px]" : "left-0.5"}`} />
             </span>
             Địa chỉ sau sáp nhập
           </button>
@@ -789,13 +789,13 @@ export default function SearchClient({
             </>
           ) : (
             <>
-              <div className="card rounded-lg p-6 sm:p-8 text-center border border-[var(--line)] shadow-xs max-w-lg mx-auto my-6">
-                <div className="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-3.5">
-                  <SearchX className="w-6 h-6" />
+              <div className="band-spotlight p-6 sm:p-8 text-center max-w-xl mx-auto my-6">
+                <div className="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
+                  <SearchX className="w-6 h-6 stroke-[2.2]" />
                 </div>
-                <h3 className="font-bold text-base sm:text-lg mb-1 text-[var(--ink)]">Chưa tìm thấy căn phù hợp với bộ lọc</h3>
-                <p className="text-[var(--ink-soft)] text-xs sm:text-sm mb-4 leading-relaxed">
-                  Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể nới lỏng nhanh tiêu chí hoặc gửi trực tiếp cho chuyên viên Radar tìm giúp:
+                <h3 className="font-bold text-base sm:text-lg mb-1.5 text-[var(--ink)]">Chưa tìm thấy căn phù hợp với bộ lọc này</h3>
+                <p className="text-[var(--ink-soft)] text-xs sm:text-sm mb-4 leading-relaxed max-w-md mx-auto">
+                  Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể bấm nới lỏng nhanh tiêu chí hoặc để lại yêu cầu, chuyên viên Radar sẽ tìm và gửi video trực tiếp qua Zalo:
                 </p>
 
                 <div className="flex flex-wrap justify-center gap-1.5 mb-5">
@@ -803,7 +803,7 @@ export default function SearchClient({
                     <button
                       type="button"
                       onClick={() => push({ ...goc, q: "" })}
-                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:border-brand hover:text-brand cursor-pointer"
+                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-[var(--line-strong)] hover:border-brand hover:text-brand cursor-pointer"
                     >
                       Bỏ từ khóa “{goc.q}”
                     </button>
@@ -812,7 +812,7 @@ export default function SearchClient({
                     <button
                       type="button"
                       onClick={() => push({ ...goc, priceMin: "", priceMax: "" })}
-                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:border-brand hover:text-brand cursor-pointer"
+                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-[var(--line-strong)] hover:border-brand hover:text-brand cursor-pointer"
                     >
                       Mở rộng khoảng giá
                     </button>
@@ -821,7 +821,7 @@ export default function SearchClient({
                     <button
                       type="button"
                       onClick={() => push({ ...goc, ward: "" })}
-                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:border-brand hover:text-brand cursor-pointer"
+                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-[var(--line-strong)] hover:border-brand hover:text-brand cursor-pointer"
                     >
                       Xem toàn {goc.district || "quận"}
                     </button>
@@ -830,7 +830,7 @@ export default function SearchClient({
                     <button
                       type="button"
                       onClick={() => push({ ...goc, district: "", ward: "" })}
-                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:border-brand hover:text-brand cursor-pointer"
+                      className="btn !py-1 !px-2.5 text-xs rounded-md border border-[var(--line-strong)] hover:border-brand hover:text-brand cursor-pointer"
                     >
                       Xem toàn {goc.province || "tỉnh/thành"}
                     </button>
@@ -857,7 +857,7 @@ export default function SearchClient({
                         className="w-full sm:w-auto btn btn-primary px-4 py-2 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <MessageCircle className="w-4 h-4 fill-current shrink-0" />
-                        <span>Nhắn Zalo nhờ Radar tìm giúp</span>
+                        <span>Nhắn Zalo nhờ Radar tìm giúp (15 phút)</span>
                       </NutZalo>
                       <button
                         type="button"

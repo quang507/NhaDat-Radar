@@ -43,10 +43,10 @@ export default function ThePhong({ x }: { x: Listing }) {
   }
 
   return (
-    <div className="relative card rounded-lg overflow-hidden flex flex-col hover:shadow-xs hover:border-[var(--line-strong)] transition">
+    <div className={`relative card rounded-lg overflow-hidden flex flex-col transition-all duration-200 ${roHang ? "border-t-2 border-t-brand" : ""}`}>
       <Link href={href} className="relative block aspect-[3/2] overflow-hidden" style={{ background: x.images?.[0] ? "var(--surface-2)" : t.bg }}>
         {x.images?.[0] ? (
-          <SafeImg src={x.images[0]} alt={tieuDe} fallbackLabel={PROP[x.kind]} className="w-full h-full object-cover" />
+          <SafeImg src={x.images[0]} alt={tieuDe} fallbackLabel={PROP[x.kind]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         ) : (
           <PropertyPlaceholder kind={x.kind} />
         )}
@@ -54,32 +54,32 @@ export default function ThePhong({ x }: { x: Listing }) {
         {(roHang || anh.video) && (
           <div className="absolute top-2 left-2 right-12 flex flex-wrap gap-1">
             {roHang && (
-              <span className="text-[0.62rem] font-bold px-1.5 py-0.5 rounded-sm bg-emerald-700 text-white shadow-sm flex items-center gap-1 tracking-wide whitespace-nowrap">
+              <span className="text-overline tracking-tight font-bold px-1.5 py-0.5 rounded-sm bg-emerald-700 text-white shadow-xs flex items-center gap-1 whitespace-nowrap">
                 <ShieldCheck className="w-3 h-3 shrink-0" />
                 <span>XÁC MINH</span>
               </span>
             )}
             {anh.video && (
-              <span className="text-[0.62rem] font-bold px-1.5 py-0.5 rounded-sm bg-rose-600 text-white shadow-sm flex items-center gap-1 tracking-wide whitespace-nowrap">
+              <span className="text-overline tracking-tight font-bold px-1.5 py-0.5 rounded-sm bg-rose-600 text-white shadow-xs flex items-center gap-1 whitespace-nowrap">
                 <Play className="w-2.5 h-2.5 fill-current" />
                 <span>VIDEO</span>
               </span>
             )}
           </div>
         )}
-        {anh.so > 1 && <span className="absolute bottom-2 right-2 text-[0.62rem] font-semibold px-2 py-0.5 rounded-md bg-black/75 text-white backdrop-blur-md">{anh.so} ảnh</span>}
+        {anh.so > 1 && <span className="absolute bottom-2 right-2 text-overline font-semibold px-2 py-0.5 rounded-sm bg-black/75 text-white">{anh.so} ảnh</span>}
       </Link>
       <FavButton id={x.id} className="absolute top-2 right-2" />
 
-      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
+      <div className="p-3 flex flex-col gap-1.5 flex-1">
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0">
-          {ma && <span className="shrink-0 text-[0.62rem] font-bold px-1.5 py-0.5 rounded border border-brand/40 text-brand" title="Mã phòng - gửi kèm khi nhắn Zalo">{ma}</span>}
-          <span className="text-brand font-extrabold text-[0.95rem] leading-tight whitespace-nowrap">{giaThang(x.price_vnd)}</span>
+          {ma && <span className="shrink-0 text-overline font-bold px-1.5 py-0.5 rounded-sm border border-brand/40 text-brand bg-brand/5" title="Mã phòng - gửi kèm khi nhắn Zalo">{ma}</span>}
+          <span className="text-brand font-extrabold text-base leading-tight whitespace-nowrap">{giaThang(x.price_vnd)}</span>
         </div>
-        <Link href={href} className="text-[0.8rem] font-semibold leading-snug line-clamp-2 hover:text-brand" title={tieuDe}>{tieuDe}</Link>
-        <div className="text-[0.72rem] text-[var(--ink-soft)] truncate">{diaChi}</div>
+        <Link href={href} className="text-body-sm font-semibold leading-snug line-clamp-2 hover:text-brand" title={tieuDe}>{tieuDe}</Link>
+        <div className="text-caption text-[var(--ink-soft)] truncate">{diaChi}</div>
 
-        <div className="flex flex-wrap items-center gap-1 text-[0.68rem]">
+        <div className="flex flex-wrap items-center gap-1 text-caption">
           <span className="px-1.5 py-0.5 rounded bg-brand/10 text-brand font-semibold">{LOAI_NGAN[x.kind] || PROP[x.kind] || "Khác"}</span>
           {x.area_m2 ? <span className="px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--ink-soft)]">{x.area_m2} m²</span> : null}
           {roHang && <span className="ml-auto px-1.5 py-0.5 rounded border border-emerald-500/50 text-emerald-600 font-semibold">Trống</span>}
@@ -88,29 +88,29 @@ export default function ThePhong({ x }: { x: Listing }) {
         {ti.length > 0 && (
           <div className="flex items-center gap-1" title={ti.map((t) => t.ten).join(", ")}>
             {ti.slice(0, 3).map((t) => (
-              <span key={t.k} className="grid place-items-center w-6 h-6 rounded-md bg-brand/10 text-[0.7rem]" title={t.ten} aria-label={t.ten}>{t.icon}</span>
+              <span key={t.k} className="grid place-items-center w-6 h-6 rounded-md bg-brand/10 text-caption" title={t.ten} aria-label={t.ten}>{t.icon}</span>
             ))}
-            {ti.length > 3 && <span className="text-[0.68rem] text-[var(--ink-soft)] ml-0.5">+{ti.length - 3} tiện ích</span>}
+            {ti.length > 3 && <span className="text-caption text-[var(--ink-soft)] ml-0.5">+{ti.length - 3} tiện ích</span>}
           </div>
         )}
 
-        {ageMin != null && <div suppressHydrationWarning className="text-[0.66rem] text-[var(--ink-faint)]">Đăng: {fresh(ageMin)}</div>}
+        {ageMin != null && <div suppressHydrationWarning className="text-caption text-[var(--ink-faint)]">Đăng: {fresh(ageMin)}</div>}
 
-        <div className="mt-auto pt-1.5 flex gap-1.5">
+        <div className="mt-auto pt-2 flex gap-1.5">
           <button type="button" onClick={chep} title="Sao chép thông tin" aria-label="Sao chép thông tin"
-            className={`shrink-0 w-9 h-9 grid place-items-center rounded-lg border transition ${daChep ? "border-brand text-brand bg-brand/5" : "border-[var(--line-strong)] hover:border-brand"}`}>
+            className={`shrink-0 w-9 h-9 grid place-items-center rounded-md border transition ${daChep ? "border-brand text-brand bg-brand/5" : "border-[var(--line-strong)] hover:border-brand"}`}>
             {daChep ? "✓" : (
               <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
                 <rect x="7" y="7" width="10" height="10" rx="2" /><path d="M13 7V5a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2" />
               </svg>
             )}
           </button>
-          <Link href={`${href}#lien-he`} onClick={() => baoGA("ndr_bam_lien_he_the", { listing_id: x.id })} className="flex-1 h-9 rounded-lg bg-brand text-white text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-brand-ink">
+          <Link href={`${href}#lien-he`} onClick={() => baoGA("ndr_bam_lien_he_the", { listing_id: x.id })} className="btn btn-primary flex-1 h-9 rounded-md text-sm font-semibold flex items-center justify-center gap-1.5 shadow-2xs">
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><rect x="3" y="4.5" width="14" height="12" rx="2" /><path d="M3 8.5h14M7 3v3M13 3v3" strokeLinecap="round" /></svg>
             Liên hệ
           </Link>
         </div>
-        <Link href={href} className="text-center text-[0.72rem] text-[var(--ink-soft)] hover:text-brand py-0.5 inline-flex items-center justify-center gap-1">
+        <Link href={href} className="text-center text-caption text-[var(--ink-soft)] hover:text-brand py-0.5 inline-flex items-center justify-center gap-1">
           <Eye className="w-3.5 h-3.5" />
           <span>Xem chi tiết</span>
         </Link>

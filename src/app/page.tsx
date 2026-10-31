@@ -232,42 +232,60 @@ export default async function Home() {
           <HeroTimKiem chip={chip} places={goiY} />
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-3.5 sm:mt-5 text-xs">
-            <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-emerald-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs">
-              <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <Link
+              href="/search?own=1"
+              title="Xem danh sách tin đã xác minh thực tế"
+              className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-emerald-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:border-brand hover:shadow-xs transition group cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
               </div>
-              <div>
-                <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">100% Tin xác minh</div>
-                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal">Tự động gỡ phòng đã thuê</div>
+              <div className="min-w-0">
+                <div className="font-bold text-[var(--ink)] group-hover:text-brand text-xs sm:text-sm leading-tight transition-colors">100% Tin xác minh</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Tự động gỡ phòng đã thuê</div>
               </div>
-            </div>
-            <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-rose-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs">
-              <div className="w-7 h-7 rounded-md bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            </Link>
+            <Link
+              href="/search?deal=cho_thue&ti=video"
+              title="Xem các phòng có video quay thực tế"
+              className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-rose-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:border-rose-500 hover:shadow-xs transition group cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-md bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <Play className="w-4 h-4 stroke-[2.2]" />
               </div>
-              <div>
-                <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Có video thực tế</div>
-                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal">Xem phòng &amp; hẻm trước</div>
+              <div className="min-w-0">
+                <div className="font-bold text-[var(--ink)] group-hover:text-rose-600 dark:group-hover:text-rose-400 text-xs sm:text-sm leading-tight transition-colors">Có video thực tế</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Xem phòng &amp; hẻm trước</div>
               </div>
-            </div>
-            <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-amber-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs">
-              <div className="w-7 h-7 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            </Link>
+            <Link
+              href="/dinh-gia"
+              title="Tra cứu giá thị trường và lịch sử giao dịch BĐS"
+              className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-amber-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:border-amber-500 hover:shadow-xs transition group cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <Store className="w-4 h-4 stroke-[2.2]" />
               </div>
-              <div>
-                <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Đúng giá chủ nhà</div>
-                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal">Không chênh giá môi giới</div>
+              <div className="min-w-0">
+                <div className="font-bold text-[var(--ink)] group-hover:text-amber-600 dark:group-hover:text-amber-400 text-xs sm:text-sm leading-tight transition-colors">Đúng giá chủ nhà</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Không chênh giá môi giới</div>
               </div>
-            </div>
-            <div className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-blue-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs">
-              <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            </Link>
+            <a
+              href={HOTLINE_ZALO}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Chat Zalo hoặc gọi hotline tư vấn 24/7"
+              className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-blue-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:border-blue-500 hover:shadow-xs transition group cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <Clock className="w-4 h-4 stroke-[2.2]" />
               </div>
-              <div>
-                <div className="font-bold text-[var(--ink)] text-xs sm:text-sm leading-tight">Hỗ trợ 24/7</div>
-                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal">Hotline: 0387 365 020</div>
+              <div className="min-w-0">
+                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Hỗ trợ 24/7</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Hotline: 0387 365 020</div>
               </div>
-            </div>
+            </a>
           </div>
         </div>
       </section>

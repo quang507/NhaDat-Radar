@@ -5,17 +5,36 @@ import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import { NutZalo } from "@/components/TheoDoi";
 import { MessageCircle, ShieldCheck, Video, Clock, CheckCircle2, PhoneCall } from "lucide-react";
 
-const QUAN_HOT = [
+const KHU_VUC_THUE = [
+  // TP.HCM - Nội thành
   "Bình Thạnh",
   "Gò Vấp",
   "Tân Bình",
   "Phú Nhuận",
-  "Quận 7",
-  "Quận 10",
   "Quận 1",
-  "TP. Thủ Đức",
   "Quận 3",
+  "Quận 4",
+  "Quận 5",
+  "Quận 6",
+  "Quận 7",
+  "Quận 8",
+  "Quận 10",
+  "Quận 11",
+  "Quận 12",
   "Tân Phú",
+  "Bình Tân",
+  "TP. Thủ Đức",
+  // TP.HCM - Ngoại thành
+  "Hóc Môn",
+  "Bình Chánh",
+  "Nhà Bè",
+  "Củ Chi",
+  "Cần Giờ",
+  // Tỉnh thành khác
+  "Bình Dương",
+  "Đồng Nai",
+  "Hà Nội",
+  "Đà Nẵng",
 ];
 
 const GIA_MUC = [
@@ -35,7 +54,7 @@ const LOAI_HINH = [
 ];
 
 export default function TimPhongNhanh() {
-  const [district, setDistrict] = useState(QUAN_HOT[0]);
+  const [district, setDistrict] = useState(KHU_VUC_THUE[0]);
   const [budget, setBudget] = useState(GIA_MUC[1]);
   const [type, setType] = useState(LOAI_HINH[0]);
 
@@ -85,9 +104,9 @@ export default function TimPhongNhanh() {
                 onChange={(e) => setDistrict(e.target.value)}
                 className="inp w-full !py-2 text-sm rounded-md bg-[var(--surface-2)] border-[var(--line-strong)] text-[var(--ink)] font-medium cursor-pointer"
               >
-                {QUAN_HOT.map((q) => (
+                {KHU_VUC_THUE.map((q) => (
                   <option key={q} value={q}>
-                    {q} (TP.HCM)
+                    {["Bình Dương", "Đồng Nai", "Hà Nội", "Đà Nẵng"].includes(q) ? q : `${q} (TP.HCM)`}
                   </option>
                 ))}
               </select>
