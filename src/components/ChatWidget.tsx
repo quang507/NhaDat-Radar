@@ -38,19 +38,26 @@ export default function ChatWidget() {
   const anThanhDay = !!dangXem || pathname === "/lap-phong" || pathname?.startsWith("/admin") || pathname?.startsWith("/dashboard");
 
   const [open, setOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setCollapsed(true), 3500);
-    const onScroll = () => {
-      if (window.scrollY > 60) setCollapsed(true);
+    if (!menuOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    window.addEventListener("keydown", onKey);
     return () => {
-      clearTimeout(timer);
-      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("mousedown", onClickOutside);
+      window.removeEventListener("keydown", onKey);
     };
-  }, []);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -150,62 +157,90 @@ export default function ChatWidget() {
         </>
       )}
 
-      {/* Máy tính: cụm liên hệ nhanh góc phải. Tự động thu gọn thành icon tròn sau 3.5s hoặc khi cuộn trang;
-          khi rê chuột (hover) vào nút nào thì nút đó tự trượt chữ mượt mà sang trái. */}
-      <div className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end gap-2.5">
-        <a
-          href={`tel:${HOTLINE}`}
-          aria-label={`Gọi Hotline ${HOTLINE}`}
-          title="Gọi Hotline tư vấn nhanh"
-          className="group min-h-11 min-w-11 h-11 flex items-center justify-center px-3 py-2.5 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all border border-emerald-600"
-        >
-          <PhoneCall className="w-4 h-4 shrink-0" />
-          <span
-            className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${
-              collapsed
-                ? "max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 group-hover:ml-2"
-                : "max-w-xs opacity-100 ml-2"
-            }`}
-          >
-            Hotline: {HOTLINE_DISPLAY}
-          </span>
-        </a>
-        <a
-          href={HOTLINE_ZALO}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Nhắn Zalo tư vấn phòng"
-          title="Nhắn Zalo tư vấn 24/7"
-          className="group min-h-11 min-w-11 h-11 flex items-center justify-center px-3 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all border border-blue-500"
-        >
-          <MessageCircle className="w-4 h-4 fill-current shrink-0" />
-          <span
-            className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${
-              collapsed
-                ? "max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 group-hover:ml-2"
-                : "max-w-xs opacity-100 ml-2"
-            }`}
-          >
-            Nhắn Zalo tư vấn 24/7
-          </span>
-        </a>
+      {/* Máy tính: Gộp 3 nút thành 1 nút nổi duy nhất (Speed Dial) ở góc phải */}
+      <div ref={menuRef} className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end">
+        {/* Menu mở rộng khi bấm nút */}
+        {menuOpen && (
+          <div className="flex flex-col items-end gap-2.5 mb-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            {/* 1. Gọi Hotline */}
+            <a
+              href={`tel:${HOTLINE}`}
+              aria-label={`Gọi Hotline ${HOTLINE}`}
+              title="Gọi Hotline tư vấn nhanh"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 group transition-transform active:scale-95"
+            >
+              <span className="px-2.5 py-1 rounded-md bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-emerald-500 group-hover:text-emerald-600 transition-colors">
+                Hotline: {HOTLINE_DISPLAY}
+              </span>
+              <div className="w-10 h-10 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white flex items-center justify-center shadow-md border border-emerald-600 transition-colors">
+                <PhoneCall className="w-4 h-4" />
+              </div>
+            </a>
+
+            {/* 2. Nhắn Zalo */}
+            <a
+              href={HOTLINE_ZALO}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Nhắn Zalo tư vấn phòng"
+              title="Nhắn Zalo tư vấn 24/7"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 group transition-transform active:scale-95"
+            >
+              <span className="px-2.5 py-1 rounded-md bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-blue-500 group-hover:text-blue-600 transition-colors">
+                Nhắn Zalo tư vấn 24/7
+              </span>
+              <div className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md border border-blue-500 transition-colors">
+                <MessageCircle className="w-4 h-4 fill-current" />
+              </div>
+            </a>
+
+            {/* 3. Hỏi trợ lý AI */}
+            <button
+              type="button"
+              aria-label="Mở Trợ lý AI tìm phòng"
+              title="Hỏi trợ lý AI tìm phòng"
+              onClick={() => {
+                setMenuOpen(false);
+                setOpen(true);
+              }}
+              className="flex items-center gap-2 group transition-transform active:scale-95 cursor-pointer"
+            >
+              <span className="px-2.5 py-1 rounded-md bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-brand group-hover:text-brand transition-colors">
+                Hỏi Trợ lý AI tìm phòng
+              </span>
+              <div className="w-10 h-10 rounded-full bg-[var(--ink)] hover:bg-[var(--ink)]/90 text-[var(--bg)] flex items-center justify-center shadow-md border border-[var(--ink)] transition-colors">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+              </div>
+            </button>
+          </div>
+        )}
+
+        {/* Nút bấm tròn chính (FAB) */}
         <button
           type="button"
-          aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"}
-          title={open ? "Đóng trợ lý AI" : "Hỏi trợ lý AI tìm phòng"}
-          onClick={() => setOpen((v) => !v)}
-          className="group min-h-11 min-w-11 h-11 flex items-center justify-center px-3 py-2.5 rounded-full bg-[var(--ink)] hover:bg-[var(--ink)]/90 text-[var(--bg)] text-xs font-semibold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer border border-[var(--ink)]"
+          aria-expanded={menuOpen}
+          aria-label={menuOpen ? "Đóng menu hỗ trợ" : "Mở menu hỗ trợ & liên hệ"}
+          title={menuOpen ? "Đóng menu hỗ trợ" : "Hỗ trợ & Trợ lý tìm nhà"}
+          onClick={() => {
+            if (open) {
+              setOpen(false);
+            } else {
+              setMenuOpen((v) => !v);
+            }
+          }}
+          className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 cursor-pointer border ${
+            menuOpen || open
+              ? "bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]"
+              : "bg-brand hover:bg-brand-ink border-emerald-600 shadow-emerald-500/20"
+          }`}
         >
-          {open ? <X className="w-3.5 h-3.5 shrink-0" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
-          <span
-            className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${
-              collapsed
-                ? "max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 group-hover:ml-2"
-                : "max-w-xs opacity-100 ml-2"
-            }`}
-          >
-            {open ? "Đóng trợ lý AI" : "Hỏi trợ lý AI"}
-          </span>
+          {menuOpen || open ? (
+            <X className="w-5 h-5 transition-transform duration-200" />
+          ) : (
+            <MessageCircle className="w-5 h-5 fill-current" />
+          )}
         </button>
       </div>
 
