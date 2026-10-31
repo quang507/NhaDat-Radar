@@ -217,7 +217,9 @@ async function guongAnhVeKho(tatCa = false) {
         const u = tin.images[i];
         if (!laAnhCDN(u)) { moi.push(u); continue; }
         try {
-          const res = await fetch(u);
+          const urlChuan = u.replace(/(zdn\.vn)\/jpg\//, "$1/");
+          let res = await fetch(urlChuan);
+          if (!res.ok && urlChuan !== u) res = await fetch(u);
           if (!res.ok) throw new Error("HTTP " + res.status);
           const loai = res.headers.get("content-type") || "image/jpeg";
           const buf = Buffer.from(await res.arrayBuffer());
@@ -228,7 +230,7 @@ async function guongAnhVeKho(tatCa = false) {
           moi.push(sb.storage.from(KHO_ANH).getPublicUrl(duongDan).data.publicUrl);
           doi = true;
         } catch (e) {
-          moi.push(u); // giữ CDN chờ lượt sau - đừng vứt ảnh chỉ vì 1 lần tải lỗi
+          moi.push(u.replace(/(zdn\.vn)\/jpg\//, "$1/")); // gỡ /jpg/ để web load được ngay
           console.log(`  (gương ảnh lỗi ${tin.id}/${i}: ${e.message})`);
         }
       }
@@ -906,7 +908,8 @@ function startListener() {
     // Sự kiện ẢNH: nhớ lại BẤT KỂ có chú thích hay không (bản cũ chỉ nhớ khi không có chữ).
     // Nếu là ảnh về MUỘN của tin vừa lưu (Zalo gửi chữ trước, album sau) thì đắp thẳng vào tin.
     if (laAnh && khoaAnh) {
-      const url = raw.href || raw.oriUrl || raw.hdUrl || raw.normalUrl || raw.thumbUrl || raw.thumb || null;
+      let url = raw.href || raw.oriUrl || raw.hdUrl || raw.normalUrl || raw.thumbUrl || raw.thumb || null;
+      if (url) url = String(url).replace(/(zdn\.vn)\/jpg\//, "$1/");
       if (url && !ghepAnhMuon(khoaAnh, String(url))) {
         nhoAnh(khoaAnh, String(url));
         console.log(`← [${khoaAnh}] +1 ảnh (đang giữ chờ ghép)`);

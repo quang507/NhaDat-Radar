@@ -2,6 +2,10 @@ import { catChu } from "./format";
 // Nâng ảnh crawl lên bản phân giải cao (nguồn lưu thumbnail nhỏ -> đổi URL sang bản lớn).
 export function hiRes(u: string): string {
   if (!u) return u;
+  // Zalo CDN: f*-zpc.zdn.vn/jpg/... trả về 500 nếu mang /jpg/, bỏ /jpg/ để load trực tiếp 200 OK
+  if (u.includes(".zdn.vn/jpg/")) {
+    return u.replace("/jpg/", "/");
+  }
   // Mogi: thumb-small (mờ) -> bản gốc
   if (u.includes("cloud.mogi.vn/images/thumb-small/")) {
     return u.replace("/images/thumb-small/", "/images/");
