@@ -40,6 +40,24 @@ export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setMenuOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setMenuOpen(false);
+    }, 250);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -147,7 +165,7 @@ export default function ChatWidget() {
               <span>Gọi ngay</span>
             </a>
             <a href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo tư vấn phòng" className="btn min-h-11 font-bold !border-[#0068ff] !text-[#0068ff]">
-              <MessageCircle className="w-4 h-4" />
+              <IconZalo className="w-4 h-4 shrink-0" />
               <span>Zalo</span>
             </a>
             <button type="button" aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"} onClick={() => setOpen((v) => !v)} className="btn min-h-11 min-w-11 !px-3">
@@ -157,65 +175,81 @@ export default function ChatWidget() {
         </>
       )}
 
-      {/* Máy tính: Gộp 3 nút thành 1 nút nổi duy nhất (Speed Dial) ở góc phải */}
-      <div ref={menuRef} className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end">
-        {/* Menu mở rộng khi bấm nút */}
-        {menuOpen && (
-          <div className="flex flex-col items-end gap-2.5 mb-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            {/* 1. Gọi Hotline */}
-            <a
-              href={`tel:${HOTLINE}`}
-              aria-label={`Gọi Hotline ${HOTLINE}`}
-              title="Gọi Hotline tư vấn nhanh"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2 group transition-transform active:scale-95"
-            >
-              <span className="px-2.5 py-1 rounded-md bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-emerald-500 group-hover:text-emerald-600 transition-colors">
-                Hotline: {HOTLINE_DISPLAY}
-              </span>
-              <div className="w-10 h-10 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white flex items-center justify-center shadow-md border border-emerald-600 transition-colors">
-                <PhoneCall className="w-4 h-4" />
-              </div>
-            </a>
+      {/* Máy tính: Gộp 3 nút thành 1 nút nổi duy nhất (Speed Dial) ở góc phải.
+          Rê chuột (hover) hoặc bấm vào để bung mở menu dọc mượt mà kèm animation. */}
+      <div
+        ref={menuRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end py-1 pl-6"
+      >
+        {/* Menu mở rộng dạng Speed Dial với animation trượt mượt */}
+        <div
+          className={`flex flex-col items-end gap-2.5 mb-3 transition-all duration-300 ease-out origin-bottom-right ${
+            menuOpen
+              ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
+              : "opacity-0 translate-y-3 scale-95 pointer-events-none"
+          }`}
+        >
+          {/* 1. Gọi Hotline */}
+          <a
+            href={`tel:${HOTLINE}`}
+            aria-label={`Gọi Hotline ${HOTLINE}`}
+            title="Gọi Hotline tư vấn nhanh"
+            onClick={() => setMenuOpen(false)}
+            className={`flex items-center gap-2 group transition-all duration-300 ease-out transform ${
+              menuOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+            } hover:scale-105 active:scale-95`}
+          >
+            <span className="px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-emerald-500 group-hover:text-emerald-600 transition-colors">
+              Hotline: {HOTLINE_DISPLAY}
+            </span>
+            <div className="w-10 h-10 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white flex items-center justify-center shadow-md border border-emerald-600 transition-colors">
+              <PhoneCall className="w-4 h-4" />
+            </div>
+          </a>
 
-            {/* 2. Nhắn Zalo */}
-            <a
-              href={HOTLINE_ZALO}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Nhắn Zalo tư vấn phòng"
-              title="Nhắn Zalo tư vấn 24/7"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2 group transition-transform active:scale-95"
-            >
-              <span className="px-2.5 py-1 rounded-md bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-blue-500 group-hover:text-blue-600 transition-colors">
-                Nhắn Zalo tư vấn 24/7
-              </span>
-              <div className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md border border-blue-500 transition-colors">
-                <MessageCircle className="w-4 h-4 fill-current" />
-              </div>
-            </a>
+          {/* 2. Nhắn Zalo (Icon Zalo chuẩn) */}
+          <a
+            href={HOTLINE_ZALO}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Nhắn Zalo tư vấn 24/7"
+            title="Nhắn Zalo tư vấn 24/7"
+            onClick={() => setMenuOpen(false)}
+            className={`flex items-center gap-2 group transition-all duration-300 ease-out transform ${
+              menuOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+            } hover:scale-105 active:scale-95`}
+          >
+            <span className="px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-blue-500 group-hover:text-blue-600 transition-colors">
+              Nhắn Zalo tư vấn 24/7
+            </span>
+            <div className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md border border-blue-500 transition-colors">
+              <IconZalo className="w-6 h-6" />
+            </div>
+          </a>
 
-            {/* 3. Hỏi trợ lý AI */}
-            <button
-              type="button"
-              aria-label="Mở Trợ lý AI tìm phòng"
-              title="Hỏi trợ lý AI tìm phòng"
-              onClick={() => {
-                setMenuOpen(false);
-                setOpen(true);
-              }}
-              className="flex items-center gap-2 group transition-transform active:scale-95 cursor-pointer"
-            >
-              <span className="px-2.5 py-1 rounded-md bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-brand group-hover:text-brand transition-colors">
-                Hỏi Trợ lý AI tìm phòng
-              </span>
-              <div className="w-10 h-10 rounded-full bg-[var(--ink)] hover:bg-[var(--ink)]/90 text-[var(--bg)] flex items-center justify-center shadow-md border border-[var(--ink)] transition-colors">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-              </div>
-            </button>
-          </div>
-        )}
+          {/* 3. Hỏi Trợ lý AI */}
+          <button
+            type="button"
+            aria-label="Mở Trợ lý AI tìm phòng"
+            title="Hỏi trợ lý AI tìm phòng"
+            onClick={() => {
+              setMenuOpen(false);
+              setOpen(true);
+            }}
+            className={`flex items-center gap-2 group transition-all duration-300 ease-out transform ${
+              menuOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+            } hover:scale-105 active:scale-95 cursor-pointer`}
+          >
+            <span className="px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-brand group-hover:text-brand transition-colors">
+              Hỏi Trợ lý AI tìm phòng
+            </span>
+            <div className="w-10 h-10 rounded-full bg-[var(--ink)] hover:bg-[var(--ink)]/90 text-[var(--bg)] flex items-center justify-center shadow-md border border-[var(--ink)] transition-colors">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+            </div>
+          </button>
+        </div>
 
         {/* Nút bấm tròn chính (FAB) */}
         <button
@@ -230,17 +264,19 @@ export default function ChatWidget() {
               setMenuOpen((v) => !v);
             }
           }}
-          className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 cursor-pointer border ${
+          className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 cursor-pointer border ${
             menuOpen || open
               ? "bg-[var(--ink)] border-[var(--ink)] text-[var(--bg)]"
               : "bg-brand hover:bg-brand-ink border-emerald-600 shadow-emerald-500/20"
           }`}
         >
-          {menuOpen || open ? (
-            <X className="w-5 h-5 transition-transform duration-200" />
-          ) : (
-            <MessageCircle className="w-5 h-5 fill-current" />
-          )}
+          <div className={`transition-transform duration-300 ease-out ${menuOpen || open ? "rotate-90 scale-105" : "rotate-0 scale-100"}`}>
+            {menuOpen || open ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <MessageCircle className="w-5 h-5 fill-current" />
+            )}
+          </div>
         </button>
       </div>
 
@@ -378,5 +414,29 @@ export default function ChatWidget() {
         </div>
       )}
     </>
+  );
+}
+
+function IconZalo({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path
+        d="M18 3.5C9.99 3.5 3.5 9.54 3.5 17c0 4.25 2.15 8.05 5.52 10.62-.29 2.19-1.16 5.08-1.26 5.43-.17.58.35 1.05.85.76 2.71-1.57 5.55-3.25 6.35-3.76.97.25 2 .39 3.04.39 8.01 0 14.5-6.04 14.5-13.44C32.5 9.54 26.01 3.5 18 3.5z"
+        fill="white"
+      />
+      <text
+        x="18"
+        y="18.5"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill="#0068ff"
+        fontSize="10"
+        fontWeight="900"
+        fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        letterSpacing="-0.4px"
+      >
+        Zalo
+      </text>
+    </svg>
   );
 }
