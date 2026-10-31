@@ -38,6 +38,19 @@ export default function ChatWidget() {
   const anThanhDay = !!dangXem || pathname === "/lap-phong" || pathname?.startsWith("/admin") || pathname?.startsWith("/dashboard");
 
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCollapsed(true), 3500);
+    const onScroll = () => {
+      if (window.scrollY > 60) setCollapsed(true);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -137,36 +150,62 @@ export default function ChatWidget() {
         </>
       )}
 
-      {/* Máy tính: cụm liên hệ nhanh góc phải. 29/10: luôn hiện Gọi + Zalo - bản 27/10 gom cả cụm vào một nút
-          "Liên hệ & Hỏi AI" phải rê chuột mới thấy, khách khó tìm đường liên hệ (CLAUDE.md mục 3: kênh chuyển đổi chính).
-          Khổ 1024-1279 chỉ hiện icon (cụm có chữ đè lên hàng chip ô tìm kiếm trang chủ), từ xl mới kèm chữ. */}
-      <div className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end gap-2">
+      {/* Máy tính: cụm liên hệ nhanh góc phải. Tự động thu gọn thành icon tròn sau 3.5s hoặc khi cuộn trang;
+          khi rê chuột (hover) vào nút nào thì nút đó tự trượt chữ mượt mà sang trái. */}
+      <div className="fixed bottom-6 right-6 z-40 hidden lg:flex flex-col items-end gap-2.5">
         <a
           href={`tel:${HOTLINE}`}
           aria-label={`Gọi Hotline ${HOTLINE}`}
-          className="min-h-11 min-w-11 flex items-center justify-center gap-2 px-3 xl:px-3.5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all border border-emerald-600"
+          title="Gọi Hotline tư vấn nhanh"
+          className="group min-h-11 min-w-11 h-11 flex items-center justify-center px-3 py-2.5 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all border border-emerald-600"
         >
-          <PhoneCall className="w-4 h-4" />
-          <span className="hidden xl:inline">Hotline: {HOTLINE_DISPLAY}</span>
+          <PhoneCall className="w-4 h-4 shrink-0" />
+          <span
+            className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${
+              collapsed
+                ? "max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 group-hover:ml-2"
+                : "max-w-xs opacity-100 ml-2"
+            }`}
+          >
+            Hotline: {HOTLINE_DISPLAY}
+          </span>
         </a>
         <a
           href={HOTLINE_ZALO}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Nhắn Zalo tư vấn phòng"
-          className="min-h-11 min-w-11 flex items-center justify-center gap-2 px-3 xl:px-3.5 py-2.5 rounded-lg bg-[#0068ff] hover:bg-[#0057d9] text-white text-xs font-bold shadow-md hover:shadow-lg hover:border-blue-700 active:scale-95 transition-all border border-blue-600"
+          title="Nhắn Zalo tư vấn 24/7"
+          className="group min-h-11 min-w-11 h-11 flex items-center justify-center px-3 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md hover:shadow-lg active:scale-95 transition-all border border-blue-500"
         >
-          <MessageCircle className="w-4 h-4 fill-current" />
-          <span className="hidden xl:inline">Nhắn Zalo tư vấn 24/7</span>
+          <MessageCircle className="w-4 h-4 fill-current shrink-0" />
+          <span
+            className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${
+              collapsed
+                ? "max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 group-hover:ml-2"
+                : "max-w-xs opacity-100 ml-2"
+            }`}
+          >
+            Nhắn Zalo tư vấn 24/7
+          </span>
         </a>
         <button
           type="button"
           aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"}
+          title={open ? "Đóng trợ lý AI" : "Hỏi trợ lý AI tìm phòng"}
           onClick={() => setOpen((v) => !v)}
-          className="min-h-11 min-w-11 flex items-center justify-center gap-2 px-3 xl:px-3.5 py-2.5 rounded-lg bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-semibold shadow-md transition active:scale-95 cursor-pointer border border-slate-800"
+          className="group min-h-11 min-w-11 h-11 flex items-center justify-center px-3 py-2.5 rounded-full bg-[var(--ink)] hover:bg-[var(--ink)]/90 text-[var(--bg)] text-xs font-semibold shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer border border-[var(--ink)]"
         >
-          {open ? <X className="w-3.5 h-3.5 text-slate-300" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
-          <span className="hidden xl:inline">{open ? "Đóng trợ lý AI" : "Hỏi trợ lý AI"}</span>
+          {open ? <X className="w-3.5 h-3.5 shrink-0" /> : <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+          <span
+            className={`whitespace-nowrap transition-all duration-300 overflow-hidden ${
+              collapsed
+                ? "max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 group-hover:ml-2"
+                : "max-w-xs opacity-100 ml-2"
+            }`}
+          >
+            {open ? "Đóng trợ lý AI" : "Hỏi trợ lý AI"}
+          </span>
         </button>
       </div>
 
