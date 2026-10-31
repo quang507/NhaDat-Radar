@@ -43,20 +43,17 @@ export default function ListingCard({ x }: { x: Listing }) {
         {/* Top-left badges: Tối đa 2 badge tinh gọn. right-12 chừa nút tim 40px */}
         <div className="absolute top-2 left-2 right-12 flex items-center gap-1 flex-wrap">
           {xacThuc && (
-            <span className="inline-flex items-center gap-0.5 text-overline tracking-tight font-bold px-1 py-0.5 rounded-sm whitespace-nowrap bg-emerald-600/95 text-white shadow-xs">
+            <span className="inline-flex items-center gap-0.5 text-overline tracking-tight font-bold px-1.5 py-0.5 rounded-sm whitespace-nowrap bg-emerald-600/95 text-white shadow-xs">
               <ShieldCheck className="w-2.5 h-2.5 stroke-[2.5]" />
               XÁC MINH
             </span>
           )}
           {anh.video && (
-            <span className="inline-flex items-center gap-0.5 text-overline tracking-tight font-bold px-1 py-0.5 rounded-sm whitespace-nowrap bg-rose-600/95 text-white shadow-xs">
+            <span className="inline-flex items-center gap-0.5 text-overline tracking-tight font-bold px-1.5 py-0.5 rounded-sm whitespace-nowrap bg-rose-600/95 text-white shadow-xs">
               <Play className="w-2.5 h-2.5 fill-current" />
               CÓ VIDEO
             </span>
           )}
-          <span className="text-overline tracking-tight font-semibold px-1.5 py-0.5 rounded whitespace-nowrap bg-black/65 text-white">
-            {x.deal === "ban" ? "Bán" : "Cho thuê"}
-          </span>
           {isNew && !xacThuc && !anh.video && (
             <span className="text-overline tracking-tight font-bold px-1.5 py-0.5 rounded whitespace-nowrap bg-amber-600 text-white shadow-xs">
               Mới
@@ -110,7 +107,7 @@ export default function ListingCard({ x }: { x: Listing }) {
           {x.bedrooms ? <span>{x.bedrooms} PN</span> : null}
           {x.bedrooms && x.bathrooms ? <span className="text-[var(--ink-faint)]">•</span> : null}
           {x.bathrooms ? <span>{x.bathrooms} WC</span> : null}
-          <span className="ml-auto text-xs text-[var(--ink-faint)] font-semibold">{PROP[x.kind]}</span>
+          <span className="ml-auto text-xs text-[var(--ink-faint)] font-semibold">{x.deal === "ban" ? "Bán" : "Thuê"} · {PROP[x.kind]}</span>
         </div>
 
         {/* Footer Meta */}

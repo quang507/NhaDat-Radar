@@ -299,11 +299,12 @@ export default async function Home() {
         </section>
       ) : (
         <>
-          {/* Mồi câu giữ chân & kích hoạt chuyển đổi Zalo trong 15 phút */}
+          {/* 1. Dải độc quyền (FB + Zalo, tin Zalo trước) đứng đầu trang chủ - xem ngay sản phẩm thật sau Hero */}
+          <DaiDocQuyen listings={listings} />
+
+          {/* 2. Mồi câu giữ chân & kích hoạt chuyển đổi Zalo trong 15 phút (xuất hiện sau khi khách đã thấy hàng thật) */}
           <TimPhongNhanh />
 
-          {/* dải độc quyền (FB + Zalo, tin Zalo trước) đứng đầu trang chủ - vị trí đẹp nhất cho hàng bán được */}
-          <DaiDocQuyen listings={listings} />
           {projects.length > 0 && (
             <Section title="Dự án nổi bật" href="/projects">
               <HangVuot motHang items={projects.slice(0, 4).map((p) => ({ key: p.id, node: (

@@ -566,21 +566,35 @@ export default async function ListingDetail({
             </div>
           </div>
           {bangPhi && (
-            <div id="chi-phi" className="card rounded-lg p-5 scroll-mt-28">
-              <div className="flex items-baseline justify-between gap-3 mb-3">
-                <h3 className="font-bold">Chi phí hằng tháng</h3>
-                {tienCoc && <span className="text-xs text-[var(--ink-soft)]">Cọc: <b className="text-[var(--ink)]">{tienCoc}</b></span>}
+            <div id="chi-phi" className="card rounded-lg p-5 scroll-mt-28 border-t-2 border-t-brand">
+              <div className="flex items-center justify-between gap-3 mb-3.5 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-base text-[var(--ink)]">Bảng chi phí hằng tháng</h3>
+                  <span className="inline-flex items-center gap-1 text-overline font-bold px-2 py-0.5 rounded-sm bg-emerald-50 dark:bg-emerald-950/40 text-brand border border-emerald-200/60 dark:border-emerald-800/50">
+                    <ShieldCheck className="w-3 h-3 stroke-[2.5]" />
+                    Minh bạch 100%
+                  </span>
+                </div>
+                {tienCoc && (
+                  <span className="text-xs px-2.5 py-1 rounded-sm bg-[var(--surface-2)] text-[var(--ink-soft)] font-medium">
+                    Tiền cọc: <b className="text-[var(--ink)]">{tienCoc}</b>
+                  </span>
+                )}
               </div>
               <dl className="divide-y divide-[var(--line)] text-sm">
                 {bangPhi.map(([nhan, giaTri]) => (
-                  <div key={nhan} className="flex items-center justify-between gap-3 py-2 min-h-11">
-                    <dt className="text-[var(--ink-soft)]">{nhan}</dt>
-                    <dd className={giaTri ? "font-semibold text-right" : "text-xs text-[var(--ink-faint)] text-right"}>
+                  <div key={nhan} className="flex items-center justify-between gap-3 py-2.5 min-h-11">
+                    <dt className="text-[var(--ink-soft)] font-medium">{nhan}</dt>
+                    <dd className={giaTri ? "font-bold text-[var(--ink)] text-right" : "text-xs text-[var(--ink-faint)] text-right"}>
                       {giaTri ?? "Chưa có - hỏi Radar"}
                     </dd>
                   </div>
                 ))}
               </dl>
+              <div className="mt-3.5 pt-3 border-t border-[var(--line)] flex items-center justify-between text-xs text-[var(--ink-faint)]">
+                <span>Không thu phí xem phòng hay phụ phí môi giới</span>
+                <span className="text-brand font-semibold">Cam kết giá chuẩn</span>
+              </div>
             </div>
           )}
           <div className="card rounded-lg p-5">
