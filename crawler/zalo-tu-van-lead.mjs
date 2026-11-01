@@ -1,6 +1,10 @@
 // ============================================================================
 //  TƯ VẤN PHÒNG TỰ ĐỘNG & BÁO LEAD SANG ZALO ADMIN (0346689460)
-//  Hỗ trợ: Song ngữ (Việt - Anh), nhớ ngữ cảnh hội thoại, giải đáp FAQ chi tiết.
+//  Hỗ trợ:
+//  1. Human Takeover: Tự động im lặng khi người thật đang chat tay
+//  2. Rolling Chat History: Lưu lịch sử hội thoại nhiều lượt
+//  3. Song ngữ (Việt - Anh), Humanizer 100% tự nhiên
+//  4. Bắt tín hiệu khách cần gấp / đòi xem trọ ngay -> Báo Admin khẩn cấp
 // ============================================================================
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -19,6 +23,40 @@ const DEBOUNCE_TTL_MS = 30 * 60 * 1000;
 // Bộ nhớ ngữ cảnh hội thoại: Lưu căn phòng khách vừa hỏi trong 4 tiếng
 const nguCanhKhach = new Map(); // key: fromId -> { tin, roHang, luc: timestamp }
 const CONTEXT_TTL_MS = 4 * 60 * 60 * 1000;
+
+// Quản lý trạng thái Người thật chat tay (Human Takeover)
+const chatTay = new Map(); // key: fromId -> timestamp lần cuối người thật nhắn
+const CHAT_TAY_TTL_MS = 2 * 60 * 60 * 1000; // 2 tiếng
+
+// Lưu 10 tin nhắn gần nhất mỗi cuộc trò chuyện
+const lichSuChat = new Map(); // key: fromId -> Array<{ role: 'khách' | 'chủ nhà' | 'bot', text: string, luc: number }>
+
+export function luuLichSu(fromId, role, text) {
+  if (!fromId || !text) return;
+  const id = String(fromId);
+  const arr = lichSuChat.get(id) || [];
+  arr.push({ role, text, luc: Date.now() });
+  if (arr.length > 10) arr.shift();
+  lichSuChat.set(id, arr);
+}
+
+export function layLichSu(fromId) {
+  return lichSuChat.get(String(fromId)) || [];
+}
+
+export function ghiNhanChatTay(fromId, text) {
+  if (!fromId) return;
+  chatTay.set(String(fromId), Date.now());
+  luuLichSu(fromId, "chủ nhà", text);
+  console.log(`[Human Takeover] Đã ghi nhận người thật chat tay với ${fromId} -> Bot tạm dừng hỗ trợ khách này.`);
+}
+
+export function laNguoiThatDangChat(fromId) {
+  if (!fromId) return false;
+  const luc = chatTay.get(String(fromId));
+  if (!luc) return false;
+  return Date.now() - luc < CHAT_TAY_TTL_MS;
+}
 
 // Format giá hiển thị
 export function fmtGia(vnd, deal = "cho_thue", isEn = false) {
@@ -61,7 +99,6 @@ export function trichXuatDinhDanh(text) {
 // Nhận diện câu hỏi bằng Tiếng Anh
 export function laTiengAnh(text) {
   if (!text) return false;
-  // Có dấu tiếng Việt thì chắc chắn là tiếng Việt
   if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(text)) {
     return false;
   }
@@ -197,25 +234,32 @@ export function soanTinBaoAdmin({ tin, roHang, khachInfo }) {
 
 // Soạn tin báo lịch hẹn xem phòng sang Admin
 export function soanTinHenXem({ tin, roHang, khachInfo, textHen }) {
-  const maWeb = "RH" + tin.id.replace(/-/g, "").slice(0, 6).toUpperCase();
+  const maWeb = tin ? "RH" + tin.id.replace(/-/g, "").slice(0, 6).toUpperCase() : "-";
   const unitCode = roHang?.unit_code || "Chưa rõ phòng";
   const tenKhach = khachInfo.name || "Khách Zalo";
 
-  return `⏰ KHÁCH ĐẶT LỊCH XEM PHÒNG:
+  return `🚨 KHÁCH ĐÒI XEM TRỌ NGAY / ĐANG Ở GẦN ĐÓ:
 • Khách: ${tenKhach} (UID: ${khachInfo.uid || khachInfo.id})
-• Căn: ${tin.title} (${maWeb} - Phòng ${unitCode})
-• Lời nhắn hẹn: "${textHen.trim()}"
-👉 Vào Zalo chốt giờ hẹn với khách ngay nha!`;
+${tin ? `• Căn: ${tin.title} (${maWeb} - Phòng ${unitCode})\n` : ""}• Lời nhắn: "${textHen.trim()}"
+👉 Vào Zalo chốt giờ gấp với khách nha!`;
 }
 
 // Xử lý sự kiện tin nhắn Zalo 1-1
 export async function xuLyTinNhan11({ fromId, senderName, text, sb, cliFn }) {
   if (!text || !fromId) return;
 
+  // 1. NẾU NGƯỜI THẬT ĐANG CHAT TAY -> BOT TUYỆT ĐỐI IM LẶNG
+  if (laNguoiThatDangChat(fromId)) {
+    console.log(`[Bot Silent] Bỏ qua ${fromId} vì chủ nick đang chat tay.`);
+    luuLichSu(fromId, "khách", text);
+    return;
+  }
+
+  luuLichSu(fromId, "khách", text);
   const dinhDanh = trichXuatDinhDanh(text);
   let phongHienTai = null;
 
-  // 1. Nếu tin nhắn có link / mã phòng -> Tìm phòng và cập nhật bộ nhớ phiên
+  // 2. Nếu tin nhắn có link / mã phòng -> Tìm phòng và cập nhật bộ nhớ phiên
   if (dinhDanh) {
     const p = await traCuuPhong(sb, dinhDanh);
     if (p?.tin) {
@@ -223,13 +267,34 @@ export async function xuLyTinNhan11({ fromId, senderName, text, sb, cliFn }) {
       nguCanhKhach.set(fromId, { ...p, luc: Date.now() });
     }
   } else {
-    // 2. Nếu tin nhắn KHÔNG có mã phòng -> Kiểm tra bộ nhớ phiên gần nhất (trong vòng 4 tiếng)
+    // 3. Nếu tin nhắn KHÔNG có mã phòng -> Kiểm tra bộ nhớ phiên gần nhất (trong vòng 4 tiếng)
     const context = nguCanhKhach.get(fromId);
     if (context && Date.now() - context.luc < CONTEXT_TTL_MS) {
       phongHienTai = context;
-      // Cập nhật lại thời gian tương tác gần nhất
       context.luc = Date.now();
     }
+  }
+
+  // TÌM TÍN HIỆU KHẨN CẤP: Khách muốn xem trọ ngay / ở gần / nghi bot
+  const laKhanCapXemTro = /(xem\s*(trọ|phòng|nhà)|coi\s*(trọ|phòng|nhà)|xem\s*luôn|coi\s*luôn|ở gần đó|gần đó|alo\s*(anh|ơi|ad)|tin nhắn tự động)/i.test(text);
+
+  if (laKhanCapXemTro) {
+    const tinHen = soanTinHenXem({
+      tin: phongHienTai?.tin || null,
+      roHang: phongHienTai?.roHang || null,
+      khachInfo: { id: fromId, uid: fromId, name: senderName },
+      textHen: text,
+    });
+    console.log(`[Urgent Alert] Bắn tin KHẨN CẤP sang Admin Zalo...`);
+    await cliFn(["msg", "send", "-t", "0", ADMIN_ZALO_UID, tinHen]).catch((e) => {
+      console.error("[Urgent Alert Error] Gửi Admin lỗi:", e.message);
+    });
+
+    // Câu hoãn binh tự nhiên
+    const cauHoanBinh = `Dạ mình đây bạn ơi! Mình đang chạy xe ngoài đường xíu á, bạn đang đứng ở đoạn nào rồi dạ, để mình gọi quản lý mở cửa bạn coi phòng liền nha!`;
+    await cliFn(["msg", "send", "-t", "0", String(fromId), cauHoanBinh]).catch(() => {});
+    luuLichSu(fromId, "bot", cauHoanBinh);
+    return;
   }
 
   // NẾU XÁC ĐỊNH ĐƯỢC PHÒNG KHÁCH ĐANG NÓI TỚI
@@ -253,41 +318,40 @@ export async function xuLyTinNhan11({ fromId, senderName, text, sb, cliFn }) {
       });
     }
 
-    // B. Kiểm tra nếu khách có ý định hẹn giờ xem phòng cụ thể
-    const laHenXem = /(xem|coi|qua coi|hôm nay|ngày mai|chiều|sáng|tối|viewing|visit|see|tomorrow|today|pm|am)/i.test(text)
-      && /(mấy giờ|lúc|khoảng|\d{1,2}h|\d{1,2}:\d{2}|chiều nay|tối nay|sáng mai|chiều mai)/i.test(text);
-
-    if (laHenXem) {
-      const tinHen = soanTinHenXem({
-        tin,
-        roHang,
-        khachInfo: { id: fromId, uid: fromId, name: senderName },
-        textHen: text,
-      });
-      console.log(`[Appointment Alert] Bắn tin HẸN XEM sang Admin Zalo...`);
-      await cliFn(["msg", "send", "-t", "0", ADMIN_ZALO_UID, tinHen]).catch((e) => {
-        console.error("[Appointment Alert Error] Gửi Admin lỗi:", e.message);
-      });
-    }
-
-    // C. Trả lời tự động cho khách (Song ngữ + FAQ phù hợp)
+    // B. Trả lời tự động cho khách (Song ngữ + FAQ phù hợp)
     const phanHoi = soanTraLoiKhach(tin, roHang, text);
     await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoi]).catch((e) => {
       console.error(`[Reply Error] Gửi khách ${fromId} lỗi:`, e.message);
     });
+    luuLichSu(fromId, "bot", phanHoi);
     return;
   }
 
-  // TRƯỜNG HỢP: Khách nhắn chung mà chưa từng hỏi căn nào
-  const isEn = laTiengAnh(text);
-  if (isEn) {
-    const phanHoiEn = `Hi there! Which district or area are you looking for an apartment in, and what is your approximate budget? Let me know and I'll find the best available units for you right away!`;
-    await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiEn]).catch(() => {});
+  // NẾU CHƯA CÓ PHÒNG CỤ THỂ NHƯNG KHÁCH HỎI CHI PHÍ
+  if (/phí khác|chi phí|tiền điện|tiền nước|phí dịch vụ|phí xe/i.test(text)) {
+    const phanHoiPhi = `Dạ phí thông thường các toà bên mình gồm: điện 4k/kWh, nước 100k/người, xe máy thì free luôn nha bạn. Bạn đang xem căn ở đường nào để mình báo số chính xác từng món cho nhen!`;
+    await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiPhi]).catch(() => {});
+    luuLichSu(fromId, "bot", phanHoiPhi);
     return;
   }
 
-  if (/phòng|thuê|căn hộ|chung cư|nhà|chào|alo|hello|hi\b/i.test(text)) {
-    const phanHoiChung = `Dạ alo bạn ơi, bạn đang tính tìm phòng ở khu vực nào với ngân sách tầm bao nhiêu á? Nhắn mình nhu cầu để mình kiếm mấy căn trống đẹp đúng ý gửi bạn xem liền nhen!`;
-    await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiChung]).catch(() => {});
+  // TRƯỜNG HỢP: Khách mới nhắn lần đầu chào hỏi
+  const history = layLichSu(fromId);
+  const isFirstMessage = history.filter((h) => h.role === "khách").length <= 1;
+
+  if (isFirstMessage) {
+    const isEn = laTiengAnh(text);
+    if (isEn) {
+      const phanHoiEn = `Hi there! Which district or area are you looking for an apartment in, and what is your approximate budget? Let me know and I'll find the best available units for you right away!`;
+      await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiEn]).catch(() => {});
+      luuLichSu(fromId, "bot", phanHoiEn);
+      return;
+    }
+
+    if (/phòng|thuê|căn hộ|chung cư|nhà|chào|alo|hello|hi\b/i.test(text)) {
+      const phanHoiChung = `Dạ alo bạn ơi, bạn đang tính tìm phòng ở khu vực nào với ngân sách tầm bao nhiêu á? Nhắn mình nhu cầu để mình kiếm mấy căn trống đẹp đúng ý gửi bạn xem liền nhen!`;
+      await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiChung]).catch(() => {});
+      luuLichSu(fromId, "bot", phanHoiChung);
+    }
   }
 }

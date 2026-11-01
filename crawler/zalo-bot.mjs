@@ -15,7 +15,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 import { canonProvince, quanTheoDB } from "./chung.mjs";
-import { xuLyTinNhan11 } from "./zalo-tu-van-lead.mjs";
+import { xuLyTinNhan11, ghiNhanChatTay } from "./zalo-tu-van-lead.mjs";
 
 // Windows: spawn/execFileSync KHÔNG chạy được shim .cmd của npm (ENOENT/EINVAL)
 // -> tìm file bin thật của zalo-agent-cli trong npm global rồi gọi `node <bin>`.
@@ -854,7 +854,7 @@ function startListener() {
   // windowsHide: chưa `zalo-agent login` thì listen chết ngay -> vòng restart 5s, mỗi lần spawn bật 1 cửa sổ
   // CMD nảy lên màn hình liên tục (sự cố 17/8). Ẩn cửa sổ để lỗi chỉ nằm trong log pm2.
   // -e chỉ nghe "message", bỏ auto-accept và không tự động duyệt bạn
-  const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message", "-f", "all", "--no-self"], { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
+  const child = spawn(CLI, [...ZALO.pre, "--json", "listen", "-e", "message", "-f", "all"], { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
   child.on("error", (e) => console.error("spawn zalo-agent lỗi:", e.message)); // CLI thiếu/ENOENT -> không văng uncaught (audit 16/8)
 
   // Xử lý 1 event (async). Chạy TUẦN TỰ qua hàng đợi promise - handler 'data' cũ là async + await trong vòng lặp
@@ -877,7 +877,17 @@ function startListener() {
     // zca-js: ThreadType 0=User, 1=Group (số) - kèm các biến thể chuỗi để chắc ăn
     const t = ev.type ?? ev.threadType ?? d.threadType ?? d.type;
     const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
-    if (!fromId || isSelf) return;
+    if (!fromId) return;
+
+    // Nếu chính chủ nick đang chat tay trong cuộc trò chuyện 1-1 -> Ghi nhận và dừng bot
+    if (isSelf) {
+      if (!isGroup && text) {
+        const guestId = ev.threadId ?? d.threadId ?? d.idTo ?? fromId;
+        console.log(`👤 [Chủ phòng chat tay -> ${guestId}]: ${text.slice(0, 80)}`);
+        ghiNhanChatTay(guestId, text);
+      }
+      return;
+    }
 
     // XỬ LÝ TIN NHẮN 1-1: Tư vấn phòng tự động & Báo lead sang Zalo Admin
     if (!isGroup) {
