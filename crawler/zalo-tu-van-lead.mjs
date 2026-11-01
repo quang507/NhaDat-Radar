@@ -16,6 +16,10 @@ export const ADMIN_ZALO_UID = process.env.ZALO_ADMIN_UID || "199426642744249709"
 export const ADMIN_PHONE = process.env.ZALO_ADMIN_PHONE || "0346689460";
 const SITE_URL = "https://nhadatradar.com";
 
+// Chế độ tự động trả lời khách: MẶC ĐỊNH LÀ FALSE (TẮT hoàn toàn việc tự nhắn cho khách).
+// Bot chỉ ghi nhận lead, bóc tin và báo sang Admin Zalo để người thật vào chat tay.
+export const BOT_TU_DONG_TRA_LOI_KHACH = process.env.ZALO_AUTO_REPLY_KHACH === "true";
+
 // Cache chống spam tin báo sang Admin: cùng 1 khách + 1 căn phòng thì trong 30 phút chỉ báo 1 lần
 const daBaoAdmin = new Map(); // key: `${fromId}_${listingId}` -> timestamp
 const DEBOUNCE_TTL_MS = 30 * 60 * 1000;
@@ -290,10 +294,14 @@ export async function xuLyTinNhan11({ fromId, senderName, text, sb, cliFn }) {
       console.error("[Urgent Alert Error] Gửi Admin lỗi:", e.message);
     });
 
-    // Câu hoãn binh tự nhiên
-    const cauHoanBinh = `Dạ mình đây bạn ơi! Mình đang chạy xe ngoài đường xíu á, bạn đang đứng ở đoạn nào rồi dạ, để mình gọi quản lý mở cửa bạn coi phòng liền nha!`;
-    await cliFn(["msg", "send", "-t", "0", String(fromId), cauHoanBinh]).catch(() => {});
-    luuLichSu(fromId, "bot", cauHoanBinh);
+    // Câu hoãn binh tự nhiên (chỉ gửi khi cờ BOT_TU_DONG_TRA_LOI_KHACH bật)
+    if (BOT_TU_DONG_TRA_LOI_KHACH) {
+      const cauHoanBinh = `Dạ mình đây bạn ơi! Mình đang chạy xe ngoài đường xíu á, bạn đang đứng ở đoạn nào rồi dạ, để mình gọi quản lý mở cửa bạn coi phòng liền nha!`;
+      await cliFn(["msg", "send", "-t", "0", String(fromId), cauHoanBinh]).catch(() => {});
+      luuLichSu(fromId, "bot", cauHoanBinh);
+    } else {
+      console.log(`[Auto-Reply TẮT] Không gửi tin hoãn binh cho khách ${fromId}.`);
+    }
     return;
   }
 
@@ -318,20 +326,28 @@ export async function xuLyTinNhan11({ fromId, senderName, text, sb, cliFn }) {
       });
     }
 
-    // B. Trả lời tự động cho khách (Song ngữ + FAQ phù hợp)
-    const phanHoi = soanTraLoiKhach(tin, roHang, text);
-    await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoi]).catch((e) => {
-      console.error(`[Reply Error] Gửi khách ${fromId} lỗi:`, e.message);
-    });
-    luuLichSu(fromId, "bot", phanHoi);
+    // B. Trả lời tự động cho khách (chỉ gửi khi cờ BOT_TU_DONG_TRA_LOI_KHACH bật)
+    if (BOT_TU_DONG_TRA_LOI_KHACH) {
+      const phanHoi = soanTraLoiKhach(tin, roHang, text);
+      await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoi]).catch((e) => {
+        console.error(`[Reply Error] Gửi khách ${fromId} lỗi:`, e.message);
+      });
+      luuLichSu(fromId, "bot", phanHoi);
+    } else {
+      console.log(`[Auto-Reply TẮT] Không gửi tin tự động cho khách ${fromId}. Để người thật chat tay.`);
+    }
     return;
   }
 
   // NẾU CHƯA CÓ PHÒNG CỤ THỂ NHƯNG KHÁCH HỎI CHI PHÍ
   if (/phí khác|chi phí|tiền điện|tiền nước|phí dịch vụ|phí xe/i.test(text)) {
-    const phanHoiPhi = `Dạ phí thông thường các toà bên mình gồm: điện 4k/kWh, nước 100k/người, xe máy thì free luôn nha bạn. Bạn đang xem căn ở đường nào để mình báo số chính xác từng món cho nhen!`;
-    await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiPhi]).catch(() => {});
-    luuLichSu(fromId, "bot", phanHoiPhi);
+    if (BOT_TU_DONG_TRA_LOI_KHACH) {
+      const phanHoiPhi = `Dạ phí thông thường các toà bên mình gồm: điện 4k/kWh, nước 100k/người, xe máy thì free luôn nha bạn. Bạn đang xem căn ở đường nào để mình báo số chính xác từng món cho nhen!`;
+      await cliFn(["msg", "send", "-t", "0", String(fromId), phanHoiPhi]).catch(() => {});
+      luuLichSu(fromId, "bot", phanHoiPhi);
+    } else {
+      console.log(`[Auto-Reply TẮT] Khách hỏi chi phí, không tự reply.`);
+    }
     return;
   }
 
@@ -339,7 +355,7 @@ export async function xuLyTinNhan11({ fromId, senderName, text, sb, cliFn }) {
   const history = layLichSu(fromId);
   const isFirstMessage = history.filter((h) => h.role === "khách").length <= 1;
 
-  if (isFirstMessage) {
+  if (isFirstMessage && BOT_TU_DONG_TRA_LOI_KHACH) {
     const isEn = laTiengAnh(text);
     if (isEn) {
       const phanHoiEn = `Hi there! Which district or area are you looking for an apartment in, and what is your approximate budget? Let me know and I'll find the best available units for you right away!`;
