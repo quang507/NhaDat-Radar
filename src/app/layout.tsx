@@ -57,6 +57,9 @@ export const metadata: Metadata = {
     images: ["/og-default.png"],
   },
   robots: { index: true, follow: true },
+  other: {
+    "google-adsense-account": "ca-pub-8747500665166380",
+  },
 };
 
 // Organization + WebSite (SearchAction): khai báo một lần ở layout cho mọi trang
@@ -72,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="vi" className={`${inter.variable} ${lora.variable}`} suppressHydrationWarning>
       <head>
+        <meta name="google-adsense-account" content="ca-pub-8747500665166380" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.add('light')}}catch(e){}})()`,
