@@ -44,7 +44,18 @@ Không có giá trị bí mật nào trong file này.
 
 - Acc clone đang dùng: ownId `…2457647` (tên "Lê Quang"). Acc cũ `…9854381` phiên đã chết. Chưa từng dùng số hotline.
 - **Đọc:** mọi nhóm acc đang ở, trừ `ZALO_BO_QUA_NHOM`. Tin ≥ 40 ký tự → Gemini → lưu tin nếu là tin BĐS có SĐT
-  hoặc khu vực. Bỏ qua tin 1-1; `sendReply` khoá cứng (không trả lời trong chat).
+  hoặc khu vực. Không bao giờ trả lời trong nhóm.
+- **Chat 1-1 với khách** (thiết kế lại 1/11, `crawler/zalo-tu-van-lead.mjs`): bot là trợ lý của người, không tự nói.
+  Khách nhắn → luật cứng + Gemini phân loại → thẻ gửi Zalo admin (`ZALO_ADMIN_UID`) có mã `K` + 4 số cuối uid khách,
+  tình hình, căn đang hỏi, 2-3 câu nháp. Admin nhắn lại cho acc bot: `K1234 2` gửi nháp số 2, `K1234 <câu>` gửi câu
+  của mình, `K1234 bot` giao lại cho bot, `K1234 im` bot im 24 giờ. Người chat tay trên acc bot (điện thoại/PC) → bot im
+  24 giờ với khách đó (cổng `zalo-gui.mjs` lọc tiếng vọng tin bot tự gửi, nên phải chạy listener KHÔNG `--no-self`).
+  Khách chờ quá 5 phút (10 phút nếu người đang nhận) chưa ai trả lời → nhắc admin 1 lần; khách nghi bot / đòi xem
+  gấp / giục → báo khẩn ngay. Trạng thái nằm ở `bot_state` (`loai='zalo_hoi_thoai'`), sống qua restart.
+  `ZALO_AUTO_REPLY_KHACH=true` mới cho bot tự trả lời, và chỉ câu hỏi dữ kiện có đủ trong DB (giá, phí, cọc, diện
+  tích...), ráp từ DB chứ không do AI viết; ngoài ra một câu chào xin mã phòng. Hạn mức: 3 tin tự động/khách/giờ,
+  40 tin/giờ toàn nick, không tự nhắn khách 23h-7h. Kiểm tra trước khi bật: nhắn thử khách từ điện thoại xem log có
+  dòng `người thật nhận cuộc chat` (nếu CLI không đẩy tin tự gửi từ máy khác thì bot không biết người đã vào).
 - **Đăng** (`crawler/zalo-dang-nhom.mjs`): chỉ phòng rổ hàng của Radar (`source='ro_hang'`), đúng khu vực + khoảng
   giá + loại phòng của nhóm; mỗi nhóm ≤ 1 tin/ngày, giờ rải ngẫu nhiên 08:30-19:30, cách nhau ≥ 25 phút, ≤ 10 tin/ngày,
   không lặp phòng trong nhóm, không trùng phòng giữa các nhóm trong ngày. Bài gồm giá, diện tích, phường/quận, chi phí

@@ -1,7 +1,8 @@
 // ============================================================================
 //  Zalo bot (không cần OA/GPKD) - cầu nối zalo-agent-cli <-> NhaDat Radar.
 //  Lắng nghe tin nhắn Zalo (acc clone, đăng nhập QR bằng zalo-agent-cli),
-//  phân loại bằng Gemini -> ghi tin (dang_tin) / tra DB trả lời (hoi_tin).
+//  tin NHÓM: Gemini bóc tin BĐS -> lưu (không bao giờ trả lời trong nhóm).
+//  chat 1-1: zalo-tu-van-lead.mjs - bot gợi ý câu trả lời cho admin, chỉ tự trả lời khi được bật cờ.
 //
 //  CHẠY TRÊN MÁY/VPS (giữ phiên đăng nhập), KHÔNG chạy trên Vercel.
 //  Cài 1 lần:  npm i -g zalo-agent-cli   (rồi đăng nhập: zalo-agent login  -> quét QR)
@@ -9,13 +10,15 @@
 //
 //  ⚠ Dùng tài khoản Zalo CLONE - API không chính thức có thể bị Zalo khoá.
 // ============================================================================
-import { spawn, execFileSync, execFile } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 import { canonProvince, quanTheoDB } from "./chung.mjs";
-import { xuLyTinNhan11, ghiNhanChatTay } from "./zalo-tu-van-lead.mjs";
+import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH } from "./zalo-tu-van-lead.mjs";
+import { taoKhoHoiThoai } from "./zalo-hoi-thoai.mjs";
+import { taoCongGui } from "./zalo-gui.mjs";
 
 // Windows: spawn/execFileSync KHÔNG chạy được shim .cmd của npm (ENOENT/EINVAL)
 // -> tìm file bin thật của zalo-agent-cli trong npm global rồi gọi `node <bin>`.
@@ -57,17 +60,6 @@ const sb = createClient(url, key, { auth: { persistSession: false } });
 // Gemini. Mã nhóm để trong .env.local (repo public), cách nhau dấu phẩy: ZALO_BO_QUA_NHOM=id1,id2
 const BO_QUA_NHOM = new Set((process.env.ZALO_BO_QUA_NHOM || "").split(/[\s,]+/).filter(Boolean));
 
-// Link gửi cho khách phải là domain public - .env.local dev hay đặt localhost nên phải lọc
-const rawSite = process.env.NEXT_PUBLIC_SITE_URL || "";
-const SITE = rawSite && !/localhost|127\.0\.0\.1/.test(rawSite) ? rawSite.replace(/\/$/, "") : "https://nhadatradar.com";
-const PROP = { nha: "Nhà", dat: "Đất nền", can_ho: "Căn hộ", mat_bang: "Mặt bằng", phong_tro: "Phòng trọ", khac: "Nhà đất khác" };
-function fmtPrice(v, deal) {
-  if (!v) return "Thoả thuận";
-  const s = deal === "cho_thue" ? "/th" : "";
-  if (v >= 1e9) return (v / 1e9).toFixed(2).replace(/\.?0+$/, "") + " tỷ" + s;
-  if (v >= 1e6) return Math.round(v / 1e6) + " triệu" + s;
-  return Math.round(v / 1e3) + "k";
-}
 
 // ---- Gemini phân loại (giống lib/ai.ts) ----
 const PROMPT = `Bạn là trợ lý Zalo của sàn nhà đất. Đọc tin nhắn và trả về DUY NHẤT 1 JSON:
@@ -107,48 +99,26 @@ async function classify(text) {
   return (await goiGeminiJSON(PROMPT + "\n\n--- TIN NHẮN ---\n" + text)) ?? { intent: "khac" };
 }
 
-// Đáp án của seller thường chứa ĐẶC ĐIỂM mới ("hướng Đông Nam, sổ hồng riêng, hẻm 6m") -
-// bóc và ĐẮP vào tin: web hiện luôn trong "Chi tiết bất động sản", buyer sau khỏi hỏi lại.
-// Đây là mảnh "AI tự đưa thông tin vào DB" của spec Cầu Nối (F3 - tích luỹ hồ sơ).
-async function dapSpecsTuDapAn(listingId, cauHoi, dapAn) {
-  try {
-    const r = await goiGeminiJSON(`Từ cặp hỏi-đáp về một bất động sản, trả về DUY NHẤT JSON {"specs":{"nhãn tiếng Việt":"giá trị"},"direction":string|null,"legal":string|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null}. Chỉ trích thông tin NÓI RÕ trong câu ĐÁP (hướng, pháp lý, số phòng ngủ/WC/tầng, mặt tiền, đường vào, phí, tình trạng...), không suy diễn; không có gì thì specs rỗng và các trường null.\nHỏi: ${cauHoi.slice(0, 200)}\nĐáp: ${dapAn.slice(0, 500)}`);
-    const them = {};
-    if (r?.specs && typeof r.specs === "object" && !Array.isArray(r.specs))
-      for (const [k, v] of Object.entries(r.specs))
-        if ((typeof v === "string" || typeof v === "number") && String(v).trim()) them[String(k).slice(0, 40)] = String(v).slice(0, 120);
-    const capNhat = {};
-    if (Object.keys(them).length) {
-      const { data: cu } = await sb.from("listings").select("specs").eq("id", listingId).single();
-      capNhat.specs = { ...(cu?.specs || {}), ...them };
-    }
-    if (typeof r?.direction === "string" && r.direction.trim()) capNhat.direction = r.direction.slice(0, 30);
-    if (typeof r?.legal === "string" && r.legal.trim()) capNhat.legal_status = r.legal.slice(0, 60);
-    // các cột số có ô riêng trong bảng "Chi tiết BĐS" (VD buyer hỏi "mấy phòng ngủ?" và
-    // seller trả lời "3 phòng" -> cột bedrooms phải nhận 3, không chỉ nằm trong hỏi đáp)
-    for (const k of ["bedrooms", "bathrooms", "floors"])
-      if (typeof r?.[k] === "number" && r[k] > 0 && r[k] < 100) capNhat[k] = r[k];
-    if (Object.keys(capNhat).length) {
-      const { error } = await sb.from("listings").update(capNhat).eq("id", listingId);
-      console.log(error ? `  (đắp specs lỗi: ${error.message})` : `  ✓ đắp ${Object.keys(capNhat).length} trường từ đáp án vào tin ${listingId.slice(0, 8)}`);
-    } else {
-      // không bóc được trường nào -> đắp nguyên cặp hỏi-đáp vào MÔ TẢ (quyết định 21/8:
-      // "không bóc được thì ghi thêm vào mô tả là xong") - thông tin không bao giờ rơi rớt
-      const { data: cu } = await sb.from("listings").select("description").eq("id", listingId).single();
-      await sb.from("listings").update({
-        description: `${cu?.description || ""}\n\n[Chủ nhà trả lời qua Radar] ${cauHoi.slice(0, 150)} -> ${dapAn.slice(0, 400)}`,
-      }).eq("id", listingId);
-      console.log(`  ✓ đắp hỏi-đáp vào mô tả tin ${listingId.slice(0, 8)} (không bóc được trường riêng)`);
-    }
-  } catch (e) { console.error("dapSpecsTuDapAn:", e.message); }
+// ---- Chat 1-1 với khách: trạng thái bền + cổng gửi duy nhất + bộ tư vấn (xem zalo-tu-van-lead.mjs) ----
+const chayCli = (args) => new Promise((resolve, reject) =>
+  execFile(CLI, [...ZALO.pre, "--json", ...args], { timeout: 30_000, windowsHide: true }, (err, stdout) => (err ? reject(err) : resolve(stdout))));
+const khoHoiThoai = taoKhoHoiThoai({ sb });
+const congGui = taoCongGui({ cli: chayCli });
+const tuVan = taoTuVan({ sb, kho: khoHoiThoai, cong: congGui, goiAI: goiGeminiJSON });
+console.log(`Chat 1-1: ${BOT_TU_DONG_TRA_LOI_KHACH ? "bot được tự trả lời câu hỏi dữ kiện" : "bot chỉ gợi ý cho admin (ZALO_AUTO_REPLY_KHACH tắt)"}`);
+
+/** Loại tin Zalo -> "chu" | "anh" | "sticker" | "giong_noi" | "video" | "tep" | "vi_tri" | "khac" */
+function kieuTin(msgType, laAnh, text) {
+  if (laAnh || /photo|image/i.test(msgType)) return "anh";
+  if (/sticker/i.test(msgType)) return "sticker";
+  if (/voice/i.test(msgType)) return "giong_noi";
+  if (/video/i.test(msgType)) return "video";
+  if (/file/i.test(msgType)) return "tep";
+  if (/location/i.test(msgType)) return "vi_tri";
+  return text ? "chu" : "khac";
 }
 
 const KIND = ["nha", "dat", "can_ho", "mat_bang", "phong_tro", "khac"];
-
-// Chống lặp câu "Em nhận được ảnh rồi ạ": fromId -> mốc nhắc gần nhất (đặt ở module
-// để listener restart không mất; map nhỏ, chỉ giữ người nhắn ảnh nên không cần dọn)
-const photoHintAt = new Map();
-const HINT_GAP_MS = Number(process.env.ZALO_HINT_GAP_MS || 60_000);
 
 // ---- NHỚ ẢNH khách gửi để ghép vào tin đăng (20/8) ----
 // Đo trên DB: 0/45 tin Zalo có ảnh - vì zca-js gửi ảnh thành SỰ KIỆN RIÊNG, không đính kèm
@@ -347,67 +317,7 @@ async function harvestGroup(text, anh = [], khoaAnh = null) {
   }
 }
 
-// TRÍ NHỚ PHIÊN DM (21/8): khách hay đăng tin THIẾU SĐT rồi bổ sung ở tin nhắn sau
-// ("chưa có số điện thoại mà. số là 034...") - bot không nhớ gì nên chỉ cảm ơn suông và tin
-// không bao giờ được đăng (đo thật trên DM 11:04 21/8). Nhớ bản nháp trượt cổng theo người
-// gửi trong 15 phút; tin nhắn kế trông giống phần BỔ SUNG (có SĐT, hoặc ngắn + có khu vực)
-// thì ghép vào nháp rồi phân loại lại cả cụm. Tin dài tự đứng được thì xử lý như tin mới.
-const nhapDo = new Map(); // fromId -> { text, luc }
-const NHAP_TTL_MS = 15 * 60_000;
-
-// ---- CẦU NỐI (21/8, học mô hình nhadat.CC "AI mặt tiền - người hậu trường") ----
-// Buyer hỏi sâu về MỘT căn (sổ đỏ, quy hoạch, xem nhà...) -> bot relay sang seller nếu tin
-// đăng qua Zalo (có zalo_thread), seller trả lời là chuyển lại buyer NGAY và câu trả lời
-// TÍCH LUỸ vào listing_facts - buyer sau hỏi lại thì bot tự trả, không phiền seller lần hai.
-// Tin CÀO không có seller trên Zalo -> ghi info_requests status 'admin', bot nhắn admin kèm
-// SĐT gốc của chủ tin để admin gọi rồi trả lời khách bằng chính tài khoản Zalo này.
-// Che SĐT trong nội dung RELAY hai chiều: hai bên mà trao đổi được số qua bot là họ tự nói
-// chuyện riêng, mất luôn vai trung gian (đúng nỗi lo "seller gặp buyer trực tiếp thì mình
-// không thu được gì"). Danh tính chỉ mở khi chốt lịch xem nhà - do admin quyết.
-const cheSoRelay = (s) => String(s || "").replace(/(\+?84|0)[\s.\-]?(\d[\s.\-]?){7,10}/g, (m) => m.slice(0, 4) + "*** (số đã ẩn - liên hệ qua Radar)");
-const daGioiThieu = new Map(); // buyerThread -> { ids: [listingId...], luc } - 4 căn bot vừa giới thiệu
-const GT_TTL_MS = 30 * 60_000;
-const choDapAn = new Map();   // sellerThread -> { reqId, buyerThread, listingId, question, luc }
-const DAP_TTL_MS = 24 * 60 * 60_000;
-const choXemNha = new Map();  // buyerThread -> { listingId, khungGio, luc } - đang chờ khách cho SĐT để chốt lịch xem
-const XEM_TTL_MS = 30 * 60_000; // hết 30 phút không cho SĐT thì bỏ luồng hẹn xem (trước đây thiếu hằng này -> ReferenceError)
 // ---- CRM SYNC (Tự động đồng bộ khách hàng, lịch xem, deals vào CRM) ----
-async function crmUpsertBuyer({ zaloId, phone = null, name = null, preferences = null, notes = null }) {
-  try {
-    if (!zaloId && !phone) return null;
-    let b = null;
-    if (zaloId) {
-      const { data } = await sb.from("buyers").select("id,preferences").eq("zalo_user_id", String(zaloId)).maybeSingle();
-      b = data;
-    }
-    if (!b && phone) {
-      const { data } = await sb.from("buyers").select("id,preferences").eq("phone", phone).maybeSingle();
-      b = data;
-    }
-    const now = new Date().toISOString();
-    if (b) {
-      const upd = { last_contact_at: now };
-      if (phone) upd.phone = phone;
-      if (name && name !== "Khách Zalo") upd.name = name;
-      if (notes) upd.notes = notes;
-      if (preferences) upd.preferences = { ...(b.preferences || {}), ...preferences };
-      await sb.from("buyers").update(upd).eq("id", b.id);
-      return b.id;
-    }
-    const { data: created } = await sb.from("buyers").insert({
-      name: name || "Khách Zalo",
-      phone: phone || null,
-      zalo_user_id: zaloId ? String(zaloId) : null,
-      preferences: preferences || {},
-      notes: notes || null,
-      last_contact_at: now,
-    }).select("id").single();
-    return created?.id ?? null;
-  } catch (err) {
-    console.error("crmUpsertBuyer err:", err.message);
-    return null;
-  }
-}
 
 async function crmUpsertSeller({ zaloId, phone = null, name = null, listingId = null, sellerType = "ccrb" }) {
   try {
@@ -443,32 +353,7 @@ async function crmUpsertSeller({ zaloId, phone = null, name = null, listingId = 
   }
 }
 
-async function crmAddInterest(buyerId, listingId) {
-  try {
-    if (!buyerId || !listingId) return;
-    await sb.from("interests").upsert({ buyer_id: buyerId, listing_id: listingId }, { onConflict: "buyer_id,listing_id" });
-  } catch (err) {
-    console.error("crmAddInterest err:", err.message);
-  }
-}
 
-async function crmCreateViewing({ listingId, buyerId = null, phone = null, timeText = null, note = null }) {
-  try {
-    const { data } = await sb.from("viewings").insert({
-      listing_id: listingId,
-      buyer_id: buyerId,
-      phone,
-      time_text: timeText,
-      note,
-      status: "proposed",
-      source: "zalo_bot",
-    }).select("id").single();
-    return data?.id ?? null;
-  } catch (err) {
-    console.error("crmCreateViewing err:", err.message);
-    return null;
-  }
-}
 
 async function crmCreateDeal({ listingId, buyerId = null, stage = "lead", priceVnd = null }) {
   try {
@@ -501,355 +386,11 @@ async function crmCreateReminder({ kind = "follow_up", buyerId = null, sellerId 
   }
 }
 
-// ---- BÁO TIN MỚI QUA ZALO (21/8) ----
-// Khách tìm nhà xong, bot hỏi "muốn nhận tin nhắn khi có tin MỚI khớp không?". Gật (hoặc
-// nhắn kèm Gmail) là lưu saved_searches với zalo_thread; vòng quét 30'/lượt nhắn thẳng vào
-// hội thoại khi có tin mới. Có email thì alerts.mjs trên CI gửi mail song song (nút hủy sẵn).
-const truyVanCuoi = new Map(); // buyerThread -> { q, luc } - bộ lọc lần tìm gần nhất
-const TV_TTL_MS = 30 * 60_000;
-const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]{2,}/;
-async function baoTinMoiZalo() {
-  try {
-    const { data: subs } = await sb.from("saved_searches").select("*").eq("active", true).not("zalo_thread", "is", null).limit(200);
-    for (const s of subs ?? []) {
-      let q = sb.from("listings").select("id,title,price_vnd,area_m2,district,deal").eq("status", "published")
-        .gt("first_seen_at", s.zalo_notified_at || s.created_at)
-        .order("first_seen_at", { ascending: false }).limit(3);
-      if (s.deal) q = q.eq("deal", s.deal);
-      if (s.kind) q = q.eq("kind", s.kind);
-      if (s.province) q = q.ilike("province", `%${s.province}%`);
-      if (s.district) q = q.ilike("district", `%${s.district}%`); // từ Gemini nên chưa chắc canonical -> khớp mềm
-      if (s.ward) q = q.ilike("ward", `%${s.ward}%`);
-      if (s.price_min) q = q.gte("price_vnd", s.price_min);
-      if (s.price_max) q = q.lte("price_vnd", s.price_max);
-      if (s.area_min) q = q.gte("area_m2", s.area_min);
-      const { data: hits } = await q;
-      if (!hits?.length) continue;
-      const lines = hits.map((x) => `• ${(x.title || "").slice(0, 50)} - ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""}\n  ${SITE}/listings/${x.id}`);
-      sendReply(s.zalo_thread, `🔔 Có ${hits.length} tin MỚI khớp tìm kiếm anh/chị quan tâm:\n${lines.join("\n")}\nCần hỏi thêm căn nào cứ nhắn em. Không muốn nhận nữa thì nhắn "ngừng báo tin" ạ.`);
-      await sb.from("saved_searches").update({ zalo_notified_at: new Date().toISOString() }).eq("id", s.id);
-      console.log(`  🔔 báo ${hits.length} tin mới cho thread ${String(s.zalo_thread).slice(0, 8)}...`);
-    }
-  } catch (e) { console.error("baoTinMoiZalo:", e.message); }
-}
-// TẮT TẤT CẢ TỰ ĐỘNG GỬI TIN ĐỊNH KỲ THEO YÊU CẦU:
-// setInterval(baoTinMoiZalo, 30 * 60_000);
-// setInterval(quanLyTonDong, 6 * 60 * 60_000);
-// setInterval(baoAdmin, 60_000);
-
-// ---- Xử lý DM (chat 1-1) -> trả về text để gửi lại ----
-async function handle(text, anh = [], khoaAnh = null) {
-  // 0. Seller đang được chờ trả lời câu hỏi của buyer? -> tin nhắn này là ĐÁP ÁN:
-  //    chuyển cho buyer ngay + tích luỹ vào listing_facts (lần sau bot tự trả)
-  const cho = khoaAnh ? choDapAn.get(khoaAnh) : null;
-  if (cho) {
-    choDapAn.delete(khoaAnh);
-    if (Date.now() - cho.luc <= DAP_TTL_MS) {
-      await sb.from("info_requests").update({ answer: text, status: "answered", answered_at: new Date().toISOString() }).eq("id", cho.reqId);
-      await sb.from("listing_facts").insert({ listing_id: cho.listingId, question: cho.question.slice(0, 300), answer: text.slice(0, 1000) });
-      dapSpecsTuDapAn(cho.listingId, cho.question, text); // chạy nền, không bắt hai bên chờ
-      sendReply(cho.buyerThread, `Dạ chủ nhà vừa trả lời câu anh/chị hỏi:\n"${cheSoRelay(text).slice(0, 500)}"\nCần hỏi thêm hay muốn hẹn xem nhà thì anh/chị nhắn em ngay nhé 🏠`);
-      console.log(`  ✓ cầu nối: chuyển đáp án seller -> buyer (tin ${cho.listingId.slice(0, 8)})`);
-      return "Dạ em đã chuyển câu trả lời cho khách rồi ạ. Cảm ơn anh/chị nhiều 🙏";
-    }
-  }
-  // 0b. Buyer đang được hỏi SĐT để chốt lịch xem nhà? (F4 - spec Cầu Nối, bản thủ công:
-  //     đủ SĐT là ghi lead HẸN XEM, admin nhận báo qua Zalo rồi tự sắp lịch gọi hai bên)
-  const cxn = khoaAnh ? choXemNha.get(khoaAnh) : null;
-  if (cxn && Date.now() - cxn.luc <= XEM_TTL_MS) {
-    if (/thôi|khỏi|không cần|huỷ|hủy|để sau/i.test(text)) {
-      choXemNha.delete(khoaAnh);
-      return "Dạ vâng ạ, khi nào anh/chị muốn xem thì nhắn em bất cứ lúc nào nhé 🏠";
-    }
-    const soKhach = (text.match(/(\+?84|0)\d{8,10}/) || [])[0];
-    if (soKhach) {
-      choXemNha.delete(khoaAnh);
-      const phoneNorm = soKhach.replace(/^\+?84/, "0");
-      await sb.from("leads").insert({
-        listing_id: cxn.listingId, name: "Khách Zalo hẹn xem nhà", phone: phoneNorm,
-        message: `🏠 HẸN XEM NHÀ${cxn.khungGio ? ` - khung giờ khách muốn: ${cxn.khungGio}` : ""} - khách nhắn: "${text.slice(0, 200)}"`,
-      });
-      // Đồng bộ CRM: Buyer, Viewing, Interest, Deal, Reminder
-      crmUpsertBuyer({ zaloId: khoaAnh, phone: phoneNorm, name: "Khách hẹn xem Zalo" }).then((buyerId) => {
-        if (buyerId) {
-          crmCreateViewing({
-            listingId: cxn.listingId,
-            buyerId,
-            phone: phoneNorm,
-            timeText: cxn.khungGio || null,
-            note: text.slice(0, 200),
-          });
-          if (cxn.listingId) {
-            crmAddInterest(buyerId, cxn.listingId);
-            crmCreateDeal({ listingId: cxn.listingId, buyerId, stage: "viewing" });
-            crmCreateReminder({
-              kind: "viewing",
-              buyerId,
-              listingId: cxn.listingId,
-              note: `Lịch hẹn xem nhà: ${cxn.khungGio || "Chờ chốt giờ"} (SĐT: ${phoneNorm})`,
-            });
-          }
-        }
-      }).catch(() => {});
-      return "Dạ em đã ghi lịch ✅ Radar sẽ gọi/Zalo anh/chị trong ít phút để chốt giờ và điểm hẹn cụ thể. Cảm ơn anh/chị 🙏";
-    }
-    cxn.khungGio = `${cxn.khungGio || ""} ${text}`.trim().slice(0, 150);
-    cxn.luc = Date.now();
-    return "Dạ em ghi nhận ạ. Anh/chị cho em xin SĐT để Radar gọi chốt lịch xem nhé (VD: 0909xxxxxx) 📞";
-  }
-  if (cxn) choXemNha.delete(khoaAnh);
-  // 0b1. SELLER trả lời F2 "còn bán không" bằng "còn" -> giữ tin, chốt lại mốc 7 ngày.
-  // ("đã bán" thì rơi xuống handler sold ngay dưới, không cần bắt ở đây)
-  const cxn2 = khoaAnh ? choXacNhan.get(khoaAnh) : null;
-  if (cxn2 && Date.now() - cxn2.luc < 48 * 3600_000 && text.trim().length < 30 &&
-      /^(còn|con|vẫn còn|van con|còn ạ|con a|vẫn|van|ok|oke|giữ|giu)\b/i.test(text.trim())) {
-    choXacNhan.delete(khoaAnh);
-    await sb.from("listings").update({ last_confirmed_at: new Date().toISOString() }).eq("id", cxn2.listingId);
-    return "Dạ vâng, em giữ tin trên sàn cho anh/chị ạ. Cảm ơn anh/chị 🙏";
-  }
-  // 0b2. SELLER báo tin ĐÃ BÁN / ĐÃ CHO THUÊ -> gỡ tin của thread này khỏi sàn (status gone:
-  // ngừng hiển thị + ngừng matching). Bot đã hứa "báo đã bán cũng nhắn em" nên phải làm thật.
-  // Gate: tin nhắn NGẮN (< 50 ký tự) + có từ xác nhận (rồi/xong/chốt) để không bắt nhầm tin
-  // ĐĂNG mới bắt đầu bằng "Bán nhà...". Có mã tin thì gỡ đúng căn, không thì gỡ căn mới nhất.
-  if (khoaAnh && text.trim().length < 50 &&
-      /(đã|da)\s*(bán|ban|cho\s*thuê|cho\s*thue|sang)|(bán|ban|cho\s*thuê|cho\s*thue|ch[ốo]t|sang)\s*(r[ồo]i|xong)/i.test(text)) {
-    const { data: cuaToi } = await sb.from("listings").select("id,title,deal")
-      .eq("zalo_thread", String(khoaAnh)).eq("status", "published")
-      .order("created_at", { ascending: false }).limit(10);
-    if (cuaToi?.length) {
-      const maTin = (text.match(/\b[0-9a-f]{8}\b/i) || [])[0]?.toLowerCase();
-      const tin = (maTin && cuaToi.find((t) => t.id.startsWith(maTin))) || cuaToi[0];
-      await sb.from("listings").update({ status: "gone", last_seen_at: new Date().toISOString() }).eq("id", tin.id);
-      return `✅ Đã gỡ tin "${(tin.title || "").slice(0, 50)}" (mã ${tin.id.slice(0, 8)}) khỏi sàn - đánh dấu đã ${tin.deal === "cho_thue" ? "cho thuê" : "bán"}. Cảm ơn anh/chị đã tin tưởng Radar 🙏 Có căn mới cứ nhắn em đăng nhé 🏠`;
-    }
-    // không có tin nào của thread này -> rơi xuống xử lý bình thường
-  }
-  // 0c. Tắt/bật báo tin mới qua Zalo
-  if (khoaAnh && /(ngừng|ngung|tắt|tat|huỷ|huy)\s*(báo|bao)\s*tin/i.test(text)) {
-    await sb.from("saved_searches").update({ active: false }).eq("zalo_thread", String(khoaAnh)).eq("active", true);
-    return 'Dạ em đã tắt báo tin cho anh/chị ✅ Khi nào cần lại, anh/chị tìm nhà rồi nhắn "CÓ" là bật ngay ạ.';
-  }
-  // Khách vừa được mời nhận báo tin (sau một lượt tìm) -> gật ("CÓ"/"ok") hoặc nhắn Gmail là chốt
-  const tv = khoaAnh ? truyVanCuoi.get(khoaAnh) : null;
-  if (tv && Date.now() - tv.luc <= TV_TTL_MS) {
-    const email = (text.match(EMAIL_RE) || [])[0] || null;
-    const gat = email || (text.trim().length < 40 && /^(có|co|ok|oke|okie|dạ|da|yes|muốn|muon|đồng ý|dong y|bật|bat|ừ|uh)\b/i.test(text.trim()));
-    if (gat) {
-      truyVanCuoi.delete(khoaAnh);
-      const q = tv.q;
-      // mỗi thread giữ MỘT đăng ký Zalo đang bật - đăng ký mới thay bộ lọc cũ, tránh dội tin trùng
-      await sb.from("saved_searches").update({ active: false }).eq("zalo_thread", String(khoaAnh)).eq("active", true);
-      const { error } = await sb.from("saved_searches").insert({
-        zalo_thread: String(khoaAnh), email,
-        deal: q.listing_type || null, kind: q.property_type || null,
-        province: q.province || null, district: q.district || null, ward: q.ward || null,
-        price_min: q.price_min || null, price_max: q.price_max || null, area_min: q.area_min || null,
-      });
-      if (error) { console.error("dang ky bao tin:", error.message); return "Dạ em chưa lưu được đăng ký, anh/chị thử lại sau ít phút nhé 🙏"; }
-      return `✅ Đã bật báo tin mới cho ${[q.ward, q.district, q.province].filter(Boolean).join(", ") || "khu vực anh/chị quan tâm"}. Có tin khớp là em nhắn ngay tại đây${email ? ` và gửi thêm về ${email}` : ""}. Muốn tắt: nhắn "ngừng báo tin" ạ.`;
-    }
-  }
-  const nhap = khoaAnh ? nhapDo.get(khoaAnh) : null;
-  if (nhap && Date.now() - nhap.luc > NHAP_TTL_MS) nhapDo.delete(khoaAnh);
-  else if (nhap && (PHONE_RE.test(text) || (text.length < 120 && AREA_HINT.test(text)))) {
-    text = nhap.text + "\n" + text;
-    console.log("  (ghép phần bổ sung vào tin nháp 15' của cùng người gửi)");
-  }
-  const ai = await classify(text);
-
-  if (ai.intent === "dang_tin" && ai.listing) {
-    const L = ai.listing;
-    // Cổng chất lượng 17/8: DM thì NÓI RÕ thiếu gì để khách gửi bổ sung (không im lặng bỏ như group)
-    const why = qualityGate((L.title || "") + "\n" + text, L);
-    if (why) {
-      if (khoaAnh) nhapDo.set(khoaAnh, { text, luc: Date.now() }); // giữ nháp - khách gửi nốt phần thiếu là ghép được
-      const need = why === "không có SĐT" ? "số điện thoại liên hệ"
-        : why === "không có khu vực" ? "khu vực (quận/huyện, phường/xã)"
-        : "loại BĐS (nhà / đất / căn hộ / mặt bằng…) và giá";
-      return `Dạ em chưa đăng được vì tin còn thiếu ${need}. Anh/chị nhắn bổ sung ${need} là em ghép với tin vừa gửi và đăng ngay ạ 🙏`;
-    }
-    const { error, id: idMoi } = await saveListing(L, text, { fromGroup: false, images: anh, khoaAnh });
-    if (error) return "Dạ em chưa ghi được tin. Anh/chị gửi lại kèm giá, diện tích, khu vực giúp em nhé 🙏";
-    if (khoaAnh) nhapDo.delete(khoaAnh);
-    // Văn "gửi vàng" (21/8): biến việc CHE SĐT - thứ seller dễ khó chịu nhất - thành điểm
-    // bán. Điểm đau thật của chính chủ là vừa đăng số lên là môi giới lạ gọi dội bom.
-    return `✅ Tin của anh/chị đã lên sàn:${anh.length ? `\n📷 Kèm ${anh.length} ảnh` : ""}\n🏠 ${L.title || "BĐS"}\n💰 ${fmtPrice(L.price_vnd, L.listing_type)}${L.area_m2 ? " · " + L.area_m2 + "m²" : ""}${L.district ? " · " + L.district : ""}${idMoi ? `\n🆔 Mã tin: ${idMoi.slice(0, 8)}\n🔗 ${SITE}/listings/${idMoi}` : ""}\n\n🛡️ SĐT của anh/chị được Radar GIỮ KÍN - không hiện công khai nên không lo môi giới lạ gọi dội bom. Khách quan tâm thật sẽ liên hệ qua Radar, em chuyển tận tay anh/chị.\n\n🤝 Từ giờ anh/chị cứ để căn này Radar lo: tin đứng khu ĐỘC QUYỀN ngay đầu trang tìm kiếm, khách hỏi gì em chuyển liền, khách muốn xem nhà em sắp lịch rồi báo trước. Bán được mới tính phí giới thiệu, không bán không mất đồng nào.\n\n✏️ Muốn sửa: nhắn "sửa giá 5,5 tỷ" hay "bổ sung: có gác lửng" ngay tại đây - em cập nhật liền. Báo đã bán cũng nhắn em nhé 🏠`;
-  }
-
-  // SELLER sửa tin đã đăng qua Zalo này (21/8: "nhắn tin trong Zalo để sửa"). Tìm tin theo
-  // zalo_thread trong DB (bền qua restart) - mã tin trong tin nhắn thì đúng căn đó, không
-  // thì lấy căn mới đăng gần nhất. Chỉ sửa được tin CHÍNH CHỦ thread này đăng.
-  if (ai.intent === "sua_tin" && khoaAnh) {
-    const s = ai.sua || {};
-    const { data: cuaToi } = await sb.from("listings")
-      .select("id,title,description,price_vnd,area_m2").eq("zalo_thread", String(khoaAnh))
-      .order("created_at", { ascending: false }).limit(5);
-    if (!cuaToi?.length) return "Dạ em chưa thấy tin nào anh/chị đăng qua Zalo này (tin đăng từ 21/8 trở đi mới sửa qua chat được). Anh/chị nhắn nội dung tin mới là em đăng liền ạ.";
-    const maTin = (s.ma_tin || (text.match(/\b[0-9a-f]{8}\b/i) || [])[0] || "").toLowerCase();
-    const tin = (maTin && cuaToi.find((t) => t.id.startsWith(maTin))) || cuaToi[0];
-    const upd = {};
-    for (const k of ["price_vnd", "area_m2", "bedrooms", "bathrooms", "floors"])
-      if (typeof s[k] === "number" && s[k] > 0) upd[k] = s[k];
-    // giá/diện tích đổi thì tính lại giá/m² cho khớp
-    const giaMoi = upd.price_vnd ?? tin.price_vnd, dtMoi = upd.area_m2 ?? tin.area_m2;
-    if ((upd.price_vnd || upd.area_m2) && giaMoi && dtMoi) upd.price_per_m2 = Math.round(giaMoi / dtMoi);
-    if (s.mo_ta_them && String(s.mo_ta_them).trim())
-      upd.description = `${tin.description || ""}\n\n[Chủ nhà bổ sung] ${String(s.mo_ta_them).trim().slice(0, 500)}`;
-    if (!Object.keys(upd).length)
-      upd.description = `${tin.description || ""}\n\n[Chủ nhà bổ sung] ${text.slice(0, 500)}`; // không bóc được trường nào -> đắp nguyên văn vào mô tả
-    const { error } = await sb.from("listings").update(upd).eq("id", tin.id);
-    if (error) { console.error("sua_tin:", error.message); return "Dạ em chưa sửa được, anh/chị thử lại sau ít phút nhé 🙏"; }
-    if (s.mo_ta_them) dapSpecsTuDapAn(tin.id, "chủ nhà bổ sung", s.mo_ta_them); // thử bóc đặc điểm từ phần bổ sung
-    const daDoi = Object.keys(upd).filter((k) => k !== "description" && k !== "price_per_m2");
-    return `✅ Đã cập nhật tin "${(tin.title || "").slice(0, 50)}" (mã ${tin.id.slice(0, 8)}):${daDoi.length ? `\n${daDoi.map((k) => `• ${k === "price_vnd" ? "Giá: " + fmtPrice(upd.price_vnd, "ban") : k === "area_m2" ? "Diện tích: " + upd.area_m2 + "m²" : k === "bedrooms" ? "Phòng ngủ: " + upd.bedrooms : k === "bathrooms" ? "WC: " + upd.bathrooms : "Số tầng: " + upd.floors}`).join("\n")}` : ""}${upd.description ? "\n• Đã thêm phần bổ sung vào mô tả" : ""}\n🔗 ${SITE}/listings/${tin.id}`;
-  }
-
-  // Buyer muốn XEM NHÀ (F4): xác định căn -> xin SĐT + khung giờ -> ghi lead HẸN XEM,
-  // admin nhận báo Zalo (kèm link tin, trong đó có địa chỉ đầy đủ) rồi sắp lịch, gọi 2 bên.
-  // Danh tính + địa chỉ chính xác chỉ mở ở bước này, và do NGƯỜI quyết chứ không phải bot.
-  if (ai.intent === "xem_nha") {
-    const gt0 = khoaAnh ? daGioiThieu.get(khoaAnh) : null;
-    const ids0 = gt0 && Date.now() - gt0.luc < GT_TTL_MS ? gt0.ids : [];
-    const idText0 = (text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) || [])[0] || null;
-    const idXem = idText0 || (ai.ref_index >= 1 && ids0[ai.ref_index - 1]) || ids0[0] || null;
-    if (!idXem) return 'Dạ anh/chị muốn xem căn nào ạ? Nhắn kèm link tin hoặc tìm trước (VD "nhà Quận 7 dưới 6 tỷ") rồi chọn căn giúp em nhé.';
-    const soKhach = (text.match(/(\+?84|0)\d{8,10}/) || [])[0];
-    if (soKhach) {
-      const phoneNorm = soKhach.replace(/^\+?84/, "0");
-      await sb.from("leads").insert({
-        listing_id: idXem, name: "Khách Zalo hẹn xem nhà", phone: phoneNorm,
-        message: `🏠 HẸN XEM NHÀ - khách nhắn: "${text.slice(0, 200)}"`,
-      });
-      // Đồng bộ CRM
-      crmUpsertBuyer({ zaloId: khoaAnh, phone: phoneNorm, name: "Khách hẹn xem Zalo" }).then((buyerId) => {
-        if (buyerId) {
-          crmCreateViewing({ listingId: idXem, buyerId, phone: phoneNorm, note: text.slice(0, 200) });
-          crmAddInterest(buyerId, idXem);
-          crmCreateDeal({ listingId: idXem, buyerId, stage: "viewing" });
-          crmCreateReminder({ kind: "viewing", buyerId, listingId: idXem, note: `Hẹn xem nhà căn ${idXem.slice(0, 8)} (SĐT: ${phoneNorm})` });
-        }
-      }).catch(() => {});
-      return "Dạ em đã ghi lịch ✅ Radar sẽ gọi/Zalo anh/chị trong ít phút để chốt giờ và điểm hẹn cụ thể. Cảm ơn anh/chị 🙏";
-    }
-    choXemNha.set(khoaAnh, { listingId: idXem, khungGio: "", luc: Date.now() });
-    return "Dạ được ạ 🏠 Anh/chị cho em xin SĐT và khung giờ rảnh (VD: \"0909xxxxxx, chiều thứ 7\") - Radar sẽ gọi chốt lịch và dẫn anh/chị xem tận nơi, hoàn toàn miễn phí.";
-  }
-
-  // Buyer hỏi SÂU về một căn cụ thể -> Cầu Nối: relay sang seller hoặc đẩy cho admin
-  if (ai.intent === "hoi_sau") {
-    const gt = khoaAnh ? daGioiThieu.get(khoaAnh) : null;
-    const ids = gt && Date.now() - gt.luc < GT_TTL_MS ? gt.ids : [];
-    const idTrongText = (text.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i) || [])[0] || null;
-    const id = idTrongText || (ai.ref_index >= 1 && ids[ai.ref_index - 1]) || (ids.length === 1 ? ids[0] : null) || ids[0] || null;
-    if (!id) return 'Dạ anh/chị đang hỏi về căn nào ạ? Nhắn kèm link tin (hoặc tìm lại trước, VD "thuê phòng trọ Quận 7 dưới 5 triệu") rồi hỏi tiếp giúp em nhé.';
-    const { data: tin } = await sb.from("listings").select("id,title,zalo_thread").eq("id", id).single();
-    if (!tin) return "Dạ căn đó không còn trên hệ thống (có thể đã gỡ). Anh/chị tìm căn khác giúp em nhé.";
-    // đáp án tích luỹ từ các lần hỏi trước - có gì trả trước, đỡ chờ
-    const { data: facts } = await sb.from("listing_facts").select("question,answer").eq("listing_id", id).order("created_at", { ascending: false }).limit(5);
-    const sellerDM = tin.zalo_thread && !tin.zalo_thread.includes("|") ? tin.zalo_thread : null;
-    const { data: req, error } = await sb.from("info_requests").insert({
-      listing_id: id, buyer_thread: String(khoaAnh || ""), seller_thread: sellerDM,
-      question: text.slice(0, 500), status: sellerDM ? "pending" : "admin",
-    }).select("id").single();
-    if (error) { console.error("info_requests:", error.message); return "Dạ em đang bị lỗi hệ thống, anh/chị thử lại sau ít phút nhé 🙏"; }
-    // Đồng bộ CRM Interest
-    if (khoaAnh && id) {
-      crmUpsertBuyer({ zaloId: khoaAnh }).then((bId) => {
-        if (bId) crmAddInterest(bId, id);
-      }).catch(() => {});
-    }
-    if (sellerDM) {
-      choDapAn.set(sellerDM, { reqId: req.id, buyerThread: String(khoaAnh), listingId: id, question: text, luc: Date.now() });
-      sendReply(sellerDM, `Dạ có khách đang quan tâm tin "${(tin.title || "").slice(0, 60)}" của anh/chị và hỏi:\n"${cheSoRelay(text).slice(0, 300)}"\nAnh/chị nhắn trả lời ngay tại đây, em chuyển cho khách liền ạ 🙏`);
-      console.log(`  → cầu nối: chuyển câu hỏi buyer -> seller (tin ${id.slice(0, 8)})`);
-    }
-    const daCo = (facts ?? []).map((f) => `• ${f.question.slice(0, 60)}: ${f.answer.slice(0, 150)}`).join("\n");
-    return `${daCo ? `Thông tin chủ nhà đã trả lời trước đây:\n${daCo}\n\n` : ""}Dạ em đã chuyển câu hỏi ${sellerDM ? "cho chủ nhà" : "cho anh phụ trách khu này"}, có trả lời là em báo anh/chị ngay ạ 🔔`;
-  }
-
-  if (ai.intent === "hoi_tin" && ai.query) {
-    const q = ai.query;
-    let query = sb.from("listings").select("id,title,price_vnd,area_m2,district,ward,deal,kind,contact_phone,source,source_site").eq("status", "published");
-    if (q.listing_type) query = query.eq("deal", q.listing_type);
-    if (q.property_type) query = query.eq("kind", q.property_type);
-    if (q.district) query = query.ilike("district", `%${q.district}%`);
-    if (q.ward) query = query.ilike("ward", `%${q.ward}%`); // khách hỏi theo PHƯỜNG/XÃ (21/8)
-    if (q.province) query = query.ilike("province", `%${q.province}%`);
-    if (q.price_max) query = query.lte("price_vnd", q.price_max);
-    if (q.price_min) query = query.gte("price_vnd", q.price_min);
-    if (q.area_min) query = query.gte("area_m2", q.area_min);
-    const { data } = await query.order("ai_score", { ascending: false, nullsFirst: false }).limit(4);
-    // nhớ 4 căn vừa giới thiệu theo thread - khách nhắn "căn số 2 xem sổ được không?" là bot
-    // biết đang nói căn nào (Cầu Nối / hoi_sau dùng)
-    if (khoaAnh && data?.length) daGioiThieu.set(khoaAnh, { ids: data.map((x) => x.id), luc: Date.now() });
-    // link "xem tất cả" trên web với cùng bộ lọc (UX audit: bot chỉ đưa 4 tin, không có đường đi tiếp)
-    const sp = new URLSearchParams();
-    if (q.listing_type) sp.set("deal", q.listing_type);
-    if (q.property_type) sp.set("kind", q.property_type);
-    if (q.province) sp.set("province", q.province);
-    if (q.district) sp.set("district", q.district);
-    if (q.price_max) sp.set("priceMax", String(q.price_max));
-    if (q.price_min) sp.set("priceMin", String(q.price_min));
-    if (q.ward) sp.set("ward", q.ward);
-    if (q.area_min) sp.set("areaMin", String(q.area_min));
-    const moreUrl = `${SITE}/search?${sp.toString()}`;
-    // mời nhận báo tin mới (21/8): chỉ mời khi có KHU VỰC thật - lưu bộ lọc 30' chờ khách gật
-    const coKhuVuc = !!(q.province || q.district || q.ward);
-    if (khoaAnh && coKhuVuc) truyVanCuoi.set(khoaAnh, { q, luc: Date.now() });
-    // Đồng bộ CRM Buyer preferences
-    if (khoaAnh) {
-      crmUpsertBuyer({
-        zaloId: khoaAnh,
-        preferences: {
-          district: q.district || null,
-          ward: q.ward || null,
-          property_type: q.property_type || null,
-          deal: q.listing_type || null,
-          price_min: q.price_min || null,
-          price_max: q.price_max || null,
-          area_min: q.area_min || null,
-        },
-      }).catch(() => {});
-    }
-    const moiBaoTin = coKhuVuc
-      ? `\n\n🔔 Quý khách muốn nhận TIN NHẮN ngay tại đây mỗi khi có tin MỚI khớp tìm kiếm này không? Nhắn "CÓ" là em bật - muốn nhận thêm qua email thì nhắn kèm Gmail ạ.`
-      : "";
-    if (data?.length) {
-      // Tin ĐỘC QUYỀN (FB + Zalo - cùng luật với src/lib/doc-quyen.ts): KHÔNG đưa SĐT ra,
-      // liên hệ đi qua Cầu Nối - khách cầm số ở bước tìm là hết vai trò trung gian.
-      const laDocQuyen = (x) => x.source === "zalo_oa" || x.source === "zalo_miniapp"
-        || x.source_site === "facebook" || x.source_site === "zalo_group" || x.source_site === "zalo_bot";
-      const lines = data.map((x, i) => `${i + 1}. ${x.title?.slice(0, 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}${laDocQuyen(x) ? `\n   ⭐ Độc quyền Radar - nhắn "căn số ${i + 1}" để hỏi thêm / hẹn xem` : x.contact_phone ? "\n   📞 " + x.contact_phone : ""}\n   🔗 ${SITE}/listings/${x.id}`);
-      return `🔎 ${data.length} tin phù hợp nhất:\n\n${lines.join("\n\n")}\n\n👉 Xem tất cả + bản đồ: ${moreUrl}\nNhắn thêm điều kiện (giá, số phòng, đường…) để em lọc kỹ hơn.${moiBaoTin}`;
-    }
-    return `Chưa có tin nào khớp đúng yêu cầu. Anh/chị thử nới điều kiện (khu vực rộng hơn / giá cao hơn), hoặc xem danh sách gần nhất: ${moreUrl}${moiBaoTin || "\nĐể lại nhu cầu (khu vực + giá + loại), có tin mới khớp em báo ngay ạ 🔔"}`;
-  }
-
-  return ai.reply_hint ||
-    "Xin chào 👋 Em là trợ lý NhaDat Radar.\n• Muốn ĐĂNG tin: gửi thông tin nhà/đất (giá, diện tích, khu vực, SĐT).\n• Muốn TÌM nhà: nhắn ví dụ \"thuê phòng trọ Quận 7 dưới 5 triệu\".";
-}
-
-// ============================================================================
-//  ADAPTER zalo-agent-cli - CHỈNH 2 HÀM NÀY nếu tên lệnh CLI của bạn khác.
-//  Xem lệnh thật: `zalo-agent --help`, `zalo-agent message --help`
-// ============================================================================
-
-// Gửi tin nhắn trả lời (ĐÃ KHÓA HOÀN TOÀN THEO YÊU CẦU: tài khoản dùng cho việc kinh doanh khác)
-function sendReply(toId, text, { group = false } = {}) {
-  try {
-    const threadType = group ? "1" : "0";
-    execFileSync(CLI, [...ZALO.pre, "msg", "send", "-t", threadType, String(toId), text], { windowsHide: true, timeout: 30000 });
-    return true;
-  } catch (e) {
-    console.error(`Gửi Zalo tới ${toId} lỗi:`, e.message);
-    return false;
-  }
-}
-
 // Lắng nghe tin nhắn đến (stream JSON qua stdout)
 function startListener() {
   console.log("Zalo bot: bắt đầu lắng nghe... (Ctrl+C để dừng)");
-  // --json là option TOÀN CỤC của zalo-agent-cli -> đặt TRƯỚC listen; --no-self để CLI tự lọc tin mình gửi
+  // --json là option TOÀN CỤC của zalo-agent-cli -> đặt TRƯỚC listen. KHÔNG dùng --no-self: cần thấy tin
+  // người thật chat tay từ máy khác để bot nhường (tiếng vọng của chính bot do zalo-gui.mjs lọc).
   // --auto-accept: tự đồng ý kết bạn để người lạ nhắn được cho bot
   // windowsHide: chưa `zalo-agent login` thì listen chết ngay -> vòng restart 5s, mỗi lần spawn bật 1 cửa sổ
   // CMD nảy lên màn hình liên tục (sự cố 17/8). Ẩn cửa sổ để lỗi chỉ nằm trong log pm2.
@@ -879,36 +420,22 @@ function startListener() {
     const isGroup = (ev.isGroup ?? d.isGroup ?? false) || t === 1 || t === "1" || t === "group";
     if (!fromId) return;
 
-    // Nếu chính chủ nick đang chat tay trong cuộc trò chuyện 1-1 -> Ghi nhận và dừng bot
-    if (isSelf) {
-      if (!isGroup && text) {
-        const guestId = ev.threadId ?? d.threadId ?? d.idTo ?? fromId;
-        console.log(`👤 [Chủ phòng chat tay -> ${guestId}]: ${text.slice(0, 80)}`);
-        ghiNhanChatTay(guestId, text);
-      }
-      return;
-    }
-
-    // XỬ LÝ TIN NHẮN 1-1: Tư vấn phòng tự động & Báo lead sang Zalo Admin
+    // CHAT 1-1 -> zalo-tu-van-lead.mjs. Tin "tự gửi" là tiếng vọng của bot HOẶC người thật chat tay
+    // từ điện thoại/PC (cổng gửi phân biệt); tin từ Zalo admin là lệnh "K1234 ...".
     if (!isGroup) {
-      if (text) {
-        const senderName = d.sender?.name || d.displayName || d.name || "Khách Zalo";
-        console.log(`← [1-1 ${fromId} (${senderName})] ${text.slice(0, 80)}`);
-        await xuLyTinNhan11({
-          fromId,
-          senderName,
-          text,
-          sb,
-          cliFn: (args) => new Promise((resolve, reject) => {
-            execFile(CLI, [...ZALO.pre, "--json", ...args], { timeout: 30000 }, (err, stdout) => {
-              if (err) return reject(err);
-              resolve(stdout);
-            });
-          }),
-        }).catch((e) => console.error("xuLyTinNhan11 lỗi:", e.message));
-      }
+      const kieu = kieuTin(msgType0, laAnh, text);
+      try {
+        if (isSelf) await tuVan.tuGuiNhan({ uid: ev.threadId ?? d.threadId ?? d.idTo ?? fromId, chu: text, kieu });
+        else if (String(fromId) === ADMIN_ZALO_UID) await tuVan.adminNhan({ chu: text });
+        else {
+          const ten = d.dName || d.sender?.name || d.displayName || d.name || null;
+          console.log(`← [1-1 ${fromId}${ten ? ` (${ten})` : ""}] ${text ? text.slice(0, 80) : `[${kieu}]`}`);
+          await tuVan.khachNhan({ uid: fromId, ten, chu: text, kieu });
+        }
+      } catch (e) { console.error("tư vấn 1-1 lỗi:", e.message); }
       return;
     }
+    if (isSelf) return;
     if (BO_QUA_NHOM.has(String(fromId))) return;
 
     // Khoá ghép ảnh-với-chữ: group phải kèm NGƯỜI GỬI (uidFrom) - không thì ảnh của người A
@@ -948,4 +475,6 @@ function startListener() {
 
 // Đăng tin lên nhóm đã chuyển sang crawler/zalo-dang-nhom.mjs (29/10: theo khu vực, 1 tin/nhóm/ngày, chỉ rổ hàng).
 if (process.argv[2] === "post") { console.error("Chế độ post đã bỏ - dùng: node --env-file=.env.local crawler/zalo-dang-nhom.mjs"); process.exit(1); }
+await khoHoiThoai.napTatCa(); // hội thoại đang dở (người đang chat, khách đang chờ) sống qua restart
+setInterval(() => tuVan.nhacViec().catch((e) => console.error("nhắc việc lỗi:", e.message)), 60_000);
 startListener();
