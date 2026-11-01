@@ -3,13 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hiRes } from "@/lib/img";
 import { Play, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+export interface NavItem {
+  id: string;
+  title: string;
+  price?: string | null;
+  image?: string | null;
+  location?: string | null;
+}
 
 // Gallery kiểu iPhone Photos: vuốt trực tiếp trên ảnh chính (CSS scroll-snap = quán tính
 // native, mượt), bấm ảnh mở lightbox toàn màn hình cũng vuốt được, phím ←/→/Esc vẫn chạy.
 
 // Ảnh hi-res, lỗi thì rơi về URL gốc; ảnh fbcdn phải no-referrer (giống SafeImg)
 function Img({ src, className, alt, eager, onClick }: {
-  src: string; className: string; alt: string; eager?: boolean; onClick?: () => void;
+  src: string; className: string; alt: string; eager?: boolean; onClick?: (e: React.MouseEvent<HTMLImageElement>) => void;
 }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -47,7 +56,102 @@ function useSnapTrack(n: number, onIndexChange: (i: number) => void) {
 
 // videos (30/9, kiểu Mogi): video phòng (rổ hàng EvoHome) - nhãn "▶ Video" trên ảnh chính + ô đầu hàng ảnh nhỏ,
 // bấm mở trình phát toàn màn hình. Không trộn vào track vuốt ảnh để không đụng logic snap/lightbox.
-export default function Gallery({ images, title, videos = [], roomCode }: { images: string[]; title: string; videos?: string[]; roomCode?: string }) {
+export default function Gallery({
+  images,
+  title,
+  videos = [],
+  roomCode,
+  nextListing,
+  prevListing,
+  currentListingId,
+}: {
+  images: string[];
+  title: string;
+  videos?: string[];
+  roomCode?: string;
+  nextListing?: NavItem | null;
+  prevListing?: NavItem | null;
+  currentListingId?: string;
+}) {
+  const router = useRouter();
+  const [transitionMsg, setTransitionMsg] = useState<string | null>(null);
+  const [lastViewed, setLastViewed] = useState<NavItem | null>(null);
+
+  // Ghi nhớ căn vừa xem từ sessionStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = sessionStorage.getItem("radar_prev_listing");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.id !== currentListingId) {
+          setLastViewed(parsed);
+        }
+      }
+    } catch {}
+  }, [currentListingId]);
+
+  const effectivePrev = lastViewed || prevListing;
+
+  const navigateTo = useCallback((target: NavItem | null | undefined, direction: "next" | "prev") => {
+    if (!target) return;
+    try {
+      if (currentListingId) {
+        sessionStorage.setItem("radar_prev_listing", JSON.stringify({
+          id: currentListingId,
+          title,
+          image: images[0] || null,
+        }));
+      }
+    } catch {}
+    setTransitionMsg(direction === "next" ? "Đang chuyển sang căn kế tiếp..." : "Đang quay lại căn vừa xem...");
+    router.push(`/listings/${target.id}`);
+  }, [currentListingId, title, images, router]);
+
+  // Touch tracking cho vuốt dọc (Lướt lên = căn kế, Lướt xuống = căn vừa xem)
+  const touchStartPos = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartPos.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartPos.current) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartPos.current.x;
+    const deltaY = e.changedTouches[0].clientY - touchStartPos.current.y;
+    const duration = Date.now() - touchStartPos.current.time;
+    touchStartPos.current = null;
+
+    // Vuốt dọc rõ ràng (> 60px và lấn át hẳn vuốt ngang)
+    if (Math.abs(deltaY) > 60 && Math.abs(deltaY) > Math.abs(deltaX) * 1.4 && duration < 600) {
+      if (deltaY < -60) {
+        // Vuốt lên -> Căn tiếp theo
+        if (nextListing) {
+          navigateTo(nextListing, "next");
+        }
+      } else if (deltaY > 60) {
+        // Vuốt xuống -> Căn vừa xem
+        if (effectivePrev) {
+          navigateTo(effectivePrev, "prev");
+        }
+      }
+    }
+  };
+
+  // Click trên Desktop: bấm ảnh thì chuyển ảnh tại chỗ, KHÔNG mở khung đen lightbox
+  const handleDesktopImageClick = (e: React.MouseEvent<HTMLImageElement | HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    if (clickX < rect.width * 0.4) {
+      hero.scrollTo((heroIdx - 1 + n) % n);
+    } else {
+      hero.scrollTo((heroIdx + 1) % n);
+    }
+  };
   const [video, setVideo] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);       // ảnh đang xem trong lightbox
@@ -100,7 +204,11 @@ export default function Gallery({ images, title, videos = [], roomCode }: { imag
   return (
     <>
       {/* Carousel ảnh chính: vuốt xem hết ảnh ngay tại trang, không cần mở lightbox */}
-      <div className="relative rounded-lg overflow-hidden aspect-[16/9] max-h-[480px] bg-[var(--surface-2)]">
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="group/gallery relative rounded-lg overflow-hidden aspect-[16/9] max-h-[480px] bg-[var(--surface-2)] select-none"
+      >
         <div
           ref={hero.ref}
           onScroll={hero.onScroll}
@@ -112,8 +220,8 @@ export default function Gallery({ images, title, videos = [], roomCode }: { imag
               src={img}
               alt={i === 0 ? title : `${title} - ảnh ${i + 1}`}
               eager={Math.abs(i - heroIdx) <= 1}
-              className="w-full h-full shrink-0 snap-center object-cover cursor-zoom-in"
-              onClick={() => openAt(i)}
+              className="w-full h-full shrink-0 snap-center object-cover cursor-pointer"
+              onClick={handleDesktopImageClick}
             />
           ))}
         </div>
@@ -129,11 +237,44 @@ export default function Gallery({ images, title, videos = [], roomCode }: { imag
             {roomCode}
           </span>
         )}
-        <span className="absolute bottom-3 right-3 text-xs font-medium px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white pointer-events-none flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openAt(heroIdx);
+          }}
+          className="absolute bottom-3 right-3 text-xs font-medium px-2.5 py-1 rounded-lg bg-black/60 hover:bg-black/85 backdrop-blur-sm text-white transition flex items-center gap-1.5 cursor-pointer z-10"
+        >
           <span>{heroIdx + 1}/{n}</span>
           <span className="text-white/40">·</span>
           <span className="flex items-center gap-1"><Maximize2 className="w-3 h-3 text-white/80" /> Phóng to</span>
-        </span>
+        </button>
+        {n > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Ảnh trước"
+              onClick={(e) => {
+                e.stopPropagation();
+                hero.scrollTo((heroIdx - 1 + n) % n);
+              }}
+              className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/75 text-white items-center justify-center backdrop-blur-sm transition opacity-0 group-hover/gallery:opacity-100 z-10 cursor-pointer"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Ảnh tiếp theo"
+              onClick={(e) => {
+                e.stopPropagation();
+                hero.scrollTo((heroIdx + 1) % n);
+              }}
+              className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/75 text-white items-center justify-center backdrop-blur-sm transition opacity-0 group-hover/gallery:opacity-100 z-10 cursor-pointer"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
         {n > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none">
             {images.slice(0, 8).map((_, i) => (
@@ -276,7 +417,45 @@ export default function Gallery({ images, title, videos = [], roomCode }: { imag
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>
-              </>
+              {/* Nút lướt sang Căn trước / Căn sau nổi ở 2 mép màn hình máy tính (kiểu Mogi) */}
+      {effectivePrev && (
+        <button
+          type="button"
+          onClick={() => navigateTo(effectivePrev, "prev")}
+          title={`Căn vừa xem: ${effectivePrev.title}`}
+          className="hidden 2xl:flex fixed left-5 top-1/2 -translate-y-1/2 z-30 group items-center gap-2 p-2.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] shadow-xl border border-[var(--line)] backdrop-blur transition-all duration-200 hover:scale-105 cursor-pointer"
+        >
+          <ChevronLeft className="w-5 h-5 text-brand" />
+          <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 text-xs font-bold pr-1">
+            {effectivePrev.price ? `${effectivePrev.price} · ` : ""}Căn trước
+          </span>
+        </button>
+      )}
+
+      {nextListing && (
+        <button
+          type="button"
+          onClick={() => navigateTo(nextListing, "next")}
+          title={`Căn kế tiếp: ${nextListing.title}`}
+          className="hidden 2xl:flex fixed right-5 top-1/2 -translate-y-1/2 z-30 group items-center gap-2 p-2.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--ink)] shadow-xl border border-[var(--line)] backdrop-blur transition-all duration-200 hover:scale-105 cursor-pointer"
+        >
+          <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 text-xs font-bold pl-1">
+            {nextListing.price ? `${nextListing.price} · ` : ""}Căn tiếp theo
+          </span>
+          <ChevronRight className="w-5 h-5 text-brand" />
+        </button>
+      )}
+
+      {/* Toast thông báo chuyển căn khi lướt */}
+      {transitionMsg && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="px-5 py-3 rounded-xl bg-[var(--surface)] text-[var(--ink)] font-bold text-sm shadow-2xl border border-[var(--line)] flex items-center gap-2.5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            <span>{transitionMsg}</span>
+          </div>
+        </div>
+      )}
+    </>
             )}
           </div>
           {n > 1 && (

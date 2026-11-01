@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const revalidate = 86400; // cache 1 ngày
 
 export async function GET() {
-  const rawId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || process.env.ADSENSE_PUB_ID || "";
+  const rawId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID || process.env.ADSENSE_PUB_ID || "pub-8747500665166380";
   // Tách lấy phần số hoặc pub-XXXXXXXXXXXX
   const pubMatch = rawId.match(/pub-\d+/i) || rawId.match(/\d{10,20}/);
   const pubId = pubMatch ? (pubMatch[0].startsWith("pub-") ? pubMatch[0] : `pub-${pubMatch[0]}`) : "pub-0000000000000000";

@@ -5,7 +5,7 @@ import Script from "next/script";
  * Kích hoạt khi có biến môi trường NEXT_PUBLIC_ADSENSE_CLIENT_ID (dạng ca-pub-XXXXXXXXXXXXXXXX)
  */
 export default function GoogleAdSense() {
-  const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim();
+  const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim() || "ca-pub-8747500665166380";
 
   if (!clientId || !clientId.startsWith("ca-pub-")) {
     return null;

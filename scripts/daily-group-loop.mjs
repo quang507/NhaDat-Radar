@@ -11,12 +11,23 @@
  */
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
 import { laBaiTimPhong, chuanHoaNhuCau, SYS_TIM, SCHEMA_TIM } from "../crawler/khach-tim.mjs";
 import { cleanFbText } from "../crawler/fb-clean.mjs";
 import { PHONE_RE } from "../crawler/quality-gate.mjs";
+
+// Bỏ qua lỗi tranh chấp đóng beforeunload dialog giữa Chrome DevTools MCP và Playwright
+process.on("unhandledRejection", (err) => {
+  if (String(err?.message || err).includes("handleJavaScriptDialog")) return;
+  console.error("Unhandled Rejection:", err);
+});
+process.on("uncaughtException", (err) => {
+  if (String(err?.message || err).includes("handleJavaScriptDialog")) return;
+  console.error("Uncaught Exception:", err);
+});
 
 // Đọc biến môi trường từ .env.local
 const envPath = path.resolve(process.cwd(), ".env.local");
@@ -129,21 +140,34 @@ export async function layRoHang(limit = 10) {
   return data || [];
 }
 
-// Đăng bài lên Profile cá nhân bằng Chrome CDP
-export async function dangBaiProfile(noiDung) {
+// Tải ảnh của listing về thư mục tạm để đính kèm khi đăng Facebook
+export async function taiAnhListing(images = []) {
+  const valid = (images || []).filter((u) => typeof u === "string" && u.startsWith("http") && !/\.(mp4|mov|webm)(\?|$)/i.test(u)).slice(0, 4);
+  if (!valid.length) return { dir: null, files: [] };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "radar-fb-img-"));
+  const files = [];
+  for (let i = 0; i < valid.length; i++) {
+    try {
+      const res = await fetch(valid[i], { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) continue;
+      const ext = (res.headers.get("content-type") || "").includes("png") ? "png" : "jpg";
+      const fp = path.join(dir, `img_${i + 1}.${ext}`);
+      fs.writeFileSync(fp, Buffer.from(await res.arrayBuffer()));
+      files.push(fp);
+    } catch { /* bỏ qua ảnh lỗi */ }
+  }
+  return { dir, files };
+}
+
+// Đăng bài lên Profile cá nhân bằng Chrome CDP (kèm ảnh thật)
+export async function dangBaiProfile(noiDung, imageFiles = []) {
   console.log("🔗 Đang kết nối Chrome qua port 9222...");
   const browser = await chromium.connectOverCDP(CDP_URL);
   const ctx = browser.contexts()[0];
-  let page = ctx.pages().find((p) => p.url().includes("facebook.com"));
-
-  if (!page) {
-    page = await ctx.newPage();
-    await page.goto("https://www.facebook.com/", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(3000);
-  }
+  let page = ctx.pages().find((p) => p.url().includes("facebook.com")) || (await ctx.newPage());
 
   console.log("Mở trang cá nhân Facebook...");
-  await page.goto("https://www.facebook.com/me", { waitUntil: "domcontentloaded" });
+  await page.goto("https://www.facebook.com/me", { waitUntil: "domcontentloaded", timeout: 45000 });
   await page.waitForTimeout(4000);
 
   console.log("Tìm ô 'What\\'s on your mind?' / 'Bạn đang nghĩ gì?'...");
@@ -157,15 +181,216 @@ export async function dangBaiProfile(noiDung) {
   await textbox.waitFor({ state: "visible", timeout: 8000 });
   await textbox.click();
   await textbox.fill(noiDung);
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(1500);
+
+  if (imageFiles.length > 0) {
+    console.log(`📷 Đang đính kèm ${imageFiles.length} ảnh thật vào bài Profile...`);
+    const fileInput = page.locator('div[role="dialog"] input[type="file"]').first();
+    if ((await fileInput.count()) > 0) {
+      await fileInput.setInputFiles(imageFiles);
+      await page.waitForTimeout(4000);
+    }
+  }
 
   console.log("Tìm nút Đăng / Post...");
   const postBtn = page.locator('div[role="dialog"] div[aria-label="Post"], div[role="dialog"] div[aria-label="Đăng"]').first();
   await postBtn.waitFor({ state: "visible", timeout: 8000 });
   await postBtn.click();
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(6000);
 
-  console.log("✅ ĐÃ ĐĂNG BÀI LÊN PROFILE FACEBOOK THÀNH CÔNG!");
+  console.log("✅ ĐÃ ĐĂNG BÀI KÈM ẢNH LÊN PROFILE FACEBOOK THÀNH CÔNG!");
+}
+
+// Tạo caption không chứa link (tránh bị FB bóp reach) + comment đầu tiên chứa link & Zalo
+export function taoBaiDangNhomHiFriendz(item) {
+  const ma = getMaPhong(item.id);
+  const giaStr = item.price_vnd
+    ? (item.price_vnd >= 1e9
+        ? `${(item.price_vnd / 1e9).toFixed(1).replace(/\.0$/, "")} tỷ`
+        : `${(item.price_vnd / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",")} triệu/tháng`)
+    : "Thương lượng";
+  const dtStr = item.area_m2 ? `${item.area_m2}m²` : "";
+  const khuVuc = [item.ward, item.district].filter(Boolean).join(", ");
+  const linkWeb = `${SITE_URL}/listings/${item.id}`;
+
+  const caption = spinText(
+    `{[w]🏠|✨|🌿} {Góc cho thuê|Cần tìm khách thuê thiện chí|Phòng trống xác minh thực tế dọn vào ở ngay} khu vực ${khuVuc}[w]\n\n` +
+    `• {Thông tin|Chi tiết}: ${item.title}${dtStr ? ` (${dtStr})` : ""}\n` +
+    `• {Giá thuê|Mức giá}: ${giaStr} {(báo đúng giá thực tế, minh bạch điện nước từ đầu)|(cam kết ảnh thật - giá thật 100%)}\n` +
+    `• {Khu vực|Vị trí}: ${item.address || khuVuc}\n` +
+    `• {Tình trạng|Ưu điểm}: {Phòng sạch thoáng, an ninh, giờ giấc tự do, dẫn xem trực tiếp miễn phí 24/7|Đã ghim vị trí trên bản đồ Radar, hỗ trợ thương lượng hợp đồng trực tiếp}.\n\n` +
+    `💡 {Ngoài căn này, hệ thống Nhà Đất Radar đang có sẵn hơn 1.400+ phòng trống & nhà nguyên căn đã lọc theo từng Phường/Quận (không cần lướt trăm group tìm mỏi mắt).|Nếu căn này chưa đúng tầm giá bạn tìm, nhắn mình khu vực + ngân sách để mình lọc nhanh 3–5 phòng khớp nhất từ rổ hàng 1.400+ căn hôm nay nhé!}\n` +
+    `📌 Mã căn: ${ma} — {Xem toạ độ bản đồ & full ảnh dưới bình luận hoặc nhắn Zalo 0387 365 020 giúp mình nha!|Mình để link bản đồ chi tiết dưới bình luận đầu tiên, cần xem phòng nhắn Zalo 0387 365 020 kèm mã căn nhé!}[w]`
+  );
+
+  const firstComment = spinText(
+    `{[w]👉|🗺️} Xem vị trí trên Bản đồ Radar & bộ ảnh thực tế căn ${ma} (hoặc tự lọc hơn 12.900+ phòng theo Phường/Quận) tại: ${linkWeb}\n📲 Cần tìm phòng theo yêu cầu riêng? Nhắn Zalo/Hotline: 0387 365 020 (báo mã ${ma} hoặc gửi khu vực + tầm giá để mình lọc phòng miễn phí trong 30s ạ!)[w]`
+  );
+
+  return { caption, firstComment, ma };
+}
+
+// Quét danh sách nhóm đã tham gia và tự động đăng bài theo lịch
+export async function dangBaiNhomVaPage(maxGroups = 8) {
+  console.log("🔗 Đang kết nối Chrome qua port 9222 để chạy lịch đăng Nhóm & Page...");
+  const browser = await chromium.connectOverCDP(CDP_URL);
+  const ctx = browser.contexts()[0];
+  let page = ctx.pages().find((p) => p.url().includes("facebook.com")) || (await ctx.newPage());
+
+  // Chờ nếu đang ở màn hình xác thực reCAPTCHA / login
+  for (let w = 0; w < 60; w++) {
+    const u = page.url();
+    if (!u.includes("two_step_verification") && !u.includes("/login") && !u.includes("checkpoint")) {
+      const hasEmail = await page.locator('input[name="email"]').count().catch(() => 0);
+      if (hasEmail === 0) break;
+    }
+    if (w === 0) console.log("⏳ Đang chờ hoàn tất tích ô 'I'm not a robot' / đăng nhập trên cửa sổ Chrome...");
+    await page.waitForTimeout(3000);
+  }
+  console.log("✅ Đã nhận diện phiên Facebook hoạt động! Bắt đầu chạy lịch đăng bài...");
+
+  let roHang = await layRoHang(30);
+  const targetIdIdx = process.argv.indexOf("--listing-id");
+  const targetId = targetIdIdx >= 0 ? process.argv[targetIdIdx + 1] : null;
+  if (targetId) {
+    const { data: one } = await sb
+      .from("listings")
+      .select("id, title, description, price_vnd, area_m2, address, ward, district, province, source, source_site, images")
+      .eq("id", targetId)
+      .single();
+    if (one) {
+      console.log(`⭐ Ưu tiên đăng Tin tiêu điểm nổi bật: ${one.title} (Mã: ${getMaPhong(one.id)})`);
+      roHang = [one];
+    }
+  }
+  if (!roHang.length) {
+    console.log("❌ Không có phòng rổ hàng để đăng.");
+    return;
+  }
+
+  // 1. Đăng lên trang cá nhân / Page trước (trừ khi có cờ --skip-profile)
+  if (!process.argv.includes("--skip-profile")) {
+    const itemDau = roHang[0];
+    const { dir, files } = await taiAnhListing(itemDau.images);
+    try {
+      const baiProfile = taoBaiDang(itemDau);
+      await dangBaiProfile(baiProfile, files);
+    } catch (e) {
+      console.warn("⚠️ Bỏ qua đăng Profile:", e.message);
+    } finally {
+      if (dir) fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  // 2. Lấy danh sách nhóm đã tham gia
+  console.log("🔎 Đang lấy danh sách nhóm BĐS đã tham gia...");
+  await page.goto("https://www.facebook.com/groups/joins/?nav_source=tab", { waitUntil: "domcontentloaded", timeout: 45000 });
+  await page.waitForTimeout(4000);
+  for (let s = 0; s < 5; s++) {
+    await page.mouse.wheel(0, 3000);
+    await page.waitForTimeout(1200);
+  }
+
+  const groupUrls = await page.$$eval('a[href*="/groups/"]', (as) => {
+    const urls = new Set();
+    for (const a of as) {
+      const m = a.href.match(/https:\/\/www\.facebook\.com\/groups\/([^/?#]+)/);
+      if (m && !["feed", "discover", "joins", "create", "notifications"].includes(m[1])) {
+        urls.add(`https://www.facebook.com/groups/${m[1]}/`);
+      }
+    }
+    return [...urls];
+  });
+
+  console.log(`📋 Tìm thấy ${groupUrls.length} nhóm đã tham gia. Sẽ đăng vào ${Math.min(maxGroups, groupUrls.length)} nhóm.`);
+  let daDang = 0;
+
+  for (const [idx, gUrl] of groupUrls.slice(0, maxGroups).entries()) {
+    const item = roHang[idx % roHang.length];
+    const { caption, firstComment, ma } = taoBaiDangNhomHiFriendz(item);
+    const { dir, files } = await taiAnhListing(item.images);
+    console.log(`\n[${idx + 1}/${Math.min(maxGroups, groupUrls.length)}] 🌐 Mở nhóm: ${gUrl} (Mã: ${ma}, ${files.length} ảnh)`);
+
+    try {
+      await page.goto(gUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.waitForTimeout(4000);
+
+      // Nếu có tab Thảo luận (trong nhóm mua bán), bấm sang Thảo luận để mở composer thông thường
+      const discussionTab = page.locator('a[role="tab"]:has-text("Thảo luận"), a[role="tab"]:has-text("Discussion")').first();
+      if (await discussionTab.isVisible({ timeout: 1500 }).catch(() => false)) {
+        await discussionTab.click().catch(() => {});
+        await page.waitForTimeout(2000);
+      }
+
+      const composer = page.locator(
+        'div[role="button"]:has-text("Bạn viết gì đi"), div[role="button"]:has-text("Write something"), div[role="button"]:has-text("Bạn đang nghĩ gì"), div[role="button"]:has-text("Tạo bài viết công khai"), div[role="button"]:has-text("Viết gì đó"), span:has-text("Bạn viết gì đi"), span:has-text("Tạo bài viết công khai")'
+      ).first();
+
+      if (!(await composer.isVisible({ timeout: 7000 }).catch(() => false))) {
+        console.warn("  ⚠️ Không thấy ô đăng bài (nhóm chưa duyệt hoặc khoá đăng) -> sang nhóm kế.");
+        continue;
+      }
+
+      await composer.click();
+      await page.waitForTimeout(2000);
+
+      const textbox = page.locator('div[role="dialog"] div[contenteditable="true"][role="textbox"]').first();
+      await textbox.waitFor({ state: "visible", timeout: 8000 });
+      await textbox.click();
+      await textbox.fill(caption);
+      await page.waitForTimeout(1500);
+
+      if (files.length > 0) {
+        const fileInput = page.locator('div[role="dialog"] input[type="file"]').first();
+        if ((await fileInput.count()) > 0) {
+          await fileInput.setInputFiles(files);
+          await page.waitForTimeout(4000);
+        }
+      }
+
+      const postBtn = page.locator('div[role="dialog"] div[aria-label="Đăng"], div[role="dialog"] div[aria-label="Post"]').first();
+      await postBtn.waitFor({ state: "visible", timeout: 10000 });
+      // Chờ nếu nút Đăng đang bị disabled do ảnh đang upload
+      for (let c = 0; c < 15; c++) {
+        const dis = await postBtn.getAttribute("aria-disabled").catch(() => null);
+        if (dis !== "true") break;
+        await page.waitForTimeout(1000);
+      }
+      await postBtn.click({ force: true });
+      await page.waitForTimeout(6000);
+
+      daDang++;
+      console.log(`  ✅ Đã đăng bài mã ${ma} vào nhóm ${gUrl}`);
+
+      // Thử thả First Comment chứa link dưới bài vừa đăng nếu hiện ngay trên feed
+      const commentBox = page.locator(
+        'div[role="textbox"][aria-label*="bình luận" i], div[role="textbox"][aria-label*="comment" i]'
+      ).first();
+      if (await commentBox.isVisible({ timeout: 4000 }).catch(() => false)) {
+        await commentBox.click();
+        await page.waitForTimeout(500);
+        await commentBox.fill(firstComment);
+        await page.waitForTimeout(800);
+        await page.keyboard.press("Enter");
+        await page.waitForTimeout(2500);
+        console.log(`  💬 Đã thả First Comment kèm link chi tiết căn ${ma}!`);
+      }
+
+      const waitSec = Math.floor(Math.random() * 40) + 60;
+      console.log(`  ⏳ Nghỉ ${waitSec}s trước khi đăng nhóm tiếp theo...`);
+      await page.waitForTimeout(waitSec * 1000);
+    } catch (e) {
+      console.warn(`  ❌ Lỗi tại nhóm ${gUrl}: ${e.message}`);
+    } finally {
+      if (dir) fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  console.log(`\n🏁 Đã hoàn tất lịch đăng bài: thành công ${daDang} nhóm!`);
+  if (process.argv.includes("--with-seeker")) {
+    console.log("\n🎯 Tiếp tục chuyển sang luồng Săn khách thông minh & Báo cáo ngày...");
+    await chaySanKhachTuDong(8);
+  }
 }
 
 // ============================================================================
@@ -500,6 +725,27 @@ async function main() {
   // Chế độ chỉ gửi báo cáo ngày về Telegram
   if (args.includes("--bao-cao-ngay")) {
     await guiBaoCaoNgayTelegram();
+    return;
+  }
+
+  // Chế độ chạy lịch đăng nhóm & page
+  if (args.includes("--post-groups")) {
+    const maxG = Number(args[args.indexOf("--post-groups") + 1]) || 30;
+    const loopHours = args.includes("--loop") ? Number(args[args.indexOf("--loop") + 1]) || 24 : null;
+    if (loopHours) {
+      console.log(`🔁 Chế độ tự động đăng ${maxG} nhóm mỗi ${loopHours} giờ được kích hoạt.`);
+      while (true) {
+        try {
+          await dangBaiNhomVaPage(maxG);
+        } catch (e) {
+          console.error("Lỗi trong vòng lặp đăng nhóm:", e);
+        }
+        console.log(`💤 Đã xong lượt hôm nay! Nghỉ ${loopHours} tiếng trước lượt kế tiếp...`);
+        await new Promise((r) => setTimeout(r, loopHours * 3600 * 1000));
+      }
+    } else {
+      await dangBaiNhomVaPage(maxG);
+    }
     return;
   }
 

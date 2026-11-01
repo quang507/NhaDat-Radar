@@ -291,6 +291,15 @@ export default async function ListingDetail({
   const diffPct = med && myPpm2 ? Math.round(((myPpm2 - med) / med) * 100) : null;
 
   const related = ((relRows ?? []) as Listing[]).map(cheTinDocQuyen).filter((r) => r.images?.length).slice(0, 6);
+  const nextListingItem = related[0]
+    ? {
+        id: related[0].id,
+        title: related[0].title,
+        price: fmtPrice(related[0].price_vnd, related[0].deal),
+        image: related[0].images?.[0] || null,
+        location: related[0].district,
+      }
+    : null;
 
   const roleGuess = x.poster_role_guess;
   const seen = agoMin(x.first_seen_at);
@@ -489,7 +498,14 @@ export default async function ListingDetail({
           {/* Gallery + lightbox - cap chiều cao để không đẩy hết nội dung xuống dưới fold */}
           <div className="[&_img]:max-h-[420px]">
             {images.length ? (
-              <Gallery images={images} title={x.title} videos={layVideo(x.images)} roomCode={roHang ? maPhong(x.id) : undefined} />
+              <Gallery
+                images={images}
+                title={x.title}
+                videos={layVideo(x.images)}
+                roomCode={roHang ? maPhong(x.id) : undefined}
+                nextListing={nextListingItem}
+                currentListingId={x.id}
+              />
             ) : (
               <div className="relative rounded-lg overflow-hidden aspect-[16/9] max-h-[440px] bg-slate-900 shadow-xs group border border-slate-800">
                 {/* Background illustration photo */}
