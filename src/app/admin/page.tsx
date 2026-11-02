@@ -1571,8 +1571,14 @@ export default async function AdminPage({
     // điểm nóng: liên hệ thật (gọi/zalo/đặt lịch) nặng nhất, rồi lưu/chia sẻ, lượt xem chỉ để phân định
     const diem = (d: Dem) => (d.goi + d.zalo + d.dat_lich) * 10 + (d.luu + d.chia_se) * 3 + d.xem * 0.1;
     const top = [...theoTin.entries()].sort((a, b) => diem(b[1]) - diem(a[1])).slice(0, 40);
-    const { data: tinRows } = top.length
-      ? await admin.from("listings").select("id,title,price_vnd,deal,district,source,source_site,status").in("id", top.map(([id]) => id))
+    // 3/11 (UX audit): bấm Zalo/Gọi xong khách sang Zalo hotline, hệ thống mất dấu (leads = 0 suốt 26 ngày).
+    // Danh sách THEO GIỜ từng cú bấm + mã phòng -> sale khớp với tin nhắn Zalo vừa đến, biết khách đã xem mấy tin.
+    const lienHe = sk.filter((e) => (e.loai === "goi" || e.loai === "zalo" || e.loai === "dat_lich") && e.listing_id).slice(0, 60);
+    const soTinXem = new Map<string, number>();
+    for (const e of sk) if (e.loai === "xem" && e.khach) soTinXem.set(e.khach, (soTinXem.get(e.khach) ?? 0) + 1);
+    const idsCanTen = [...new Set([...top.map(([id]) => id), ...lienHe.map((e) => e.listing_id as string)])];
+    const { data: tinRows } = idsCanTen.length
+      ? await admin.from("listings").select("id,title,price_vnd,deal,district,source,source_site,status").in("id", idsCanTen)
       : { data: [] };
     const tinMap = new Map((tinRows ?? []).map((t) => [t.id, t]));
     const chatHut = sk.filter((e) => e.loai === "chat" && !e.ket_qua).slice(0, 40);
@@ -1620,6 +1626,35 @@ export default async function AdminPage({
                     );
                   })}
                   {!top.length && <tr><td colSpan={8} className="p-8 text-center text-slate-400">Chưa có sự kiện nào trong 7 ngày.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <h2 className="mb-2 text-sm font-bold text-slate-700">📲 Khách bấm liên hệ - mới nhất trước ({lienHe.length})</h2>
+            <p className="mb-2 text-xs text-slate-500">Khớp với tin nhắn Zalo / cuộc gọi vào hotline theo giờ và mã phòng. Khách chưa gửi mã thì hỏi lại theo tin ở đây.</p>
+            <div className="mb-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-xs text-slate-500">
+                  <tr><th className="px-3 py-2 text-left">Giờ</th><th className="px-3 py-2 text-left">Kênh</th><th className="px-3 py-2 text-left">Tin</th><th className={o}>Khách đã xem</th></tr>
+                </thead>
+                <tbody>
+                  {lienHe.map((e, i) => {
+                    const t = tinMap.get(e.listing_id as string);
+                    return (
+                      <tr key={i} className="border-t border-slate-100">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-slate-500">{new Date(e.created_at).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" })}</td>
+                        <td className="px-3 py-2 whitespace-nowrap font-semibold">{e.loai === "zalo" ? "💬 Zalo" : e.loai === "goi" ? "📞 Gọi" : "📅 Đặt lịch"}</td>
+                        <td className="px-3 py-2">
+                          <Link href={`/listings/${e.listing_id}`} className="font-semibold text-slate-800 hover:text-emerald-600">{t?.title || (e.listing_id as string).slice(0, 8)}</Link>
+                          <div className="text-xs text-slate-500">
+                            {t ? `${fmtPrice(t.price_vnd, t.deal)} · ${t.district || ""}` : ""}
+                            {t?.source === "ro_hang" ? <b className="font-mono text-slate-700"> · {maPhong(e.listing_id as string)}</b> : null}
+                          </div>
+                        </td>
+                        <td className={o}>{e.khach ? `${soTinXem.get(e.khach) ?? 0} tin` : "-"}</td>
+                      </tr>
+                    );
+                  })}
+                  {!lienHe.length && <tr><td colSpan={4} className="p-8 text-center text-slate-400">Chưa có ai bấm Gọi / Zalo trong 7 ngày.</td></tr>}
                 </tbody>
               </table>
             </div>

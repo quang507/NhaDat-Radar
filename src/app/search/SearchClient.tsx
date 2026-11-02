@@ -158,10 +158,10 @@ export default function SearchClient({
 
   // Tin ĐỘC QUYỀN (FB + Zalo, xem lib/doc-quyen) tách lên DẢI RIÊNG đầu kết quả, thẻ to hơn
   // (21/8): nguồn không trang nào khác có = hàng bán được, cho đứng vị trí đẹp nhất.
-  // locDocQuyen ưu tiên tin ZALO trước FB - lý do "lúc thấy lúc không" trước đây là FB đông
-  // hơn chiếm hết 6 slot. Phần độc quyền còn lại nằm chung danh sách.
+  // 3/11: dải chỉ còn rổ hàng (locDocQuyen). Cạnh bản đồ dải 2-3 cột -> lấy 3 tin, không giấu 6 tin khỏi danh sách
+  // trong khi dải chỉ hiện được 2-3.
   // dải độc quyền chỉ ở trang 1 - các trang sau là danh sách thường (mỗi trang chỉ có 20 tin của chính nó)
-  const docQuyen = useMemo(() => (trang === 1 ? locDocQuyen(display, 6) : []), [display, trang]);
+  const docQuyen = useMemo(() => (trang === 1 ? locDocQuyen(display, showMap ? 3 : 6) : []), [display, trang, showMap]);
   const conLai = useMemo(() => {
     const idsTrenDai = new Set(docQuyen.map((x) => x.id));
     return display.filter((x) => !idsTrenDai.has(x.id));
@@ -790,7 +790,7 @@ export default function SearchClient({
 
           {display.length ? (
             <>
-              {trang === 1 && <DaiDocQuyen listings={display} />}
+              {trang === 1 && <DaiDocQuyen listings={display} hep={showMap} toiDa={showMap ? 3 : 6} />}
               {choThue && phanTrang("mb-3")}
               <div className={choThue ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" : "flex flex-col gap-3"}>
                 {conLai.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}

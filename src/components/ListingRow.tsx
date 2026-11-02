@@ -48,8 +48,8 @@ export default function ListingRow({ x }: { x: Listing }) {
           <div className="relative h-44 sm:h-52"><PropertyPlaceholder kind={x.kind} /></div>
         )}
         <span className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
-          {laTinDocQuyen(x) && (
-            <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-sm flex items-center gap-1 tracking-wide" title="Tin đăng đã xác minh thông tin & pháp lý thực tế">
+          {laRoHang(x) && (
+            <span className="text-overline font-bold px-2 py-0.5 rounded-md bg-emerald-700 text-white shadow-sm flex items-center gap-1 tracking-wide" title="Phòng trống do đơn vị quản lý xác nhận">
               <ShieldCheck className="w-3 h-3 shrink-0" />
               <span>ĐÃ XÁC MINH</span>
             </span>
@@ -63,7 +63,7 @@ export default function ListingRow({ x }: { x: Listing }) {
           <span className="text-[0.68rem] font-semibold px-2 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-md">
             {x.deal === "ban" ? "Bán" : "Cho thuê"}
           </span>
-          {isNew && !laTinDocQuyen(x) && <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-md bg-amber-600 text-white shadow-sm">Mới</span>}
+          {isNew && !laRoHang(x) &&<span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-md bg-amber-600 text-white shadow-sm">Mới</span>}
           {x.price_flag && <span className="text-[0.62rem] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Lệch giá</span>}
         </span>
         {imgs.length > 0 && (
@@ -125,7 +125,7 @@ function MobileThumb({ x }: { x: Listing }) {
       ) : (
         <PropertyPlaceholder kind={x.kind} />
       )}
-      {docQuyen && (
+      {laRoHang(x) && (
         <span className="absolute top-1.5 left-1.5 text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full text-white bg-emerald-600 shadow-sm flex items-center gap-0.5">
           <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
           <span>ĐÃ XÁC MINH</span>
