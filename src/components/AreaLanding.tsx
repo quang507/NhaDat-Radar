@@ -18,6 +18,7 @@ import { cheSoTin } from "@/lib/doc-quyen";
 import { tronRoHang } from "@/lib/ro-hang";
 import { ldJson } from "@/lib/ld";
 import { BarChart3 } from "lucide-react";
+import SanPhongHoCTA from "@/components/SanPhongHoCTA";
 
 type Deal = "ban" | "cho_thue";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
@@ -370,6 +371,13 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
         )}
         {total > show.length ? <div className="mt-4 text-center"><Link href={searchHref} className="btn">Xem thêm {(total - show.length).toLocaleString("vi-VN")} tin</Link></div> : null}
       </section>
+
+      {/* Khối kích hoạt Lead: Săn nhà / phòng hộ qua Zalo */}
+      <SanPhongHoCTA
+        tieuDe={`Cần tìm nhanh ${kindWord ? kindWord.toLowerCase() : "nhà đất"} ${dealWord.toLowerCase()} tại ${where}?`}
+        moTa={`Nhắn tiêu chí (tài chính, khu vực, tiện ích mong muốn) cho Radar qua Zalo. Đội ngũ Radar sẽ lọc rổ hàng đã xác minh tại ${where} và gửi bạn 3 căn phù hợp nhất trong 15 phút.`}
+        tinNhanZalo={`Chào Radar, mình đang cần tìm ${kindWord ? kindWord.toLowerCase() : "nhà đất"} ${dealWord.toLowerCase()} tại ${where}, tư vấn giúp mình nhé!`}
+      />
 
       {/* FAQ */}
       <section className="mt-10 card rounded-xl p-5">
