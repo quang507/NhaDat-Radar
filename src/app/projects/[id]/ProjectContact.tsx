@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { PhoneCall } from "lucide-react";
 import { createLead, type LeadState } from "@/app/listings/actions";
+import GhiChuDuLieu from "@/components/GhiChuDuLieu";
 
 const initial: LeadState = { ok: false };
 
@@ -39,6 +40,7 @@ export default function ProjectContact({ projectId, projectName }: { projectId: 
         </button>
         <button className="btn" type="button" onClick={() => setOpen(false)}>Hủy</button>
       </div>
+      <GhiChuDuLieu mucDich="liên hệ tư vấn về dự án này" className="mt-2" />
     </form>
   );
 }

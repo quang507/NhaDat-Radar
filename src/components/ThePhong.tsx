@@ -24,7 +24,7 @@ const giaThang = (v: number | null) => (v ? `${v.toLocaleString("vi-VN")} Ä‘/thÃ
 export default function ThePhong({ x }: { x: Listing }) {
   const [daChep, setDaChep] = useState(false);
   const roHang = laRoHang(x);
-  const tieuDe = laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title;
+  const tieuDe = cheSoVanBan(x.title, laTinDocQuyen(x));
   const ma = roHang ? maPhong(x.id) : null;
   const diaChi = [x.district, x.province].filter(Boolean).join(", ") || "-";
   const ageMin = x.first_seen_at ? Math.round((Date.now() - new Date(x.first_seen_at).getTime()) / 60000) : null;

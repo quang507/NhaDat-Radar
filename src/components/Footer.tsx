@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Phone, Mail, Clock, ShieldCheck, Compass } from "lucide-react";
+import { DON_VI } from "@/lib/don-vi";
 
 export default function Footer() {
   return (
@@ -78,6 +79,22 @@ export default function Footer() {
         <div>
           © {new Date().getFullYear()} NhaDat Radar. Dữ liệu tổng hợp từ các nguồn công khai, chỉ mang tính chất tham khảo.
         </div>
+        {/* Thông tin chủ quản (Luật TMĐT 122/2025) - điền ở lib/don-vi.ts, ô rỗng thì ẩn */}
+        <div className="px-4 leading-relaxed">
+          {(DON_VI.ten || DON_VI.maSoThue) && (
+            <div>
+              {DON_VI.ten && <>Đơn vị chủ quản: {DON_VI.ten}</>}
+              {DON_VI.maSoThue && <> · MST/ĐKKD: {DON_VI.maSoThue}{DON_VI.ngayCap && ` cấp ngày ${DON_VI.ngayCap}`}{DON_VI.noiCap && ` tại ${DON_VI.noiCap}`}</>}
+            </div>
+          )}
+          {DON_VI.diaChi && <div>Địa chỉ: {DON_VI.diaChi}</div>}
+          <div>Email: <a href={`mailto:${DON_VI.email}`} className="hover:text-brand">{DON_VI.email}</a> · Hotline: {DON_VI.hotline}</div>
+        </div>
+        {DON_VI.boCongThuong && (
+          <a href={DON_VI.boCongThuong} target="_blank" rel="noopener noreferrer" className="inline-block hover:text-brand underline">
+            Đã thông báo/đăng ký với Bộ Công Thương
+          </a>
+        )}
       </div>
     </footer>
   );

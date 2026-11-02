@@ -9,7 +9,7 @@ import { escHtml, shortPrice, fmtPrice, catChu, PROP } from "@/lib/format";
 import { taoBanDo, lopGomCum, MAY_CHU_BAN_DO, type DiemBanDo } from "@/lib/map-layers";
 import { KhungChoBanDo } from "./MapResults";
 import { createClient } from "@/lib/supabase/client";
-import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { cheSoTin } from "@/lib/doc-quyen";
 
 // Bản đồ 1 tin (MapLibre + OpenFreeMap) kèm tính năng hiện BĐS lân cận khi người dùng zoom ra
 export default function ListingMap({
@@ -124,7 +124,7 @@ export default function ListingMap({
             images?: string[] | null;
             area_m2?: number | null;
           };
-          const items = (data as unknown as RawItem[]).map(cheTinDocQuyen);
+          const items = (data as unknown as RawItem[]).map(cheSoTin);
 
           // Cộng dồn điểm - vùng cũ GIỮ NGUYÊN khi kéo bản đồ
           for (const it of items) {

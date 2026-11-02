@@ -27,7 +27,7 @@ import { tinLenBanDo } from "@/lib/ban-do-tin";
 import { fmtPrice, PROP } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
 import type { Listing, Project } from "@/lib/types";
-import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { cheSoTin } from "@/lib/doc-quyen";
 import { unstable_cache } from "next/cache";
 
 // Trang chủ là trang bị bot gọi nhiều nhất. Next 15 không cache fetch mặc định -> mỗi lượt là 2 truy
@@ -96,7 +96,7 @@ const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
 
 export default async function Home() {
   const { data, projData, projectCount } = await layTinTrangChu();
-  const listings = ((data ?? []) as Listing[]).map(cheTinDocQuyen);
+  const listings = ((data ?? []) as Listing[]).map(cheSoTin);
 
   // count exact: bộ đếm "dự án" phải là tổng toàn DB, không phải độ dài danh sách limit(6) (bug 17/8: hero hiện "6 dự án" trong khi DB có 30)
   const projects = (projData ?? []) as Project[];

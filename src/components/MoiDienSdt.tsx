@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import GhiChuDuLieu from "@/components/GhiChuDuLieu";
 
 // Mời người dùng ĐÃ đăng nhập để lại SĐT - mức NHẸ theo quyết định 20/8: không OTP,
 // bỏ qua được, điền láo thì chịu. Mục tiêu là có số để gọi lại lead, không phải chặn cổng
@@ -84,8 +85,8 @@ export default function MoiDienSdt() {
       <div className="bg-[var(--bg,#fff)] rounded-lg border border-[var(--line)] p-6 max-w-sm w-full shadow-lg" onClick={(e) => e.stopPropagation()}>
         <div className="text-lg font-bold mb-1">Để lại số điện thoại?</div>
         <p className="text-sm text-[var(--ink-soft)] mb-4">
-          Khi có tin đúng nhu cầu hoặc khách quan tâm tin của bạn, Radar gọi/Zalo báo ngay
-          thay vì chỉ chờ email. Không bắt buộc.
+          Chuyên viên Radar sẽ gọi/Zalo tư vấn nhu cầu tìm nhà, báo khi có tin đúng nhu cầu hoặc khách
+          quan tâm tin của bạn, thay vì chỉ chờ email. Không bắt buộc.
         </p>
         <input
           className="inp w-full mb-1"
@@ -102,6 +103,8 @@ export default function MoiDienSdt() {
         <button className="block w-full text-center text-xs text-[var(--ink-faint)]" onClick={deSau}>
           Để sau
         </button>
+        <GhiChuDuLieu mucDich="gọi/Zalo tư vấn và báo tin phù hợp" className="mt-3 text-center" />
+
       </div>
     </div>
   );

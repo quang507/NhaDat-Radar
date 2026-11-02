@@ -15,10 +15,13 @@ export function laTinDocQuyen(x: { source?: string | null; source_site?: string 
     || x.source_site === "facebook" || (x.source_site || "").startsWith("zalo");
 }
 
-// Che mọi dãy số giống SĐT trong văn bản hiển thị của tin độc quyền - mô tả tin FB thường
-// chứa số ngay trong bài, giấu cột contact_phone mà thả số trong mô tả thì công cốc.
-export function cheSoVanBan(s: string | null | undefined) {
-  return String(s || "").replace(/(\+?84|0)[\s.\-]?(\d[\s.\-]?){7,10}/g, (m) => m.slice(0, 4) + "*** (liên hệ qua Radar)");
+// Che mọi dãy số giống SĐT trong văn bản hiển thị - mô tả tin FB thường chứa số ngay trong bài,
+// giấu cột contact_phone mà thả số trong mô tả thì công cốc.
+// 2/11 (audit pháp lý, Luật 91/2025): che cho MỌI tin, không chỉ tin độc quyền - HTML công khai được CDN
+// cache và bị cào hàng loạt. Tin web vẫn xem được số thật qua nút "Xem SĐT" (đăng nhập, PhoneReveal).
+export function cheSoVanBan(s: string | null | undefined, docQuyen = true) {
+  const goiY = docQuyen ? "*** (liên hệ qua Radar)" : "*** (bấm Xem SĐT)";
+  return String(s || "").replace(/(\+?84|0)[\s.\-]?(\d[\s.\-]?){7,10}/g, (m) => m.slice(0, 4) + goiY);
 }
 
 // Che SỐ NHÀ của tin độc quyền, giữ tên đường (quyết định 21/8: "để tên đường thôi, số nhà
@@ -29,14 +32,14 @@ export function cheSoNha(s: string | null | undefined) {
   return String(s || "").trim().replace(/^\d[\d/\-a-zA-Z]*\s+/, "*** ");
 }
 
-// Bản đã che SĐT (tiêu đề + mô tả) của một tin độc quyền; tin thường trả nguyên. Dùng NGAY SAU truy
-// vấn ở server trước khi đưa danh sách xuống client component - dữ liệu truyền xuống (RSC payload)
-// nằm trong HTML, che ở chỗ hiển thị thôi là số vẫn lộ trong mã trang (audit 22/9).
-export function cheTinDocQuyen<T extends { source?: string | null; source_site?: string | null; title?: string | null; description?: string | null }>(x: T): T {
-  if (!laTinDocQuyen(x)) return x;
+// Bản đã che SĐT (tiêu đề + mô tả) của một tin (mọi nguồn, từ 2/11). Dùng NGAY SAU truy vấn ở server
+// trước khi đưa danh sách xuống client component - dữ liệu truyền xuống (RSC payload) nằm trong HTML,
+// che ở chỗ hiển thị thôi là số vẫn lộ trong mã trang (audit 22/9).
+export function cheSoTin<T extends { source?: string | null; source_site?: string | null; title?: string | null; description?: string | null }>(x: T): T {
+  const docQuyen = laTinDocQuyen(x);
   return {
     ...x,
-    ...(x.title != null ? { title: cheSoVanBan(x.title) } : {}),
-    ...(x.description != null ? { description: cheSoVanBan(x.description) } : {}),
+    ...(x.title != null ? { title: cheSoVanBan(x.title, docQuyen) } : {}),
+    ...(x.description != null ? { description: cheSoVanBan(x.description, docQuyen) } : {}),
   };
 }

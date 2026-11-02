@@ -84,6 +84,12 @@ const { count: phDeleted, error: e5 } = await sb.from("price_history").delete({ 
 if (e5) console.error("Lỗi dọn price_history:", e5.message);
 else console.log(`✓ Đã dọn lịch sử giá quá 180 ngày: ${phDeleted || 0} dòng`);
 
+// 6b. Nhật ký xem SĐT (migration 037) - Chính sách bảo mật cam kết lưu tối đa 180 ngày.
+// Bảng chưa có (chưa chạy 037) thì bỏ qua, không làm hỏng các bước dọn khác.
+const { count: xsDeleted, error: e6 } = await sb.from("xem_sdt").delete({ count: "exact" }).lt("ngay", oldPriceDay);
+if (e6) console.error("Bỏ qua dọn xem_sdt:", e6.message);
+else console.log(`✓ Đã dọn nhật ký xem SĐT quá 180 ngày: ${xsDeleted || 0} dòng`);
+
 // 7. Đếm lại sau khi dọn
 const { count: totalAfter } = await sb.from("listings").select("*", { count: "exact", head: true });
 const { count: pubAfter } = await sb.from("listings").select("*", { count: "exact", head: true }).eq("status", "published");

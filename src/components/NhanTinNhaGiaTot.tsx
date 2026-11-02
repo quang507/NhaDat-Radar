@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MessageCircle, Send, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import GhiChuDuLieu from "@/components/GhiChuDuLieu";
 
 interface NhanTinProps {
   khuVuc?: string;
@@ -115,6 +116,7 @@ export default function NhanTinNhaGiaTot({ khuVuc = "khu vực bạn tìm", loai
           )}
         </button>
       </form>
+      <GhiChuDuLieu mucDich="gửi danh sách nhà phù hợp và tư vấn qua Zalo/điện thoại" className="mt-2" />
 
       {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
 

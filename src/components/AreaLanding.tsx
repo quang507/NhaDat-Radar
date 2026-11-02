@@ -14,7 +14,7 @@ import type { Listing } from "@/lib/types";
 import ListingRow from "@/components/ListingRow";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import PriceTrend from "@/components/PriceTrend";
-import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { cheSoTin } from "@/lib/doc-quyen";
 import { tronRoHang } from "@/lib/ro-hang";
 import { ldJson } from "@/lib/ld";
 import { BarChart3 } from "lucide-react";
@@ -187,7 +187,7 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
   const kindWord = kind ? (PROP[kind] || kind) : null;
   const { data, hien, newToday, coAnh } = await layTinKhuVuc(deal, province, district, kind ?? null);
   const rows = (data ?? []) as Listing[];                               // cột số liệu - để tính thống kê
-  const hienRows = ((hien ?? []) as Listing[]).map(cheTinDocQuyen);     // tin đầy đủ - để hiển thị
+  const hienRows = ((hien ?? []) as Listing[]).map(cheSoTin);     // tin đầy đủ - để hiển thị
   // tổng THẬT từ cây đếm (cache) - audit: bản cũ dùng rows.length bị cap 300 cho cấp quận
   const total = areaCount(area, deal, district, kind) || rows.length;
 

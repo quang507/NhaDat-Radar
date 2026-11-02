@@ -18,7 +18,7 @@ export default function PhoneReveal({
   listingTitle?: string;
 }) {
   // null = đang kiểm tra phiên (chưa vẽ gì, tránh nháy nút "đăng nhập" với người đã đăng nhập)
-  const [phien, setPhien] = useState<null | "khach" | { phone: string | null }>(null);
+  const [phien, setPhien] = useState<null | "khach" | "qua_gioi_han" | { phone: string | null }>(null);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -28,6 +28,11 @@ export default function PhoneReveal({
       // getSession đọc cookie tại chỗ, không gọi mạng; quyền thật do RLS/column grant quyết định
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { if (!huy) setPhien("khach"); return; }
+      // 2/11: SĐT qua RPC có giới hạn 30 tin/ngày/tài khoản (migration 037). RPC chưa có (PGRST202 - chưa
+      // chạy migration) thì đọc cột như cũ; sau 037 authenticated không còn quyền đọc cột này.
+      const rpc = await sb.rpc("lay_sdt_tin", { p_listing: listingId });
+      if (rpc.error?.message?.includes("qua_gioi_han_xem_sdt")) { if (!huy) setPhien("qua_gioi_han"); return; }
+      if (!rpc.error) { if (!huy) setPhien({ phone: (rpc.data as string | null) ?? null }); return; }
       const { data } = await sb.from("listings").select("contact_phone").eq("id", listingId).maybeSingle();
       if (!huy) setPhien({ phone: data?.contact_phone ?? null });
     })().catch(() => { if (!huy) setPhien("khach"); });
@@ -36,6 +41,13 @@ export default function PhoneReveal({
 
   if (phien === null) return <div className="h-11" aria-hidden />;
   if (phien === "khach") return <DangNhapDeXem listingId={listingId} listingTitle={listingTitle} />;
+  if (phien === "qua_gioi_han") {
+    return (
+      <p className="text-sm text-[var(--ink-soft)]">
+        Bạn đã xem SĐT của 30 tin hôm nay (giới hạn để bảo vệ dữ liệu người đăng). Bạn vẫn để lại liên hệ qua form trên trang được, hoặc quay lại vào ngày mai.
+      </p>
+    );
+  }
 
   const phone = phien.phone;
   if (!phone) {

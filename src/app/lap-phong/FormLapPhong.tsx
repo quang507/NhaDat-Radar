@@ -5,6 +5,7 @@ import { CheckCircle2, MessageCircle, Send } from "lucide-react";
 import { baoGA } from "@/lib/su-kien-client";
 import { HOTLINE_ZALO } from "@/lib/hotline";
 import { dangKyLapPhong, type DangKyState } from "./actions";
+import GhiChuDuLieu from "@/components/GhiChuDuLieu";
 
 const initial: DangKyState = { ok: false };
 const nhan = "block text-xs font-semibold text-[var(--ink-soft)] mb-1";
@@ -73,6 +74,7 @@ export default function FormLapPhong() {
       <p className="sm:col-span-2 text-xs text-[var(--ink-faint)]">
         Miễn phí, không ràng buộc. Radar chỉ thu phí khi có khách ký hợp đồng thuê.
       </p>
+      <GhiChuDuLieu mucDich="liên hệ tư vấn dịch vụ lấp phòng" className="sm:col-span-2" />
     </form>
   );
 }

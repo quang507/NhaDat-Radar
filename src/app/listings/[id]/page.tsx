@@ -41,7 +41,7 @@ import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
 import HienSoRadar from "@/components/HienSoRadar";
 import RichText from "@/components/RichText";
-import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheTinDocQuyen } from "@/lib/doc-quyen";
+import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheSoTin } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong } from "@/lib/ro-hang";
 import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
@@ -220,7 +220,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   // Tin độc quyền: thân trang đã che SĐT trong mô tả (cheSoVanBan) nhưng thẻ meta/OG trước đây lấy mô tả
   // THÔ -> số lộ qua <meta name=description>, og:description, ảnh xem trước khi share (audit 22/9).
   const docQuyen = laTinDocQuyen(data);
-  const baseTitle = docQuyen ? cheSoVanBan(data.title) : data.title;
+  const baseTitle = cheSoVanBan(data.title, docQuyen);
   const gia = fmtPrice(data.price_vnd, data.deal);
   const vids = (data.images || []).some((u) => typeof u === "string" && /\.(mp4|mov|webm)$/i.test(u.split(/[?#]/)[0]));
   const videoPrefix = vids ? "▶ [Có Video] " : "";
@@ -231,7 +231,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const tenGon = Array.from(baseTitle).length <= choTen ? baseTitle : `${catChu(baseTitle, choTen - 1).replace(/\s+\S*$/, "").trim()}…`;
   const title = `${videoPrefix}${tenGon}${duoi}`;
 
-  const moTa = docQuyen ? cheSoVanBan(data.description) : data.description || "";
+  const moTa = cheSoVanBan(data.description, docQuyen);
   const description = catChu(
     `${baseTitle}. Giá niêm yết: ${gia}. Địa chỉ: ${[data.address, data.district, data.province].filter(Boolean).join(", ")}. Hình ảnh và toạ độ xác minh thực tế, liên hệ xem phòng trực tiếp không kê giá.`,
     160
@@ -272,14 +272,14 @@ export default async function ListingDetail({
   if (data.status === "gone") permanentRedirect(await khuVucCuaTin(data));
   const x = { ...data, contact_phone: null } as Listing;
   const docQuyen = laTinDocQuyen(x);
-  if (docQuyen) Object.assign(x, cheTinDocQuyen(x));
+  Object.assign(x, cheSoTin(x));
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
   const { duAn, tinCungDuAn, hoiDap, compRows, relRows, posterRows, posterCount, tinTuongTu } = pub;
   const coSdt = pub.coSdt;
 
-  const posterOthers = ((posterRows ?? []) as Listing[]).map(cheTinDocQuyen);
+  const posterOthers = ((posterRows ?? []) as Listing[]).map(cheSoTin);
 
   const ppm2s = (compRows ?? []).map((r) => Number(r.price_per_m2)).filter((v) => v > 0);
   // UX audit 16/8: từng hiện "Cao hơn mặt bằng ~35%" dựa trên 1 tin -> vô nghĩa & gây hiểu lầm.
@@ -290,7 +290,7 @@ export default async function ListingDetail({
   const myPpm2 = x.price_per_m2 ? Number(x.price_per_m2) : null;
   const diffPct = med && myPpm2 ? Math.round(((myPpm2 - med) / med) * 100) : null;
 
-  const related = ((relRows ?? []) as Listing[]).map(cheTinDocQuyen).filter((r) => r.images?.length).slice(0, 6);
+  const related = ((relRows ?? []) as Listing[]).map(cheSoTin).filter((r) => r.images?.length).slice(0, 6);
   const nextListingItem = related[0]
     ? {
         id: related[0].id,
@@ -618,7 +618,7 @@ export default async function ListingDetail({
             {/* 17/8: trước dùng whitespace-pre-line -> tin dài (nhất là bài FB) thành khối chữ liền.
                 RichText tách đoạn, và bài nào có "- " thì thành gạch đầu dòng cho dễ quét. */}
             <MoTaThuGon>
-              <RichText text={docQuyen ? cheSoVanBan(x.description) : x.description || ""} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
+              <RichText text={cheSoVanBan(x.description, docQuyen)} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
             </MoTaThuGon>
           </div>
           <div id="phan-tich-gia" className="scroll-mt-28" />

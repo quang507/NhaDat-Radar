@@ -67,7 +67,7 @@ export async function createListing(
   if (price < 1e5) return { ok: false, error: "Giá quá nhỏ - bạn có quên đơn vị (tỷ/triệu) không?" };
   const contactPhone = String(formData.get("contact_phone") || "").replace(/[^\d+]/g, "");
   if (contactPhone && !/^(\+?84|0)\d{9,10}$/.test(contactPhone)) return { ok: false, error: "SĐT không hợp lệ (10 số, bắt đầu bằng 0)." };
-  // NĐ13: SĐT chỉ hiển thị công khai khi người đăng đồng ý rõ ràng
+  // Luật 91/2025 + NĐ 356/2025 (thay NĐ 13/2023): SĐT chỉ hiển thị khi người đăng đồng ý rõ ràng
   if (contactPhone && formData.get("phone_consent") !== "on") return { ok: false, error: "Tích ô đồng ý hiển thị SĐT (hoặc bỏ trống SĐT để chỉ nhận liên hệ qua form)." };
 
   const area = Number(formData.get("area") || 0) || null;

@@ -99,7 +99,7 @@ export default function ListingForm({ geo = {} }: { geo?: Record<string, string[
       {phone.trim() ? (
         <label className="flex items-start gap-2 text-xs text-[var(--ink-soft)] -mt-2">
           <input type="checkbox" name="phone_consent" className="mt-0.5" />
-          <span>Tôi đồng ý hiển thị SĐT này công khai trên tin (người xem bấm "Hiện số" mới thấy). Bỏ trống SĐT nếu chỉ muốn nhận liên hệ qua form. <i>(NĐ13/2023 về dữ liệu cá nhân)</i></span>
+          <span>Tôi đồng ý hiển thị SĐT này trên tin (chỉ người đã đăng nhập bấm &quot;Xem SĐT&quot; mới thấy). Bỏ trống SĐT nếu chỉ muốn nhận liên hệ qua form. <i>(Luật 91/2025/QH15 về bảo vệ dữ liệu cá nhân)</i></span>
         </label>
       ) : null}
       {state.error ? <div className="text-red-600 text-sm" role="alert">{state.error}</div> : null}

@@ -9,6 +9,6 @@ export type MapItem = { id: string; lat: number; lng: number; label: string; tit
 export const tinLenBanDo = (x: Listing): MapItem[] =>
   x.lat == null || x.lng == null ? [] : [{
     id: x.id, lat: x.lat, lng: x.lng, label: shortPrice(x.price_vnd),
-    title: laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title, img: x.images?.[0] || null,
+    title: cheSoVanBan(x.title, laTinDocQuyen(x)), img: x.images?.[0] || null,
     gia: [fmtPrice(x.price_vnd, x.deal), x.area_m2 ? `${x.area_m2}m²` : ""].filter(Boolean).join(" · "),
   }];

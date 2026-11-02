@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { baoGA } from "@/lib/su-kien-client";
 import { createLead, type LeadState } from "../actions";
+import GhiChuDuLieu from "@/components/GhiChuDuLieu";
 
 const initial: LeadState = { ok: false };
 
@@ -73,6 +74,9 @@ export default function ContactForm({
       <button className={`btn w-full ${viaRadar && !datLich ? "" : "btn-primary"}`} type="submit" disabled={pending}>
         {pending ? "Đang gửi..." : datLich ? "📅 Đặt lịch xem phòng" : viaRadar ? "Nhờ Radar liên hệ lại" : "Gửi tin nhắn cho người bán"}
       </button>
+      <GhiChuDuLieu
+        mucDich={datLich || viaRadar ? "liên hệ hẹn xem và tư vấn về tin này" : "chuyển tên và SĐT của bạn cho người đăng tin này liên hệ lại"}
+      />
     </form>
   );
 }

@@ -12,7 +12,7 @@ type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[]; sugge
 
 const GREET_DEFAULT: Msg = {
   role: "bot",
-  text: "Dạ em chào anh/chị! Anh/chị đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc rổ hàng 1.400+ căn trống hôm nay gửi liền cho mình tham khảo ạ?",
+  text: "Dạ em là trợ lý AI của Radar! Anh/chị đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc rổ hàng 1.400+ căn trống hôm nay gửi liền cho mình tham khảo ạ?",
   suggestions: ["Phòng trọ Bình Thạnh dưới 4tr", "Studio Quận 7 có ban công", "Phòng Tân Bình nuôi pet"],
 };
 
@@ -87,7 +87,7 @@ export default function ChatWidget() {
     dangXem
       ? {
           role: "bot",
-          text: "Xin chào! Bạn đang xem tin bất động sản này 🏠\n\nBạn muốn tìm thêm các căn tương tự hay cần tư vấn & hẹn xem trực tiếp?",
+          text: "Xin chào, mình là trợ lý AI của Radar! Bạn đang xem tin bất động sản này 🏠\n\nBạn muốn tìm thêm các căn tương tự hay cần tư vấn & hẹn xem trực tiếp?",
           suggestions: ["Gợi ý căn tương tự", "Căn này còn trống không?", "Tư vấn & hẹn xem nhà"],
         }
       : GREET_DEFAULT,
@@ -169,7 +169,7 @@ export default function ChatWidget() {
               <span>Zalo</span>
             </a>
             <button type="button" aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"} onClick={() => setOpen((v) => !v)} className="btn min-h-11 min-w-11 !px-3">
-              {open ? <X className="w-4 h-4" /> : <Sparkles className="w-4 h-4 text-amber-500" />}
+              {open ? <X className="w-4 h-4" /> : <><Sparkles className="w-4 h-4 text-amber-500" /><span className="font-bold">AI</span></>}
             </button>
           </nav>
         </>
@@ -288,10 +288,11 @@ export default function ChatWidget() {
             <div>
               <div className="font-bold flex items-center gap-1.5 text-sm">
                 <Bot className="w-4 h-4" />
-                <span>Trợ lý Tìm Nhà Radar</span>
-                <span className="text-[0.65rem] bg-white/20 px-1.5 py-0.5 rounded-md font-normal">24/7</span>
+                {/* 2/11 (Luật AI 134/2025 Điều 11 khoản 1): người dùng phải biết đang nói chuyện với AI */}
+                <span>Trợ lý AI Radar</span>
+                <span className="text-overline bg-white/20 px-1.5 py-0.5 rounded-sm">AI</span>
               </div>
-              <div className="text-xs text-white/80">Lọc nhanh phòng trống &amp; nhà đất xác minh</div>
+              <div className="text-xs text-white/80">Tự động lọc phòng trống &amp; nhà đất theo yêu cầu</div>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -302,12 +303,15 @@ export default function ChatWidget() {
             </button>
           </div>
 
-          {/* Sub-bar Hotline */}
+          {/* Sub-bar: thông báo AI + dữ liệu (NĐ 142/2026 Điều 18: báo trước khi người dùng nhập) + Hotline gặp người thật.
+              Trước 2/11 ghi "Chuyên viên trực tuyến" + chấm xanh nhấp nháy -> khách tưởng đang chat với người. */}
+          <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] text-caption text-[var(--ink-soft)] leading-relaxed">
+            Bạn đang trò chuyện với trợ lý AI (Google Gemini), không phải nhân viên. Nếu bạn gửi SĐT, Radar sẽ lưu để liên hệ
+            tư vấn.{" "}
+            <a href="/chinh-sach-bao-mat#ai" className="underline hover:text-brand">Chính sách</a>
+          </div>
           <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Chuyên viên trực tuyến</span>
-            </div>
+            <span className="text-[var(--ink-soft)] font-semibold">Cần gặp người thật?</span>
             <a
               href={`tel:${HOTLINE}`}
               className="font-semibold text-brand hover:underline flex items-center gap-1"

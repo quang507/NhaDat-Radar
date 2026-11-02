@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { signIn, signUp, signInWithGoogle, resetPassword } from "./actions";
 import Turnstile from "@/components/Turnstile";
 import { ChevronLeft } from "lucide-react";
@@ -78,6 +79,10 @@ export default function AuthForm({
           <Field label="Xác Nhận Mật Khẩu" name="confirm" type="password" placeholder="••••••••" />
           <Turnstile />
           <button className="btn btn-primary w-full mt-1" type="submit">Tạo Tài Khoản</button>
+          <p className="text-caption leading-relaxed text-[var(--ink-faint)]">
+            Tạo tài khoản là bạn đồng ý với <Link href="/dieu-khoan-su-dung" className="underline hover:text-brand">Điều khoản sử dụng</Link> và{" "}
+            <Link href="/chinh-sach-bao-mat" className="underline hover:text-brand">Chính sách bảo mật</Link> của NhaDat Radar.
+          </p>
         </form>
       )}
       {mode === "forgot" && (

@@ -8,6 +8,7 @@ import Clarity from "@/components/Clarity";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import GoogleAdSense from "@/components/GoogleAdSense";
 import MoiDienSdt from "@/components/MoiDienSdt";
+import DongYCookie from "@/components/DongYCookie";
 import { ldJson, SITE_URL } from "@/lib/ld";
 
 export const viewport: Viewport = {
@@ -81,6 +82,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}else{document.documentElement.classList.add('light')}}catch(e){}})()`,
           }}
         />
+        {/* Consent Mode v2 (audit pháp lý 2/11): mặc định TỪ CHỐI, đặt trước khi GA/AdSense nạp. Đã bấm "Đồng ý"
+            ở banner (components/DongYCookie.tsx) thì mở lại ngay từ lượt tải này. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});try{if(localStorage.getItem('radar-dong-y-cookie')==='co')gtag('consent','update',{analytics_storage:'granted',ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'})}catch(e){}`,
+          }}
+        />
       </head>
       <body>
         <Nav />
@@ -90,6 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Clarity />
         <GoogleAnalytics />
         <GoogleAdSense />
+        <DongYCookie />
         {/* mời người đã đăng nhập để lại SĐT (không OTP, bỏ qua được) - hiện lại sau 7 ngày */}
         <MoiDienSdt />
         {/* JSON-LD đặt CUỐI body: để ở đầu body làm hydration hỏng trên WebKit/iOS (đo 23/9:

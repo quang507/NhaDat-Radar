@@ -19,7 +19,7 @@ export default function ListingCard({ x }: { x: Listing }) {
   const multi = (x.source_count ?? 1) > 1;
   const roHang = laRoHang(x);
   const anh = thongTinAnh(x);
-  const title = laTinDocQuyen(x) ? cheSoVanBan(x.title) : x.title;
+  const title = cheSoVanBan(x.title, laTinDocQuyen(x));
   const location = [x.district, x.province].filter(Boolean).join(", ") || "-";
 
   return (

@@ -8,7 +8,7 @@ import ListingCard from "@/components/ListingCard";
 import { getFavs, pullDbFavs } from "@/components/FavButton";
 import { fmtPrice, fmtPpm2, PROP } from "@/lib/format";
 import type { Listing } from "@/lib/types";
-import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { cheSoTin } from "@/lib/doc-quyen";
 import { Heart, LayoutGrid, Scale, Sparkles, Check } from "lucide-react";
 
 // Trang tin đã lưu ♥ - id lưu ở localStorage, không cần đăng nhập.
@@ -26,7 +26,7 @@ export default function FavouritesPage() {
       const { data } = await supabase
         .from("listings").select(LISTING_THE_COLS).in("id", ids).eq("status", "published");
       const order = new Map(ids.map((id, i) => [id, i]));
-      setItems(((data ?? []) as Listing[]).map(cheTinDocQuyen).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)));
+      setItems(((data ?? []) as Listing[]).map(cheSoTin).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)));
     };
     pullDbFavs().finally(load); // gộp tin đã lưu trên DB (nếu đăng nhập) rồi hiển thị
     window.addEventListener("ndr:favs", load);

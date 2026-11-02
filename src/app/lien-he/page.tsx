@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Phone, Mail, Clock, MapPin, Send, MessageSquare } from "lucide-react";
+import { Phone, Mail, Clock, MapPin, MessageSquare } from "lucide-react";
+import FormLienHe from "./FormLienHe";
+import { DON_VI } from "@/lib/don-vi";
 
 export const metadata: Metadata = {
   title: "Liên hệ hỗ trợ & Hợp tác | NhaDat Radar",
@@ -13,7 +15,7 @@ export default function LienHePage() {
       <header className="mb-10 pb-6 border-b border-[var(--line)]">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/10 text-brand text-xs font-semibold mb-3">
           <MessageSquare className="w-4 h-4" />
-          Hỗ trợ 24/7
+          Hỗ trợ 8:00 - 21:00 mỗi ngày
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Liên Hệ Ban Quản Trị</h1>
         <p className="mt-2 text-sm text-[var(--ink-soft)]">
@@ -65,8 +67,9 @@ export default function LienHePage() {
                 <MapPin className="w-4 h-4" />
               </div>
               <div>
-                <span className="text-xs text-[var(--ink-faint)] block">Trụ sở hoạt động</span>
-                <span className="font-medium text-[var(--ink)]">Việt Nam</span>
+                <span className="text-xs text-[var(--ink-faint)] block">{DON_VI.ten || "Trụ sở hoạt động"}</span>
+                <span className="font-medium text-[var(--ink)]">{DON_VI.diaChi || "Việt Nam"}</span>
+                {DON_VI.maSoThue && <span className="block text-xs text-[var(--ink-soft)]">MST/ĐKKD: {DON_VI.maSoThue}</span>}
               </div>
             </div>
           </div>
@@ -81,50 +84,7 @@ export default function LienHePage() {
           <h2 className="text-base font-bold text-[var(--ink)] mb-1">Gửi tin nhắn trực tiếp</h2>
           <p className="text-xs text-[var(--ink-soft)] mb-5">Đội ngũ hỗ trợ sẽ phản hồi lại bạn trong vòng 24 giờ làm việc.</p>
 
-          <form
-            onSubmit={undefined}
-            action="mailto:contact@nhadatradar.com"
-            method="GET"
-            className="space-y-4 text-xs"
-          >
-            <div>
-              <label className="block font-semibold text-[var(--ink)] mb-1">Họ và tên của bạn</label>
-              <input
-                type="text"
-                placeholder="Nguyễn Văn A"
-                className="w-full px-3 py-2.5 rounded-xl border border-[var(--line)] bg-[var(--bg)] text-sm focus:outline-none focus:border-brand"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-[var(--ink)] mb-1">Số điện thoại hoặc Email</label>
-              <input
-                type="text"
-                placeholder="0912 345 678 hoặc email@domain.com"
-                className="w-full px-3 py-2.5 rounded-xl border border-[var(--line)] bg-[var(--bg)] text-sm focus:outline-none focus:border-brand"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-[var(--ink)] mb-1">Nội dung yêu cầu</label>
-              <textarea
-                rows={4}
-                placeholder="Nội dung cần hỗ trợ, tư vấn BĐS hoặc thông tin hợp tác..."
-                className="w-full px-3 py-2.5 rounded-xl border border-[var(--line)] bg-[var(--bg)] text-sm focus:outline-none focus:border-brand resize-none"
-                required
-              ></textarea>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl bg-brand text-white font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-            >
-              <Send className="w-4 h-4" />
-              Gửi yêu cầu hỗ trợ
-            </button>
-          </form>
+          <FormLienHe />
         </div>
       </div>
     </article>

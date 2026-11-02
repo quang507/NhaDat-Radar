@@ -18,7 +18,7 @@ import Gallery from "@/components/Gallery";
 import ProjectContact from "./ProjectContact";
 import RichText from "@/components/RichText";
 import type { Project, Listing } from "@/lib/types";
-import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { cheSoTin } from "@/lib/doc-quyen";
 import { docToaDoWkb, khoangCachKm } from "@/lib/du-an";
 import { ldJson, SITE_URL } from "@/lib/ld";
 import { catChu } from "@/lib/format";
@@ -93,7 +93,7 @@ export default async function ProjectDetail({
     .eq("status", "published")
     .order("first_seen_at", { ascending: false })
     .limit(24);
-  let listings = ((ls ?? []) as Listing[]).map(cheTinDocQuyen);
+  let listings = ((ls ?? []) as Listing[]).map(cheSoTin);
 
   // 26/10: toạ độ dự án (geo EWKB) -> gợi ý tin trong bán kính 2 km + nút "tìm quanh dự án" sang /search
   const td = docToaDoWkb((proj as { geo?: unknown }).geo);
@@ -112,7 +112,7 @@ export default async function ProjectDetail({
     listings = ((near ?? []) as Listing[])
       .filter((x) => x.lat != null && x.lng != null && khoangCachKm(td, { lat: x.lat!, lng: x.lng! }) <= 2)
       .sort((a, b) => khoangCachKm(td, { lat: a.lat!, lng: a.lng! }) - khoangCachKm(td, { lat: b.lat!, lng: b.lng! }))
-      .slice(0, 8).map(cheTinDocQuyen);
+      .slice(0, 8).map(cheSoTin);
     related = quanhKm = listings.length > 0;
   }
   if (!listings.length && (p.district || p.province)) {
@@ -121,7 +121,7 @@ export default async function ProjectDetail({
       .ilike(p.district ? "district" : "province", `%${p.district || p.province}%`)
       .not("images", "eq", "{}")
       .order("ai_score", { ascending: false, nullsFirst: false }).limit(8);
-    listings = ((near ?? []) as Listing[]).map(cheTinDocQuyen);
+    listings = ((near ?? []) as Listing[]).map(cheSoTin);
     related = listings.length > 0;
   }
 

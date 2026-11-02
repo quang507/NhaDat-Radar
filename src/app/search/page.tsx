@@ -9,7 +9,7 @@ import { getAreas } from "@/lib/geo";
 import { LISTING_SEARCH_COLS } from "@/lib/cols";
 import { tinhCuGopVao } from "@/lib/sap-nhap";
 import SearchClient, { type DieuHuong } from "./SearchClient";
-import { cheTinDocQuyen } from "@/lib/doc-quyen";
+import { cheSoTin } from "@/lib/doc-quyen";
 import { oTronRoHang, xepTheoThuTu } from "@/lib/ro-hang";
 import { docTienIch, dieuKienTienIch, tienIchCua } from "@/lib/tien-ich";
 import { bocTruyVanBDS } from "@/lib/boc-truy-van";
@@ -209,7 +209,7 @@ const timKiemCoCache = unstable_cache(
   const trang = soTrang(sp.page);
   const tu = (trang - 1) * MOI_TRANG;
   // tiện ích (ti) tính trên mô tả đầy đủ TRƯỚC khi gonChoDanhSach cắt - thẻ phòng cho thuê hiện icon tiện ích
-  const gon = (ds: Listing[]) => ds.map((x) => (x.deal === "cho_thue" ? { ...x, ti: tienIchCua(x) } : x)).map(cheTinDocQuyen).map(gonChoDanhSach).map(chiTruongThe);
+  const gon = (ds: Listing[]) => ds.map((x) => (x.deal === "cho_thue" ? { ...x, ti: tienIchCua(x) } : x)).map(cheSoTin).map(gonChoDanhSach).map(chiTruongThe);
 
   // Lọc theo khoảng cách: DB chỉ lọc được khung vuông -> vẫn tải tối đa 200 tin trong khung, cắt đúng
   // bán kính + xếp gần trước ở đây, rồi mới chia trang (tổng = số tin thật sự trong bán kính).
