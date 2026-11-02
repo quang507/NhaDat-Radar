@@ -5,6 +5,7 @@ import { createAnonClient } from "@/lib/supabase/anon";
 import { LISTING_CARD_COLS } from "@/lib/cols";
 import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
+import SanPhongHoCTA from "@/components/SanPhongHoCTA";
 import { ldJson } from "@/lib/ld";
 import {
   Sparkles,
@@ -230,6 +231,13 @@ export default async function ThematicLanding({
             </Link>
           </div>
         )}
+
+        {/* Săn phòng hộ CTA */}
+        <SanPhongHoCTA
+          tieuDe={`Cần tìm gấp ${cd.title.toLowerCase()}?`}
+          moTa={`Nhắn mức giá và khu vực mong muốn, trợ lý Radar sẽ đối chiếu rổ hàng 13.800+ phòng xác minh và gửi bạn 3 lựa chọn phù hợp nhất trong 15 phút.`}
+          tinNhanZalo={`Chào Radar, mình đang cần tìm ${cd.title.toLowerCase()} tại TP.HCM, gửi mình danh sách phòng trống tốt nhất nhé!`}
+        />
 
         {/* FAQ Section */}
         {cd.faq.length > 0 && (

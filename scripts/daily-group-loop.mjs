@@ -303,7 +303,27 @@ export async function dangBaiNhomVaPage(maxGroups = 8) {
     return [...urls];
   });
 
-  console.log(`📋 Tìm thấy ${groupUrls.length} nhóm đã tham gia. Sẽ đăng vào ${Math.min(maxGroups, groupUrls.length)} nhóm.`);
+  // Nếu số nhóm đã tham gia ít hơn maxGroups, bổ sung thêm nhóm mục tiêu từ danh sách discovered
+  const scratchDiscovered = "C:/Users/quang/.gemini/antigravity/brain/fc10db72-f782-4138-9234-6e3f53d99a7b/scratch/discovered_fb_groups.json";
+  const targetJsonPath = path.join(process.cwd(), "crawler", "fb-target-groups.json");
+  let targetList = [];
+  try {
+    if (fs.existsSync(scratchDiscovered)) {
+      targetList = JSON.parse(fs.readFileSync(scratchDiscovered, "utf8"));
+    } else if (fs.existsSync(targetJsonPath)) {
+      targetList = JSON.parse(fs.readFileSync(targetJsonPath, "utf8"));
+    }
+  } catch {}
+
+  for (const t of targetList) {
+    if (groupUrls.length >= maxGroups) break;
+    const u = t.url ? (t.url.endsWith("/") ? t.url : `${t.url}/`) : null;
+    if (u && !groupUrls.includes(u)) {
+      groupUrls.push(u);
+    }
+  }
+
+  console.log(`📋 Sẵn sàng danh sách ${groupUrls.length} nhóm. Sẽ xử lý đúng ${Math.min(maxGroups, groupUrls.length)} nhóm.`);
   let daDang = 0;
 
   for (const [idx, gUrl] of groupUrls.slice(0, maxGroups).entries()) {
@@ -315,6 +335,14 @@ export async function dangBaiNhomVaPage(maxGroups = 8) {
     try {
       await page.goto(gUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
       await page.waitForTimeout(4000);
+
+      // Nếu chưa tham gia, thử bấm tham gia nhóm
+      const joinBtn = page.locator('div[role="button"]:has-text("Tham gia nhóm"), div[role="button"]:has-text("Join group"), div[role="button"]:has-text("Tham gia")').first();
+      if (await joinBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        console.log(`  ➕ Bấm tham gia nhóm ${gUrl}...`);
+        await joinBtn.click().catch(() => {});
+        await page.waitForTimeout(2000);
+      }
 
       // Nếu có tab Thảo luận (trong nhóm mua bán), bấm sang Thảo luận để mở composer thông thường
       const discussionTab = page.locator('a[role="tab"]:has-text("Thảo luận"), a[role="tab"]:has-text("Discussion")').first();
@@ -328,57 +356,83 @@ export async function dangBaiNhomVaPage(maxGroups = 8) {
       ).first();
 
       if (!(await composer.isVisible({ timeout: 7000 }).catch(() => false))) {
-        console.warn("  ⚠️ Không thấy ô đăng bài (nhóm chưa duyệt hoặc khoá đăng) -> sang nhóm kế.");
-        continue;
-      }
+        console.warn("  ⚠️ Không thấy ô đăng bài (nhóm chưa duyệt hoặc khoá đăng) -> quét cmt vào bài nhóm.");
+      } else {
+        await composer.click();
+        await page.waitForTimeout(2000);
 
-      await composer.click();
-      await page.waitForTimeout(2000);
+        const textbox = page.locator('div[role="dialog"] div[contenteditable="true"][role="textbox"]').first();
+        await textbox.waitFor({ state: "visible", timeout: 8000 });
+        await textbox.click();
+        await textbox.fill(caption);
+        await page.waitForTimeout(1500);
 
-      const textbox = page.locator('div[role="dialog"] div[contenteditable="true"][role="textbox"]').first();
-      await textbox.waitFor({ state: "visible", timeout: 8000 });
-      await textbox.click();
-      await textbox.fill(caption);
-      await page.waitForTimeout(1500);
+        if (files.length > 0) {
+          const fileInput = page.locator('div[role="dialog"] input[type="file"]').first();
+          if ((await fileInput.count()) > 0) {
+            await fileInput.setInputFiles(files);
+            await page.waitForTimeout(4000);
+          }
+        }
 
-      if (files.length > 0) {
-        const fileInput = page.locator('div[role="dialog"] input[type="file"]').first();
-        if ((await fileInput.count()) > 0) {
-          await fileInput.setInputFiles(files);
-          await page.waitForTimeout(4000);
+        const postBtn = page.locator('div[role="dialog"] div[aria-label="Đăng"], div[role="dialog"] div[aria-label="Post"]').first();
+        await postBtn.waitFor({ state: "visible", timeout: 10000 });
+        // Chờ nếu nút Đăng đang bị disabled do ảnh đang upload
+        for (let c = 0; c < 15; c++) {
+          const dis = await postBtn.getAttribute("aria-disabled").catch(() => null);
+          if (dis !== "true") break;
+          await page.waitForTimeout(1000);
+        }
+        await postBtn.click({ force: true });
+        await page.waitForTimeout(6000);
+
+        daDang++;
+        console.log(`  ✅ Đã đăng bài mã ${ma} vào nhóm ${gUrl}`);
+
+        // Thử thả First Comment chứa link dưới bài vừa đăng nếu hiện ngay trên feed
+        const commentBox = page.locator(
+          'div[role="textbox"][aria-label*="bình luận" i], div[role="textbox"][aria-label*="comment" i]'
+        ).first();
+        if (await commentBox.isVisible({ timeout: 4000 }).catch(() => false)) {
+          await commentBox.click();
+          await page.waitForTimeout(500);
+          await commentBox.fill(firstComment);
+          await page.waitForTimeout(800);
+          await page.keyboard.press("Enter");
+          await page.waitForTimeout(2500);
+          console.log(`  💬 Đã thả First Comment kèm link chi tiết căn ${ma}!`);
         }
       }
 
-      const postBtn = page.locator('div[role="dialog"] div[aria-label="Đăng"], div[role="dialog"] div[aria-label="Post"]').first();
-      await postBtn.waitFor({ state: "visible", timeout: 10000 });
-      // Chờ nếu nút Đăng đang bị disabled do ảnh đang upload
-      for (let c = 0; c < 15; c++) {
-        const dis = await postBtn.getAttribute("aria-disabled").catch(() => null);
-        if (dis !== "true") break;
-        await page.waitForTimeout(1000);
+      // Quét nhanh bài viết trong nhóm để bình luận gợi ý phòng
+      try {
+        console.log(`  🔍 Quét bài viết trong nhóm để cmt hỗ trợ...`);
+        for (let s = 0; s < 3; s++) {
+          await page.mouse.wheel(0, 1500);
+          await page.waitForTimeout(800);
+        }
+
+        const candidateCommentBoxes = page.locator('div[role="textbox"][aria-label*="bình luận" i], div[role="textbox"][aria-label*="comment" i]');
+        const boxCount = await candidateCommentBoxes.count();
+        if (boxCount > 0) {
+          const targetBox = candidateCommentBoxes.first();
+          if (await targetBox.isVisible().catch(() => false)) {
+            await targetBox.click();
+            await page.waitForTimeout(400);
+            const cmtGoiY = `Dạ anh/chị hay bạn nào đang tìm phòng mạn Bình Thạnh / Hutech / UEF có thể tham khảo căn Studio mini 20m² Nguyễn Văn Đậu bên mình nhé: https://nhadatradar.com/listings/${item.id} - Phòng thật 100%, gác đúc cao 1m8 đứng thẳng không lo đụng đầu, cọc 1 tháng, giờ giấc tự do. Cần định vị Maps ghé xem phòng thực tế cứ nhắn Zalo 0387 365 020 (Lê Quang) mình hỗ trợ miễn phí 24/7 ạ!`;
+            await targetBox.fill(cmtGoiY);
+            await page.waitForTimeout(500);
+            await page.keyboard.press("Enter");
+            console.log(`  💬 Đã để lại bình luận gợi ý vào bài viết trong nhóm!`);
+            await page.waitForTimeout(2000);
+          }
+        }
+      } catch (errCmt) {
+        // bỏ qua nếu cmt không thành công
       }
-      await postBtn.click({ force: true });
-      await page.waitForTimeout(6000);
 
-      daDang++;
-      console.log(`  ✅ Đã đăng bài mã ${ma} vào nhóm ${gUrl}`);
-
-      // Thử thả First Comment chứa link dưới bài vừa đăng nếu hiện ngay trên feed
-      const commentBox = page.locator(
-        'div[role="textbox"][aria-label*="bình luận" i], div[role="textbox"][aria-label*="comment" i]'
-      ).first();
-      if (await commentBox.isVisible({ timeout: 4000 }).catch(() => false)) {
-        await commentBox.click();
-        await page.waitForTimeout(500);
-        await commentBox.fill(firstComment);
-        await page.waitForTimeout(800);
-        await page.keyboard.press("Enter");
-        await page.waitForTimeout(2500);
-        console.log(`  💬 Đã thả First Comment kèm link chi tiết căn ${ma}!`);
-      }
-
-      const waitSec = Math.floor(Math.random() * 40) + 60;
-      console.log(`  ⏳ Nghỉ ${waitSec}s trước khi đăng nhóm tiếp theo...`);
+      const waitSec = Math.floor(Math.random() * 20) + 25;
+      console.log(`  ⏳ Nghỉ ${waitSec}s trước khi xử lý nhóm tiếp theo...`);
       await page.waitForTimeout(waitSec * 1000);
     } catch (e) {
       console.warn(`  ❌ Lỗi tại nhóm ${gUrl}: ${e.message}`);

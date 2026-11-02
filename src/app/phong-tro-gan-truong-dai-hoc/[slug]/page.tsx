@@ -6,6 +6,7 @@ import { createAnonClient } from "@/lib/supabase/anon";
 import { LISTING_CARD_COLS } from "@/lib/cols";
 import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
+import SanPhongHoCTA from "@/components/SanPhongHoCTA";
 import { ldJson } from "@/lib/ld";
 import {
   GraduationCap,
@@ -295,6 +296,13 @@ export default async function PhongTroDaiHocDetailPage({
             </Link>
           </div>
         )}
+
+        {/* Săn phòng hộ CTA */}
+        <SanPhongHoCTA
+          tieuDe={`Chưa tìm được phòng trọ ưng ý gần ĐH ${u.tenVietTat}?`}
+          moTa={`Nhắn tiêu chí (tài chính, khu vực, tiện ích mong muốn), trợ lý Radar sẽ lọc rổ hàng quanh ${u.quan.join(", ")} và gửi bạn 3 lựa chọn tốt nhất trong 15 phút.`}
+          tinNhanZalo={`Chào Radar, mình đang cần tìm phòng trọ gần ĐH ${u.tenVietTat} (${u.ten}), tư vấn phòng trống giúp mình nhé!`}
+        />
 
         {/* FAQ Section */}
         {u.faq.length > 0 && (
