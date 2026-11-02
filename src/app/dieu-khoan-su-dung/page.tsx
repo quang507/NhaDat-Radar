@@ -50,11 +50,14 @@ export default function DieuKhoanSuDungPage() {
         <section className="p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40">
           <h2 className="text-base font-bold text-amber-900 dark:text-amber-300 mb-3 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            3. Miễn trừ trách nhiệm về thông tin bất động sản
+            3. Miễn trừ trách nhiệm về thông tin bất động sản &amp; Trí tuệ nhân tạo (AI)
           </h2>
           <div className="space-y-2 text-amber-950/80 dark:text-amber-200/80 text-xs sm:text-sm">
             <p>
               Các thông tin nhà đất, giá bán, pháp lý, tình trạng quy hoạch và hình ảnh được tổng hợp tự động từ nhiều nguồn công khai cũng như do người dùng/môi giới đăng tải.
+            </p>
+            <p>
+              <strong>Minh bạch Trí tuệ nhân tạo (Luật AI số 134/2025/QH15 &amp; Nghị định 142/2026/NĐ-CP):</strong> Các tính năng phân tích xu hướng giá, tóm tắt mô tả, và công cụ Trợ lý AI trên website được vận hành bởi thuật toán máy học và mô hình AI tạo sinh. Mọi kết quả do AI gợi ý hoặc tính toán mang tính chất tham khảo kỹ thuật, không thay thế chứng thư thẩm định giá chuyên nghiệp hoặc tư vấn pháp lý chính thức.
             </p>
             <p>
               NhaDat Radar luôn nỗ lực ứng dụng thuật toán xác thực để lọc bỏ tin giả, tin trùng lặp; tuy nhiên thông tin trên hệ thống <strong>chỉ mang tính chất tham khảo</strong>.

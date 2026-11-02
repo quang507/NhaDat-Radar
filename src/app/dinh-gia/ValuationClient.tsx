@@ -260,8 +260,8 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
                 </NutZalo>
               </div>
 
-              <p className="text-xs text-[var(--ink-faint)]">
-                * Kết quả chỉ mang tính tham khảo dựa trên tin rao công khai, không phải chứng thư thẩm định giá.
+              <p className="text-xs text-[var(--ink-faint)] leading-relaxed">
+                * Minh bạch theo Luật AI 134/2025/QH15: Mức giá ước tính được xử lý tự động bởi mô hình Trí tuệ nhân tạo (AI) kết hợp dữ liệu thị trường thực tế. Kết quả chỉ mang tính tham khảo kỹ thuật, không phải chứng thư thẩm định giá và không có giá trị pháp lý thay thế thẩm định viên chuyên nghiệp.
               </p>
             </>
           )}
