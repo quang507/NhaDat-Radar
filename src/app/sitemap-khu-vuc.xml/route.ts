@@ -38,6 +38,8 @@ export async function GET() {
     for (const b of BAI_VIET) muc.push({ url: `${SITE}/tin-tuc/${b.slug}`, lastmod: b.ngay, changefreq: "monthly", priority: 0.6 });
     muc.push({ url: `${SITE}/phong-tro-gan-truong-dai-hoc`, changefreq: "daily", priority: 0.85 });
     for (const u of DANH_SACH_DAI_HOC) muc.push({ url: `${SITE}/phong-tro-gan-truong-dai-hoc/${u.slug}`, changefreq: "daily", priority: 0.8 });
+    // chuyen de hot
+    for (const cd of ["phong-tro-duoi-3-trieu", "phong-tro-co-gac-lung", "can-ho-mini-full-noi-that"]) muc.push({ url: `${SITE}/${cd}`, changefreq: "daily", priority: 0.85 });
     const { data: ps } = await createAnonClient().from("projects").select("id").eq("status", "published").limit(1000);
     for (const p of ps ?? []) muc.push({ url: `${SITE}/projects/${p.id}`, priority: 0.5 });
   } catch { /* DB lỗi -> ít nhất vẫn có trang tĩnh */ }
