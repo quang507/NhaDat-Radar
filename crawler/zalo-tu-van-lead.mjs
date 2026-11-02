@@ -302,10 +302,19 @@ export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, d
   const ketThuc = pl?.y_dinh === "cam_on_ket_thuc" && !cung.can_nguoi;
   const leadMoi = !!facts && !h.lead_bao?.[facts.id];
   let baoAdmin = null;
-  if (khan && !(h.khan_luc && luc - h.khan_luc < KHAN_LAP_MS) && !(nguoiTrongCuoc && luc - h.nguoi_luc < KHAN_LAP_MS)) baoAdmin = "khan";
-  else if (nguoiTrongCuoc || ketThuc) baoAdmin = null;
-  else if (tuTraLoi && !laChao) baoAdmin = leadMoi ? "thuong" : null; // bot đã trả lời trọn: chỉ báo lead lần đầu
-  else if (cuaSoMoi || doiCan || leadMoi) baoAdmin = "thuong";
+
+  // QUY TẮC CỨNG: Người thật đã tiếp nhận -> Tuyệt đối không gửi bất kỳ thẻ báo nào về số chính nữa
+  if (nguoi) {
+    baoAdmin = null;
+  } else if (khan && !(h.khan_luc && luc - h.khan_luc < KHAN_LAP_MS)) {
+    baoAdmin = "khan";
+  } else if (ketThuc) {
+    baoAdmin = null;
+  } else if (tuTraLoi && !laChao) {
+    baoAdmin = leadMoi ? "thuong" : null; // bot đã trả lời trọn: chỉ báo lead lần đầu
+  } else if (cuaSoMoi || doiCan || leadMoi) {
+    baoAdmin = "thuong";
+  }
 
   return { tuTraLoi, laChao, baoAdmin, khan, canNguoi, ketThuc };
 }
@@ -338,12 +347,12 @@ export function soanThe({ h, phong, facts, pl, cung, muc, luc, botDaTraLoi = nul
   if (choTra.length) dong.push("Khách:", ...choTra.map((c) => `  "${c.slice(0, 200)}"`));
   if (botDaTraLoi) dong.push(`Bot đã tự trả lời:\n  "${botDaTraLoi.slice(0, 300)}"`);
   if (h.goi_y?.length) dong.push("Gợi ý:", ...h.goi_y.map((g, i) => `${i + 1}. ${g}`));
-  dong.push(`Gõ "${ma} 1" gửi gợi ý 1 · "${ma} <câu của anh>" gửi câu đó · "${ma} bot" giao lại cho bot · "${ma} im" bot im 24h`);
+  dong.push(`Gõ "${ma} nhận" (hoặc chat tay) để ngắt báo thẻ · "${ma} 1" gửi gợi ý 1 · "${ma} <câu>" gửi câu đó · "${ma} bot" giao lại bot`);
   if (facts) dong.push(`${SITE_URL}/listings/${facts.id}`);
   return dong.join("\n");
 }
 
-/** "K1234 2" | "K1234 bot" | "K1234 im" | "K1234 <câu>" */
+/** "K1234 2" | "K1234 bot" | "K1234 im" | "K1234 nhận" | "K1234 ok" | "K1234 <câu>" */
 export function docLenhAdmin(text) {
   const m = String(text || "").trim().match(/^k(\d{4,})\b\s*([\s\S]*)$/i);
   if (!m) return null;
@@ -351,11 +360,11 @@ export function docLenhAdmin(text) {
   if (!phan) return { ma, lenh: "thieu" };
   if (/^[1-9]$/.test(phan)) return { ma, lenh: "chon", so: Number(phan) };
   if (/^bot$/i.test(phan)) return { ma, lenh: "bot" };
-  if (/^(im|nguoi|người)$/i.test(phan)) return { ma, lenh: "im" };
+  if (/^(im|nguoi|người|ok|nhan|nhận|tiep nhan|tiếp nhận|da nhan|đã nhận)$/i.test(phan)) return { ma, lenh: "im" };
   return { ma, lenh: "gui", noiDung: phan };
 }
 
-const HUONG_DAN = `Lệnh: "K1234 1" gửi gợi ý số 1 · "K1234 <câu>" gửi câu đó cho khách · "K1234 bot" giao lại cho bot · "K1234 im" bot im 24h. K1234 là mã trên thẻ báo.`;
+const HUONG_DAN = `Lệnh: "K1234 nhận" hoặc chat tay để bot không báo thẻ · "K1234 1" gửi gợi ý 1 · "K1234 <câu>" gửi câu đó cho khách · "K1234 bot" giao lại cho bot.`;
 
 // ---------------------------------------------------------------------------
 //  Bộ điều phối
@@ -445,7 +454,7 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
     const luc = now();
 
     if (lenh.lenh === "bot") { traChoBot(h); await kho.luu(h); return void baoAdmin(`✓ ${lenh.ma} giao lại cho bot.`); }
-    if (lenh.lenh === "im") { nguoiNhan(h, luc); await kho.luu(h); return void baoAdmin(`✓ ${lenh.ma} bot im 24 giờ.`); }
+    if (lenh.lenh === "im") { nguoiNhan(h, luc); await kho.luu(h); return void baoAdmin(`✓ ${lenh.ma} đã chuyển sang người thật tiếp nhận, bot sẽ không gửi báo về số chính nữa.`); }
 
     let noiDung = lenh.noiDung;
     if (lenh.lenh === "chon") {
@@ -466,9 +475,10 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
     const luc = now();
     if (trongGioIm(luc)) return; // đêm khỏi đánh thức admin; báo khẩn vẫn đi ngay lúc khách nhắn
     for (const h of kho.tatCa()) {
+      if (dangDoNguoi(h, luc)) continue; // Người thật đã tiếp nhận -> không gửi nhắc việc về số chính nữa
       if (!h.cho_tu || h.nhac_luc) continue;
       if (luc - h.cho_tu > NHAC_TOI_DA_MS) continue; // lượt chờ cũ nạp lại sau restart: không dội thẻ hàng loạt
-      if (luc - h.cho_tu < NHAC_SAU_MS[dangDoNguoi(h, luc) ? "nguoi" : "bot"]) continue;
+      if (luc - h.cho_tu < NHAC_SAU_MS.bot) continue;
       h.nhac_luc = luc;
       const phong = h.listing_id ? await traCuuPhong(sb, { kieu: "uuid", giaTri: h.listing_id }).catch(() => null) : null;
       const facts = phong ? factsTuTin(phong.tin, phong.roHang) : null;

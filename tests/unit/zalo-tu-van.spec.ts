@@ -86,13 +86,12 @@ test("chính sách: người đang chat thì bot im và không báo thẻ cho c�
   expect(qd).toMatchObject({ tuTraLoi: null, baoAdmin: null });
 });
 
-test("chính sách: khẩn khi người đã rời cuộc quá 10 phút, không báo khẩn lặp trong 10 phút", () => {
-  const h = hoiThoaiMoi("1"); nguoiNhan(h, SANG - 15 * PHUT);
-  const cung = tinHieuCung("Tin nhắn tự động à a");
-  const qd = quyetDinh({ h, pl: null, cung, facts: null, luc: SANG, tuDong: true });
-  expect(qd).toMatchObject({ tuTraLoi: null, baoAdmin: "khan" });
-  h.khan_luc = SANG;
-  expect(quyetDinh({ h, pl: null, cung: tinHieuCung("alo anh ới?"), facts: null, luc: SANG + 3 * PHUT, tuDong: true }).baoAdmin).toBeNull();
+test("chính sách: người thật đã tiếp nhận thì bot không gửi báo (kể cả khẩn); chưa tiếp nhận thì báo khẩn", () => {
+  const hNguoi = hoiThoaiMoi("1"); nguoiNhan(hNguoi, SANG - 15 * PHUT);
+  expect(quyetDinh({ h: hNguoi, pl: null, cung: tinHieuCung("Tin nhắn tự động à a"), facts: null, luc: SANG, tuDong: true }).baoAdmin).toBeNull();
+
+  const hBot = hoiThoaiMoi("2");
+  expect(quyetDinh({ h: hBot, pl: null, cung: tinHieuCung("Tin nhắn tự động à a"), facts: null, luc: SANG, tuDong: true }).baoAdmin).toBe("khan");
 });
 
 test("chính sách: bot chỉ tự trả lời khi bật cờ, đủ tin cậy và đủ dữ kiện", () => {
@@ -208,22 +207,20 @@ test("phát lại sự cố: bot không chen vào cuộc người đang chat, nh
   expect(daGui.length).toBe(truoc);
   expect(goiAI.n).toBe(aiTruoc);
 
-  // 4. không ai trả lời 10 phút -> nhắc admin đúng một lần
+  // 4. người thật đã tiếp nhận -> nhắc việc KHÔNG gửi thẻ về số chính nữa
   troi(11 * PHUT);
   await tv.nhacViec();
-  expect(daGui.at(-1)!.text).toMatch(/^⏰ K4249/);
-  await tv.nhacViec();
-  expect(daGui.filter((g) => g.text.startsWith("⏰"))).toHaveLength(1);
+  expect(daGui.filter((g) => g.text.startsWith("⏰"))).toHaveLength(0);
 
-  // 5. khách nghi bot + đòi xem gấp -> báo khẩn, vẫn KHÔNG có câu chào nào gửi khách
+  // 5. khách nhắn tiếp (kể cả nghi bot/khẩn) -> người thật đã tiếp nhận nên bot KHÔNG gửi báo số chính
   troi(PHUT);
+  const truocKhan = daGui.length;
   await tv.khachNhan({ uid: KHACH, chu: "Tin nhắn tự động à a" });
-  expect(daGui.at(-1)!.text).toMatch(/^🚨 K4249/);
   await tv.khachNhan({ uid: KHACH, chu: "alo anh ới?" });
-  expect(daGui.filter((g) => g.text.startsWith("🚨"))).toHaveLength(1);
-  expect(daGui.filter((g) => g.thread === KHACH)).toHaveLength(0);
+  expect(daGui.length).toBe(truocKhan); // không gửi thêm thẻ nào về admin
+  expect(daGui.filter((g) => g.thread === KHACH)).toHaveLength(0); // bot cũng không nhắn khách
 
-  // 6. admin chọn gửi câu của mình bằng lệnh
+  // 6. admin vẫn có thể dùng lệnh để gửi tin cho khách
   await tv.adminNhan({ chu: "K4249 Mình đây, bạn đang ở đoạn nào để mình ra mở cửa nha" });
   expect(daGui.find((g) => g.thread === KHACH)).toMatchObject({ loai: "khach_admin" });
   expect(dem.get(KHACH)!.cho_tu).toBeNull();
