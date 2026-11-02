@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { PROP } from "@/lib/format";
 import { NutZalo } from "@/components/TheoDoi";
 import { HOTLINE_ZALO } from "@/lib/hotline";
-import { Tag, Bot, BarChart3, Sparkles } from "lucide-react";
+import { Tag, Bot, BarChart3, Sparkles, MapPin, MessageCircle } from "lucide-react";
 
 const VND = new Intl.NumberFormat("vi-VN");
 function money(v: number, monthly = false): string {
-  if (v >= 1e9) return (v / 1e9).toFixed(v % 1e9 ? 2 : 0).replace(/\.?0+$/, "") + " tỷ" + (monthly ? "/th" : "");
-  if (v >= 1e6) return Math.round(v / 1e6) + " triệu" + (monthly ? "/th" : "");
+  // 2/11: luôn toFixed(2) - số tỷ chẵn toFixed(0) ra "10" rồi bị cắt số 0 thành "1 tỷ"
+  if (v >= 1e9) return (v / 1e9).toFixed(2).replace(/\.?0+$/, "") + " tỷ" + (monthly ? "/th" : "");
+  // 2/11 (audit Q10): dưới 10 triệu giữ 1 số lẻ - làm tròn chẵn biến 3,6-4,4tr thành "4 triệu - 4 triệu"
+  if (v >= 1e6) return (v < 1e7 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") : String(Math.round(v / 1e6))) + " triệu" + (monthly ? "/th" : "");
   return VND.format(v) + " ₫";
 }
 
@@ -35,6 +37,15 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // 2/11 (audit M8): 422 = không đủ tin so sánh -> gợi ý đổi khu vực + nhắn Zalo chuyên viên thay vì chỉ chữ đỏ
+  const [thieuDuLieu, setThieuDuLieu] = useState(false);
+  const quanRef = useRef<HTMLSelectElement>(null);
+  const tinhRef = useRef<HTMLSelectElement>(null);
+  const doiKhuVuc = () => {
+    const el = quanRef.current && !quanRef.current.disabled ? quanRef.current : tinhRef.current;
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.focus({ preventScroll: true });
+  };
   const [r, setR] = useState<Result | null>(null);
 
   const provinces = Object.keys(geo).sort();
@@ -46,7 +57,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true); setErr(""); setR(null);
+    setBusy(true); setErr(""); setThieuDuLieu(false); setR(null);
     try {
       const res = await fetch("/api/valuation", {
         method: "POST",
@@ -59,7 +70,7 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
         }),
       });
       const j = await res.json();
-      if (!res.ok) setErr(j.error || "Có lỗi xảy ra, thử lại nhé.");
+      if (!res.ok) { setErr(j.error || "Có lỗi xảy ra, thử lại nhé."); setThieuDuLieu(res.status === 422); }
       else setR(j as Result);
     } catch {
       setErr("Lỗi mạng, thử lại nhé.");
@@ -102,14 +113,14 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
             </label>
             <label className="block col-span-2">
               <span className="lbl">Tỉnh/Thành phố *</span>
-              <select className={sel} value={f.province} onChange={set("province")} required>
+              <select ref={tinhRef} className={sel} value={f.province} onChange={set("province")} required>
                 <option value="">Chọn tỉnh/thành</option>
                 {provinces.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
             <label className="block col-span-2">
               <span className="lbl">Quận/Huyện</span>
-              <select className={sel} value={f.district} onChange={set("district")} disabled={!districts.length}>
+              <select ref={quanRef} className={sel} value={f.district} onChange={set("district")} disabled={!districts.length}>
                 <option value="">Toàn tỉnh/thành</option>
                 {districts.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
@@ -142,14 +153,32 @@ export default function ValuationClient({ geo }: { geo: Record<string, string[]>
             <Sparkles className="w-4 h-4 shrink-0" />
             <span>{busy ? "AI đang định giá…" : "Định giá ngay"}</span>
           </button>
-          {err && <p className="text-sm text-red-600 mt-3 text-center">{err}</p>}
+          {err && <p className="text-sm text-red-600 mt-3 text-center" role="alert">{err}</p>}
+          {thieuDuLieu && (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={doiKhuVuc} className="btn min-h-11 text-sm font-semibold">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span>Đổi khu vực</span>
+              </button>
+              <NutZalo
+                tinNhan={`Chào chuyên viên Radar, mình cần định giá ${PROP[f.kind] || "nhà đất"} ${f.area_m2 ? f.area_m2 + "m² " : ""}tại ${f.district ? f.district + ", " : ""}${f.province} (${f.deal === "cho_thue" ? "cho thuê" : "bán"}), web báo chưa đủ dữ liệu so sánh. Nhờ bạn định giá giúp mình nhé!`}
+                href={HOTLINE_ZALO}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary min-h-11 text-sm font-semibold"
+              >
+                <MessageCircle className="w-4 h-4 shrink-0" />
+                <span>Nhắn Zalo nhờ chuyên viên định giá</span>
+              </NutZalo>
+            </div>
+          )}
         </form>
 
         {/* Kết quả */}
         <div className="space-y-4">
           {!r && !busy && (
             <div className="card rounded-lg p-10 text-center text-[var(--ink-soft)]">
-              <Tag className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+              <Tag className="w-12 h-12 text-[var(--ink-faint)] mx-auto mb-3" />
               <p className="text-sm">Điền thông tin bên trái và bấm <b>Định giá ngay</b>.<br />
                 Kết quả dựa trên các tin rao thật cùng khu vực + phân tích AI.</p>
             </div>

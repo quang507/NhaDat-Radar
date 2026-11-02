@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Link from "next/link";
 import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
-import { LISTING_COLS, LISTING_THE_COLS } from "@/lib/cols";
+import { LISTING_THE_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen from "@/components/DaiDocQuyen";
 import TimPhongNhanh from "@/components/TimPhongNhanh";
@@ -51,7 +51,8 @@ const layTinTrangChu = unstable_cache(
     const [{ data: rhData }, { data }, { data: projData, count: projectCount }] = await Promise.all([
       taoQuery().eq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(100),
       taoQuery().neq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150),
-      supabase.from("projects").select("*", { count: "exact" }).eq("status", "published").not("images", "eq", "{}")   // 25/10: bỏ dự án không ảnh
+      // 2/11 (audit D3): chỉ lấy cột thẻ dự án dùng, không select("*") (mô tả, specs... nặng)
+      supabase.from("projects").select("id,name,images,price_min,price_max,district,province", { count: "exact" }).eq("status", "published").not("images", "eq", "{}")   // 25/10: bỏ dự án không ảnh
         .order("priority", { ascending: false }).order("name").limit(6),
     ]);
     return { data: tronRoHang((rhData ?? []) as { id: string }[], (data ?? []) as { id: string }[]), projData: projData ?? [], projectCount: projectCount ?? 0 };
@@ -364,7 +365,7 @@ export default async function Home() {
                     <div className="aspect-[16/10] bg-dark-stage grid place-items-center overflow-hidden">
                       {p.images?.[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
+                        <img src={p.images[0]} alt={p.name} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
                       ) : (
                         <span className="prata text-white/40 text-lg px-4 text-center leading-snug">{p.name}</span>
                       )}
@@ -506,6 +507,8 @@ export default async function Home() {
                   <img
                     src={img}
                     alt={t}
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   {/* Lớp phủ gradient tạo độ tương phản đọc chữ sắc nét */}

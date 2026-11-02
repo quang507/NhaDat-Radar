@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DANH_SACH_CHUYEN_DE } from "@/lib/chuyen-de";
+import { DANH_SACH_CHUYEN_DE, quanDB } from "@/lib/chuyen-de";
+import { cheSoTin } from "@/lib/doc-quyen";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { LISTING_CARD_COLS } from "@/lib/cols";
 import type { Listing } from "@/lib/types";
@@ -32,13 +33,15 @@ export default async function ThematicLanding({
     notFound();
   }
 
-  const { quan } = await searchParams;
+  // 2/11 (audit): chỉ nhận quận có trong danh sách chip - giá trị lạ không đi vào truy vấn
+  const { quan: quanGo } = await searchParams;
+  const quan = quanGo && cd.khuVucNhieuTin.includes(quanGo) ? quanGo : undefined;
 
-  // Truy vấn tin theo chủ đề
+  // Truy vấn tin theo chủ đề (count exact -> hiện tổng tin thật, không phải số thẻ đang hiện)
   const supabase = createAnonClient();
   let query = supabase
     .from("listings")
-    .select(LISTING_CARD_COLS)
+    .select(LISTING_CARD_COLS, { count: "exact" })
     .eq("status", "published")
     .eq("deal", cd.deal)
     .ilike("province", "%Hồ Chí Minh%");
@@ -58,15 +61,19 @@ export default async function ThematicLanding({
   }
 
   // Lọc thêm theo quận nếu người dùng bấm chọn quận
+  // 2/11 (audit 🔴7, Q1): so khớp đúng tên quận trong DB - ilike "%Quận 1%" ăn cả Quận 10/11/12,
+  // tên trần "Gò Vấp" phải đổi thành "Quận Gò Vấp"
   if (quan) {
-    query = query.ilike("district", `%${quan}%`);
+    query = query.eq("district", quanDB(quan));
   }
 
-  const { data: rawListings } = await query
+  const { data: rawListings, count } = await query
     .order("first_seen_at", { ascending: false, nullsFirst: false })
     .limit(30);
 
-  const listings = (rawListings || []) as Listing[];
+  // 2/11 (audit P4): che SĐT trong tiêu đề/mô tả như mọi trang công khai khác
+  const listings = ((rawListings || []) as Listing[]).map(cheSoTin);
+  const tongTin = count ?? listings.length;
 
   // JSON-LD Schemas
   const breadcrumbLd = {
@@ -203,7 +210,7 @@ export default async function ThematicLanding({
             </h2>
           </div>
           <span className="text-xs text-[var(--text-3)] font-medium">
-            Có <strong className="text-[var(--text-1)]">{listings.length}</strong> tin phù hợp
+            Có <strong className="text-[var(--text-1)]">{tongTin.toLocaleString("vi-VN")}</strong> tin phù hợp
           </span>
         </div>
 

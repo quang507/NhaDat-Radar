@@ -1,9 +1,11 @@
+import "server-only"; // 2/11 (audit): chặn lỡ import vào client component
 // Helper Gemini dùng chung (server-only): xoay tối đa 5 key né 429.
 const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
 const KEYS = [
   process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY2, process.env.GEMINI_API_KEY3,
   process.env.GEMINI_API_KEY4, process.env.GEMINI_API_KEY5,
 ].filter(Boolean) as string[];
+export const TIMEOUT_MS = 12_000;
 
 export async function gemini(
   prompt: string,
@@ -17,6 +19,8 @@ export async function gemini(
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          // 2/11 (audit): mỗi lời gọi tối đa 12s - không thì chuỗi parse + embed + trả lời vượt maxDuration 30s
+          signal: AbortSignal.timeout(TIMEOUT_MS),
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
@@ -31,7 +35,12 @@ export async function gemini(
       const j = await res.json();
       const txt = j?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (txt) return txt;
-    } catch { /* thử key tiếp theo */ }
+    } catch (e) {
+      // hết giờ là do Gemini chậm, không phải do key -> thôi xoay, trả null để route dùng phương án dự phòng
+      const ten = (e as { name?: string } | null)?.name;
+      if (ten === "TimeoutError" || ten === "AbortError") return null;
+      /* lỗi mạng khác: thử key tiếp theo */
+    }
   }
   return null;
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { PROP } from "@/lib/format";
+import { useDongBangBack } from "@/lib/dong-bang-back";
+import { dongRoiDi } from "@/lib/dong-roi-di";
 import { X, Check, Building2, Home, LandPlot, Store, Building, LayoutGrid } from "lucide-react";
 
 // BỘ LỌC MUA BÁN dựng theo batdongsan.com.vn/nha-dat-ban (1/10): hàng [Lọc] [công tắc] [Loại nhà đất ▾]
@@ -49,12 +51,13 @@ function Popover({ tieuDe, onDong, onDatLai, onApDung, children }: {
     <div className={`fixed inset-x-0 bottom-0 z-[60] rounded-t-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-2 sm:z-50 sm:w-[22rem] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl border border-[var(--line)] bg-[var(--surface)] shadow-2xl flex flex-col overflow-hidden`}>
       <div className="relative flex items-center justify-center px-4 py-3.5 border-b border-[var(--line)]">
         <h3 className="font-bold text-base">{tieuDe}</h3>
-        <button type="button" onClick={onDong} aria-label="Đóng" className="absolute right-3 w-8 h-8 grid place-items-center rounded-lg hover:bg-[var(--surface-2)] text-[var(--ink-soft)]"><X className="w-5 h-5" /></button>
+        {/* 2/11 (audit M1): nút đóng / Đặt lại / Áp dụng >= 44px; chân tấm trượt né thanh cử chỉ (safe-area) */}
+        <button type="button" onClick={onDong} aria-label="Đóng" className="absolute right-1.5 min-w-11 min-h-11 grid place-items-center rounded-sm hover:bg-[var(--surface-2)] text-[var(--ink-soft)]"><X className="w-5 h-5" /></button>
       </div>
       <div className="max-h-[22rem] overflow-y-auto px-4 py-3">{children}</div>
-      <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--line)]">
-        <button type="button" onClick={onDatLai} className="font-semibold text-sm px-2 py-2 hover:text-brand">Đặt lại</button>
-        <button type="button" onClick={onApDung} className="h-10 px-6 rounded-lg bg-brand text-white font-semibold text-sm hover:bg-brand-ink">Áp dụng</button>
+      <div className="flex items-center justify-between px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-3 border-t border-[var(--line)]">
+        <button type="button" onClick={onDatLai} className="min-h-11 font-semibold text-sm px-2 hover:text-brand">Đặt lại</button>
+        <button type="button" onClick={onApDung} className="h-11 px-6 rounded-lg bg-brand text-white font-semibold text-sm hover:bg-brand-ink">Áp dụng</button>
       </div>
     </div>
   );
@@ -75,10 +78,12 @@ function NutPop({ nhan, dangLoc, children }: {
     document.addEventListener("keydown", esc);
     return () => { document.removeEventListener("mousedown", ngoai); document.removeEventListener("keydown", esc); };
   }, [mo]);
+  // 2/11 (audit M4): điện thoại là tấm trượt đáy -> nút Back Android đóng tấm thay vì rời trang
+  useDongBangBack(mo, () => setMo(false));
   return (
     <div className="relative shrink-0" ref={ref}>
       <button type="button" aria-expanded={mo} onClick={() => setMo((v) => !v)}
-        className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 whitespace-nowrap transition
+        className={`h-11 px-4 rounded-lg border text-sm flex items-center gap-2 whitespace-nowrap transition
           ${dangLoc || mo ? "border-brand text-brand bg-brand/5 font-semibold" : "border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink-soft)] hover:border-brand"}`}>
         {nhan}
         <svg className={`w-4 h-4 transition-transform ${mo ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -118,7 +123,7 @@ function ThanLoai({ kind, dong, onApDung }: { kind: string; dong: () => void; on
   );
   return (
     <Popover tieuDe="Loại nhà đất" onDong={dong} onDatLai={() => setChon([])}
-      onApDung={() => { onApDung(chon.length === LOAI_MUA.length ? "" : chon.join(",")); dong(); }}>
+      onApDung={() => { const k = chon.length === LOAI_MUA.length ? "" : chon.join(","); dongRoiDi(dong, () => onApDung(k)); }}>
       {dong1(chon.length === 0, LayoutGrid, "Tất cả nhà đất", () => setChon([]))}
       {LOAI_MUA.map(([k, ten]) => dong1(chon.includes(k), ICON_LOAI[k] || Building, ten, () => doi(k), k))}
     </Popover>
@@ -158,7 +163,8 @@ function ThanKhoang({ loai, min, max, dong, onApDung }: {
       onApDung={() => {
         let x = vaoUrl(loai, a), y = vaoUrl(loai, b);
         if (x && y && Number(x) > Number(y)) [x, y] = [y, x]; // gõ ngược thì tự đảo
-        onApDung(x, y); dong();
+        // đóng tấm (gỡ mục lịch sử của Back) xong mới lọc - xem lib/dong-roi-di
+        dongRoiDi(dong, () => onApDung(x, y));
       }}>
       <div className="flex items-end gap-2 mb-3">
         <label className="flex-1 text-xs font-semibold">{loai === "gia" ? "Giá thấp nhất" : "Diện tích nhỏ nhất"}
@@ -197,7 +203,7 @@ export function CongTac({ bat, onDoi, icon, children, title }: {
 }) {
   return (
     <button type="button" role="switch" aria-checked={bat} onClick={onDoi} title={title}
-      className={`shrink-0 h-10 pl-3 pr-2.5 rounded-lg border text-sm flex items-center gap-2 whitespace-nowrap transition
+      className={`shrink-0 h-11 pl-3 pr-2.5 rounded-lg border text-sm flex items-center gap-2 whitespace-nowrap transition
         ${bat ? "border-brand text-brand bg-brand/5 font-semibold" : "border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink-soft)] hover:border-brand"}`}>
       {icon}
       {children}
@@ -216,7 +222,7 @@ export function NhomNut({ opts, value, onChange }: { opts: [string, string][]; v
         const on = v === value;
         return (
           <button key={v} type="button" aria-pressed={on} onClick={() => onChange(on ? "" : v)}
-            className={`h-9 min-w-11 px-3.5 rounded-full border text-sm transition
+            className={`h-11 min-w-11 px-3.5 rounded-full border text-sm transition
               ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] bg-[var(--surface)] hover:border-brand"}`}>
             {l}
           </button>

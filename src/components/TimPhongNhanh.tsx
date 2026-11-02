@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
-import { NutZalo } from "@/components/TheoDoi";
+import { LinkTheoDoi, NutZalo } from "@/components/TheoDoi";
 import { MessageCircle, ShieldCheck, Video, Clock, CheckCircle2, PhoneCall } from "lucide-react";
 
 const KHU_VUC_THUE = [
@@ -162,13 +162,15 @@ export default function TimPhongNhanh() {
 
               <div className="mt-2.5 text-center flex items-center justify-center gap-2 text-xs text-[var(--ink-faint)]">
                 <span>Hoặc gọi hỗ trợ trực tiếp:</span>
-                <a
+                {/* 2/11 (audit Q6): ghi ndr_goi; min-h-11 cho ngón tay */}
+                <LinkTheoDoi
+                  loai="goi"
                   href={`tel:${HOTLINE}`}
-                  className="font-bold text-[var(--ink)] hover:text-brand inline-flex items-center gap-1"
+                  className="min-h-11 font-bold text-[var(--ink)] hover:text-brand inline-flex items-center gap-1"
                 >
                   <PhoneCall className="w-3.5 h-3.5 text-brand" />
                   <span>0387 365 020</span>
-                </a>
+                </LinkTheoDoi>
               </div>
             </div>
           </div>

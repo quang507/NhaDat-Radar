@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { hiRes } from "@/lib/img";
 import { Play, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useDongBangBack } from "@/lib/dong-bang-back";
 
 export interface NavItem {
   id: string;
@@ -17,8 +18,9 @@ export interface NavItem {
 // native, mượt), bấm ảnh mở lightbox toàn màn hình cũng vuốt được, phím ←/→/Esc vẫn chạy.
 
 // Ảnh hi-res, lỗi thì rơi về URL gốc; ảnh fbcdn phải no-referrer (giống SafeImg)
-function Img({ src, className, alt, eager, onClick }: {
-  src: string; className: string; alt: string; eager?: boolean; onClick?: (e: React.MouseEvent<HTMLImageElement>) => void;
+// uuTien (2/11, audit P10): chỉ ảnh đầu trang tin - ảnh LCP, trình duyệt tải trước các ảnh khác
+function Img({ src, className, alt, eager, uuTien, onClick }: {
+  src: string; className: string; alt: string; eager?: boolean; uuTien?: boolean; onClick?: (e: React.MouseEvent<HTMLImageElement>) => void;
 }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -26,7 +28,8 @@ function Img({ src, className, alt, eager, onClick }: {
       src={hiRes(src)}
       alt={alt}
       className={className}
-      loading={eager ? "eager" : "lazy"}
+      loading={eager || uuTien ? "eager" : "lazy"}
+      fetchPriority={uuTien ? "high" : undefined}
       draggable={false}
       onClick={onClick}
       referrerPolicy={/fbcdn\.net|scontent/.test(src) ? "no-referrer" : undefined}
@@ -193,6 +196,10 @@ export default function Gallery({
     return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
   }, [open, go]);
 
+  // 2/11 (audit M4): nút Back Android đóng lightbox / video thay vì rời trang tin
+  useDongBangBack(open, () => setOpen(false));
+  useDongBangBack(!!video, () => setVideo(null));
+
   // Thumbnail đang xem tự cuộn vào giữa
   useEffect(() => {
     if (!open) return;
@@ -220,6 +227,7 @@ export default function Gallery({
               src={img}
               alt={i === 0 ? title : `${title} - ảnh ${i + 1}`}
               eager={Math.abs(i - heroIdx) <= 1}
+              uuTien={i === 0}
               className="w-full h-full shrink-0 snap-center object-cover cursor-pointer"
               onClick={handleDesktopImageClick}
             />
@@ -317,7 +325,7 @@ export default function Gallery({
 
       {video && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex flex-col justify-between p-3 sm:p-5" 
+          className="fixed inset-0 z-[100] bg-black/95 flex flex-col justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-5"
           onClick={() => setVideo(null)}
         >
           {/* Header với nút đóng */}
@@ -327,7 +335,7 @@ export default function Gallery({
             </span>
             <button 
               aria-label="Đóng video" 
-              className="w-10 h-10 rounded-lg bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition cursor-pointer" 
+              className="min-w-11 min-h-11 rounded-sm bg-black/40 hover:bg-black/60 border border-white/25 active:scale-95 text-white flex items-center justify-center transition cursor-pointer"
               onClick={() => setVideo(null)}
             >
               <X className="w-5 h-5" />
@@ -370,10 +378,11 @@ export default function Gallery({
 
       {/* Lightbox: track vuốt toàn màn hình */}
       {open && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 text-white text-sm">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col pb-[env(safe-area-inset-bottom)]">
+          {/* 2/11 (audit): đệm tai thỏ khi bật viewportFit cover; nút đóng 44px */}
+          <div className="flex items-center justify-between px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] text-white text-body-sm">
             <span className="font-semibold">{idx + 1} / {n}</span>
-            <button aria-label="Đóng thư viện ảnh" className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white grid place-items-center transition" onClick={() => setOpen(false)}>
+            <button type="button" aria-label="Đóng thư viện ảnh" className="min-w-11 min-h-11 rounded-full bg-black/40 hover:bg-black/60 border border-white/25 text-white grid place-items-center transition" onClick={() => setOpen(false)}>
               <X className="w-5 h-5" />
             </button>
           </div>

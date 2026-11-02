@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { coCookiePhien, layClient } from "@/lib/supabase/lazy";
 import { setListingStatusFromDetail, deleteListingFromDetail, getAdminListingOrigin } from "@/app/admin/actions";
 import { linkGocEvohome, linkGocHifriendz } from "@/lib/ro-hang";
 
@@ -18,8 +18,10 @@ export default function AdminDetailBar({ id, status, isRoHang }: { id: string; s
 
   useEffect(() => {
     let cancelled = false;
+    // 2/11 (audit P1): khách không có cookie phiên -> không tải supabase-js ở trang tin
+    if (!coCookiePhien()) return;
     (async () => {
-      const sb = createClient();
+      const sb = await layClient();
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
       const { data: prof } = await sb.from("profiles").select("role").eq("id", user.id).single();
@@ -30,7 +32,7 @@ export default function AdminDetailBar({ id, status, isRoHang }: { id: string; s
           if (!cancelled && res) setGoc(res);
         }
       }
-    })();
+    })().catch(() => { /* mất mạng - bỏ qua */ });
     return () => { cancelled = true; };
   }, [id, isRoHang]);
 

@@ -88,3 +88,7 @@ export function catChu(s: string, n: number): string {
   if (s.length <= n) return s;
   return Array.from(s).slice(0, n).join("");
 }
+
+// Tên quận gọn cho tiêu đề SEO: "Quận Gò Vấp" -> "Gò Vấp" (giữ "Quận 1"). 2/11 (audit): chuyển từ AreaLanding
+// để client component (TinTucClient) không kéo AreaLanding -> geo/gemini -> supabase/admin vào bundle.
+export const tenKhuVucGon = (d: string) => d.replace(/^(Quận|Huyện|Thị xã|TP\.|Thành phố) (?=\D)/, "");

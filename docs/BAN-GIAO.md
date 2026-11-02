@@ -118,7 +118,7 @@ Việc còn lại cho AG:
 ## 4. Vận hành
 
 - **Trước khi push**: `npm run build` - trang chủ `○ (Static)`, `/listings/[id]` và `/projects/[id]` `● (SSG/ISR)`.
-- **Làm mới cache**: `GET /api/revalidate?secret=<REVALIDATE_SECRET>`, hoặc header `x-revalidate-secret`. Tham số tuỳ chọn `path=` / `tag=`. Thiếu biến thì 503, sai mã thì 401.
+- **Làm mới cache**: `GET /api/revalidate` kèm header `x-revalidate-secret: <REVALIDATE_SECRET>` (từ 3/11 không nhận `?secret=` nữa: lọt vào log). Tham số tuỳ chọn `path=` / `tag=`. Thiếu biến thì 503, sai mã thì 401.
 - **NUC công ty** (thay VPS từ 28/10/2026, chi tiết + cách cài lại: [`deploy/nuc/README.md`](../deploy/nuc/README.md)):
   - Rổ hàng: `ro-hang.sh full` 4 lượt/ngày, `ro-hang.sh evohome` 3 lượt/ngày (systemd timer). Bot Zalo `radar-zalo-bot` chạy 24/7.
   - Mỗi lượt `git pull origin main` → code crawler push lên là lượt sau chạy bản mới.

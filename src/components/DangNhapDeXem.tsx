@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import { maPhong } from "@/lib/ro-hang";
-import { NutZalo } from "./TheoDoi";
+import { LinkTheoDoi, NutZalo } from "./TheoDoi";
 import { Lock, MessageCircle, PhoneCall, ShieldCheck, X } from "lucide-react";
 
 export default function DangNhapDeXem({ listingId, listingTitle }: { listingId?: string; listingTitle?: string }) {
@@ -89,13 +89,16 @@ export default function DangNhapDeXem({ listingId, listingTitle }: { listingId?:
                 <span>Nhận SĐT &amp; Video qua Zalo (Nhanh nhất)</span>
               </NutZalo>
 
-              <a
+              {/* 2/11 (audit Q6): ghi ndr_goi kèm tin đang xem */}
+              <LinkTheoDoi
+                loai="goi"
+                listingId={listingId}
                 href={`tel:${HOTLINE}`}
                 className="w-full min-h-11 py-2.5 px-4 rounded-md font-bold text-xs text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center justify-center gap-2 text-center"
               >
                 <PhoneCall className="w-3.5 h-3.5 text-brand dark:text-emerald-400" />
                 <span>Hoặc gọi Hotline Radar: 0387 365 020</span>
-              </a>
+              </LinkTheoDoi>
 
               <div className="pt-3 border-t border-slate-100 dark:border-slate-700/80 mt-3 text-center">
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-2">Hoặc xem số trực tiếp trên web:</span>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Lora } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
@@ -9,6 +9,7 @@ import GoogleAnalytics from "@/components/GoogleAnalytics";
 import GoogleAdSense from "@/components/GoogleAdSense";
 import MoiDienSdt from "@/components/MoiDienSdt";
 import DongYCookie from "@/components/DongYCookie";
+import DangKySW from "@/components/DangKySW";
 import { ldJson, SITE_URL } from "@/lib/ld";
 
 export const viewport: Viewport = {
@@ -18,9 +19,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-// Body: Inter · Display: Lora (self-host qua next/font, không gọi link ngoài)
+// Inter self-host qua next/font, không gọi link ngoài. 2/11 (audit P9): bỏ Lora - không chỗ nào dùng font-serif
 const inter = Inter({ subsets: ["latin", "vietnamese"], variable: "--font-inter", display: "swap" });
-const lora = Lora({ subsets: ["latin", "vietnamese"], variable: "--font-lora", display: "swap", weight: ["500", "600", "700"] });
 
 // metadataBase: thiếu nó thì mọi ảnh OG / canonical tương đối bị Next cảnh báo và Google nhận URL
 // không đầy đủ. title.template để trang con chỉ cần đặt phần riêng (23/9).
@@ -75,7 +75,7 @@ const LD_SITE = [
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi" className={`${inter.variable} ${lora.variable}`} suppressHydrationWarning>
+    <html lang="vi" className={inter.variable} suppressHydrationWarning>
       <head>
         <meta name="google-adsense-account" content="ca-pub-8747500665166380" />
         <script
@@ -100,6 +100,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GoogleAnalytics />
         <GoogleAdSense />
         <DongYCookie />
+        {/* 2/11 (audit 🔴8): service worker chỉ trả trang offline khi mất mạng, không cache HTML */}
+        <DangKySW />
         {/* mời người đã đăng nhập để lại SĐT (không OTP, bỏ qua được) - hiện lại sau 7 ngày */}
         <MoiDienSdt />
         {/* JSON-LD đặt CUỐI body: để ở đầu body làm hydration hỏng trên WebKit/iOS (đo 23/9:

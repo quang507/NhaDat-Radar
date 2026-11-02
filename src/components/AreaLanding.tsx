@@ -6,7 +6,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
 import { unstable_cache } from "next/cache";
-import { fmtPrice, fmtPpm2, PROP, startOfDayVN } from "@/lib/format";
+import { fmtPrice, fmtPpm2, PROP, startOfDayVN, tenKhuVucGon } from "@/lib/format";
 import { median, percentile } from "@/lib/gemini";
 import { slugify, areaPath, DEAL_WORD, KIND_SLUG, kindFromSlug } from "@/lib/slug";
 import { getAreas } from "@/lib/geo";
@@ -53,7 +53,7 @@ export async function resolveArea(provinceSlug: string, districtSlug?: string): 
 // SEO (2/10): tiêu đề theo CÁCH KHÁCH GÕ trên Google ("phòng trọ gò vấp giá rẻ", "cho thuê căn hộ dịch vụ quận 7")
 // thay vì "Cho thuê Phòng trọ Quận Gò Vấp, Hồ Chí Minh". Tên quận gọn ("Gò Vấp", giữ "Quận 7"), có số phòng thật
 // + ngày cập nhật (Google hay hiện nguyên tiêu đề, số + ngày làm tăng tỉ lệ bấm).
-export const tenKhuVucGon = (d: string) => d.replace(/^(Quận|Huyện|Thị xã|TP\.|Thành phố) (?=\D)/, "");
+// 2/11 (audit): tenKhuVucGon chuyển sang @/lib/format - client component (TinTucClient) không kéo file này nữa
 const ngayVN = () => {
   const [d, m] = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).split("/");
   return `${d}/${m}`;

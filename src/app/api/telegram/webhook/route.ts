@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { classifyAndExtract } from "@/lib/ai";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { sendTelegramMessage, esc } from "@/lib/telegram";
 import { fmtPrice, PROP, catChu } from "@/lib/format";
 import { qualityGate } from "@/lib/quality-gate";
 import { SITE_URL } from "@/lib/ld";
@@ -13,10 +13,13 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  // 1. Kiểm tra secret token nếu được cấu hình
+  // 1. Kiểm tra secret token - 2/11 (audit): chưa đặt TELEGRAM_WEBHOOK_SECRET thì tắt hẳn (503)
   const secretHeader = req.headers.get("x-telegram-bot-api-secret-token");
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (expectedSecret && secretHeader !== expectedSecret) {
+  if (!expectedSecret) {
+    return NextResponse.json({ error: "webhook disabled" }, { status: 503 });
+  }
+  if (secretHeader !== expectedSecret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -34,7 +37,8 @@ export async function POST(req: Request) {
 
   const chatId = message.chat?.id;
   const text = String(message.text || "").trim();
-  const userName = message.from?.first_name || message.from?.username || "anh/chị";
+  // 2/11 (audit): tên chèn vào parse_mode HTML -> phải escape, không Telegram trả 400
+  const userName = esc(message.from?.first_name || message.from?.username || "anh/chị");
 
   if (!chatId || !text) {
     return NextResponse.json({ ok: true });
@@ -124,7 +128,7 @@ export async function POST(req: Request) {
       contact_phone: L.contact_phone ?? null,
       ai_score: 85,
       poster_role_guess: "chu_nha",
-      status: "published",
+      status: "pending", // 2/11 (audit): tin từ bot chờ duyệt, không tự công khai
       first_seen_at: new Date().toISOString(),
     });
 
@@ -138,10 +142,10 @@ export async function POST(req: Request) {
 
     const giaText = fmtPrice(L.price_vnd ?? null, L.listing_type);
     const successMsg =
-      `✅ <b>Đã đăng tin thành công lên NhaDat Radar!</b>\n\n` +
-      `• <b>Tiêu đề:</b> ${L.title || "Bất động sản"}\n` +
-      `• <b>Giá:</b> ${giaText}${L.area_m2 ? ` · ${L.area_m2}m²` : ""}${L.district ? ` · ${L.district}` : ""}\n\n` +
-      `Tin của anh/chị đã được duyệt và hiển thị công khai trên hệ thống. Cảm ơn anh/chị! 🏠`;
+      `✅ <b>Đã nhận tin của anh/chị trên NhaDat Radar!</b>\n\n` +
+      `• <b>Tiêu đề:</b> ${esc(L.title || "Bất động sản")}\n` +
+      `• <b>Giá:</b> ${esc(giaText)}${L.area_m2 ? ` · ${esc(L.area_m2)}m²` : ""}${L.district ? ` · ${esc(L.district)}` : ""}\n\n` +
+      `Tin đang chờ duyệt, Radar kiểm tra xong sẽ hiển thị công khai. Cảm ơn anh/chị! 🏠`;
 
     await sendTelegramMessage(successMsg, {
       chatId,
@@ -181,9 +185,9 @@ export async function POST(req: Request) {
         const gia = fmtPrice(x.price_vnd, x.deal);
         const loai = PROP[x.kind] || x.kind;
         const viTri = [x.ward, x.district].filter(Boolean).join(", ");
-        resp += `<b>${i + 1}.</b> <a href="${SITE_URL}/listings/${x.id}">${catChu(x.title || "", 55)}</a>\n`;
+        resp += `<b>${i + 1}.</b> <a href="${SITE_URL}/listings/${x.id}">${esc(catChu(x.title || "", 55))}</a>\n`;
         resp += `   💰 <b>${gia}</b>${x.area_m2 ? ` · ${x.area_m2}m²` : ""} · ${loai}\n`;
-        resp += `   📍 ${viTri}\n\n`;
+        resp += `   📍 ${esc(viTri)}\n\n`;
 
         buttons.push([
           {

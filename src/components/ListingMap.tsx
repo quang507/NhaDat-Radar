@@ -2,13 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { preconnect } from "react-dom";
-import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as BanDo } from "maplibre-gl";
 import { Search, RotateCcw } from "lucide-react";
 import { escHtml, shortPrice, fmtPrice, catChu, PROP } from "@/lib/format";
 import { taoBanDo, lopGomCum, MAY_CHU_BAN_DO, type DiemBanDo } from "@/lib/map-layers";
 import { KhungChoBanDo } from "./MapResults";
-import { createClient } from "@/lib/supabase/client";
+import { layClient } from "@/lib/supabase/lazy";
 import { cheSoTin } from "@/lib/doc-quyen";
 
 // Bản đồ 1 tin (MapLibre + OpenFreeMap) kèm tính năng hiện BĐS lân cận khi người dùng zoom ra
@@ -44,10 +43,11 @@ export default function ListingMap({
   const nhanDeal = targetDeal === "cho_thue" ? "phòng trọ & thuê" : "bán";
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     let cancelled = false;
-    (async () => {
-      if (!ref.current) return;
-      const { ml, map } = await taoBanDo(ref.current, [lat, lng], 15);
+    const dung = async () => {
+      const { ml, map } = await taoBanDo(el, [lat, lng], 15);
       if (cancelled) { map.remove(); return; }
       mapRef.current = map;
       map.once("load", () => {
@@ -92,7 +92,7 @@ export default function ListingMap({
           const sw = bounds.getSouthWest();
           const ne = bounds.getNorthEast();
 
-          const sb = createClient();
+          const sb = await layClient(); // 2/11 (audit P1): supabase-js chỉ tải khi thật sự tìm lân cận
           let q = sb
             .from("listings")
             .select("id,source,source_site,title,price_vnd,deal,kind,lat,lng,images,area_m2")
@@ -172,10 +172,18 @@ export default function ListingMap({
 
       map.on("zoomend", onMapChange);
       map.on("moveend", onMapChange);
-    })();
+    };
+    // 2/11 (audit 🔴9): chỉ dựng bản đồ (tải maplibre ~800 kB) khi khung sắp lên màn - khung `hidden` không bao giờ giao cắt
+    const io = new IntersectionObserver(([e]) => {
+      if (!e?.isIntersecting) return;
+      io.disconnect();
+      dung().catch((err) => console.error("ListingMap:", err));
+    }, { rootMargin: "300px" });
+    io.observe(el);
 
     return () => {
       cancelled = true;
+      io.disconnect();
       if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
       nearbyRef.current.clear();
       mapRef.current?.remove();

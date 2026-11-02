@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, type AnchorHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { baoSuKien } from "@/lib/su-kien-client";
-import { Check, Copy } from "lucide-react";
+import { maPhong } from "@/lib/ro-hang";
+import { AlertCircle, Check, Copy } from "lucide-react";
 
 // Theo dõi quan tâm (30/9) - xem lib/su-kien-client + migration 031.
 
@@ -20,8 +22,35 @@ export function GhiXemTin({ listingId }: { listingId: string }) {
 }
 
 /** <a> ghi sự kiện khi bấm (gọi / Zalo) - thay cho <a href="tel:..."> trong server component */
-export function LinkTheoDoi({ loai, listingId, ...a }: AnchorHTMLAttributes<HTMLAnchorElement> & { loai: "goi" | "zalo"; listingId: string }) {
+// 2/11 (audit Q6): listingId không bắt buộc - hotline chung (thanh đáy, lập phòng...) ghi listing_id = null
+export function LinkTheoDoi({ loai, listingId, ...a }: AnchorHTMLAttributes<HTMLAnchorElement> & { loai: "goi" | "zalo"; listingId?: string | null }) {
   return <a {...a} onClick={(e) => { baoSuKien(loai, listingId); a.onClick?.(e); }} />;
+}
+
+/**
+ * Chép chữ vào bộ nhớ tạm (2/11, audit Q5): navigator.clipboard thiếu ở WebView / http / bị chặn quyền
+ * -> khách mở Zalo trống, mất mã phòng. Thử execCommand("copy") qua textarea NGAY trong lượt bấm
+ * (phải đồng bộ mới được phép), hỏng mới tới clipboard.writeText. Trả true nếu chép được.
+ */
+export function chepVanBan(s: string): Promise<boolean> {
+  let ok = false;
+  try {
+    const truoc = document.activeElement as HTMLElement | null;
+    const t = document.createElement("textarea");
+    t.value = s;
+    t.setAttribute("readonly", "");
+    // fixed + 16px: không cuộn trang, iOS không phóng to khi chọn chữ
+    t.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;pointer-events:none";
+    document.body.appendChild(t);
+    t.select();
+    t.setSelectionRange(0, s.length);
+    ok = document.execCommand("copy");
+    t.remove();
+    truoc?.focus?.({ preventScroll: true });
+  } catch { /* execCommand bị gỡ / chặn */ }
+  if (ok) return Promise.resolve(true);
+  if (!navigator.clipboard?.writeText) return Promise.resolve(false);
+  return navigator.clipboard.writeText(s).then(() => true, () => false);
 }
 
 /**
@@ -31,25 +60,29 @@ export function LinkTheoDoi({ loai, listingId, ...a }: AnchorHTMLAttributes<HTML
  */
 // 29/10: listingId không bắt buộc - trang chủ, định giá, tìm kiếm cũng chép sẵn tin nhắn (trước dùng ?text= nên khách mở ra khung trống)
 export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttributes<HTMLAnchorElement> & { listingId?: string | null; tinNhan: string }) {
-  const [daChep, setDaChep] = useState(false);
+  // 2/11 (audit Q5): "ok" = đã chép, "loi" = chép hỏng -> nhắc khách tự gõ mã khi nhắn Zalo
+  const [chep, setChep] = useState<"ok" | "loi" | null>(null);
   return (
     <>
       <a {...a} onClick={(e) => {
         baoSuKien("zalo", listingId);
-        try {
-          const tn = `${tinNhan}\n${location.origin}${location.pathname}`;
-          void navigator.clipboard?.writeText(tn).then(() => { setDaChep(true); setTimeout(() => setDaChep(false), 6000); });
-        } catch { /* trình duyệt chặn clipboard: vẫn mở Zalo */ }
+        const tn = `${tinNhan}\n${location.origin}${location.pathname}`;
+        void chepVanBan(tn).then((ok) => { setChep(ok ? "ok" : "loi"); setTimeout(() => setChep(null), ok ? 6000 : 9000); });
         a.onClick?.(e);
       }}>{children}</a>
-      {daChep && (
-        <span role="status" className="fixed left-1/2 -translate-x-1/2 bottom-24 z-50 max-w-[90vw] px-4 py-2.5 rounded-2xl bg-[#0068ff] text-white text-xs sm:text-sm font-semibold shadow-2xl flex items-center gap-2 border border-white/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-            <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+      {/* portal ra body: cha có transform/backdrop-filter thì fixed bị neo theo cha (cụm Speed Dial máy tính) */}
+      {chep && createPortal(
+        <span role="status" className={`fixed left-1/2 -translate-x-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 max-w-[90vw] px-4 py-2.5 rounded-sm text-caption sm:text-body-sm font-semibold shadow-zen-4 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 ${chep === "ok" ? "btn-zalo" : "bg-[var(--ink)] text-[var(--bg)]"}`}>
+          <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center shrink-0">
+            {chep === "ok" ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <AlertCircle className="w-3.5 h-3.5" />}
           </span>
-          <span>Đã chép nội dung{listingId ? <> &amp; mã phòng</> : null} - mở Zalo và chọn <b>Dán</b> để gửi</span>
+          {chep === "ok"
+            ? <span>Đã chép nội dung{listingId ? <> &amp; mã phòng</> : null} - mở Zalo và chọn <b>Dán</b> để gửi</span>
+            : listingId
+              ? <span>Chưa chép được - nhắn Zalo kèm mã <b className="font-mono">{maPhong(listingId)}</b></span>
+              : <span>Chưa chép được - mở Zalo và nhắn nhu cầu cho Radar</span>}
         </span>
-      )}
+      , document.body)}
     </>
   );
 }
@@ -60,20 +93,31 @@ export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttrib
  */
 export function NutChepMa({ ma, className }: { ma: string; className?: string }) {
   const [daChep, setDaChep] = useState(false);
+  const [loi, setLoi] = useState(false);
   return (
-    <button
-      type="button"
-      aria-label={`Chép mã ${ma}`}
-      title="Bấm để chép mã - gửi kèm khi nhắn Zalo"
-      className={className}
-      onClick={() => {
-        try {
-          void navigator.clipboard?.writeText(ma).then(() => { setDaChep(true); setTimeout(() => setDaChep(false), 2000); });
-        } catch { /* trình duyệt chặn clipboard: mã vẫn bôi đen chép tay được */ }
-      }}
-    >
-      {daChep ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-70" />}
-      <span aria-live="polite">{daChep ? "Đã chép mã" : `Mã: ${ma}`}</span>
-    </button>
+    <>
+      <button
+        type="button"
+        aria-label={`Chép mã ${ma}`}
+        title="Bấm để chép mã - gửi kèm khi nhắn Zalo"
+        className={className}
+        onClick={() => {
+          // 2/11 (audit Q5): chép qua chepVanBan (có đường lui execCommand), hỏng thì báo khách gõ tay mã
+          void chepVanBan(ma).then((ok) => {
+            if (ok) { setDaChep(true); setTimeout(() => setDaChep(false), 2000); }
+            else { setLoi(true); setTimeout(() => setLoi(false), 6000); }
+          });
+        }}
+      >
+        {daChep ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-70" />}
+        <span aria-live="polite">{daChep ? "Đã chép mã" : `Mã: ${ma}`}</span>
+      </button>
+      {loi && createPortal(
+        <span role="status" className="fixed left-1/2 -translate-x-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 max-w-[90vw] px-4 py-2.5 rounded-sm bg-[var(--ink)] text-[var(--bg)] text-caption sm:text-body-sm font-semibold shadow-zen-4 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>Chưa chép được - nhắn Zalo kèm mã <b className="font-mono">{ma}</b></span>
+        </span>
+      , document.body)}
+    </>
   );
 }

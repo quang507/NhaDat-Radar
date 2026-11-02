@@ -1,7 +1,7 @@
 "use client";
 
 import { HOTLINE, HOTLINE_DISPLAY, HOTLINE_ZALO } from "@/lib/hotline";
-import { NutZalo } from "./TheoDoi";
+import { LinkTheoDoi, NutZalo } from "./TheoDoi";
 import { Phone, MessageCircle, Clock, ShieldCheck, Sparkles } from "lucide-react";
 
 interface SanPhongHoCTAProps {
@@ -58,13 +58,15 @@ export default function SanPhongHoCTA({
             <span>Nhờ Radar tìm phòng qua Zalo</span>
           </NutZalo>
 
-          <a
+          {/* 2/11 (audit Q6): ghi ndr_goi */}
+          <LinkTheoDoi
+            loai="goi"
             href={`tel:${HOTLINE}`}
             className="min-h-[46px] px-5 py-3 rounded-xl bg-[var(--surface-1)] hover:bg-[var(--surface-2)] text-[var(--text-1)] border border-[var(--border)] font-bold text-sm flex items-center justify-center gap-2 transition-colors active:scale-98"
           >
             <Phone className="w-4 h-4 text-brand shrink-0" />
             <span>Gọi {HOTLINE_DISPLAY}</span>
-          </a>
+          </LinkTheoDoi>
         </div>
       </div>
     </div>

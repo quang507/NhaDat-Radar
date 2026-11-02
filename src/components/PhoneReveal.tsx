@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Phone } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { coCookiePhien, layClient } from "@/lib/supabase/lazy";
 import DangNhapDeXem from "@/components/DangNhapDeXem";
 
 // Nút "Xem SĐT" kiểu homigo.life: che số, bấm mới hiện + nút gọi.
@@ -24,9 +24,11 @@ export default function PhoneReveal({
   // Lúc mở trang CHỈ kiểm tra phiên. getSession đọc cookie tại chỗ, không gọi mạng.
   // 2/11: trước đây tải SĐT ngay khi mở trang -> sau migration 037 mỗi lượt xem trang trừ 1/30 hạn mức xem SĐT
   // và ghi nhật ký xem_sdt sai (khách chưa hề bấm). Giờ chỉ gọi RPC khi bấm "Xem SĐT".
+  // 2/11 (audit P1): không có cookie phiên -> "khach" ngay, không tải supabase-js
   useEffect(() => {
+    if (!coCookiePhien()) { setPhien("khach"); return; }
     let huy = false;
-    createClient().auth.getSession()
+    layClient().then((sb) => sb.auth.getSession())
       .then(({ data }) => { if (!huy) setPhien(data.session ? "dang_nhap" : "khach"); })
       .catch(() => { if (!huy) setPhien("khach"); });
     return () => { huy = true; };
@@ -36,7 +38,7 @@ export default function PhoneReveal({
     if (dangTai) return;
     setDangTai(true);
     try {
-      const sb = createClient();
+      const sb = await layClient();
       // SĐT qua RPC có giới hạn 30 tin/ngày/tài khoản (migration 037). RPC chưa có (PGRST202 - chưa chạy
       // migration) thì đọc cột như cũ; sau 037 authenticated không còn quyền đọc cột này.
       const rpc = await sb.rpc("lay_sdt_tin", { p_listing: listingId });

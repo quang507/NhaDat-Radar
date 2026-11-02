@@ -8,31 +8,15 @@
 // client thay vì server để layout sạch cookie, nhờ đó trang khu vực bật được ISR.
 // Đánh đổi: người ĐÃ đăng nhập thấy nút "Đăng nhập" trong khoảng vài trăm ms đầu rồi mới đổi thành
 // avatar. Khách vãng lai và Google thì thấy đúng ngay từ HTML đầu tiên.
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { usePhien } from "@/lib/supabase/lazy";
 import { signOut } from "@/app/auth/actions";
 import NavMsg from "./NavMsg";
 
 export default function NavAuth() {
-  const [email, setEmail] = useState<string | null>(null);
-  const [xong, setXong] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    let huy = false;
-    // getSession: đọc phiên trong cookie, không gọi mạng (getUser gọi Auth server mỗi trang - 1/10).
-    // Chỉ dùng để chọn nút hiển thị; quyền thật do server kiểm.
-    supabase.auth.getSession().then(({ data }) => {
-      if (huy) return;
-      setEmail(data.session?.user?.email ?? null);
-      setXong(true);
-    });
-    // đăng nhập/đăng xuất ở tab khác -> nav tự cập nhật, không cần tải lại trang
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setEmail(session?.user?.email ?? null));
-    return () => { huy = true; sub.subscription.unsubscribe(); };
-  }, []);
+  // 2/11 (audit P1): không có cookie phiên thì không tải supabase-js; có thì tải động + nghe onAuthStateChange
+  const { xong, uid, email } = usePhien();
 
   if (!xong && !email) {
     // chưa biết trạng thái: hiện khung chuẩn bị để khỏi giật layout
@@ -59,13 +43,17 @@ export default function NavAuth() {
 
   return (
     <>
-      <NavMsg />
+      {uid && <NavMsg uid={uid} />}
+      {/* 2/11 (audit M1): vùng chạm 44px, vòng avatar vẫn 36px */}
       <Link
         href="/account"
         title={email}
-        className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold bg-brand shrink-0"
+        aria-label="Tài khoản của tôi"
+        className="w-11 h-11 grid place-items-center shrink-0"
       >
-        {email.charAt(0).toUpperCase()}
+        <span className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold bg-brand">
+          {email.charAt(0).toUpperCase()}
+        </span>
       </Link>
       {/* mobile: chỉ dấu "+" - đủ chữ thì cụm nút tràn mép phải ở 360-390px */}
       <Link href="/dashboard/new" aria-label="Đăng tin" className="btn btn-primary whitespace-nowrap">
@@ -75,7 +63,7 @@ export default function NavAuth() {
       {/* desktop: chỉ icon (kèm title) - nút chữ "Đăng xuất" làm menu ngang bị đè */}
       <form action={signOut} className="hidden xl:block">
         <button
-          className="w-9 h-9 rounded-full grid place-items-center text-slate-500 hover:text-brand hover:bg-slate-50 transition-colors"
+          className="w-11 h-11 rounded-full grid place-items-center text-[var(--ink-soft)] hover:text-brand hover:bg-[var(--surface-2)] transition-colors"
           type="submit"
           title="Đăng xuất"
           aria-label="Đăng xuất"

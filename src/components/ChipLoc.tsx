@@ -35,7 +35,7 @@ export default function ChipLoc({
     <div className="relative" ref={ref}>
       <button
         type="button"
-        className={`h-10 px-4 rounded-lg border text-sm flex items-center gap-2 whitespace-nowrap transition
+        className={`h-11 px-4 rounded-lg border text-sm flex items-center gap-2 whitespace-nowrap transition
           ${dangLoc || mo ? "border-brand text-brand bg-brand/5" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
         aria-haspopup="listbox"
         aria-expanded={mo}

@@ -17,7 +17,15 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // bỏ qua static assets & ảnh
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    {
+      // bỏ qua static assets & ảnh. 2/11 (audit 🔴5, 🔴8): thêm sw.js, offline.html, assetlinks (.well-known),
+      // manifest, robots, sitemap - không cần làm mới phiên
+      source: "/((?!_next/static|_next/image|favicon.ico|sw\\.js|offline\\.html|\\.well-known|manifest\\.webmanifest|robots\\.txt|sitemap.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+      // prefetch của <Link> không chạy middleware (updateSession vốn đã bỏ qua) - lần mở trang thật vẫn làm mới phiên
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
   ],
 };

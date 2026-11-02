@@ -1,34 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { HOTLINE, HOTLINE_DISPLAY, HOTLINE_ZALO } from "@/lib/hotline";
-import { Bot, Sparkles, X, Send, PhoneCall, Home, MessageCircle } from "lucide-react";
+import { useDongBangBack } from "@/lib/dong-bang-back";
+import { LinkTheoDoi, NutZalo } from "./TheoDoi";
+import { Sparkles, X, PhoneCall, MessageCircle } from "lucide-react";
 
-type MiniListing = { id: string; title: string; price: string; meta: string; image: string | null };
-// link (26/10): nút mở trang liên quan - "xem cả N tin quanh dự án trên bản đồ", "trang dự án"
-type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[]; suggestions?: string[]; link?: { href: string; label: string } | null };
-
-const GREET_DEFAULT: Msg = {
-  role: "bot",
-  text: "Dạ em là trợ lý AI của Radar! Anh/chị đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc rổ hàng 1.400+ căn trống hôm nay gửi liền cho mình tham khảo ạ?",
-  suggestions: ["Phòng trọ Bình Thạnh dưới 4tr", "Studio Quận 7 có ban công", "Phòng Tân Bình nuôi pet"],
-};
-
-const CHIPS_DEFAULT = [
-  "Phòng trọ Bình Thạnh dưới 4tr",
-  "Nhà Tân Phú 3 - 5 tỷ hxh",
-  "Căn hộ 2PN Quận 7",
-  "Liên hệ Hotline hỗ trợ",
-];
-
-const CHIPS_DANG_XEM = [
-  "Gợi ý căn tương tự",
-  "Căn này còn trống không?",
-  "Tư vấn & hẹn xem nhà",
-  "Liên hệ Hotline hỗ trợ",
-];
+// 2/11 (audit P3): khung chat AI chỉ tải khi khách bấm mở - thanh Gọi/Zalo/AI vẫn render SSR
+const ChatPanel = dynamic(() => import("./ChatPanel"), { ssr: false });
 
 // Cụm liên hệ nhanh nổi góc phải: Zalo + Gọi điện + Hỏi trợ lý
 export default function ChatWidget() {
@@ -38,6 +19,11 @@ export default function ChatWidget() {
   const anThanhDay = !!dangXem || pathname === "/lap-phong" || pathname?.startsWith("/admin") || pathname?.startsWith("/dashboard");
 
   const [open, setOpen] = useState(false);
+  // đã mở lần nào chưa: mở rồi thì giữ ChatPanel trong cây (ẩn khi đóng) để không mất lịch sử
+  const [daMo, setDaMo] = useState(false);
+  useEffect(() => { if (open) setDaMo(true); }, [open]);
+  // 2/11 (audit M4): nút Back Android đóng khung chat thay vì rời trang
+  useDongBangBack(open, () => setOpen(false));
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -83,73 +69,6 @@ export default function ChatWidget() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
-  const [msgs, setMsgs] = useState<Msg[]>([
-    dangXem
-      ? {
-          role: "bot",
-          text: "Xin chào, mình là trợ lý AI của Radar! Bạn đang xem tin bất động sản này 🏠\n\nBạn muốn tìm thêm các căn tương tự hay cần tư vấn & hẹn xem trực tiếp?",
-          suggestions: ["Gợi ý căn tương tự", "Căn này còn trống không?", "Tư vấn & hẹn xem nhà"],
-        }
-      : GREET_DEFAULT,
-  ]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const bodyRef = useRef<HTMLDivElement>(null);
-
-  const chips = dangXem ? CHIPS_DANG_XEM : CHIPS_DEFAULT;
-
-  useEffect(() => {
-    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
-  }, [msgs, open]);
-
-  async function handleSendText(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed || busy) return;
-    setInput("");
-
-    if (trimmed === "Liên hệ Hotline hỗ trợ") {
-      setMsgs((m) => [
-        ...m,
-        { role: "user", text: trimmed },
-        {
-          role: "bot",
-          text: `Bạn có thể liên hệ trực tiếp với Chuyên viên tư vấn Radar qua Hotline ${HOTLINE} để được hỗ trợ nhanh nhất. Nếu cần tìm thêm căn nào, bạn cứ nhắn mình ở đây nhé!`,
-        },
-      ]);
-      return;
-    }
-
-    const next: Msg[] = [...msgs, { role: "user", text: trimmed }];
-    setMsgs(next);
-    setBusy(true);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.map(({ role, text }) => ({ role, text })), dangXem }),
-      });
-      const j = await res.json();
-      setMsgs((m) => [
-        ...m,
-        {
-          role: "bot",
-          text: j.reply || "Xin lỗi, mình chưa trả lời được.",
-          listings: j.listings,
-          suggestions: j.suggestions,
-          // chỉ nhận link nội bộ ("/..."), không mở link lạ từ phản hồi
-          link: j.link && typeof j.link.href === "string" && j.link.href.startsWith("/") && !j.link.href.startsWith("//") ? j.link : null,
-        },
-      ]);
-    } catch {
-      setMsgs((m) => [...m, { role: "bot", text: "Có lỗi mạng, bạn thử lại giúp mình nhé." }]);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function send() {
-    handleSendText(input);
-  }
 
   return (
     <>
@@ -160,14 +79,15 @@ export default function ChatWidget() {
         <>
           <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
           <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur">
-            <a href={`tel:${HOTLINE}`} aria-label={`Gọi Hotline ${HOTLINE}`} className="btn btn-primary min-h-11 font-bold">
+            {/* 2/11 (audit Q6): thanh đáy là nguồn gọi/Zalo lớn nhất ngoài trang tin -> phải ghi ndr_goi / ndr_zalo */}
+            <LinkTheoDoi loai="goi" href={`tel:${HOTLINE}`} aria-label={`Gọi Hotline ${HOTLINE}`} className="btn btn-primary min-h-11 font-bold">
               <PhoneCall className="w-4 h-4" />
               <span>Gọi ngay</span>
-            </a>
-            <a href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo tư vấn phòng" className="btn min-h-11 font-bold !border-[#0068ff] !text-[#0068ff]">
+            </LinkTheoDoi>
+            <NutZalo tinNhan="Chào Radar, mình cần tư vấn tìm phòng" href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo tư vấn phòng" className="btn min-h-11 font-bold !border-[#0068ff] !text-[#0068ff]">
               <IconZalo className="w-4 h-4 shrink-0" />
               <span>Zalo</span>
-            </a>
+            </NutZalo>
             <button type="button" aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"} onClick={() => setOpen((v) => !v)} className="btn min-h-11 min-w-11 !px-3">
               {open ? <X className="w-4 h-4" /> : <><Sparkles className="w-4 h-4 text-amber-500" /><span className="font-bold">AI</span></>}
             </button>
@@ -191,8 +111,9 @@ export default function ChatWidget() {
               : "opacity-0 translate-y-3 scale-95 pointer-events-none"
           }`}
         >
-          {/* 1. Gọi Hotline */}
-          <a
+          {/* 1. Gọi Hotline - 2/11 (audit Q6): ghi ndr_goi */}
+          <LinkTheoDoi
+            loai="goi"
             href={`tel:${HOTLINE}`}
             aria-label={`Gọi Hotline ${HOTLINE}`}
             title="Gọi Hotline tư vấn nhanh"
@@ -207,10 +128,11 @@ export default function ChatWidget() {
             <div className="w-10 h-10 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white flex items-center justify-center shadow-md border border-emerald-600 transition-colors">
               <PhoneCall className="w-4 h-4" />
             </div>
-          </a>
+          </LinkTheoDoi>
 
-          {/* 2. Nhắn Zalo (Icon Zalo chuẩn) */}
-          <a
+          {/* 2. Nhắn Zalo (Icon Zalo chuẩn) - 2/11 (audit Q6): ghi ndr_zalo + chép sẵn tin nhắn */}
+          <NutZalo
+            tinNhan="Chào Radar, mình cần tư vấn tìm phòng"
             href={HOTLINE_ZALO}
             target="_blank"
             rel="noopener noreferrer"
@@ -227,7 +149,7 @@ export default function ChatWidget() {
             <div className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md border border-blue-500 transition-colors">
               <IconZalo className="w-6 h-6" />
             </div>
-          </a>
+          </NutZalo>
 
           {/* 3. Hỏi Trợ lý AI */}
           <button
@@ -280,143 +202,8 @@ export default function ChatWidget() {
         </button>
       </div>
 
-      {open && (
-        <div className="fixed bottom-20 lg:bottom-24 right-4 lg:right-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[560px] max-h-[75vh]
-                        card rounded-lg shadow-lg flex flex-col overflow-hidden border border-slate-300">
-          {/* Header */}
-          <div className="px-4 py-3 bg-brand text-white flex items-center justify-between">
-            <div>
-              <div className="font-bold flex items-center gap-1.5 text-sm">
-                <Bot className="w-4 h-4" />
-                {/* 2/11 (Luật AI 134/2025 Điều 11 khoản 1): người dùng phải biết đang nói chuyện với AI */}
-                <span>Trợ lý AI Radar</span>
-                <span className="text-overline bg-white/20 px-1.5 py-0.5 rounded-sm">AI</span>
-              </div>
-              <div className="text-xs text-white/80">Tự động lọc phòng trống &amp; nhà đất theo yêu cầu</div>
-            </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
-              aria-label="Đóng chat"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Sub-bar: thông báo AI + dữ liệu (NĐ 142/2026 Điều 18: báo trước khi người dùng nhập) + Hotline gặp người thật.
-              Trước 2/11 ghi "Chuyên viên trực tuyến" + chấm xanh nhấp nháy -> khách tưởng đang chat với người. */}
-          <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] text-caption text-[var(--ink-soft)] leading-relaxed">
-            Bạn đang trò chuyện với trợ lý AI (Google Gemini), không phải nhân viên. Nếu bạn gửi SĐT, Radar sẽ lưu để liên hệ
-            tư vấn.{" "}
-            <a href="/chinh-sach-bao-mat#ai" className="underline hover:text-brand">Chính sách</a>
-          </div>
-          <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-xs">
-            <span className="text-[var(--ink-soft)] font-semibold">Cần gặp người thật?</span>
-            <a
-              href={`tel:${HOTLINE}`}
-              className="font-semibold text-brand hover:underline flex items-center gap-1"
-            >
-              <PhoneCall className="w-3 h-3" />
-              <span>Hotline: 0387 365 020</span>
-            </a>
-          </div>
-
-          {/* Body chat */}
-          <div ref={bodyRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
-            {msgs.map((m, i) => (
-              <div key={i}>
-                <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap leading-relaxed ${
-                  m.role === "user"
-                    ? "ml-auto bg-brand text-white rounded-br-sm shadow-sm"
-                    : "bg-[var(--surface-2)] rounded-bl-sm border border-[var(--line)]"
-                }`}>
-                  {m.text}
-                </div>
-                {m.listings && m.listings.length > 0 && (
-                  <div className="mt-2.5 space-y-2">
-                    {m.listings.map((l) => (
-                      <Link
-                        key={l.id}
-                        href={`/listings/${l.id}`}
-                        className="flex gap-2.5 card rounded-xl p-2 hover:shadow-md transition border border-[var(--line)]"
-                        onClick={() => setOpen(false)}
-                      >
-                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-[var(--surface-2)] shrink-0 grid place-items-center">
-                          {l.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={l.image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <Home className="w-6 h-6 text-slate-400" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-semibold leading-snug line-clamp-2">{l.title}</div>
-                          <div className="text-brand font-bold text-xs mt-0.5">{l.price}</div>
-                          <div className="text-[0.65rem] text-[var(--ink-soft)] truncate mt-0.5">{l.meta}</div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-                {m.link && (
-                  <Link href={m.link.href} onClick={() => setOpen(false)}
-                    className="mt-2 btn btn-primary w-full min-h-11 text-sm font-bold">
-                    {m.link.label} ›
-                  </Link>
-                )}
-                {m.suggestions && m.suggestions.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {m.suggestions.map((sug, sIdx) => (
-                      <button
-                        key={sIdx}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => handleSendText(sug)}
-                        className="text-[0.72rem] font-medium px-2.5 py-1 rounded-md bg-brand/10 text-brand hover:bg-brand hover:text-white transition-all border border-brand/20 active:scale-95 text-left inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>💡</span>
-                        <span>{sug}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            {busy && <div className="text-xs text-[var(--ink-faint)] px-2 animate-pulse">Đang tìm kiếm căn phù hợp…</div>}
-          </div>
-
-          {/* Quick chips gợi ý */}
-          <div className="cuon-ngang px-3 py-1.5 bg-[var(--surface)] border-t border-[var(--line)] overflow-x-auto flex gap-1.5 [scrollbar-width:none]">
-            {chips.map((chip, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSendText(chip)}
-                disabled={busy}
-                className="text-[0.7rem] whitespace-nowrap px-2.5 py-1 rounded-md bg-[var(--surface-2)] hover:bg-brand/10 hover:text-brand border border-[var(--line)] transition cursor-pointer"
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-
-          {/* Input form */}
-          <form
-            className="p-2 border-t border-[var(--line)] bg-[var(--surface)] flex gap-2"
-            onSubmit={(e) => { e.preventDefault(); send(); }}
-          >
-            <input
-              className="inp !py-2 text-sm flex-1"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Nhắn yêu cầu: 'phòng Bình Thạnh dưới 4tr'…"
-            />
-            <button className="btn btn-primary !px-3.5 flex items-center justify-center cursor-pointer" type="submit" disabled={busy || !input.trim()} aria-label="Gửi câu hỏi">
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
-      )}
+      {/* 2/11 (audit P3): khung chat tải riêng khi mở lần đầu, sau đó chỉ ẩn/hiện để giữ lịch sử */}
+      {daMo && <ChatPanel open={open} dangXem={dangXem} onClose={() => setOpen(false)} />}
     </>
   );
 }

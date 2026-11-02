@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
+import { createAnonClient, rateLimitChung } from "@/lib/supabase/anon";
 import { gemini, median, percentile } from "@/lib/gemini";
 import { PROP } from "@/lib/format";
 
@@ -18,20 +18,37 @@ type ValuationInput = {
   note?: string;
 };
 
+// output LLM là dữ liệu KHÔNG TIN ĐƯỢC: số có thể là chuỗi ("1.2 tỷ"), thiếu key, NaN -> mọi trường là unknown
 type AiOut = {
-  estimate_vnd: number;
-  low_vnd: number;
-  high_vnd: number;
-  confidence: "thap" | "trung_binh" | "cao";
-  reasoning: string;
-  forecast_pct: { y1: number; y3: number; y5: number };
+  estimate_vnd?: unknown;
+  low_vnd?: unknown;
+  high_vnd?: unknown;
+  confidence?: unknown;
+  reasoning?: unknown;
+  forecast_pct?: { y1?: unknown; y3?: unknown; y5?: unknown } | null;
 };
+
+// 2/11 (audit Q10): ép số an toàn - chuỗi số / số thật thì nhận, còn lại (NaN, "1.2 tỷ", <= 0) -> null
+const soDuong = (v: unknown): number | null => {
+  const n = typeof v === "number" ? v : typeof v === "string" && /^\s*\d+(\.\d+)?\s*$/.test(v) ? Number(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+const soPhanTram = (v: unknown, macDinh: number): number => {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  return Number.isFinite(n) && n > -50 && n < 200 ? Math.round(n * 10) / 10 : macDinh;
+};
+// 2/11 (audit S6): trần Gemini toàn hệ thống / ngày, cùng khoá với /api/chat
+const TRAN_GEMINI_NGAY = 3000;
+const ngayVN = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
 export async function POST(req: NextRequest) {
   // chặn spam: 10 request/phút mỗi IP (endpoint công khai + tốn quota Gemini)
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "?";
-  if (!rateLimit(`valuation:${ip}`, 10, 60_000)) {
+  if (!(await rateLimitChung(`valuation:${ip}`, 10, 60_000))) {
     return NextResponse.json({ error: "Bạn thao tác hơi nhanh, chờ một phút rồi thử lại." }, { status: 429 });
+  }
+  if (!(await rateLimitChung(`gemini:ngay:${ngayVN()}`, TRAN_GEMINI_NGAY, 86_400_000))) {
+    return NextResponse.json({ error: "Công cụ định giá đang quá tải hôm nay. Anh/chị nhắn Zalo hoặc gọi hotline Radar để được định giá giúp nhé." }, { status: 429 });
   }
   let b: ValuationInput;
   try {
@@ -66,7 +83,10 @@ export async function POST(req: NextRequest) {
       .limit(500);
 
   let scope = `${b.district}, ${b.province}`;
-  const r1 = b.district ? await base().ilike("district", `%${b.district}%`) : await base();
+  // 2/11 (audit Q1): "Quận 1" ilike ăn cả Quận 10/11/12 -> quận số so khớp đúng tên
+  const r1 = !b.district ? await base()
+    : /^Quận \d{1,2}$/.test(b.district) ? await base().eq("district", b.district)
+    : await base().ilike("district", `%${b.district}%`);
   let comps = r1.data;
   if (r1.error) console.error("valuation comps:", r1.error.message); // đừng nuốt lỗi DB thành "chưa đủ dữ liệu"
   if (!comps || comps.length < 5) {
@@ -104,27 +124,38 @@ Quy tắc: estimate_vnd phải nằm gần khoảng thống kê (lệch tối đ
 
   let ai: AiOut | null = null;
   const raw = await gemini(prompt);
-  if (raw) { try { ai = JSON.parse(raw) as AiOut; } catch { /* dùng fallback thống kê */ } }
+  if (raw) { try { const j = JSON.parse(raw); ai = j && typeof j === "object" ? (j as AiOut) : null; } catch { /* dùng fallback thống kê */ } }
 
-  // Chặn AI "bay" quá xa dữ liệu thật
+  // Chặn AI "bay" quá xa dữ liệu thật. 2/11 (audit Q10): ép số trước, kẹp lại, giữ low <= estimate <= high
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-  const estimate = ai?.estimate_vnd ? clamp(ai.estimate_vnd, statLow * 0.7, statHigh * 1.3) : statEstimate;
+  const aiEst = soDuong(ai?.estimate_vnd), aiLow = soDuong(ai?.low_vnd), aiHigh = soDuong(ai?.high_vnd);
+  const estLo = statLow * 0.7, estHi = statHigh * 1.3;
+  const estimate = aiEst !== null ? clamp(aiEst, estLo, estHi) : statEstimate;
+  // AI bị kẹp (lệch xa dữ liệu) thì lời giải thích của nó không còn khớp số -> dùng câu thống kê
+  const biKep = aiEst === null || aiEst < estLo || aiEst > estHi;
+  let low = aiLow !== null ? clamp(aiLow, statLow * 0.6, estimate) : Math.min(statLow, estimate);
+  let high = aiHigh !== null ? clamp(aiHigh, estimate, statHigh * 1.4) : Math.max(statHigh, estimate);
+  if (!(low <= estimate)) low = estimate;
+  if (!(high >= estimate)) high = estimate;
+  const lyDoThongKe = `Ước tính theo giá/m² trung vị của ${comps.length} tin ${deal === "ban" ? "bán" : "cho thuê"} cùng loại tại ${scope}.`;
+  const lyDoAi = typeof ai?.reasoning === "string" ? ai.reasoning.trim().slice(0, 800) : "";
+  // "cao" chỉ khi đủ >= 20 tin so sánh, bất kể AI nói gì
+  const confAi = ai?.confidence === "cao" || ai?.confidence === "trung_binh" || ai?.confidence === "thap" ? ai.confidence : null;
+  const confidence = confAi === "cao" && comps.length < 20 ? "trung_binh" : confAi ?? (comps.length >= 20 ? "trung_binh" : "thap");
 
   return NextResponse.json({
     estimate_vnd: Math.round(estimate),
-    low_vnd: Math.round(ai?.low_vnd ? clamp(ai.low_vnd, statLow * 0.6, estimate) : statLow),
-    high_vnd: Math.round(ai?.high_vnd ? clamp(ai.high_vnd, estimate, statHigh * 1.4) : statHigh),
+    low_vnd: Math.round(low),
+    high_vnd: Math.round(high),
     // output LLM là dữ liệu KHÔNG TIN ĐƯỢC: "trung bình"/"Cao"/"medium" thay vì đúng enum là
     // client tra CONF[x] ra undefined -> crash trắng trang dù số liệu đã tính đúng
-    confidence: ai?.confidence === "cao" || ai?.confidence === "trung_binh" || ai?.confidence === "thap"
-      ? ai.confidence : comps.length >= 20 ? "trung_binh" : "thap",
-    reasoning: ai?.reasoning ||
-      `Ước tính theo giá/m² trung vị của ${comps.length} tin ${deal === "ban" ? "bán" : "cho thuê"} cùng loại tại ${scope}.`,
+    confidence,
+    reasoning: !biKep && lyDoAi ? lyDoAi : lyDoThongKe,
     // từng key một: LLM trả thiếu y3/y5 thì object truthy vẫn qua "||" rồi client in "+undefined%"
     forecast_pct: {
-      y1: Number.isFinite(ai?.forecast_pct?.y1) ? ai!.forecast_pct!.y1 : 5,
-      y3: Number.isFinite(ai?.forecast_pct?.y3) ? ai!.forecast_pct!.y3 : 16,
-      y5: Number.isFinite(ai?.forecast_pct?.y5) ? ai!.forecast_pct!.y5 : 30,
+      y1: soPhanTram(ai?.forecast_pct?.y1, 5),
+      y3: soPhanTram(ai?.forecast_pct?.y3, 16),
+      y5: soPhanTram(ai?.forecast_pct?.y5, 30),
     },
     comps: { count: comps.length, scope, median_ppm2: med, p25_ppm2: p25, p75_ppm2: p75 },
     deal,

@@ -4,7 +4,7 @@ import { isJunk } from "./junk.mjs";
 import { gopTrung, nguongGiaLech, coLech, CUM_TOI_THIEU, NGUOI_DANG_TOI_THIEU, LECH_TOI_THIEU } from "./gop.mjs";
 import { canonProvince, canonDistrict, suaChuHong, boSurrogateLe, soNguyen, soThuc } from "./chung.mjs";
 import { PHONE_RE } from "./quality-gate.mjs";
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 
 // SĐT tin cào: NĐ13 -> KHÔNG lưu số thô vào DB (daily.mjs vẫn ép contact_phone = null).
 // Nhưng thiết kế cũ có sẵn phone_masked để hiển thị, mà chưa nguồn nào tạo ra -> 0/4255 tin,
@@ -12,10 +12,14 @@ import { createHash } from "node:crypto";
 // bao giờ chảy tiếp xuống seed.
 //   che: 0903994567 -> 090399***   (giống cách chotot hiện công khai: "Hiện số 090399 ***")
 //   hash: để gộp "N tin khác của cùng người đăng" mà không cần giữ số
+// 2/11 (audit S1): HMAC-SHA256 với khoá bí mật PHONE_HASH_KEY - sha256 trần + 6 số đầu đã lộ ở phone_masked
+// thì chỉ cần thử 10^4 số là ra SĐT. Thiếu khoá -> hash null (KHÔNG lùi về sha256 trần).
+const KHOA_HASH_SDT = process.env.PHONE_HASH_KEY || "";
+if (!KHOA_HASH_SDT) console.error("merge: thiếu PHONE_HASH_KEY -> phone_hash = null (không gộp theo SĐT)");
 function cheSdt(raw) {
   const d = String(raw || "").replace(/\D/g, "").replace(/^84/, "0");
   if (d.length < 9 || d.length > 11) return { masked: null, hash: null };
-  return { masked: d.slice(0, 6) + "***", hash: createHash("sha256").update(d).digest("hex").slice(0, 16) };
+  return { masked: d.slice(0, 6) + "***", hash: KHOA_HASH_SDT ? createHmac("sha256", KHOA_HASH_SDT).update(d).digest("hex").slice(0, 16) : null };
 }
 // File nguồn quá cũ (crawler bị chặn/không chạy nên không ghi đè) -> BỎ QUA, không "thấy lại" tin cũ
 // (last_seen_at phải trung thực: chỉ tin cào được hôm nay mới tính là còn sống). File không có crawled_at -> vẫn nhận.

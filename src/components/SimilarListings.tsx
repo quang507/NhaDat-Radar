@@ -49,6 +49,7 @@ export default function SimilarListings({
                 <div className="relative aspect-[4/3] overflow-hidden bg-[var(--surface-2)]">
                   {img ? (
                     <SafeImg
+                      the
                       src={img}
                       alt={x.title}
                       fallbackLabel={x.kind}

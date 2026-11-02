@@ -35,7 +35,7 @@ export default function ListingCard({ x }: { x: Listing }) {
         style={{ background: x.images?.[0] ? "var(--surface-2)" : t.bg }}
       >
         {x.images?.[0] ? (
-          <SafeImg src={x.images[0]} alt={title} fallbackLabel={PROP[x.kind]} className="lc-img w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          <SafeImg the src={x.images[0]} alt={title} fallbackLabel={PROP[x.kind]} className="lc-img w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
         ) : (
           <PropertyPlaceholder kind={x.kind} />
         )}

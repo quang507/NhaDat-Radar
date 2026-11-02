@@ -46,7 +46,7 @@ export default function ThePhong({ x }: { x: Listing }) {
     <div className={`relative card rounded-lg overflow-hidden flex flex-col transition-all duration-200 ${roHang ? "border-t-2 border-t-brand" : ""}`}>
       <Link href={href} className="relative block aspect-[3/2] overflow-hidden" style={{ background: x.images?.[0] ? "var(--surface-2)" : t.bg }}>
         {x.images?.[0] ? (
-          <SafeImg src={x.images[0]} alt={tieuDe} fallbackLabel={PROP[x.kind]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <SafeImg the src={x.images[0]} alt={tieuDe} fallbackLabel={PROP[x.kind]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
         ) : (
           <PropertyPlaceholder kind={x.kind} />
         )}

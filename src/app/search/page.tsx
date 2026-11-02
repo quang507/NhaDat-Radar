@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> cache được (30/9)
 import { unstable_cache } from "next/cache";
+import { redirect } from "next/navigation";
 import { gonChoDanhSach } from "@/lib/img";
 import type { Listing } from "@/lib/types";
 import { canonDistrict, startOfDayVN } from "@/lib/format";
@@ -75,6 +76,23 @@ const MOI_TRANG = 20;
 const TRANG_TOI_DA = 500;
 const soTrang = (p?: string) => Math.min(TRANG_TOI_DA, Math.max(1, parseInt(p || "1", 10) || 1));
 
+// 2/11 (audit Q4): giá chỉ nhận số hữu hạn > 0 (priceMax=-5, "abc" -> bỏ), min > max thì tự đảo
+const soGia = (v?: string) => { const n = Number(v); return v && Number.isFinite(n) && n > 0 ? Math.round(n) : undefined; };
+function sachGia(min?: string, max?: string): { priceMin?: string; priceMax?: string } {
+  let a = soGia(min), b = soGia(max);
+  if (a !== undefined && b !== undefined && a > b) [a, b] = [b, a];
+  return { priceMin: a !== undefined ? String(a) : undefined, priceMax: b !== undefined ? String(b) : undefined };
+}
+// 2/11 (audit Q2): không chọn deal mà có lọc giá -> giá < 200 triệu là THUÊ ("căn hộ Q7 dưới 15 triệu"),
+// còn lại hiểu theo thang tỷ như UI (MUA). Dùng chung cho truy vấn VÀ deal gửi xuống client để 2 bên khớp nhau.
+function suyDeal(spDeal?: string, bocDeal?: string | null, priceMin?: string, priceMax?: string): "ban" | "cho_thue" | undefined {
+  if (spDeal === "ban" || spDeal === "cho_thue") return spDeal;
+  if (bocDeal === "ban" || bocDeal === "cho_thue") return bocDeal;
+  const moc = Number(priceMax || priceMin || 0);
+  if (!moc) return undefined;
+  return moc < 200_000_000 ? "cho_thue" : "ban";
+}
+
 const khongDau = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase().replace(/^(thanh pho|tp\.?|tinh)\s+/, "").trim();
 
 // Supabase lỗi (timeout, quá tải) mà vẫn trả "0 tin" thì unstable_cache giữ kết quả rỗng đó 15 phút cho MỌI khách
@@ -90,8 +108,10 @@ const timKiemCoCache = unstable_cache(
   const province = sp.province || boc?.loc.province || undefined;
   const district = sp.district || boc?.loc.district || undefined;
   const ward = sp.ward || boc?.loc.ward || undefined;
-  const priceMin = sp.priceMin || (boc?.loc.price_min ? String(boc.loc.price_min) : undefined);
-  const priceMax = sp.priceMax || (boc?.loc.price_max ? String(boc.loc.price_max) : undefined);
+  const { priceMin, priceMax } = sachGia(
+    sp.priceMin || (boc?.loc.price_min ? String(boc.loc.price_min) : undefined),
+    sp.priceMax || (boc?.loc.price_max ? String(boc.loc.price_max) : undefined),
+  );
   const areaMin = sp.areaMin || (boc?.loc.area_min ? String(boc.loc.area_min) : undefined);
   const areaMax = sp.areaMax || (boc?.loc.area_max ? String(boc.loc.area_max) : undefined);
   const bedrooms = sp.bedrooms || (boc?.loc.bedrooms ? String(boc.loc.bedrooms) : undefined);
@@ -100,9 +120,8 @@ const timKiemCoCache = unstable_cache(
   const q = boc?.coKetQua ? (boc.loc.street || boc.loc.keyword || undefined) : sp.q;
   const tam = toaDoGan(sp.gan, sp.bk);
 
-  // URL có lọc giá mà không có deal (dán tay / link cũ): hiểu theo thang tỷ như UI đang hiện
-  // (SearchClient.push cũng ép vậy) - không thì mọi tin thuê đều lọt lưới "dưới X tỷ".
-  const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : boc?.loc.deal || (priceMin || priceMax ? "ban" : undefined);
+  // URL có lọc giá mà không có deal (dán tay / link cũ): suyDeal (< 200 triệu = thuê, còn lại thang tỷ)
+  const deal = suyDeal(sp.deal, boc?.loc.deal, priceMin, priceMax);
   const supabase = createAnonClient();
 
   // Làm sạch input trước khi đưa vào ilike/or của PostgREST: %/_ là wildcard, ",()" phá cú pháp .or() (audit 16/8: province/district/ward từng đưa thẳng)
@@ -154,8 +173,8 @@ const timKiemCoCache = unstable_cache(
     if (dsQuan.length === 1) query = query.eq("district", dsQuan[0]);
     else if (dsQuan.length > 1) query = query.in("district", dsQuan);
     if (ward) query = query.ilike("ward", `%${clean(ward)}%`);
-    if (priceMin && !Number.isNaN(Number(priceMin))) query = query.gte("price_vnd", Number(priceMin));
-    if (priceMax && !Number.isNaN(Number(priceMax))) query = query.lte("price_vnd", Number(priceMax));
+    if (priceMin) query = query.gte("price_vnd", Number(priceMin));
+    if (priceMax) query = query.lte("price_vnd", Number(priceMax));
     if (areaMin && !Number.isNaN(Number(areaMin))) query = query.gte("area_m2", Number(areaMin));
     if (areaMax && !Number.isNaN(Number(areaMax))) query = query.lte("area_m2", Number(areaMax));
     if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
@@ -257,19 +276,37 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const sp = await searchParams;
-  const { kind, province, district, priceMin, priceMax } = sp;
-  const deal = sp.deal === "ban" || sp.deal === "cho_thue" ? sp.deal : priceMin || priceMax ? "ban" : undefined;
+  const spGoc = await searchParams;
+  // làm sạch giá NGAY từ đầu -> khoá cache, truy vấn và bộ lọc phía client cùng một giá trị
+  const sp: Record<string, string | undefined> = { ...spGoc, ...sachGia(spGoc.priceMin, spGoc.priceMax) };
+  const { kind, province, district } = sp;
+  // cùng luật suyDeal với truy vấn (kể cả deal bóc từ câu gõ ở ô q) -> client không hiện "Mua" khi đang ra tin thuê
+  const bocQ = sp.q ? bocTruyVanBDS(sp.q) : null;
+  const deal = suyDeal(sp.deal, bocQ?.loc.deal,
+    sp.priceMin || (bocQ?.loc.price_min ? String(bocQ.loc.price_min) : undefined),
+    sp.priceMax || (bocQ?.loc.price_max ? String(bocQ.loc.price_max) : undefined));
   // khoá cache chỉ gồm tham số lọc (bỏ utm/fbclid... để không mỗi link quảng cáo là một bản cache riêng)
   const loc = Object.fromEntries(KHOA_LOC.filter((k) => sp[k]).map((k) => [k, sp[k]!.slice(0, 120)]));
   // cây Tỉnh -> Quận -> Phường: dùng bản cache 10' (lib/geo) thay vì select 2.000 dòng mỗi request
+  let loiTruyVan = false;
   const [{ listings, newToday, total: totalCount, trang }, areas, duAn] = await Promise.all([
     timKiemCoCache(loc).catch((e) => {
       console.error("[search] truy vấn lỗi, không cache:", e);
+      loiTruyVan = true;
       return { listings: [] as Listing[], newToday: 0, total: 0, trang: soTrang(sp.page) };
     }),
     getAreas(), layDuAn(),
   ]);
+
+  // 2/11 (audit Q3): ?page=999 vượt trang cuối -> về trang cuối thay vì báo "hiếm phòng trống" không lối ra
+  // (lỗi DB thì không chuyển - total=0 lúc đó không phải số thật)
+  const trangCuoi = Math.max(1, Math.ceil(totalCount / MOI_TRANG));
+  if (!loiTruyVan && trang > trangCuoi) {
+    const qs = new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string"));
+    if (trangCuoi > 1) qs.set("page", String(trangCuoi)); else qs.delete("page");
+    const chuoi = qs.toString();
+    redirect(chuoi ? `/search?${chuoi}` : "/search");
+  }
   const geo = areas.geo;
 
   // ĐIỀU HƯỚNG KHU VỰC (29/9, kiểu Mogi "Quận 1 (1.629)"): tính sẵn ở server từ bảng đếm đã cache

@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { baoSuKien } from "@/lib/su-kien-client";
-import { createClient } from "@/lib/supabase/client";
+import { coCookiePhien, layClient } from "@/lib/supabase/lazy";
 
 const KEY = "ndr_favs";
 
 // Đồng bộ DB (bảng favorites) khi đã đăng nhập - fire-and-forget, localStorage vẫn là nguồn chính.
+// 2/11 (audit P1): không có cookie phiên -> chưa đăng nhập, khỏi tải supabase-js
 async function syncDb(id: string, on: boolean) {
+  if (!coCookiePhien()) return;
   try {
-    const supabase = createClient();
+    const supabase = await layClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     if (on) await supabase.from("favorites").upsert({ user_id: user.id, listing_id: id });
@@ -20,8 +22,9 @@ async function syncDb(id: string, on: boolean) {
 
 // Kéo favorites từ DB về máy mới (gộp 2 chiều) - gọi ở trang /yeu-thich.
 export async function pullDbFavs(): Promise<void> {
+  if (!coCookiePhien()) return;
   try {
-    const supabase = createClient();
+    const supabase = await layClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase.from("favorites").select("listing_id").eq("user_id", user.id);
@@ -96,8 +99,9 @@ export default function FavButton({ id, className = "" }: { id: string; classNam
         void syncDb(id, !on);
       }}
       // 25/10: 40px trên điện thoại (32px cũ dưới mức chạm tối thiểu, hay bấm trượt sang mở tin)
-      className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shadow-sm backdrop-blur-md
-        ${on ? "bg-red-500 text-white shadow-red-500/30" : "bg-white/85 text-slate-700 hover:bg-white hover:text-red-500 hover:shadow-md"} ${className}`}
+      // 2/11 (audit M1): 44px trên điện thoại; nền đặc theo theme thay kính mờ
+      className={`w-11 h-11 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shadow-sm
+        ${on ? "bg-red-500 text-white shadow-red-500/30" : "bg-[var(--surface)] text-[var(--ink)] hover:text-red-500 hover:shadow-md"} ${className}`}
     >
       <Heart key={pop} className={`w-4 h-4 transition-transform duration-200 ${on ? `fill-white text-white scale-110 ${pop ? "fav-pop" : ""}` : "stroke-[2.2]"}`} />
     </button>

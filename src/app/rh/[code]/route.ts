@@ -20,6 +20,7 @@ export async function GET(
   const { data: listing } = await admin
     .from("listings")
     .select("id")
+    .eq("status", "published") // 2/11 (audit): service role bỏ qua RLS -> không lộ id tin draft/hidden
     .gte("id", khoang[0])
     .lte("id", khoang[1])
     .order("created_at", { ascending: false })

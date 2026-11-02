@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { coCookiePhien, layClient } from "@/lib/supabase/lazy";
 import GhiChuDuLieu from "@/components/GhiChuDuLieu";
+import { guiLeadNhanh } from "@/app/listings/actions";
 
 // Mời người dùng ĐÃ đăng nhập để lại SĐT - mức NHẸ theo quyết định 20/8: không OTP,
 // bỏ qua được, điền láo thì chịu. Mục tiêu là có số để gọi lại lead, không phải chặn cổng
@@ -33,8 +34,10 @@ export default function MoiDienSdt() {
   useEffect(() => {
     const nhacGanNhat = Number(docKho(KHOA_NHAC) || 0);
     if (Date.now() - nhacGanNhat < NHAC_LAI_MS) return;
-    const supabase = createClient();
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    // 2/11 (audit P1): khách không có cookie phiên -> không tải supabase-js
+    if (!coCookiePhien()) return;
+    layClient().then(async (supabase) => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       // SĐT của chính mình đọc qua RPC (migration 026 thu quyền đọc cột phone); chưa có RPC thì select cũ
       const rpc = await supabase.rpc("ho_so_cua_toi").maybeSingle();
@@ -42,7 +45,7 @@ export default function MoiDienSdt() {
         ? (await supabase.from("profiles").select("phone").eq("id", user.id).single()).data
         : rpc.data) as { phone?: string | null } | null;
       if (p && !p.phone) setHien(true);
-    });
+    }).catch(() => { /* mất mạng khi tải chunk - bỏ qua */ });
   }, []);
 
   // Esc đóng popup. PHẢI đứng TRƯỚC `if (!hien) return null`: hook sau lệnh return sớm làm số hook
@@ -67,7 +70,8 @@ export default function MoiDienSdt() {
     const so = chuanHoaSdt(sdt);
     if (!SDT_RE.test(so)) { setLoi("Số chưa đúng dạng - VD: 0909123456"); return; }
     setDangLuu(true);
-    const supabase = createClient();
+    const supabase = await layClient().catch(() => null);
+    if (!supabase) { setDangLuu(false); setLoi("Chưa lưu được - thử lại sau ít phút."); return; }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setHien(false); return; }
     const { error } = await supabase.from("profiles").update({ phone: so }).eq("id", user.id);
@@ -75,7 +79,8 @@ export default function MoiDienSdt() {
     if (error) { setLoi("Chưa lưu được - thử lại sau ít phút."); return; }
     // đổ vào bảng leads để bot Zalo báo admin gọi lại ngay (fire-and-forget, lỗi cũng kệ -
     // SĐT đã nằm an toàn trong profiles rồi)
-    void supabase.from("leads").insert({ name: user.email || "Người dùng web", phone: so, message: "Để lại SĐT qua popup sau đăng nhập - gọi tư vấn nhu cầu" });
+    // 3/11 (audit S3): leads chỉ ghi qua server action (migration 038 thu quyền insert của client)
+    void guiLeadNhanh({ name: user.email || "Người dùng web", phone: so, message: "Để lại SĐT qua popup sau đăng nhập - gọi tư vấn nhu cầu" }).catch(() => {});
     setHien(false);
     ghiKho(KHOA_NHAC, String(Date.now()));
   };

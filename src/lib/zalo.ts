@@ -1,3 +1,4 @@
+import "server-only"; // 2/11 (audit): chặn lỡ import vào client component
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 

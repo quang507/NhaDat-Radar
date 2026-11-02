@@ -48,7 +48,7 @@ export default function MobileSectionJumper() {
   return (
     // 29/10: div ngoài chỉ là thanh dính (nền đặc, không blur); div trong là KHUNG CUỘN mang .cuon-ngang - mép mờ
     // báo "còn chip" và hít chip chỉ chạy trên phần tử đang cuộn (để ở div min-w-max thì vô tác dụng)
-    <div className="duoi-header lg:hidden sticky top-14 z-20 -mx-4 py-2 bg-[var(--surface)] border-b border-[var(--line)] shadow-xs">
+    <div className="duoi-header lg:hidden sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 -mx-4 py-2 bg-[var(--surface)] border-b border-[var(--line)] shadow-xs">
       <div ref={hang} className="cuon-ngang relative flex items-center gap-2 px-4 overflow-x-auto [scrollbar-width:none]" role="tablist" aria-label="Đi tới mục">
         {SECTIONS.filter((s) => coMuc.includes(s.id)).map(({ id, label, icon: Icon }) => {
           const on = id === dangXem;

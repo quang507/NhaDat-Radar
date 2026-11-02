@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dsQuanBaoCao, layBaoCao, thangNay, trieu, TINH_BAO_CAO, type BaoCao } from "@/lib/bao-cao-gia";
 import { BAI_VIET, type BaiViet } from "@/lib/bai-viet";
-import { tenKhuVucGon } from "@/components/AreaLanding";
+import { tenKhuVucGon } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
 import { ldJson, SITE_URL } from "@/lib/ld";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";

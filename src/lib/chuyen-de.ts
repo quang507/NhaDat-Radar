@@ -1,3 +1,13 @@
+// 2/11 (audit 🔴7, Q1): DB lưu tên quận chuẩn hoá (crawler/chung.mjs canonDistrictName): "Quận Bình Thạnh",
+// "TP. Thủ Đức", "Huyện Nhà Bè". Tên trần ("Bình Thạnh") lọc ra 0 tin -> đổi sang tên DB trước khi truy vấn.
+const HUYEN_HCM = ["Bình Chánh", "Nhà Bè", "Hóc Môn", "Củ Chi", "Cần Giờ"];
+export const quanDB = (q: string): string => {
+  const s = q.replace(/\s*\(.*\)\s*$/, "").trim(); // bỏ chú thích "(hẻm)" nếu còn sót
+  if (/^(Quận|Huyện|TP\.|Thị xã) /.test(s)) return s;
+  if (s === "Thủ Đức") return "TP. Thủ Đức";
+  return HUYEN_HCM.includes(s) ? `Huyện ${s}` : `Quận ${s}`;
+};
+
 export interface ChuyenDeSEO {
   slug: string;
   title: string;
@@ -27,7 +37,7 @@ export const DANH_SACH_CHUYEN_DE: Record<string, ChuyenDeSEO> = {
     filterType: "price_lte",
     priceMax: 3000000,
     mucGiaPhoBien: "2.0 - 2.8 triệu/tháng",
-    khuVucNhieuTin: ["Gò Vấp", "Bình Tân", "Quận 12", "TP. Thủ Đức", "Tân Phú", "Bình Thạnh (hẻm)"],
+    khuVucNhieuTin: ["Gò Vấp", "Bình Tân", "Quận 12", "TP. Thủ Đức", "Tân Phú", "Bình Thạnh"],
     faq: [
       {
         q: "Khu vực nào ở TP.HCM có nhiều phòng trọ dưới 3 triệu nhất?",

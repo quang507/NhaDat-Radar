@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { MessageCircle, Send, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { guiLeadNhanh } from "@/app/listings/actions";
 import GhiChuDuLieu from "@/components/GhiChuDuLieu";
 
 interface NhanTinProps {
@@ -30,14 +30,10 @@ export default function NhanTinNhaGiaTot({ khuVuc = "khu vực bạn tìm", loai
     setError("");
 
     try {
-      const supabase = createClient();
       const moTa = `[Lead nhận tin Zalo] Khu vực: ${khuVuc} | Nhu cầu: ${nhuCau.trim() || loaiBDS || "Cần tư vấn BĐS giá tốt"}`;
-      
-      const { error: insertError } = await supabase.from("leads").insert({
-        name: "Khách tìm nhà qua web",
-        phone: cleanPhone,
-        message: moTa,
-      });
+      // 3/11 (audit S3): ghi lead qua server action (service role) - migration 038 thu quyền insert leads của client
+      const kq = await guiLeadNhanh({ name: "Khách tìm nhà qua web", phone: cleanPhone, message: moTa });
+      const insertError = kq.ok ? null : kq.error;
 
       if (insertError) {
         console.error("Lỗi lưu lead:", insertError);

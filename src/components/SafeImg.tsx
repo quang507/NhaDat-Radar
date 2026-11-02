@@ -9,21 +9,24 @@ export default function SafeImg({
   alt,
   className,
   fallbackLabel,
+  the = false,
 }: {
   src: string;
   alt: string;
   className?: string;
   fallbackLabel?: string;
+  /** ảnh thẻ tin (~300px): không nâng ảnh lên 1275px (2/11, audit P10) */
+  the?: boolean;
 }) {
   const [error, setError] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(hiRes(src));
+  const [currentSrc, setCurrentSrc] = useState(hiRes(src, the));
 
   if (error) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-slate-100 text-slate-400">
+      <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 bg-[var(--surface-2)] text-[var(--ink-faint)]">
         <Building2 className="w-8 h-8 opacity-60" />
         {fallbackLabel && (
-          <span className="text-[0.65rem] font-bold uppercase tracking-wider text-slate-500">
+          <span className="text-overline font-bold uppercase tracking-wider text-[var(--ink-faint)]">
             {fallbackLabel}
           </span>
         )}
@@ -37,6 +40,7 @@ export default function SafeImg({
       src={currentSrc}
       alt={alt}
       loading="lazy"
+      decoding="async"
       className={className}
       referrerPolicy={/fbcdn\.net|scontent/.test(currentSrc) ? "no-referrer" : undefined}
       onError={() => {

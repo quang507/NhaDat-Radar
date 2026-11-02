@@ -117,7 +117,7 @@ function Chat() {
   if (!loaded) return <p className="text-center py-16 text-[var(--ink-soft)]">Đang tải…</p>;
   if (!uid) return (
     <div className="card rounded-lg p-10 text-center max-w-md mx-auto mt-8">
-      <MessageSquare className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+      <MessageSquare className="w-12 h-12 text-[var(--ink-faint)] mx-auto mb-3" />
       <p className="text-sm text-[var(--ink-soft)] mb-4">Đăng nhập để nhắn tin với người bán.</p>
       <Link href="/auth" className="btn btn-primary inline-block">Đăng nhập</Link>
     </div>
@@ -127,7 +127,8 @@ function Chat() {
   return (
     <div>
       <h1 className="prata text-2xl mb-4">Tin nhắn</h1>
-      <div className="grid md:grid-cols-[280px_1fr] gap-4 items-start">
+      {/* 2/11 (audit): chưa có hội thoại -> bỏ khung chat trống, chỉ hiện lời nhắn + nút đi tìm */}
+      <div className={`grid gap-4 items-start ${convs.length ? "md:grid-cols-[280px_1fr]" : ""}`}>
         <div className="card rounded-lg overflow-hidden">
           {convs.length ? convs.map((c) => (
             <button
@@ -139,11 +140,16 @@ function Chat() {
               <div className="text-xs text-[var(--ink-soft)] truncate">{c.title}</div>
             </button>
           )) : (
-            <p className="p-5 text-sm text-[var(--ink-soft)]">Chưa có hội thoại nào. Bấm “Nhắn tin” trên tin đăng của người bán để bắt đầu.</p>
+            <div className="p-6 sm:p-8 text-center max-w-md mx-auto">
+              <MessageSquare className="w-10 h-10 text-[var(--ink-faint)] mx-auto mb-3" />
+              <p className="text-sm text-[var(--ink-soft)] mb-4">Chưa có hội thoại nào. Bấm “Nhắn tin” trên tin đăng của người bán để bắt đầu.</p>
+              <Link href="/search" className="btn btn-primary min-h-11 inline-flex">Tìm nhà đất để nhắn tin</Link>
+            </div>
           )}
         </div>
 
-        <div className="card rounded-lg flex flex-col h-[60vh]">
+        {convs.length > 0 && (
+        <div className="card rounded-lg flex flex-col h-[60dvh]">
           {cur ? (
             <>
               <div className="px-4 py-3 border-b border-[var(--line)]">
@@ -168,9 +174,13 @@ function Chat() {
               </form>
             </>
           ) : (
-            <p className="m-auto text-sm text-[var(--ink-soft)]">Chọn một hội thoại bên trái.</p>
+            // điện thoại xếp dọc: danh sách nằm PHÍA TRÊN khung chat, không phải "bên trái"
+            <p className="m-auto px-4 text-center text-sm text-[var(--ink-soft)]">
+              Chọn một hội thoại <span className="md:hidden">ở danh sách phía trên</span><span className="hidden md:inline">bên trái</span>.
+            </p>
           )}
         </div>
+        )}
       </div>
     </div>
   );

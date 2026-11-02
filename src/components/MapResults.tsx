@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { preconnect } from "react-dom";
-import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as BanDo } from "maplibre-gl";
 import { escHtml, catChu } from "@/lib/format";
 import { taoBanDo, lopGomCum, MAY_CHU_BAN_DO, type MapLibre } from "@/lib/map-layers";
@@ -30,17 +29,25 @@ export default function MapResults({ items, donVi = "tin" }: { items: MapItem[];
   const [daVe, setDaVe] = useState(false);
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     let cancelled = false;
     let map: BanDo | null = null;
-    (async () => {
-      if (!ref.current) return;
-      const tao = await taoBanDo(ref.current, [16.05, 108.2], 5);
-      map = tao.map;
-      if (cancelled) { map.remove(); return; }
-      map.once("load", () => setDaVe(true));
-      setBanDo({ ...tao, lop: lopGomCum(tao.ml, map, donVi) });
-    })();
-    return () => { cancelled = true; map?.remove(); };
+    // 2/11 (audit 🔴9): chỉ dựng bản đồ khi khung THẬT SỰ sắp lên màn. Điện thoại khung "hidden lg:block" -> IO không
+    // bao giờ báo giao cắt -> không tải maplibre (~287 kB gz + worker 500 kB)
+    const io = new IntersectionObserver(async ([e]) => {
+      if (!e?.isIntersecting) return;
+      io.disconnect();
+      try {
+        const tao = await taoBanDo(el, [16.05, 108.2], 5);
+        map = tao.map;
+        if (cancelled) { map.remove(); return; }
+        map.once("load", () => setDaVe(true));
+        setBanDo({ ...tao, lop: lopGomCum(tao.ml, map, donVi) });
+      } catch (err) { console.error("MapResults:", err); }
+    }, { rootMargin: "300px" });
+    io.observe(el);
+    return () => { cancelled = true; io.disconnect(); map?.remove(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

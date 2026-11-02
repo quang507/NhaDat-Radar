@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { baoLeadMoi } from "@/lib/bao-lead";
 import { ghiSuKien } from "@/lib/su-kien";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/supabase/anon";
 import { REPORT_REASONS } from "@/lib/reports";
 
@@ -16,10 +17,14 @@ async function tooMany(bucket: string, max: number): Promise<boolean> {
 }
 const PHONE_RE = /^(\+84|0)\d{8,10}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// 2/11 (audit Q12): lưu SĐT một dạng duy nhất (bỏ cách/chấm/gạch) - admin tra trùng, bấm gọi/Zalo được ngay
+const chuanSdt = (s: string) => s.replace(/[\s.-]/g, "");
 
-export type LeadState = { ok: boolean; error?: string };
+// v: giá trị khách đã gõ - React 19 reset form sau action, báo lỗi xong form phải tự điền lại (audit Q7)
+export type LeadState = { ok: boolean; error?: string; v?: Record<string, string> };
 
-// Gửi liên hệ từ form trang chi tiết -> bảng leads (anon insert được phép qua RLS).
+// Gửi liên hệ từ form trang chi tiết -> bảng leads.
+// 2/11 (audit S3): leads không còn cho anon insert qua REST (migration 038) -> ghi bằng service role SAU khi kiểm input.
 export async function createLead(
   _prev: LeadState,
   formData: FormData,
@@ -27,26 +32,28 @@ export async function createLead(
   const listing_id = String(formData.get("listing_id") || "");
   const project_id = String(formData.get("project_id") || "");
   const name = String(formData.get("name") || "").trim();
-  const phone = String(formData.get("phone") || "").trim();
-  let message = String(formData.get("message") || "").trim();
+  const phoneGo = String(formData.get("phone") || "").trim();
+  const phone = chuanSdt(phoneGo);
+  const loiNhan = String(formData.get("message") || "").trim();
+  let message = loiNhan;
   // form "Đặt lịch xem phòng" (rổ hàng Radar): bảng leads không có cột lịch -> ghép vào đầu lời nhắn
   const henNgay = String(formData.get("hen_ngay") || "").slice(0, 10), henBuoi = String(formData.get("hen_buoi") || "").slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(henNgay)) message = `[HẸN XEM ${henBuoi} ${henNgay.split("-").reverse().join("/")}] ${message}`.trim();
-  if (!name || !phone) return { ok: false, error: "Nhập tên và số điện thoại." };
+  const v = { name: name.slice(0, 120), phone: phoneGo.slice(0, 30), message: loiNhan.slice(0, 2000), hen_ngay: henNgay, hen_buoi: henBuoi };
+  if (!name || !phone) return { ok: false, error: "Nhập tên và số điện thoại.", v };
   // id rác -> lỗi Postgres 22P02 lúc insert (khách chỉ thấy "không gửi được"); chặn sớm, báo rõ
-  if ((listing_id && !UUID_RE.test(listing_id)) || (project_id && !UUID_RE.test(project_id))) return { ok: false, error: "Tin đăng không hợp lệ." };
-  if (name.length > 120 || message.length > 2000) return { ok: false, error: "Tên tối đa 120 ký tự, lời nhắn tối đa 2000 ký tự." };
-  if (!PHONE_RE.test(phone.replace(/[\s.-]/g, ""))) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
-  if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút." };
+  if ((listing_id && !UUID_RE.test(listing_id)) || (project_id && !UUID_RE.test(project_id))) return { ok: false, error: "Tin đăng không hợp lệ.", v };
+  if (name.length > 120 || message.length > 2000) return { ok: false, error: "Tên tối đa 120 ký tự, lời nhắn tối đa 2000 ký tự.", v };
+  if (!PHONE_RE.test(phone)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678).", v };
+  if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút.", v };
 
-  const supabase = await createClient();
   // Chỉ thêm project_id khi có (tránh lỗi nếu migration 004 chưa chạy trên DB).
   const row: Record<string, unknown> = { listing_id: listing_id || null, name, phone, message };
   if (project_id) row.project_id = project_id;
-  const { error } = await supabase.from("leads").insert(row);
+  const { error } = await createAdminClient().from("leads").insert(row);
   if (error) {
     console.error("createLead error:", error.message); // không rò chi tiết Postgres ra client
-    return { ok: false, error: "Không gửi được liên hệ, vui lòng thử lại." };
+    return { ok: false, error: "Không gửi được liên hệ, vui lòng thử lại.", v };
   }
   // báo admin qua email SAU khi trả kết quả cho khách (after): khách không phải chờ Resend,
   // gửi lỗi cũng không ảnh hưởng - lead đã nằm trong DB
@@ -60,33 +67,50 @@ export async function createLead(
  * Thay form đặt lịch nhiều ô (tên, ngày, buổi...) - ít ô hơn = nhiều khách để lại số hơn.
  */
 export async function deLaiSdt(listingId: string | null, phone: string): Promise<LeadState> {
-  const sdt = String(phone || "").replace(/[\s.-]/g, "");
+  const sdt = chuanSdt(String(phone || ""));
   if (!PHONE_RE.test(sdt)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
   const lid = listingId && UUID_RE.test(listingId) ? listingId : null;
   if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút." };
-  const supabase = await createClient();
   const row = { listing_id: lid, name: "Khách bấm hiện số", phone: sdt, message: "Bấm 'hiện số' hotline Radar - gọi lại tư vấn/hẹn xem" };
-  const { error } = await supabase.from("leads").insert(row);
+  const { error } = await createAdminClient().from("leads").insert(row);
   if (error) { console.error("deLaiSdt error:", error.message); return { ok: false, error: "Chưa gửi được, thử lại giúp Radar." }; }
   after(() => baoLeadMoi({ listing_id: lid, name: row.name, phone: sdt, message: row.message }));
   after(() => ghiSuKien({ loai: "dat_lich", listingId: lid }));
   return { ok: true };
 }
 
-// Báo tin xấu -> bảng listing_reports (anon insert được phép qua RLS, migration 010). Admin xử lý ở /admin?tab=reports.
+/**
+ * 2/11 (audit S3): lead nhanh cho component phía trình duyệt (popup để lại SĐT, form nhận tin nhà giá tốt) -
+ * trước đó chúng insert thẳng bảng leads bằng supabase client, sau 038 sẽ bị RLS chặn.
+ */
+export async function guiLeadNhanh(input: { name?: string; phone: string; message?: string }): Promise<LeadState> {
+  const sdt = chuanSdt(String(input?.phone || ""));
+  if (!PHONE_RE.test(sdt)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
+  const name = String(input?.name || "").trim().slice(0, 120) || "Khách để lại SĐT";
+  const message = String(input?.message || "").trim().slice(0, 1000);
+  if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút." };
+  const { error } = await createAdminClient().from("leads").insert({ listing_id: null, name, phone: sdt, message });
+  if (error) { console.error("guiLeadNhanh error:", error.message); return { ok: false, error: "Chưa gửi được, thử lại giúp Radar." }; }
+  after(() => baoLeadMoi({ listing_id: null, name, phone: sdt, message }));
+  return { ok: true };
+}
+
+// Báo tin xấu -> bảng listing_reports. Admin xử lý ở /admin?tab=reports.
+// 2/11 (audit S3): ghi bằng service role sau khi kiểm input; reporter_id vẫn lấy từ phiên đăng nhập (không tin form)
 export async function reportListing(_prev: LeadState, formData: FormData): Promise<LeadState> {
   const listing_id = String(formData.get("listing_id") || "");
   const reason = String(formData.get("reason") || "");
   const detail = String(formData.get("detail") || "").trim().slice(0, 500);
-  if (!UUID_RE.test(listing_id) || !REPORT_REASONS[reason]) return { ok: false, error: "Chọn lý do báo cáo." };
-  if (reason === "khac" && detail.length < 10) return { ok: false, error: "Mô tả thêm giúp Radar xử lý đúng (≥10 ký tự)." };
-  if (await tooMany("report", 10)) return { ok: false, error: "Bạn báo cáo hơi nhanh - thử lại sau ít phút." };
+  const v = { reason, detail };
+  if (!UUID_RE.test(listing_id) || !REPORT_REASONS[reason]) return { ok: false, error: "Chọn lý do báo cáo.", v };
+  if (reason === "khac" && detail.length < 10) return { ok: false, error: "Mô tả thêm giúp Radar xử lý đúng (≥10 ký tự).", v };
+  if (await tooMany("report", 10)) return { ok: false, error: "Bạn báo cáo hơi nhanh - thử lại sau ít phút.", v };
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase.from("listing_reports").insert({ listing_id, reason, detail: detail || null, reporter_id: user?.id ?? null });
+  const { error } = await createAdminClient().from("listing_reports").insert({ listing_id, reason, detail: detail || null, reporter_id: user?.id ?? null });
   if (error) {
     console.error("reportListing error:", error.message);
-    return { ok: false, error: "Không gửi được, vui lòng thử lại." };
+    return { ok: false, error: "Không gửi được, vui lòng thử lại.", v };
   }
   return { ok: true };
 }

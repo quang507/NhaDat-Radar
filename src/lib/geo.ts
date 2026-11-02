@@ -1,3 +1,4 @@
+import "server-only"; // 2/11 (audit): chặn lỡ import vào client component
 // SERVER-ONLY: cây khu vực + đếm, cache 10 phút. (Helper thuần canonDistrict/shortPrice/fmtPpm2/startOfDayVN nằm ở lib/format.ts
 // để client component dùng được.) Audit 16/8: home/search/khu vực/sitemap/đăng tin mỗi request tự select 2-5k dòng để dựng
 // cùng một cây Tỉnh->Quận->Phường; AreaLanding còn gọi 2 lần (metadata + page).

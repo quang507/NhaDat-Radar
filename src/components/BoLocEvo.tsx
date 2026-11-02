@@ -27,7 +27,7 @@ export function HangTienIch({ ti, onDoi }: { ti: string; onDoi: (k: string) => v
           const on = chon.includes(t.k);
           return (
             <button key={t.k} type="button" role="checkbox" aria-checked={on} onClick={() => onDoi(t.k)}
-              className={`shrink-0 flex items-center gap-2 h-10 sm:h-9 pl-2.5 pr-4 rounded border text-sm whitespace-nowrap transition
+              className={`shrink-0 flex items-center gap-2 h-11 sm:h-9 pl-2.5 pr-4 rounded border text-sm whitespace-nowrap transition
                 ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] bg-[var(--surface)] hover:border-brand"}`}>
               <span className={`grid place-items-center w-4 h-4 rounded border text-[0.65rem] leading-none
                 ${on ? "bg-brand border-brand text-white" : "border-[var(--line-strong)]"}`}>{on ? <Check className="w-3 h-3 text-white" /> : ""}</span>
@@ -92,7 +92,7 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
   onTinh: (p: string) => void; onQuan: (d: string) => void; phai?: React.ReactNode;
 }) {
   const [du, setDu] = useState(false);
-  const pill = (on: boolean) => `shrink-0 h-10 sm:h-9 px-3.5 rounded text-sm font-semibold whitespace-nowrap flex items-center gap-2 transition
+  const pill = (on: boolean) => `shrink-0 h-11 sm:h-9 px-3.5 rounded text-sm font-semibold whitespace-nowrap flex items-center gap-2 transition
     ${on ? "bg-brand text-white" : "bg-[var(--surface)] border border-[var(--line)] hover:border-brand"}`;
   return (
     <div className="mb-3">
@@ -113,7 +113,7 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
           <div className={`flex gap-2 flex-1 min-w-0 ${du ? "flex-wrap" : "cuon-ngang overflow-x-auto [scrollbar-width:thin] pb-1"}`}>
             {districts.map((d) => (
               <button key={d} type="button" onClick={() => onQuan(d === district ? "" : d)}
-                className={`shrink-0 h-10 sm:h-8 px-3.5 rounded text-sm whitespace-nowrap transition
+                className={`shrink-0 h-11 sm:h-8 px-3.5 rounded text-sm whitespace-nowrap transition
                   ${d === district ? "bg-brand text-white font-semibold" : "border border-[var(--line)] bg-[var(--surface)] hover:border-brand"}`}>
                 {tenGon(d)}
               </button>
@@ -121,7 +121,7 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
           </div>
           {districts.length > 8 && (
             <button type="button" onClick={() => setDu((v) => !v)}
-              className="shrink-0 h-10 sm:h-8 px-3 rounded bg-brand/10 text-brand text-sm font-semibold whitespace-nowrap">
+              className="shrink-0 h-11 sm:h-8 px-3 rounded bg-brand/10 text-brand text-sm font-semibold whitespace-nowrap">
               {du ? "Thu gọn ▴" : "Xem thêm ▾"}
             </button>
           )}

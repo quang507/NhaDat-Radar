@@ -1,6 +1,7 @@
 import { catChu } from "./format";
 // Nâng ảnh crawl lên bản phân giải cao (nguồn lưu thumbnail nhỏ -> đổi URL sang bản lớn).
-export function hiRes(u: string): string {
+// the = ảnh thẻ (~300px): 2/11 (audit P10) giữ crop sẵn của nguồn, KHÔNG nâng lên 1275px; vẫn sửa link Zalo/Mogi hỏng/mờ
+export function hiRes(u: string, the = false): string {
   if (!u) return u;
   // Zalo CDN: f*-zpc.zdn.vn/jpg/... trả về 500 nếu mang /jpg/, bỏ /jpg/ để load trực tiếp 200 OK
   if (u.includes(".zdn.vn/jpg/")) {
@@ -11,6 +12,7 @@ export function hiRes(u: string): string {
     return u.replace("/images/thumb-small/", "/images/");
   }
   // Batdongsan: crop nhỏ (283x141, 562x284...) -> resize lớn
+  if (the) return u;
   const bds = u.match(/^(https:\/\/file\d*\.batdongsan\.com\.vn)\/crop\/\d+x\d+\/(.+)$/);
   if (bds) return `${bds[1]}/resize/1275x717/${bds[2]}`;
   return u;
@@ -51,5 +53,5 @@ export function cleanImages(images: unknown[]): string[] {
   return (images || [])
     .map((i) => (typeof i === "string" ? i : (i as { uri?: string })?.uri))
     .filter((u): u is string => typeof u === "string" && /^https?:\/\//.test(u) && !u.includes("facebook.com/media") && !LA_VIDEO.test(u.split(/[?#]/)[0]))
-    .map(hiRes);
+    .map((u) => hiRes(u)); // không truyền thẳng hiRes: map đưa index vào tham số `the`
 }

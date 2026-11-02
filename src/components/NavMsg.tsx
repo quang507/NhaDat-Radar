@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { layClient } from "@/lib/supabase/lazy";
 import { MessageSquare } from "lucide-react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 // Theo dõi tin đã đọc bằng localStorage (map convId -> ISO thời điểm tin mới nhất đã xem).
 const KEY = "ndr:msgseen";
@@ -25,12 +26,12 @@ export function markConvSeen(convId: string, iso: string) {
 }
 
 // Chuông tin nhắn ở thanh nav: đếm số hội thoại có tin mới (không phải mình gửi) chưa xem.
-export default function NavMsg() {
-  const [uid, setUid] = useState<string | null>(null);
+// 2/11 (audit P1): uid lấy từ NavAuth (usePhien), supabase-js tải động - không còn nằm trong chunk layout gốc.
+export default function NavMsg({ uid }: { uid: string }) {
   const [count, setCount] = useState(0);
-  const supabase = createClient();
 
   const recompute = useCallback(async (userId: string) => {
+    const supabase = await layClient();
     const { data: convs } = await supabase.from("conversations")
       .select("id").or(`buyer_id.eq.${userId},agent_id.eq.${userId}`).limit(100);
     const ids = (convs ?? []).map((c) => c.id);
@@ -48,44 +49,42 @@ export default function NavMsg() {
       if (m.sender_id !== userId && (!seen[cid] || Date.parse(seen[cid]) < Date.parse(m.created_at))) n++;
     }
     setCount(n);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     let active = true;
-    let ch: ReturnType<typeof supabase.channel> | null = null;
+    let sb: Awaited<ReturnType<typeof layClient>> | null = null;
+    let ch: RealtimeChannel | null = null;
     let timer: ReturnType<typeof setInterval> | null = null;
     let onSeen: (() => void) | null = null;
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();   // không gọi mạng (1/10)
-      const user = session?.user;
-      if (!active || !user) return;
-      setUid(user.id);
-      recompute(user.id);
+      sb = await layClient();
+      if (!active) return;
+      recompute(uid);
       // realtime (nếu publication bật) + poll dự phòng. 1/10: 20s -> 90s và CHỈ khi tab đang xem - bản cũ
       // mỗi tab mở (kể cả tab nền để quên) là 2 truy vấn / 20s = ~8.600 truy vấn/ngày/tab.
-      ch = supabase.channel("nav-msg")
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => { if (active) recompute(user.id); })
+      ch = sb.channel("nav-msg")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => { if (active) recompute(uid); })
         .subscribe();
-      timer = setInterval(() => { if (active && !document.hidden) recompute(user.id); }, 90000);
-      onSeen = () => { if (active) recompute(user.id); };
+      timer = setInterval(() => { if (active && !document.hidden) recompute(uid); }, 90000);
+      onSeen = () => { if (active) recompute(uid); };
       window.addEventListener("ndr:msgseen", onSeen);
-    })();
+    })().catch(() => { /* mất mạng khi tải chunk - bỏ qua */ });
     // Cleanup Ở CẤP useEffect (trước đây nằm trong .then nên bị vứt -> rò rỉ).
     return () => {
       active = false;
-      if (ch) supabase.removeChannel(ch);
+      if (sb && ch) sb.removeChannel(ch);
       if (timer) clearInterval(timer);
       if (onSeen) window.removeEventListener("ndr:msgseen", onSeen);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [uid, recompute]);
 
-  if (!uid) return null;
   return (
-    <Link href="/tin-nhan" className="relative btn !px-2.5 flex items-center justify-center" aria-label="Tin nhắn">
-      <MessageSquare className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+    // 2/11 (audit M1): vùng chạm 44px
+    <Link href="/tin-nhan" className="relative btn !px-2.5 min-h-11 min-w-11 flex items-center justify-center" aria-label="Tin nhắn">
+      <MessageSquare className="w-4 h-4 text-[var(--ink-soft)]" />
       {count > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[0.65rem] font-bold grid place-items-center">
+        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-overline font-bold grid place-items-center">
           {count > 99 ? "99+" : count}
         </span>
       )}

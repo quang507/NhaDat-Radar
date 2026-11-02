@@ -3,11 +3,10 @@ import { fmtPrice } from "@/lib/format";
 import { laRoHang, maPhong } from "@/lib/ro-hang";
 import { SITE_URL } from "@/lib/ld";
 
-const esc = (s: unknown) =>
+export const esc = (s: unknown) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-const DEFAULT_BOT_TOKEN = "8828001883:AAHbo7xqdzYEASoHF5F3mx4iy6f1a96XjbQ";
-const DEFAULT_CHAT_ID = "8670770583";
+// 2/11 (audit): token + chat id chỉ lấy từ biến môi trường; thiếu thì bỏ qua im lặng
 
 export async function sendTelegramMessage(
   text: string,
@@ -21,8 +20,8 @@ export async function sendTelegramMessage(
   if (process.env.TELEGRAM_DISABLE === "1") {
     return false;
   }
-  const token = process.env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
-  const chatId = options?.chatId || process.env.TELEGRAM_CHAT_ID || DEFAULT_CHAT_ID;
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = options?.chatId || process.env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) {
     return false;
   }
@@ -80,8 +79,8 @@ export async function baoLeadTelegram(data: LeadDetails): Promise<void> {
   if (process.env.TELEGRAM_DISABLE === "1") {
     return;
   }
-  const token = process.env.TELEGRAM_BOT_TOKEN || DEFAULT_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID || DEFAULT_CHAT_ID;
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
   if (!token || !chatId) return;
 
   const { name, phone, message, tin, rieng } = data;

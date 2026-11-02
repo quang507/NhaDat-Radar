@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { preconnect } from "react-dom";
-import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as BanDo, Marker } from "maplibre-gl";
 import { escHtml } from "@/lib/format";
 import { taoBanDo, ghimGia, MAY_CHU_BAN_DO, type MapLibre } from "@/lib/map-layers";

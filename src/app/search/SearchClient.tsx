@@ -23,6 +23,8 @@ import { PopLoai, PopKhoang, CongTac, NhomNut, SidebarKhoang, KHOANG_GIA_MUA, KH
 import NhanTinNhaGiaTot from "@/components/NhanTinNhaGiaTot";
 import { HOTLINE_ZALO } from "@/lib/hotline";
 import { NutZalo } from "@/components/TheoDoi";
+import { useDongBangBack } from "@/lib/dong-bang-back";
+import { dongRoiDi } from "@/lib/dong-roi-di";
 import { Search, SearchX, Check, MapPin, Map, LayoutList, X, ChevronLeft, ChevronRight, ShieldCheck, MessageCircle } from "lucide-react";
 
 const TIEU_DE = "text-xs font-bold tracking-wide text-[var(--ink)] mb-2.5";
@@ -185,6 +187,8 @@ export default function SearchClient({
     document.addEventListener("keydown", esc);
     return () => { document.body.style.overflow = cu; document.removeEventListener("keydown", esc); };
   }, [showFilter]);
+  // 2/11 (audit M4): nút Back Android đóng popup bộ lọc thay vì rời trang tìm kiếm
+  useDongBangBack(showFilter, () => setShowFilter(false));
   // số bộ lọc ĐANG ÁP (theo URL) - badge "Lọc (n)"
   // khoảng giá / diện tích tính 1 bộ lọc dù có cả 2 đầu
   const soLoc = [goc.province, goc.district, goc.ward, goc.kind, goc.priceMin || goc.priceMax, goc.areaMin || goc.areaMax, goc.bedrooms, goc.bathrooms, goc.legal, goc.direction, goc.anh, goc.gan, goc.project, goc.street, own ? "1" : ""].filter(Boolean).length + docTienIch(goc.ti).length;
@@ -198,7 +202,7 @@ export default function SearchClient({
 
   const chipDangAp = (nhan: string, aria: string, bo: () => void, key?: string) => (
     <button key={key} type="button" onClick={bo} aria-label={aria}
-      className="inline-flex items-center gap-1 h-9 sm:h-7 px-2.5 rounded bg-[var(--surface-2)] text-[var(--ink-soft)] font-medium hover:text-red-600 transition">
+      className="inline-flex items-center gap-1 h-11 sm:h-7 px-2.5 rounded bg-[var(--surface-2)] text-[var(--ink-soft)] font-medium hover:text-red-600 transition">
       {nhan} <X className="w-3 h-3" />
     </button>
   );
@@ -250,8 +254,19 @@ export default function SearchClient({
   const muaBan = goc.deal === "ban"; // mua bán: bộ lọc kiểu batdongsan; cho thuê / gộp: kiểu EvoHome
   const choThue = goc.deal === "cho_thue"; // cho thuê: thẻ phòng dạng lưới kiểu EvoHome (ThePhong)
   // dải nút trang: link thật ?page=n (kiểu EvoHome: cho thuê hiện cả trên lẫn dưới danh sách)
+  // 2/11 (audit M3): dải số trang tràn ở 360px (nút "Trang sau" bị cắt) -> dưới sm chỉ ‹ Trang n/N ›, từ sm hiện đủ
   const phanTrang = (lop: string) => totalPages > 1 && (
-    <nav className={`flex items-center justify-center gap-1.5 ${lop}`} aria-label="Phân trang">
+    <>
+    <nav className={`sm:hidden flex items-center justify-center gap-2 ${lop}`} aria-label="Phân trang">
+      {trang > 1
+        ? <Link className="btn min-h-11 min-w-11 !px-3 flex items-center justify-center" href={linkTrang(trang - 1)} rel="prev" aria-label="Trang trước"><ChevronLeft className="w-5 h-5" /></Link>
+        : <span className="btn min-h-11 min-w-11 !px-3 opacity-40 pointer-events-none select-none flex items-center justify-center" aria-hidden><ChevronLeft className="w-5 h-5" /></span>}
+      <span className="px-2 text-body-sm font-semibold text-[var(--ink)] tabular-nums whitespace-nowrap" aria-current="page">Trang {trang}/{totalPages}</span>
+      {trang < totalPages
+        ? <Link className="btn min-h-11 min-w-11 !px-3 flex items-center justify-center" href={linkTrang(trang + 1)} rel="next" aria-label="Trang sau"><ChevronRight className="w-5 h-5" /></Link>
+        : <span className="btn min-h-11 min-w-11 !px-3 opacity-40 pointer-events-none select-none flex items-center justify-center" aria-hidden><ChevronRight className="w-5 h-5" /></span>}
+    </nav>
+    <nav className={`hidden sm:flex items-center justify-center gap-1.5 ${lop}`} aria-label="Phân trang">
       {trang > 1
         ? <Link className="btn !px-3 text-sm flex items-center justify-center" href={linkTrang(trang - 1)} rel="prev" aria-label="Trang trước"><ChevronLeft className="w-4 h-4" /></Link>
         : <span className="btn !px-3 text-sm opacity-40 cursor-not-allowed pointer-events-none select-none flex items-center justify-center" aria-hidden><ChevronLeft className="w-4 h-4" /></span>}
@@ -270,6 +285,7 @@ export default function SearchClient({
         ? <Link className="btn !px-3 text-sm flex items-center justify-center" href={linkTrang(trang + 1)} rel="next" aria-label="Trang sau"><ChevronRight className="w-4 h-4" /></Link>
         : <span className="btn !px-3 text-sm opacity-40 cursor-not-allowed pointer-events-none select-none flex items-center justify-center" aria-hidden><ChevronRight className="w-4 h-4" /></span>}
     </nav>
+    </>
   );
   const dauTrang = (
     <>
@@ -384,7 +400,7 @@ export default function SearchClient({
     <div className="cuon-ngang flex items-center gap-2 pb-4 mb-4 border-b border-[var(--line)] text-sm overflow-x-auto sm:overflow-visible sm:flex-wrap -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
       <button
         type="button"
-        className={`shrink-0 h-10 px-4 rounded-lg border text-sm flex items-center gap-2 transition
+        className={`shrink-0 h-11 px-4 rounded-lg border text-sm flex items-center gap-2 transition
           ${showFilter || soLoc ? "border-brand text-brand bg-brand/5 font-semibold" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
         aria-expanded={showFilter}
         onClick={() => { setF(tuParams(params)); setShowFilter(true); }}
@@ -471,7 +487,7 @@ export default function SearchClient({
         <span className="sm:ml-2"><ChipLoc label="Mới nhất" options={SORTS} value={sort} onChange={(v) => push({ ...goc, sort: v })} /></span>
         <button
           type="button"
-          className={`h-10 px-4 rounded-lg border text-sm font-semibold flex items-center gap-2 transition
+          className={`h-11 px-4 rounded-lg border text-sm font-semibold flex items-center gap-2 transition
             ${showFilter || soLoc ? "border-brand text-brand bg-brand/5" : "border-[var(--line-strong)] bg-[var(--surface)] hover:border-brand"}`}
           aria-expanded={showFilter}
           onClick={() => { setF(tuParams(params)); setShowFilter(true); }}
@@ -544,11 +560,12 @@ export default function SearchClient({
         <div className="fixed inset-0 z-[60] bg-black/40 sm:grid sm:place-items-center sm:p-6" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowFilter(false); }}>
           <form
             className="relative bg-[var(--surface)] w-full h-full sm:h-auto sm:max-h-[88vh] sm:max-w-[720px] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-            onSubmit={(e) => { e.preventDefault(); setShowFilter(false); submit(); }}
+            onSubmit={(e) => { e.preventDefault(); dongRoiDi(() => setShowFilter(false), submit); }}
           >
-            <div className="flex items-center px-6 pt-5 pb-3 border-b border-[var(--line)]">
+            {/* 2/11 (audit): điện thoại popup toàn màn hình -> đệm tai thỏ; nút đóng 44px */}
+            <div className="flex items-center pl-6 pr-3 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-4 pb-2 border-b border-[var(--line)]">
               <h2 className="font-bold text-lg">Bộ lọc tìm kiếm</h2>
-              <button type="button" className="ml-auto w-9 h-9 grid place-items-center rounded-lg hover:bg-[var(--surface-2)] text-lg" aria-label="Đóng bộ lọc" onClick={() => setShowFilter(false)}><X className="w-5 h-5" /></button>
+              <button type="button" className="ml-auto min-w-11 min-h-11 grid place-items-center rounded-sm hover:bg-[var(--surface-2)] text-lg" aria-label="Đóng bộ lọc" onClick={() => setShowFilter(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
               <section>
@@ -734,9 +751,9 @@ export default function SearchClient({
                 </>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3 px-6 py-4 border-t border-[var(--line)]">
+            <div className="grid grid-cols-2 gap-3 px-6 pt-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4 border-t border-[var(--line)]">
               <button type="button" className="h-12 rounded-lg border border-[var(--line-strong)] font-semibold hover:bg-[var(--surface-2)]"
-                onClick={() => { setShowFilter(false); clear(); }}>Xoá tất cả</button>
+                onClick={() => dongRoiDi(() => setShowFilter(false), clear)}>Xoá tất cả</button>
               <button type="submit" className="h-12 rounded-lg bg-brand text-white font-semibold hover:bg-brand-ink">Áp dụng</button>
             </div>
           </form>
@@ -765,7 +782,7 @@ export default function SearchClient({
               {goc.project && chipDangAp(duAn.find((d) => d.id === goc.project)?.name || "Dự án", "Bỏ lọc dự án", () => push({ ...goc, project: "" }))}
               {goc.street && chipDangAp(goc.street, "Bỏ lọc tên đường", () => push({ ...goc, street: "" }))}
               {docTienIch(goc.ti).map((t) => chipDangAp(t.ten, `Bỏ lọc ${t.ten}`, () => push({ ...goc, ti: doiTi(goc.ti, t.k) }), t.k))}
-              <button type="button" onClick={clear} className="text-brand font-semibold hover:underline ml-1 cursor-pointer">
+              <button type="button" onClick={clear} className="inline-flex items-center h-11 sm:h-7 px-1.5 text-brand font-semibold hover:underline cursor-pointer">
                 Xóa tất cả
               </button>
             </div>
@@ -793,9 +810,14 @@ export default function SearchClient({
                 <div className="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto mb-3.5 shadow-2xs">
                   <SearchX className="w-6 h-6 stroke-[2.2]" />
                 </div>
-                <h3 className="font-bold text-base sm:text-lg mb-1.5 text-[var(--ink)]">Khu vực này hiện đang hiếm phòng trống</h3>
+                {/* 2/11 (audit): trước đây tìm MUA cũng hiện "hiếm phòng trống / giữ chỗ phòng" -> đổi lời theo nhu cầu */}
+                <h3 className="font-bold text-base sm:text-lg mb-1.5 text-[var(--ink)]">
+                  {choThue ? "Khu vực này hiện đang hiếm phòng trống" : "Chưa có căn khớp tiêu chí ở khu vực này"}
+                </h3>
                 <p className="text-[var(--ink-soft)] text-xs sm:text-sm mb-4 leading-relaxed max-w-md mx-auto">
-                  Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể nới lỏng nhanh tiêu chí hoặc nhắn Zalo để chuyên viên Radar tìm phòng và giữ chỗ ngay cho bạn trong 15 phút:
+                  {choThue
+                    ? "Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể nới lỏng nhanh tiêu chí hoặc nhắn Zalo để chuyên viên Radar tìm phòng và giữ chỗ ngay cho bạn trong 15 phút:"
+                    : "Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể nới lỏng nhanh tiêu chí hoặc nhắn Zalo để chuyên viên Radar lọc giúp 3-5 căn phù hợp trong khu vực:"}
                 </p>
 
                 <div className="flex flex-wrap justify-center gap-1.5 mb-5">
@@ -857,7 +879,7 @@ export default function SearchClient({
                         className="w-full sm:w-auto btn btn-primary px-4 py-2 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <MessageCircle className="w-4 h-4 fill-current shrink-0" />
-                        <span>Nhắn Zalo nhờ Radar giữ chỗ phòng mới (15 phút)</span>
+                        <span>{choThue ? "Nhắn Zalo nhờ Radar giữ chỗ phòng mới (15 phút)" : "Nhắn Zalo nhờ Radar tìm căn phù hợp"}</span>
                       </NutZalo>
                       <button
                         type="button"

@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { timingSafeEqual } from "node:crypto";
+
+// 2/11 (audit): so sánh thời gian hằng, lệch độ dài thì trả false trước (timingSafeEqual ném lỗi)
+function khopBiMat(a: string, b: string): boolean {
+  const x = Buffer.from(a), y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+}
 
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get("secret") || req.headers.get("x-revalidate-secret");
+  // 2/11 (audit): chỉ nhận header - query ?secret= bị ghi vào log truy cập/CDN
+  const secret = req.headers.get("x-revalidate-secret");
   // 26/10: KHÔNG có mật khẩu dự phòng ghi cứng - chuỗi nằm trong mã nguồn thì ai đọc repo cũng gọi được.
   // Chưa đặt REVALIDATE_SECRET / CRON_SECRET trên Vercel thì endpoint tắt hẳn (503) thay vì mở.
   const expectedSecret = process.env.REVALIDATE_SECRET || process.env.CRON_SECRET;
@@ -10,7 +18,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Revalidate disabled: REVALIDATE_SECRET is not set" }, { status: 503 });
   }
 
-  if (!secret || secret !== expectedSecret) {
+  if (!secret || !khopBiMat(secret, expectedSecret)) {
     return NextResponse.json({ ok: false, error: "Unauthorized: Invalid or missing secret token" }, { status: 401 });
   }
 

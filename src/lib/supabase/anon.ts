@@ -25,3 +25,20 @@ export function rateLimit(key: string, max: number, windowMs: number): boolean {
   h.n += 1;
   return h.n <= max;
 }
+
+// 2/11 (audit S6): giới hạn DÙNG CHUNG mọi instance qua bảng gioi_han_luot (migration 038).
+// RAM chặn trước (khỏi gọi DB khi 1 IP spam), rồi mới hỏi RPC dem_luot bằng service role.
+// RPC lỗi / chưa chạy 038 / thiếu key -> CHO QUA: hạn mức không được làm sập chat, định giá.
+export async function rateLimitChung(key: string, max: number, windowMs: number): Promise<boolean> {
+  if (!rateLimit(key, max, windowMs)) return false;
+  try {
+    const { createAdminClient } = await import("./admin");
+    const { data, error } = await createAdminClient().rpc("dem_luot", {
+      p_khoa: key, p_toi_da: max, p_cua_so_giay: Math.max(1, Math.ceil(windowMs / 1000)),
+    });
+    if (error) return true;
+    return data !== false;
+  } catch {
+    return true;
+  }
+}

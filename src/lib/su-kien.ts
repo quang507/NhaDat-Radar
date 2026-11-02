@@ -1,3 +1,4 @@
+import "server-only"; // 2/11 (audit): chặn lỡ import vào client component
 // SERVER-ONLY: ghi sự kiện quan tâm vào bảng su_kien (migration 031). Dùng ở /api/su-kien (sự kiện từ
 // trình duyệt), createLead (đặt lịch) và api/chat (câu hỏi bot). Lỗi chỉ log - đo đạc không được làm hỏng
 // luồng chính; bảng chưa tạo (chưa chạy migration) thì cũng chỉ log.

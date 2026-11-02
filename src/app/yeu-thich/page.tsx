@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { LISTING_THE_COLS } from "@/lib/cols";
@@ -9,29 +9,41 @@ import { getFavs, pullDbFavs } from "@/components/FavButton";
 import { fmtPrice, fmtPpm2, PROP } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 import { cheSoTin } from "@/lib/doc-quyen";
-import { Heart, LayoutGrid, Scale, Sparkles, Check } from "lucide-react";
+import { Heart, LayoutGrid, Scale, Sparkles, Check, RotateCcw, WifiOff } from "lucide-react";
 
 // Trang tin đã lưu ♥ - id lưu ở localStorage, không cần đăng nhập.
 export default function FavouritesPage() {
   const [items, setItems] = useState<Listing[] | null>(null);
   const [compare, setCompare] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      // lọc id hỏng TRƯỚC khi query: 1 giá trị không phải UUID trong localStorage làm
-      // Postgres 22P02 cho CẢ câu .in() -> trang hiện "Chưa có tin nào" dù đã lưu 20 tin
-      const ids = getFavs().filter((id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
-      if (!ids.length) return setItems([]);
+  // 2/11 (audit M6): trước nuốt lỗi Supabase -> mất mạng hiện "Chưa có tin nào được lưu" (khách tưởng mất tin đã lưu)
+  const [loi, setLoi] = useState(false);
+
+  const load = useCallback(async () => {
+    // lọc id hỏng TRƯỚC khi query: 1 giá trị không phải UUID trong localStorage làm
+    // Postgres 22P02 cho CẢ câu .in() -> trang hiện "Chưa có tin nào" dù đã lưu 20 tin
+    const ids = getFavs().filter((id) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+    if (!ids.length) { setLoi(false); setItems([]); return; }
+    try {
       const supabase = createClient();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("listings").select(LISTING_THE_COLS).in("id", ids).eq("status", "published");
+      if (error) throw error;
       const order = new Map(ids.map((id, i) => [id, i]));
       setItems(((data ?? []) as Listing[]).map(cheSoTin).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)));
-    };
+      setLoi(false);
+    } catch {
+      setLoi(true);
+    }
+  }, []);
+
+  useEffect(() => {
     pullDbFavs().finally(load); // gộp tin đã lưu trên DB (nếu đăng nhập) rồi hiển thị
     window.addEventListener("ndr:favs", load);
     return () => window.removeEventListener("ndr:favs", load);
-  }, []);
+  }, [load]);
+
+  const thuLai = () => { setLoi(false); setItems(null); void load(); };
 
   return (
     <div>
@@ -59,7 +71,17 @@ export default function FavouritesPage() {
         )}
       </div>
 
-      {items === null ? (
+      {loi ? (
+        <div className="card rounded-lg p-10 text-center" role="alert">
+          <WifiOff className="w-10 h-10 text-[var(--ink-faint)] mx-auto mb-3" />
+          <h3 className="font-bold text-lg mb-1">Không tải được danh sách, thử lại</h3>
+          <p className="text-[var(--ink-soft)] text-sm mb-4">Tin đã lưu vẫn còn trên máy bạn - kiểm tra kết nối mạng rồi bấm Thử lại.</p>
+          <button type="button" onClick={thuLai} className="btn btn-primary min-h-11 inline-flex items-center gap-1.5">
+            <RotateCcw className="w-4 h-4" />
+            <span>Thử lại</span>
+          </button>
+        </div>
+      ) : items === null ? (
         <p className="text-[var(--ink-soft)] py-10 text-center">Đang tải…</p>
       ) : items.length ? (
         compare && items.length >= 2 ? (
@@ -71,7 +93,7 @@ export default function FavouritesPage() {
         )
       ) : (
         <div className="card rounded-lg p-10 text-center">
-          <Heart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <Heart className="w-12 h-12 text-[var(--ink-faint)] mx-auto mb-3" />
           <h3 className="font-bold text-lg mb-1">Chưa có tin nào được lưu</h3>
           <p className="text-[var(--ink-soft)] text-sm mb-4">Khám phá bất động sản và bấm nút yêu thích để lưu tin bạn thích.</p>
           <Link href="/search" className="btn btn-primary inline-block">Tìm kiếm ngay</Link>

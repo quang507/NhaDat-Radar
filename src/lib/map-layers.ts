@@ -78,7 +78,8 @@ class NutLopNen implements IControl {
 
 /** Tạo bản đồ theo chuẩn Radar. `center` là [lat, lng] như dữ liệu tin. */
 export async function taoBanDo(el: HTMLElement, center: [number, number], zoom: number) {
-  const ml: MapLibre = await import("maplibre-gl");
+  // 2/11 (audit P2): CSS maplibre tải cùng lúc với JS, không còn import tĩnh chặn render ở trang có bản đồ
+  const [ml]: [MapLibre, unknown] = await Promise.all([import("maplibre-gl"), import("maplibre-gl/dist/maplibre-gl.css")]);
   // MapLibre 6 tự đoán đường dẫn worker từ import.meta.url - qua webpack thì đoán sai ("Worker failed to load").
   // Chỉ thẳng file worker để webpack đóng gói nó thành asset riêng.
   if (!ml.getWorkerUrl()) ml.setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).href);

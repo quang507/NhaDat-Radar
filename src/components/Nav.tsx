@@ -9,7 +9,8 @@ import HeaderCuon from "./HeaderCuon";
 // toàn bộ site render động, không trang nào được cache. Trạng thái đăng nhập do NavAuth (client) lo.
 export default function Nav() {
   return (
-    <HeaderCuon className="sticky top-0 z-40 border-b border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur-md shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+    // 2/11 (audit 🔴6): viewportFit cover -> header dính phải chừa thanh trạng thái (tai thỏ / app TWA); nền đặc thay kính mờ
+    <HeaderCuon className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] border-b border-[var(--line)] bg-[var(--surface)] shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-5 py-2.5 flex items-center gap-3">
         <MobileMenu />
         {/* 25/10: viền focus mặc định ôm sát mép link -> đè lên nét đứng chữ R ("logo bị chặt"). Chừa đệm
@@ -20,7 +21,7 @@ export default function Nav() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="NhaDat Radar" width={26} height={32} className="h-8 w-auto shrink-0 dark:hidden" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-dark.svg" alt="" aria-hidden width={26} height={32} className="h-8 w-auto shrink-0 hidden dark:block" />
+          <img src="/logo-dark.svg" alt="" aria-hidden width={26} height={32} loading="lazy" decoding="async" className="h-8 w-auto shrink-0 hidden dark:block" />
           <span className="hidden min-[480px]:inline text-[var(--ink)] font-extrabold tracking-tight uppercase">NhaDat&nbsp;<span className="text-brand">Radar</span></span>
         </Link>
 

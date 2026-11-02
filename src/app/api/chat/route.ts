@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse, after } from "next/server";
+import { unstable_cache } from "next/cache";
 import { ghiSuKien } from "@/lib/su-kien";
 import { baoLeadMoi } from "@/lib/bao-lead";
-import { createAnonClient, rateLimit } from "@/lib/supabase/anon";
+import { createAnonClient, rateLimitChung } from "@/lib/supabase/anon";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
@@ -16,6 +18,13 @@ import { HOTLINE } from "@/components/TuVanRadar";
 // %/_ là wildcard ilike, ",()" phá cú pháp .or() - cùng luật clean của /search (soát 21/8:
 // province/district/keyword từ output Gemini đi thẳng vào ilike không rửa)
 const sach = (s: unknown) => String(s ?? "").replace(/[%_*,()]/g, " ").replace(/\s+/g, " ").trim();
+// 2/11 (audit Q1): "Quận 1" ilike ăn cả Quận 10/11/12 -> quận số so khớp đúng tên
+const LA_QUAN_SO = /^Quận \d{1,2}$/;
+// 2/11 (audit Q9): bắt cả "0909 123 456", "0909.123.456", "+84 909..."; biên 2 đầu chống bắt nhầm CCCD 12 số
+const SDT_TRONG_CAU = /(?<!\d)(?:\+?84|0)[\s.\-]?([35789](?:[\s.\-]?\d){8})(?![\s.\-]?\d)/;
+// 2/11 (audit S6): trần Gemini toàn hệ thống / ngày (VN), dùng chung với /api/valuation
+const TRAN_GEMINI_NGAY = 3000;
+const ngayVN = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -75,12 +84,17 @@ async function nhungCau(text: string): Promise<number[] | null> {
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${k}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(12_000), // 2/11 (audit Q11): không treo cả route khi Gemini chậm
         body: JSON.stringify({ content: { parts: [{ text: text.slice(0, 1000) }] }, outputDimensionality: 768 }),
       });
       if (res.status === 429) continue;
       const j = await res.json();
       if (j?.embedding?.values) return j.embedding.values;
-    } catch { /* thử key kế */ }
+    } catch (e) {
+      const ten = (e as { name?: string } | null)?.name;
+      if (ten === "TimeoutError" || ten === "AbortError") return null; // chậm do Gemini, đổi key vô ích
+      /* lỗi mạng khác: thử key kế */
+    }
   }
   return null;
 }
@@ -109,7 +123,7 @@ function fallbackParse(text: string): Parsed {
 }
 
 // Thống kê thị trường theo quận từ data thật (giá/m² trung vị bán & thuê + tỷ suất cho thuê)
-async function marketStats(province: string | null) {
+async function tinhMarketStats(province: string | null) {
   const supabase = createAnonClient();
   let q = supabase
     .from("listings")
@@ -141,11 +155,14 @@ async function marketStats(province: string | null) {
     .sort((a, b) => b.n - a.n)
     .slice(0, 15);
 }
+// 2/11 (audit P5): trước mỗi câu "khu nào rẻ" đọc lại 2.000 dòng -> cache 30 phút theo tỉnh (tham số nằm trong khoá cache)
+const marketStatsCache = unstable_cache(tinhMarketStats, ["chat-market-stats-v1"], { revalidate: 1800, tags: ["listings"] });
+const marketStats = (province: string | null) => marketStatsCache(sach(province) || null);
 
 export async function POST(req: NextRequest) {
   // chặn spam: 20 request/phút mỗi IP (endpoint công khai + tốn quota Gemini)
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "?";
-  if (!rateLimit(`chat:${ip}`, 20, 60_000)) {
+  if (!(await rateLimitChung(`chat:${ip}`, 20, 60_000))) {
     return NextResponse.json({ reply: "Bạn thao tác hơi nhanh, chờ một phút rồi thử lại nhé." }, { status: 429 });
   }
   let body: { messages?: ChatMsg[]; dangXem?: unknown };
@@ -164,11 +181,10 @@ export async function POST(req: NextRequest) {
   if (!last) return NextResponse.json({ reply: "Bạn muốn tìm nhà đất như thế nào ạ?" });
 
   // Thu thập lead tự động khi khách để lại SĐT trong chat
-  const phoneMatch = last.match(/(?:(?:\+84|0)[35789]\d{8})/);
+  const phoneMatch = last.match(SDT_TRONG_CAU);
+  const sdt = phoneMatch ? "0" + phoneMatch[1].replace(/\D/g, "") : null;
   let daLuuLead = false;
-  if (phoneMatch) {
-    const rawPhone = phoneMatch[0];
-    const sdt = rawPhone.replace(/^\+84/, "0");
+  if (sdt) {
     const lid = typeof body.dangXem === "string" && /^[0-9a-f-]{36}$/i.test(body.dangXem) ? body.dangXem : null;
     const leadRow = {
       listing_id: lid,
@@ -177,7 +193,8 @@ export async function POST(req: NextRequest) {
       message: `[AI Chat] "${last}"`,
     };
     try {
-      const { error: errLead } = await createAnonClient().from("leads").insert(leadRow);
+      // 2/11 (audit S3): leads không còn cho anon insert qua REST (038) -> ghi bằng service role sau khi đã kiểm SĐT
+      const { error: errLead } = await createAdminClient().from("leads").insert(leadRow);
       if (!errLead) {
         daLuuLead = true;
         after(() => baoLeadMoi({ listing_id: lid, name: leadRow.name, phone: sdt, message: leadRow.message }));
@@ -188,10 +205,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 2/11: báo widget đã lưu lead (daLuuLead) ở MỌI câu trả lời sau bước này -> widget thôi mời để lại SĐT
+  const traLoi = (o: Record<string, unknown>, init?: ResponseInit) =>
+    NextResponse.json(daLuuLead ? { ...o, daLuuLead: true } : o, init);
+
   // Nếu khách CHỈ để lại SĐT hoặc câu quá ngắn chỉ để liên hệ
   if (daLuuLead && last.length < 50 && !/(tìm|mua|thuê|cần|quận|giá|tỷ|triệu|bán)/i.test(last)) {
-    return NextResponse.json({
-      reply: `Dạ em đã ghi nhận số điện thoại ${phoneMatch![0]} của anh/chị rồi ạ! Chuyên viên NhaDat Radar sẽ liên hệ qua Điện thoại/Zalo để tư vấn và hỗ trợ xem nhà sớm nhất nhé 🏠\n\n📞 Cần hỗ trợ gấp: ${HOTLINE} (Hotline/Zalo)`,
+    return traLoi({
+      reply: `Dạ em đã ghi nhận số điện thoại ${sdt} của anh/chị rồi ạ! Chuyên viên NhaDat Radar sẽ liên hệ qua Điện thoại/Zalo để tư vấn và hỗ trợ xem nhà sớm nhất nhé 🏠\n\n📞 Cần hỗ trợ gấp: ${HOTLINE} (Hotline/Zalo)`,
       listings: [],
     });
   }
@@ -199,11 +220,19 @@ export async function POST(req: NextRequest) {
   // Quy tắc bán hàng (28/9): KHÔNG nhận bớt giá / không nói thời hạn hợp đồng qua tin nhắn -> mời qua xem
   // phòng rồi thương lượng trực tiếp. Chặn trước Gemini để câu chốt luôn đúng kịch bản.
   if (/(bớt|giảm giá|bot gia|thương lượng|fix giá|hợp đồng|hop dong|mấy tháng|bao nhiêu tháng|tối thiểu.*tháng)/i.test(last)) {
-    return NextResponse.json({
+    return traLoi({
       reply: `${cauChotXemPhong("như trên tin")}
 📞 Hotline/Zalo: ${HOTLINE}`,
       listings: [],
     });
+  }
+
+  // 2/11 (audit S6): từ đây có thể gọi Gemini (nhúng câu, phân tích, trả lời) -> trần chung toàn hệ thống mỗi ngày
+  if (!(await rateLimitChung(`gemini:ngay:${ngayVN()}`, TRAN_GEMINI_NGAY, 86_400_000))) {
+    return traLoi({
+      reply: `Trợ lý AI đang quá tải hôm nay, anh/chị nhắn Zalo hoặc gọi ${HOTLINE} để nhân viên Radar tìm phòng giúp mình ngay nhé.`,
+      listings: [],
+    }, { status: 429 });
   }
 
   // Tin khách đang xem (widget gửi kèm khi ở trang /listings/[id]) -> ngữ cảnh cho câu "phòng này còn không"
@@ -225,7 +254,7 @@ export async function POST(req: NextRequest) {
   if (tinDangXemData && /(tương tự|tuong tu|giống|giong|căn khác|phòng khác|quanh đây|khu này còn không|gợi ý thêm)/i.test(last)) {
     const tuongTu = await layTinTuongTu(tinDangXemData, 4);
     if (tuongTu.length > 0) {
-      return NextResponse.json({
+      return traLoi({
         reply: `Em tìm thấy ${tuongTu.length} căn cùng khu vực và tầm giá tương đương ở bên dưới nhé 🏠\n\nBạn muốn em hỗ trợ phương án nào tiếp theo?`,
         suggestions: [
           "Xem căn giá mềm hơn",
@@ -289,7 +318,7 @@ export async function POST(req: NextRequest) {
       const tim = async (km: number) => {
         const dLat = km / 111.32, dLng = km / (111.32 * Math.cos((da.lat * Math.PI) / 180));
         let q = createAnonClient().from("listings")
-          .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images,source,lat,lng")
+          .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,source,lat,lng") // 2/11 (audit P5): bỏ images của 600 dòng
           .eq("status", "published")
           .gte("lat", da.lat - dLat).lte("lat", da.lat + dLat).gte("lng", da.lng - dLng).lte("lng", da.lng + dLng);
         if (deal) q = q.eq("deal", deal);
@@ -312,17 +341,24 @@ export async function POST(req: NextRequest) {
       const viTri = [da.district, da.province].filter(Boolean).join(", ");
       const loai = deal === "cho_thue" ? "tin cho thuê" : deal === "ban" ? "tin bán" : "tin";
       const href = `/search?${new URLSearchParams({ ...(deal ? { deal } : {}), ...(loc.price_max ? { priceMax: String(loc.price_max) } : {}), gan: `${da.lat.toFixed(6)},${da.lng.toFixed(6)}`, bk: String(km), gan_ten: da.name })}`;
+      // chỉ lấy ảnh cho 5 tin gửi về
+      const top5 = gan.slice(0, 5);
+      const anh = new Map<string, string[] | null>();
+      if (top5.length) {
+        const { data: dsAnh } = await createAnonClient().from("listings").select("id,images").in("id", top5.map((x) => x.id));
+        for (const r of dsAnh ?? []) anh.set(r.id as string, (r.images as string[] | null) ?? null);
+      }
       after(() => ghiSuKien({ loai: "chat", listingId: null, noiDung: last, ketQua: gan.length }));
-      return NextResponse.json({
+      return traLoi({
         reply: gan.length
           ? `Quanh ${da.name} (${viTri}), trong bán kính ${km} km Radar đang có ${gan.length} ${loai} phù hợp. Em gửi ${Math.min(5, gan.length)} tin gần dự án nhất bên dưới - tin đầu tiên cách khoảng ${gan[0].km < 1 ? Math.round(gan[0].km * 1000) + " m" : gan[0].km.toFixed(1) + " km"}.`
           : `Trong bán kính ${km} km quanh ${da.name} (${viTri}) hiện chưa có ${loai} khớp yêu cầu. Anh/chị để lại SĐT hoặc nhắn Zalo ${HOTLINE}, Radar tìm thêm phòng quanh dự án giúp mình nhé.`,
         link: gan.length ? { href, label: `Xem cả ${gan.length} tin quanh ${da.name} trên bản đồ` } : null,
         suggestions: [`${da.name} ở đâu, có gì?`, deal === "cho_thue" ? `Phòng dưới 4 triệu gần ${da.name}` : `Phòng trọ gần ${da.name}`, "Đặt lịch hẹn xem phòng"],
-        listings: gan.slice(0, 5).map((x) => ({
+        listings: top5.map((x) => ({
           id: x.id, title: cheSoVanBan(x.title), price: fmtPrice(x.price_vnd, x.deal),
           meta: [`cách ${x.km < 1 ? Math.round(x.km * 1000) + " m" : x.km.toFixed(1) + " km"}`, x.area_m2 ? `${x.area_m2}m²` : null, x.district].filter(Boolean).join(" · "),
-          image: cleanImages(x.images || [])[0] || null,
+          image: cleanImages(anh.get(x.id) || [])[0] || null,
         })),
       });
     }
@@ -334,7 +370,7 @@ export async function POST(req: NextRequest) {
       const tienIch = ((p.amenities as string[] | null) || []).slice(0, 4);
       const phapLy = (p.specs as Record<string, string> | null)?.["Pháp lý"];
       after(() => ghiSuKien({ loai: "chat", listingId: null, noiDung: last, ketQua: 1 }));
-      return NextResponse.json({
+      return traLoi({
         reply: [
           `${p.name}${p.investor ? ` - chủ đầu tư ${p.investor}` : ""}.`,
           `Vị trí: ${p.address || [p.district, p.province].filter(Boolean).join(", ")}.`,
@@ -376,7 +412,7 @@ export async function POST(req: NextRequest) {
 
   // ===== Chat thường =====
   if (parsed.mode === "chat") {
-    return NextResponse.json({
+    return traLoi({
       reply: parsed.small_talk_reply ||
         "Xin chào! Mình là trợ lý NhaDat Radar 🏠 Hỏi mình kiểu: “căn hộ 2PN dưới 3 tỷ ở Hà Nội”, hoặc “quận nào ở Hà Nội đáng đầu tư?”",
       listings: [],
@@ -387,7 +423,7 @@ export async function POST(req: NextRequest) {
   if (parsed.mode === "analyze") {
     const stats = await marketStats(parsed.province || null);
     if (!stats.length) {
-      return NextResponse.json({ reply: "Chưa đủ dữ liệu cho khu vực này. Bạn thử hỏi về Hà Nội, Hồ Chí Minh hoặc Đà Nẵng nhé.", listings: [] });
+      return traLoi({ reply: "Chưa đủ dữ liệu cho khu vực này. Bạn thử hỏi về Hà Nội, Hồ Chí Minh hoặc Đà Nẵng nhé.", listings: [] });
     }
     const fm = (v: number | null) => (v ? (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k") : "-");
     const table = stats
@@ -401,7 +437,7 @@ ${table}
 Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (không bịa số khác), nêu 2-3 khu vực đáng chú ý phù hợp câu hỏi, kết bằng 1 lưu ý ngắn (dữ liệu từ tin rao, chỉ tham khảo).`,
       { json: false },
     );
-    return NextResponse.json({
+    return traLoi({
       reply: reply || "Số liệu hiện có:\n" + table + "\n(Dữ liệu từ tin rao, chỉ mang tính tham khảo.)",
       listings: [],
     });
@@ -418,7 +454,10 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
     if (b.deal) q = q.eq("deal", b.deal);
     if (b.kind && PROP[b.kind]) q = q.eq("kind", b.kind);
     if (b.province && sach(b.province)) q = q.ilike("province", `%${sach(b.province)}%`);
-    if (b.district && sach(b.district)) q = q.ilike("district", `%${sach(b.district)}%`);
+    if (b.district && sach(b.district)) {
+      const d = sach(b.district);
+      q = LA_QUAN_SO.test(d) ? q.eq("district", d) : q.ilike("district", `%${d}%`);
+    }
     if (b.price_min) q = q.gte("price_vnd", b.price_min);
     if (b.price_max) q = q.lte("price_vnd", b.price_max);
     if (b.bedrooms) q = q.gte("bedrooms", b.bedrooms);
@@ -507,7 +546,7 @@ QUY TẮC PHẢN HỒI (CHỐNG MÙI ROBOT):
 
   // log câu hỏi + số kết quả (bảng su_kien, loai='chat') -> tab "Quan tâm" liệt kê câu bot trả lời hụt
   after(() => ghiSuKien({ loai: "chat", listingId: typeof body.dangXem === "string" ? body.dangXem : null, noiDung: last, ketQua: found.length }));
-  return NextResponse.json({
+  return traLoi({
     reply,
     suggestions,
     listings: found.map((x) => ({

@@ -35,11 +35,11 @@ export default function ListingRow({ x }: { x: Listing }) {
       <div className="hidden sm:block sm:w-[300px] shrink-0 relative">
         {imgs.length ? (
           <div className={`grid gap-0.5 h-44 sm:h-52 ${imgs.length > 1 ? "grid-rows-[2fr_1fr]" : ""}`}>
-            <SafeImg src={imgs[0]} alt={cheSoVanBan(x.title, laTinDocQuyen(x))} className="w-full h-full object-cover" />
+            <SafeImg the src={imgs[0]} alt={cheSoVanBan(x.title, laTinDocQuyen(x))} className="w-full h-full object-cover" />
             {imgs.length > 1 && (
               <div className={`grid gap-0.5 ${imgs.length >= 4 ? "grid-cols-3" : imgs.length === 3 ? "grid-cols-2" : "grid-cols-1"}`}>
                 {imgs.slice(1).map((u, i) => (
-                  <SafeImg key={i} src={u} alt="" className="w-full h-full object-cover" />
+                  <SafeImg the key={i} src={u} alt="" className="w-full h-full object-cover" />
                 ))}
               </div>
             )}
@@ -121,7 +121,7 @@ function MobileThumb({ x }: { x: Listing }) {
   return (
     <div className="sm:hidden relative w-[124px] h-[104px] shrink-0 rounded-lg overflow-hidden bg-[var(--surface-2)]">
       {img ? (
-        <SafeImg src={img} alt={cheSoVanBan(x.title, docQuyen)} className="w-full h-full object-cover" />
+        <SafeImg the src={img} alt={cheSoVanBan(x.title, docQuyen)} className="w-full h-full object-cover" />
       ) : (
         <PropertyPlaceholder kind={x.kind} />
       )}

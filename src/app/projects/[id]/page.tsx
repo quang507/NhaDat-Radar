@@ -10,7 +10,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAnonClient } from "@/lib/supabase/anon";
-import { LISTING_COLS, LISTING_THE_COLS } from "@/lib/cols";
+import { LISTING_THE_COLS } from "@/lib/cols";
 import { fmtPrice, AMEN } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
 import ListingCard from "@/components/ListingCard";
@@ -82,9 +82,12 @@ export default async function ProjectDetail({
 }) {
   const { id } = await params;
   const supabase = createAnonClient();
-  const { data: proj } = await supabase.from("projects").select("*").eq("id", id).single();
+  // 2/11 (audit D3): chỉ cột trang dùng - select("*") kéo cả embedding vector(768) ~15KB/dự án
+  const { data: proj } = await supabase.from("projects")
+    .select("id,name,investor,description,province,district,address,amenities,images,price_min,price_max,price_per_m2_text,handover,specs,geo")
+    .eq("id", id).single();
   if (!proj) notFound();
-  const p = proj as Project;
+  const p = proj as unknown as Project;
 
   const { data: ls } = await supabase
     .from("listings")

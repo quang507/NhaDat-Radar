@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getAreas } from "@/lib/geo";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import FormLapPhong from "./FormLapPhong";
+import { LinkTheoDoi, NutZalo } from "@/components/TheoDoi";
 import {
   Camera, CheckCircle2, ChevronDown, ClipboardList, EyeOff, Handshake, MapPin, MessageCircle,
   Phone, Search, ShieldCheck, Users,
@@ -18,6 +19,9 @@ export const metadata: Metadata = {
   description: "Chủ trọ, căn hộ dịch vụ, KTX còn phòng trống: Radar chụp ảnh, đăng tin, dẫn khách đã lọc tới xem. Miễn phí khảo sát, chỉ thu phí khi khách ký hợp đồng thuê.",
   alternates: { canonical: "/lap-phong" },
 };
+
+// 2/11 (audit Q6): gọi / Zalo ở trang này ghi ndr_goi / ndr_zalo; NutZalo chép sẵn câu này (zalo.me bỏ qua ?text=)
+const TIN_ZALO_LAP_PHONG = "Chào Radar, mình là chủ trọ, đang có phòng trống cần lấp. Nhờ Radar tư vấn dịch vụ lấp phòng giúp mình nhé!";
 
 const BUOC = [
   { icon: ClipboardList, t: "Đăng ký", d: "Để lại SĐT, khu vực và số phòng trống. Mất khoảng 30 giây." },
@@ -80,7 +84,7 @@ export default async function LapPhong() {
           </ul>
           <div className="hidden lg:flex gap-3 mt-2">
             <a href="#dang-ky" className="btn btn-primary min-h-12 px-6 font-bold">Đăng ký lấp phòng</a>
-            <a href={`tel:${HOTLINE}`} className="btn min-h-12 px-5 font-bold"><Phone className="w-4 h-4" /> {HOTLINE.replace(/(\d{4})(\d{3})(\d{3})/, "$1 $2 $3")}</a>
+            <LinkTheoDoi loai="goi" href={`tel:${HOTLINE}`} className="btn min-h-12 px-5 font-bold"><Phone className="w-4 h-4" /> {HOTLINE.replace(/(\d{4})(\d{3})(\d{3})/, "$1 $2 $3")}</LinkTheoDoi>
           </div>
         </div>
         {/* số liệu thật - lưới 2x2 */}
@@ -163,8 +167,8 @@ export default async function LapPhong() {
             <p className="text-sm text-[var(--ink-soft)]">Thông tin của bạn chỉ dùng để Radar liên hệ, không hiện công khai.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href={`tel:${HOTLINE}`} className="btn min-h-11 font-bold"><Phone className="w-4 h-4" /> Gọi {HOTLINE}</a>
-            <a href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" className="btn min-h-11 font-bold !border-[#0068ff] !text-[#0068ff]"><MessageCircle className="w-4 h-4" /> Nhắn Zalo</a>
+            <LinkTheoDoi loai="goi" href={`tel:${HOTLINE}`} className="btn min-h-11 font-bold"><Phone className="w-4 h-4" /> Gọi {HOTLINE}</LinkTheoDoi>
+            <NutZalo tinNhan={TIN_ZALO_LAP_PHONG} href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" className="btn min-h-11 font-bold !border-[#0068ff] !text-[#0068ff]"><MessageCircle className="w-4 h-4" /> Nhắn Zalo</NutZalo>
           </div>
         </div>
         <div className="card p-5 sm:p-6"><FormLapPhong /></div>
@@ -191,9 +195,9 @@ export default async function LapPhong() {
       <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
       <nav aria-label="Đăng ký lấp phòng" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_auto] gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur">
         <a href="#dang-ky" className="btn btn-primary min-h-12 font-bold">Đăng ký lấp phòng</a>
-        <a href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo Radar" className="btn min-h-12 font-bold !border-[#0068ff] !text-[#0068ff]">
+        <NutZalo tinNhan={TIN_ZALO_LAP_PHONG} href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo Radar" className="btn min-h-12 font-bold !border-[#0068ff] !text-[#0068ff]">
           <MessageCircle className="w-4 h-4" /> Zalo
-        </a>
+        </NutZalo>
       </nav>
     </div>
   );

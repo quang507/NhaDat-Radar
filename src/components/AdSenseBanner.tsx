@@ -43,12 +43,13 @@ export default function AdSenseBanner({
     return null;
   }
 
+  // 2/11 (audit P7): giữ chỗ đúng cỡ quảng cáo (điện thoại ~250-280px) để khỏi giật bố cục khi quảng cáo nạp
   return (
     <aside
       aria-label="Quảng cáo tài trợ"
-      className={`my-6 overflow-hidden flex flex-col items-center justify-center min-h-[90px] bg-[var(--surface)] border border-[var(--line)] rounded-2xl p-2 ${className}`}
+      className={`my-6 overflow-hidden flex flex-col items-center justify-center min-h-[280px] sm:min-h-[100px] bg-[var(--surface)] border border-[var(--line)] rounded-sm p-2 ${className}`}
     >
-      <span className="text-[10px] uppercase tracking-wider text-[var(--ink-faint)] mb-1">
+      <span className="text-overline uppercase tracking-wider text-[var(--ink-faint)] mb-1">
         Quảng cáo
       </span>
       <ins

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import SafeImg from "@/components/SafeImg";
 import { type BaiViet, type ArticleCategory, CATEGORIES } from "@/lib/bai-viet";
-import { tenKhuVucGon } from "@/components/AreaLanding";
+import { tenKhuVucGon } from "@/lib/format";
 import { Calendar, Clock, ArrowRight, TrendingUp, Sparkles, Newspaper, ShieldCheck } from "lucide-react";
 
 const CAT_COLORS: Record<ArticleCategory, { bg: string; text: string; border: string }> = {

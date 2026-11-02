@@ -14,6 +14,8 @@ const nhan = "block text-xs font-semibold text-[var(--ink-soft)] mb-1";
 export default function FormLapPhong() {
   const [state, formAction, pending] = useActionState(dangKyLapPhong, initial);
   useEffect(() => { if (state.ok) baoGA("ndr_lap_phong"); }, [state.ok]);
+  // 2/11 (audit Q7): React 19 reset form sau action -> điền lại giá trị đã gõ khi báo lỗi
+  const v = state.v;
 
   if (state.ok) {
     return (
@@ -35,27 +37,27 @@ export default function FormLapPhong() {
       <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
       <label className="block">
         <span className={nhan}>Họ và tên *</span>
-        <input className="inp" name="name" required autoComplete="name" placeholder="Nguyễn Văn A" />
+        <input className="inp" name="name" required autoComplete="name" defaultValue={v?.name} placeholder="Nguyễn Văn A" />
       </label>
       <label className="block">
         <span className={nhan}>Số điện thoại (Zalo) *</span>
-        <input className="inp" name="phone" required type="tel" inputMode="tel" autoComplete="tel" placeholder="0912 345 678" />
+        <input className="inp" name="phone" required defaultValue={v?.phone} type="tel" inputMode="tel" autoComplete="tel" placeholder="0912 345 678" />
       </label>
       <label className="block">
         <span className={nhan}>Khu vực</span>
-        <input className="inp" name="khu_vuc" placeholder="VD: Gò Vấp, gần ĐH Công Nghiệp" />
+        <input className="inp" name="khu_vuc" defaultValue={v?.khu_vuc} placeholder="VD: Gò Vấp, gần ĐH Công Nghiệp" />
       </label>
       <label className="block">
         <span className={nhan}>Số phòng / giường đang trống *</span>
-        <input className="inp" name="so_phong" required type="number" inputMode="numeric" min={1} max={2000} placeholder="VD: 5" />
+        <input className="inp" name="so_phong" required defaultValue={v?.so_phong} type="number" inputMode="numeric" min={1} max={2000} placeholder="VD: 5" />
       </label>
       <label className="block">
         <span className={nhan}>Giá thuê dự kiến</span>
-        <input className="inp" name="gia" placeholder="VD: 3,5 - 4 triệu/tháng" />
+        <input className="inp" name="gia" defaultValue={v?.gia} placeholder="VD: 3,5 - 4 triệu/tháng" />
       </label>
       <label className="block">
         <span className={nhan}>Gói quan tâm</span>
-        <select className="inp" name="goi" defaultValue="Chưa chọn">
+        <select className="inp" name="goi" defaultValue={v?.goi || "Chưa chọn"}>
           <option value="Chưa chọn">Chưa chọn - nhờ Radar tư vấn</option>
           <option>Cơ bản</option>
           <option>Pro</option>
@@ -64,7 +66,7 @@ export default function FormLapPhong() {
       </label>
       <label className="block sm:col-span-2">
         <span className={nhan}>Ghi chú</span>
-        <textarea className="inp" name="ghi_chu" rows={3} placeholder="Loại phòng, nội thất, giờ giấc, điện nước..." />
+        <textarea className="inp" name="ghi_chu" rows={3} defaultValue={v?.ghi_chu} placeholder="Loại phòng, nội thất, giờ giấc, điện nước..." />
       </label>
       {state.error ? <div role="alert" className="sm:col-span-2 text-sm text-red-600 dark:text-red-400">{state.error}</div> : null}
       <button type="submit" disabled={pending} className="btn btn-primary sm:col-span-2 min-h-12 font-bold">

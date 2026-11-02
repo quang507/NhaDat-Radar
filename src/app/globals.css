@@ -70,8 +70,8 @@ body {
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.006em;
   overflow-x: hidden; /* hero full-width (w-screen) không gây cuộn ngang */
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* 3/11: trên/dưới KHÔNG đệm ở body - header sticky tự đệm inset trên (Nav.tsx), thanh gọi/Zalo + spacer
+     đã cộng inset dưới; đệm thêm ở body là cộng đôi khoảng trắng. Giữ trái/phải cho máy tai thỏ xoay ngang. */
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
 }
@@ -432,7 +432,7 @@ a, button, summary, label, [role="button"], [role="tab"] { touch-action: manipul
    (.duoi-header, vd thanh mục trang tin) trượt lên sát mép trên theo */
 .header-an { transform: translateY(-100%); }
 .duoi-header { transition: top .2s ease-out; }
-html[data-header-an] .duoi-header { top: 0; }
+html[data-header-an] .duoi-header { top: env(safe-area-inset-top, 0px); }
 /* Trái tim lưu tin: nảy khi bật (xác nhận thao tác đã ghi nhận) */
 @keyframes favPop { 0% { transform: scale(1); } 40% { transform: scale(1.28); } 100% { transform: scale(1); } }
 .fav-pop { animation: favPop .32s cubic-bezier(.34,1.56,.64,1); }

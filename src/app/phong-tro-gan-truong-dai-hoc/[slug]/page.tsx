@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DANH_SACH_DAI_HOC, getDaiHocBySlug } from "@/lib/dai-hoc";
 import { createAnonClient } from "@/lib/supabase/anon";
+import { quanDB } from "@/lib/chuyen-de";
+import { cheSoTin } from "@/lib/doc-quyen";
 import { LISTING_CARD_COLS } from "@/lib/cols";
 import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
@@ -73,11 +75,12 @@ export default async function PhongTroDaiHocDetailPage({
   const supabase = createAnonClient();
   let query = supabase
     .from("listings")
-    .select(LISTING_CARD_COLS)
+    .select(LISTING_CARD_COLS, { count: "exact" })
     .eq("status", "published")
     .eq("deal", "cho_thue")
     .ilike("province", "%Hồ Chí Minh%")
-    .in("district", u.quan);
+    // 2/11 (audit 🔴7): DB lưu "Quận Bình Thạnh", "TP. Thủ Đức" - tên trần trong dai-hoc.ts ra 0 tin
+    .in("district", u.quan.map(quanDB));
 
   if (gia === "duoi-3-trieu") {
     query = query.lte("price_vnd", 3000000);
@@ -87,11 +90,13 @@ export default async function PhongTroDaiHocDetailPage({
     query = query.gt("price_vnd", 5000000);
   }
 
-  const { data: rawListings } = await query
+  const { data: rawListings, count } = await query
     .order("first_seen_at", { ascending: false, nullsFirst: false })
     .limit(30);
 
-  const listings = (rawListings || []) as Listing[];
+  // che SĐT trong tiêu đề/mô tả như mọi trang công khai; tongTin = số tin thật (không phải 30 thẻ đang hiện)
+  const listings = ((rawListings || []) as Listing[]).map(cheSoTin);
+  const tongTin = count ?? listings.length;
 
   // Trường lân cận cùng quận hoặc khu vực
   const truongLanCan = DANH_SACH_DAI_HOC.filter(
@@ -268,7 +273,7 @@ export default async function PhongTroDaiHocDetailPage({
           </div>
 
           <div className="text-xs text-[var(--text-3)] font-medium">
-            Hiển thị <span className="font-bold text-[var(--text-1)]">{listings.length}</span> phòng cho thuê
+            Có <span className="font-bold text-[var(--text-1)]">{tongTin.toLocaleString("vi-VN")}</span> phòng cho thuê{tongTin > listings.length ? ` (hiện ${listings.length} tin mới nhất)` : ""}
           </div>
         </div>
 

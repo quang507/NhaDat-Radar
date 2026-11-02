@@ -39,7 +39,7 @@ Trong Next.js 15, chỉ cần 1 lời gọi `await cookies()` xuất hiện ở 
      * [`PhoneReveal.tsx`](file:///d:/Radarnhadat/src/components/PhoneReveal.tsx): Dùng `@supabase/ssr` browser client trong `useEffect` để kiểm tra đăng nhập và hiển thị SĐT.
      * [`AdminDetailBar.tsx`](file:///d:/Radarnhadat/src/components/AdminDetailBar.tsx): Kiểm tra quyền Admin phía trình duyệt để hiện thanh công cụ ẩn/xóa tin và xem nguồn đối tác.
 3. **Bảo vệ Endpoint Revalidate:**
-   * Endpoint [`/api/revalidate`](file:///d:/Radarnhadat/src/app/api/revalidate/route.ts) bắt buộc truyền token bí mật qua query `?secret=...` hoặc header `x-revalidate-secret` khớp với `REVALIDATE_SECRET` hoặc `CRON_SECRET`. Nếu không cấu hình biến môi trường, endpoint tự trả về mã lỗi 503 để chống bị người ngoài xả cache bừa bãi.
+   * Endpoint [`/api/revalidate`](file:///d:/Radarnhadat/src/app/api/revalidate/route.ts) bắt buộc truyền token bí mật **chỉ qua header** `x-revalidate-secret` (không nhận query `?secret=` vì bị ghi log; so sánh bằng `timingSafeEqual`) khớp với `REVALIDATE_SECRET` hoặc `CRON_SECRET`. Nếu không cấu hình biến môi trường, endpoint tự trả về mã lỗi 503 để chống bị người ngoài xả cache bừa bãi.
 
 ---
 

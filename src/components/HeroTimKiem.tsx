@@ -192,20 +192,23 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
                   <span className="text-[var(--ink-faint)] self-center mr-1 text-overline uppercase tracking-wider font-semibold shrink-0">
                     Sinh viên<span className="hidden sm:inline"> (Gần ĐH)</span>:
                   </span>
+                  {/* 2/11 (audit): chip trường dẫn thẳng trang /phong-tro-gan-truong-dai-hoc/<slug> (lọc theo quận quanh
+                      trường) thay cho tìm q="Bách Khoa" - từ khoá trong tiêu đề tin ra rất ít kết quả. Slug lấy đúng
+                      theo src/lib/dai-hoc.ts (chép tay, không import: file đó nặng FAQ/mô tả, không đưa vào bundle trang chủ). */}
                   {[
-                    ["Kinh Tế", "ĐH Kinh Tế (UEH)"],
-                    ["Bách Khoa", "ĐH Bách Khoa"],
-                    ["Hutech", "ĐH Hutech"],
-                    ["Tôn Đức Thắng", "ĐH Tôn Đức Thắng"],
-                    ["Công Nghiệp", "ĐH Công Nghiệp"],
-                    ["Sư Phạm", "ĐH Sư Phạm"],
-                    ["Y Dược", "ĐH Y Dược"],
-                    ["Metro", "Tuyến Metro số 1"],
-                  ].map(([qTerm, label]) => (
+                    ["/phong-tro-gan-truong-dai-hoc/kinh-te-tphcm-ueh", "ĐH Kinh Tế (UEH)"],
+                    ["/phong-tro-gan-truong-dai-hoc/bach-khoa-tphcm", "ĐH Bách Khoa"],
+                    ["/phong-tro-gan-truong-dai-hoc/hutech", "ĐH Hutech"],
+                    ["/phong-tro-gan-truong-dai-hoc/ton-duc-thang-tdtu", "ĐH Tôn Đức Thắng"],
+                    ["/phong-tro-gan-truong-dai-hoc/cong-nghiep-tphcm-iuh", "ĐH Công Nghiệp"],
+                    ["/phong-tro-gan-truong-dai-hoc/su-pham-tphcm-hcmue", "ĐH Sư Phạm"],
+                    ["/phong-tro-gan-truong-dai-hoc/y-duoc-tphcm-ump", "ĐH Y Dược"],
+                    [qs({ deal: "cho_thue", province: "Hồ Chí Minh", q: "Metro" }), "Tuyến Metro số 1"],
+                  ].map(([href, label]) => (
                     <Link
-                      key={qTerm}
-                      href={qs({ deal: "cho_thue", province: "Hồ Chí Minh", q: qTerm })}
-                      className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-2.5 sm:px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition whitespace-nowrap font-medium text-xs"
+                      key={label}
+                      href={href}
+                      className="shrink-0 inline-flex items-center gap-1 min-h-11 sm:min-h-0 px-2.5 sm:px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition whitespace-nowrap font-medium text-xs"
                     >
                       <GraduationCap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span>{label}</span>

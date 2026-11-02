@@ -39,6 +39,8 @@ Mỗi lượt rổ hàng `git pull` code mới nhất. Bot Zalo chỉ đọc cod
 Chỉ ghi tên biến: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
 `NEXT_PUBLIC_SITE_URL`, `EVOHOME_PHONE`, `EVOHOME_PASSWORD`, `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
 `ZALO_BO_QUA_NHOM` (mã các nhóm bot bỏ qua, cách nhau dấu phẩy).
+`PHONE_HASH_KEY` (khoá HMAC băm SĐT ở `crawler/merge.mjs`; chỉ cần nếu máy chạy `crawler/daily.mjs`, phải TRÙNG giá trị
+GitHub Secret để cùng một SĐT ra cùng `poster_key`).
 
 Bộ nhớ đệm của crawler nằm ở `crawler/private/` (dấu vân tay phòng/toà, cache toạ độ). Mất thì lượt sau ghi lại toàn
 bộ và quét đủ, không hỏng gì.

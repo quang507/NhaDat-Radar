@@ -28,7 +28,6 @@ export default {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-        serif: ["var(--font-lora)", "Georgia", "serif"],
       },
       fontSize: {
         // ZEN Kaiz Modular Type Scale (Harmonious hierarchy for Web & Mobile)

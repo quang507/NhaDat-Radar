@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { coCookiePhien, layClient } from "@/lib/supabase/lazy";
 import { PROP } from "@/lib/format";
 import { Bell, CheckCircle2 } from "lucide-react";
 
@@ -56,9 +56,10 @@ export default function SaveSearchButton({ filters, compact = false }: { filters
 
   async function dangKy() {
     setState("busy");
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // 2/11 (audit P1): không cookie phiên = chưa đăng nhập -> đi thẳng /auth, khỏi tải supabase-js
+    const supabase = coCookiePhien() ? await layClient().catch(() => null) : null;
+    const user = supabase ? (await supabase.auth.getUser()).data.user : null;
+    if (!supabase || !user) {
       router.push("/auth?message=" + encodeURIComponent("Đăng nhập để nhận email khi có tin mới khớp bộ lọc của bạn."));
       return;
     }

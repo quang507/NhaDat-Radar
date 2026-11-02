@@ -185,7 +185,7 @@ export default function ChinhSachBaoMatPage() {
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong>Quyền được biết &amp; Quyền đồng ý:</strong> Được biết rõ mục đích, phạm vi thu thập dữ liệu và tự do đưa ra quyết định đồng ý.</li>
             <li><strong>Quyền truy cập &amp; Chỉnh sửa:</strong> Xem và cập nhật thông tin tài khoản của mình bất cứ lúc nào tại <Link href="/account" className="text-brand underline">trang tài khoản</Link>.</li>
-            <li><strong>Quyền rút lại sự đồng ý, hạn chế xử lý &amp; Yêu cầu xoá:</strong> Yêu cầu ngừng xử lý hoặc xoá dữ liệu cá nhân (kể cả xoá tài khoản) qua email {DON_VI.email} hoặc <Link href="/lien-he" className="text-brand underline">form Liên hệ</Link>. Riêng cookie, bạn đổi lựa chọn bằng nút ở mục 5.</li>
+            <li><strong>Quyền rút lại sự đồng ý, hạn chế xử lý &amp; Yêu cầu xoá:</strong> Yêu cầu ngừng xử lý hoặc xoá dữ liệu cá nhân qua email {DON_VI.email} hoặc <Link href="/lien-he" className="text-brand underline">form Liên hệ</Link>. Tự xoá tài khoản ngay trong ứng dụng/website: xem hướng dẫn tại <Link href="/xoa-tai-khoan" className="text-brand underline">trang Xoá tài khoản</Link>. Riêng cookie, bạn đổi lựa chọn bằng nút ở mục 5.</li>
             <li><strong>Quyền khiếu nại:</strong> Gửi khiếu nại tới ban quản trị hoặc cơ quan quản lý nhà nước nếu phát hiện vi phạm về bảo vệ dữ liệu.</li>
           </ul>
           <p className="mt-3 mb-1 font-semibold text-[var(--ink)]">Thời hạn xử lý yêu cầu (Nghị định 356/2025/NĐ-CP):</p>
