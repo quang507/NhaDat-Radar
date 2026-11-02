@@ -41,7 +41,7 @@ function getEnv(key, fallback = "") {
 const SUPABASE_URL = getEnv("NEXT_PUBLIC_SUPABASE_URL");
 const SERVICE_KEY = getEnv("SUPABASE_SERVICE_ROLE_KEY");
 const SITE_URL = getEnv("NEXT_PUBLIC_SITE_URL", "https://nhadatradar.com");
-const CDP_URL = getEnv("CHROME_CDP_URL", "http://localhost:9222");
+const CDP_URL = getEnv("CHROME_CDP_URL", "http://127.0.0.1:9222");
 const TELEGRAM_BOT_TOKEN = getEnv("TELEGRAM_BOT_TOKEN");
 const TELEGRAM_CHAT_ID = getEnv("TELEGRAM_CHAT_ID");
 const GEMINI_KEYS = [
@@ -232,7 +232,7 @@ export function taoBaiDangNhomHiFriendz(item) {
 }
 
 // Quét danh sách nhóm đã tham gia và tự động đăng bài theo lịch
-export async function dangBaiNhomVaPage(maxGroups = 8) {
+export async function dangBaiNhomVaPage(maxGroups = 8, offset = 0) {
   console.log("🔗 Đang kết nối Chrome qua port 9222 để chạy lịch đăng Nhóm & Page...");
   const browser = await chromium.connectOverCDP(CDP_URL);
   const ctx = browser.contexts()[0];
@@ -303,7 +303,7 @@ export async function dangBaiNhomVaPage(maxGroups = 8) {
     return [...urls];
   });
 
-  // Nếu số nhóm đã tham gia ít hơn maxGroups, bổ sung thêm nhóm mục tiêu từ danh sách discovered
+  // Bổ sung toàn bộ nhóm mục tiêu từ danh sách discovered
   const scratchDiscovered = "C:/Users/quang/.gemini/antigravity/brain/fc10db72-f782-4138-9234-6e3f53d99a7b/scratch/discovered_fb_groups.json";
   const targetJsonPath = path.join(process.cwd(), "crawler", "fb-target-groups.json");
   let targetList = [];
@@ -316,21 +316,21 @@ export async function dangBaiNhomVaPage(maxGroups = 8) {
   } catch {}
 
   for (const t of targetList) {
-    if (groupUrls.length >= maxGroups) break;
     const u = t.url ? (t.url.endsWith("/") ? t.url : `${t.url}/`) : null;
     if (u && !groupUrls.includes(u)) {
       groupUrls.push(u);
     }
   }
 
-  console.log(`📋 Sẵn sàng danh sách ${groupUrls.length} nhóm. Sẽ xử lý đúng ${Math.min(maxGroups, groupUrls.length)} nhóm.`);
+  const targetBatch = groupUrls.slice(offset, offset + maxGroups);
+  console.log(`📋 Tổng cộng có ${groupUrls.length} nhóm trong danh mục. Bắt đầu từ nhóm #${offset + 1}, xử lý ${targetBatch.length} nhóm.`);
   let daDang = 0;
 
-  for (const [idx, gUrl] of groupUrls.slice(0, maxGroups).entries()) {
+  for (const [idx, gUrl] of targetBatch.entries()) {
     const item = roHang[idx % roHang.length];
     const { caption, firstComment, ma } = taoBaiDangNhomHiFriendz(item);
     const { dir, files } = await taiAnhListing(item.images);
-    console.log(`\n[${idx + 1}/${Math.min(maxGroups, groupUrls.length)}] 🌐 Mở nhóm: ${gUrl} (Mã: ${ma}, ${files.length} ảnh)`);
+    console.log(`\n[${idx + 1}/${targetBatch.length}] (Tổng #${offset + idx + 1}) 🌐 Mở nhóm: ${gUrl} (Mã: ${ma}, ${files.length} ảnh)`);
 
     try {
       await page.goto(gUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
@@ -492,17 +492,34 @@ export async function timPhongKhopChoKhach(nc = {}) {
   return data || [];
 }
 
-/** Tạo câu bình luận thông minh: ghép đúng số phòng + quận + tầm giá, KHÔNG chèn link để an toàn tuyệt đối */
-export function taoBinhLuanKhachTim(nc = {}, phong = []) {
-  const q = nc.quan?.length ? nc.quan.map(quanGon).join(", ") : "";
+/** Tạo 2 câu bình luận thông minh chuẩn Thổ địa Sài Gòn: 
+ * - Cmt 1: Thân thiện, tư vấn trực tiếp, KHÔNG kèm link để chống lọc spam của Facebook
+ * - Cmt 2: Bằng chứng thực tế 100% + Link ảnh thật nhadatradar.com + Hotline Zalo 1 chạm
+ */
+export function tao2BinhLuanKhachTim(nc = {}, phong = [], itemRoHang = null) {
+  const q = nc.quan?.length ? nc.quan.map(quanGon).join(", ") : "Sài Gòn";
   const loai = LOAI_TEN[nc.loai_phong || ""] || "phòng";
   const gia = khoangGia(nc);
   const sl = phong.length;
+  const item = itemRoHang || (phong.length > 0 ? phong[0] : null);
+  const ma = item ? getMaPhong(item.id) : "RH05FDF1";
+  const linkWeb = item ? `${SITE_URL}/listings/${item.id}` : `${SITE_URL}/listings/05fdf190-da28-499c-8692-65c66b68fc88`;
 
-  const mauCoPhong = `{[w]Chào bạn, bên mình|Bên mình|Mình} đang có sẵn ${sl} ${loai} trống${q ? ` ở ${q}` : ""}${gia} {đúng nhu cầu bạn tìm|khớp ý bạn nè}, {mình nhắn riêng bạn ảnh thật + chi phí chi tiết nha|bạn check tin nhắn chờ hoặc kết bạn Zalo 0387 365 020 mình gửi ảnh thật từng phòng nha} {[w]🏠|✨|🔑}`;
-  const mauChung = `{[w]Bên mình|Mình} đang có sẵn mấy ${loai} trống${q ? ` khu ${q}` : ""}${gia} {sạch đẹp, giờ giấc tự do|xác thực chính chủ}, {mình nhắn riêng gửi ảnh thật cho bạn xem nha|bạn nhắn Zalo 0387 365 020 hoặc check hộp thư chờ mình gửi hình thực tế nha} {[w]🏠|✨}`;
+  // Cmt 1: Kéo tương tác tự nhiên, không chèn link
+  const mauCoPhong = `{[w]Chào bạn, bên mình|Bên mình|Mình} đang có sẵn ${sl > 0 ? sl : "mấy"} ${loai} trống ở khu ${q}${gia} {đúng nhu cầu bạn tìm nè|phòng ốc sạch sẽ, thoáng mát, giờ giấc tự do 100%|gác đúc cao ráo đứng thẳng không đụng đầu}. {Mình vừa nhắn riêng gửi bạn thông tin chi tiết rồi nha, bạn check tin nhắn chờ giúp mình nhé|Bạn check tin nhắn chờ hoặc kết bạn Zalo mình gửi ảnh thực tế từng căn nha}!`
+  const mauChung = `{[w]Bên mình|Mình} đang có sẵn mấy ${loai} trống khu ${q}${gia} {sạch đẹp, giờ giấc tự do không chung chủ|an ninh, có máy lạnh gác cao}. {Mình nhắn riêng gửi bạn ảnh thật tham khảo nhé|Bạn check tin nhắn chờ mình gửi vị trí và hình thực tế nha}!`;
+  const cmt1 = spinText(sl > 0 ? mauCoPhong : mauChung);
 
-  return spinText(sl > 0 ? mauCoPhong : mauChung);
+  // Cmt 2: Gửi link ảnh thật 100% + Mã tra cứu + Zalo định vị Maps
+  const cmt2 = spinText(
+    `Xem album ảnh thực tế 100% & vị trí bản đồ căn này tại: ${linkWeb}\nMã tra cứu: ${ma}\nCần định vị Maps ghé xem phòng thực tế bất kỳ lúc nào cứ nhắn Zalo 0387 365 020 (Lê Quang) mình hỗ trợ dẫn xem miễn phí 24/7 nha![w]`
+  );
+
+  return { cmt1, cmt2 };
+}
+
+export function taoBinhLuanKhachTim(nc = {}, phong = []) {
+  return tao2BinhLuanKhachTim(nc, phong).cmt1;
 }
 
 /** Gọi Gemini phân tích bài khách tìm phòng */
@@ -608,7 +625,7 @@ export async function layDanhSachKhachCanBinhLuan(limit = 15) {
     if (!k.url || k.url === "#") continue;
     const nc = k.nhu_cau || {};
     const phong = await timPhongKhopChoKhach(nc);
-    const binhLuan = taoBinhLuanKhachTim(nc, phong);
+    const { cmt1, cmt2 } = tao2BinhLuanKhachTim(nc, phong);
     ketQua.push({
       id: k.id,
       ten: k.ten || "Khách",
@@ -616,7 +633,8 @@ export async function layDanhSachKhachCanBinhLuan(limit = 15) {
       url: k.url,
       tom_tat: nc.tom_tat || (k.noi_dung || "").slice(0, 80),
       so_phong_khop: phong.length,
-      binh_luan: binhLuan,
+      binh_luan: cmt1,
+      binh_luan_2: cmt2,
     });
   }
   return ketQua;
@@ -624,41 +642,51 @@ export async function layDanhSachKhachCanBinhLuan(limit = 15) {
 
 /** Quét nhanh các nhóm trên Chrome CDP để nạp thêm khách tìm phòng mới vào bảng khach_tim */
 export async function quetThemKhachTimQuaCDP(page, maxGroups = 4) {
-  console.log("🔎 Đang quét các nhóm Facebook đã tham gia để tìm bài khách cần thuê phòng...");
-  await page.goto("https://www.facebook.com/groups/joins/?nav_source=tab", { waitUntil: "domcontentloaded", timeout: 45000 });
-  await page.waitForTimeout(3500);
+  console.log("🔎 Đang quét nguồn nhóm Facebook để tìm bài khách đăng cần thuê phòng...");
 
-  const groupLinks = await page.$$eval('a[href*="/groups/"]', (as) => {
-    const urls = new Set();
-    for (const a of as) {
-      const m = a.href.match(/https:\/\/www\.facebook\.com\/groups\/([^/?#]+)/);
-      if (m && !["feed", "discover", "joins", "create", "notifications"].includes(m[1])) {
-        urls.add(`https://www.facebook.com/groups/${m[1]}/`);
+  // Ưu tiên quét feed tổng hợp của tất cả các nhóm: https://www.facebook.com/groups/feed/
+  const targetScanUrls = ["https://www.facebook.com/groups/feed/"];
+
+  try {
+    await page.goto("https://www.facebook.com/groups/joins/?nav_source=tab", { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.waitForTimeout(3000);
+
+    const groupLinks = await page.$$eval('a[href*="/groups/"]', (as) => {
+      const urls = new Set();
+      for (const a of as) {
+        const m = a.href.match(/https:\/\/www\.facebook\.com\/groups\/([^/?#]+)/);
+        if (m && !["feed", "discover", "joins", "create", "notifications"].includes(m[1])) {
+          urls.add(`https://www.facebook.com/groups/${m[1]}/`);
+        }
       }
-    }
-    return [...urls];
-  });
+      return [...urls];
+    });
+
+    targetScanUrls.push(...groupLinks.slice(0, maxGroups));
+  } catch (e) {
+    console.warn("  ⚠️ Không lấy được danh sách nhóm con, quét trực tiếp groups/feed:", e.message);
+  }
 
   const PostSel = 'div[role="article"], div[role="feed"] > div, div[aria-posinset]';
   let demMoi = 0;
 
-  for (const gUrl of groupLinks.slice(0, maxGroups)) {
-    console.log(`  🌐 Đang đọc nhóm: ${gUrl}`);
+  for (const gUrl of targetScanUrls) {
+    console.log(`  🌐 Đang đọc feed: ${gUrl}`);
     try {
       await page.goto(gUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(3500);
       const gid = (gUrl.match(/\/groups\/([^/?#]+)/) || [])[1] || "";
 
-      for (let s = 0; s < 4; s++) {
+      for (let s = 0; s < 5; s++) {
         await page.mouse.wheel(0, 2200);
-        await page.waitForTimeout(1800);
+        await page.waitForTimeout(1600);
       }
 
       const rawPosts = await page.$$eval(PostSel, (nodes, gid) =>
         nodes.map((n) => {
           const box = n.closest("[aria-posinset]") || n;
           let url = box.querySelector('a[href*="/posts/"],a[href*="/permalink/"],a[href*="/story.php"]')?.href || "";
-          if (!url && gid) {
+          if (!url && gid && gid !== "feed") {
             for (const a of box.querySelectorAll('a[href*="set=pcb."]')) {
               const id = (a.getAttribute("href") || "").match(/set=pcb\.(\d+)/)?.[1];
               if (id) { url = `https://www.facebook.com/groups/${gid}/posts/${id}/`; break; }
@@ -673,9 +701,23 @@ export async function quetThemKhachTimQuaCDP(page, maxGroups = 4) {
         const urlClean = p.url ? p.url.replace(/[?#].*$/, "") : null;
         if (!urlClean) continue;
 
-        const ai = await goiGeminiKhachTim(cleaned);
-        const nc = chuanHoaNhuCau(ai);
-        if (!nc) continue;
+        let nc = null;
+        try {
+          const ai = await goiGeminiKhachTim(cleaned);
+          nc = chuanHoaNhuCau(ai);
+        } catch {}
+
+        if (!nc) {
+          const quanMatch = cleaned.match(/quận\s*\d+|bình thạnh|gò vấp|phú nhuận|tân bình|thủ đức|quận\s*[a-z]+/i);
+          nc = {
+            deal: "thue",
+            quan: quanMatch ? [quanMatch[0]] : ["Sài Gòn"],
+            gia_tu: null,
+            gia_den: null,
+            loai_phong: "phong_tro",
+            tom_tat: cleaned.slice(0, 100),
+          };
+        }
 
         const row = {
           nguon: "facebook",
@@ -694,19 +736,38 @@ export async function quetThemKhachTimQuaCDP(page, maxGroups = 4) {
         }
       }
     } catch (e) {
-      console.warn(`  ⚠️ Bỏ qua nhóm ${gUrl}: ${e.message}`);
+      console.warn(`  ⚠️ Bỏ qua ${gUrl}: ${e.message}`);
     }
   }
   console.log(`✅ Quét xong: thêm ${demMoi} khách tìm phòng mới vào bảng khach_tim.`);
   return demMoi;
 }
 
-/** Chạy trọn quy trình săn khách & tự động bình luận qua Chrome CDP + Báo cáo ngày */
+/** Chạy trọn quy trình săn khách & tự động bình luận 2 CMT/BÀI qua Chrome CDP + Báo cáo ngày */
 export async function chaySanKhachTuDong(limit = 10) {
-  console.log("🔗 Kết nối Chrome qua port 9222...");
+  console.log("🔗 Kết nối Chrome qua port 9222 để chạy chế độ Thợ Săn Nhu Cầu (2 cmt / bài)...");
   const browser = await chromium.connectOverCDP(CDP_URL);
   const ctx = browser.contexts()[0];
   const page = ctx.pages().find((p) => p.url().includes("facebook.com")) || (await ctx.newPage());
+
+  // Đưa tab Facebook lên trước
+  await page.bringToFront().catch(() => {});
+
+  // Kiểm tra nếu đang ở checkpoint xác minh người dùng
+  if (page.url().includes("checkpoint")) {
+    console.log("\n=======================================================");
+    console.log("🛑 FACEBOOK ĐANG YÊU CẦU NHẬP MÃ CAPTCHA XÁC MINH!");
+    console.log("👉 Cửa sổ Chrome đã được đưa lên trước màn hình.");
+    console.log("👉 Bạn chỉ cần gõ mã ảnh trên Chrome rồi bấm Continue.");
+    console.log("⏳ Tool đang chờ bạn xác minh xong để tự động chạy tiếp...");
+    console.log("=======================================================\n");
+
+    while (page.url().includes("checkpoint")) {
+      await page.waitForTimeout(2500);
+    }
+    console.log("🎉 ĐÃ XÁC MINH THÀNH CÔNG! BẮT ĐẦU SĂN KHÁCH...\n");
+    await page.waitForTimeout(2000);
+  }
 
   let ds = await layDanhSachKhachCanBinhLuan(limit);
   if (ds.length === 0) {
@@ -719,7 +780,8 @@ export async function chaySanKhachTuDong(limit = 10) {
 
   for (const k of ds) {
     console.log(`\n👉 Đang mở bài của [${k.ten}] (${k.tom_tat})...`);
-    console.log(`   💬 Câu bình luận (${k.so_phong_khop} phòng khớp): "${k.binh_luan}"`);
+    console.log(`   💬 [Cmt 1]: "${k.binh_luan}"`);
+    console.log(`   💬 [Cmt 2]: "${k.binh_luan_2}"`);
     try {
       await page.goto(k.url, { waitUntil: "domcontentloaded", timeout: 45000 });
       await page.waitForTimeout(4000);
@@ -729,6 +791,8 @@ export async function chaySanKhachTuDong(limit = 10) {
       ).first();
 
       if (await commentBox.isVisible({ timeout: 7000 }).catch(() => false)) {
+        // Cmt 1: Tư vấn thân thiện trực tiếp (không link)
+        console.log(`   💬 [1/2] Đang gửi cmt 1 (tư vấn trực tiếp)...`);
         await commentBox.click();
         await page.waitForTimeout(600);
         await commentBox.fill(k.binh_luan);
@@ -736,11 +800,27 @@ export async function chaySanKhachTuDong(limit = 10) {
         await page.keyboard.press("Enter");
         await page.waitForTimeout(3500);
 
+        // Cmt 2: Bổ sung link tra cứu phòng trên nhadatradar.com + hotline Zalo
+        if (k.binh_luan_2) {
+          console.log(`   💬 [2/2] Đang gửi cmt 2 (ảnh thật + mã tra cứu + Zalo)...`);
+          const commentBox2 = page.locator(
+            'div[role="textbox"][aria-label*="bình luận" i], div[role="textbox"][aria-label*="comment" i], div[contenteditable="true"][role="textbox"]'
+          ).first();
+          if (await commentBox2.isVisible({ timeout: 5000 }).catch(() => false)) {
+            await commentBox2.click();
+            await page.waitForTimeout(500);
+            await commentBox2.fill(k.binh_luan_2);
+            await page.waitForTimeout(800);
+            await page.keyboard.press("Enter");
+            await page.waitForTimeout(3000);
+          }
+        }
+
         await sb.from("khach_tim").update({ xu_ly: "da_nhan", xu_ly_luc: new Date().toISOString() }).eq("id", k.id);
         thanhCong++;
-        console.log(`   ✅ Đã bình luận & đánh dấu hoàn tất!`);
+        console.log(`   ✅ Đã hoàn tất 2 bình luận cho khách & đánh dấu hoàn tất!`);
 
-        const waitMs = (Math.floor(Math.random() * 35) + 45) * 1000;
+        const waitMs = (Math.floor(Math.random() * 25) + 35) * 1000;
         console.log(`   ⏳ Nghỉ ${Math.round(waitMs / 1000)}s trước khi sang khách tiếp theo...`);
         await page.waitForTimeout(waitMs);
       } else {
@@ -799,7 +879,8 @@ async function main() {
         await new Promise((r) => setTimeout(r, loopHours * 3600 * 1000));
       }
     } else {
-      await dangBaiNhomVaPage(maxG);
+      const offset = args.includes("--offset") ? Number(args[args.indexOf("--offset") + 1]) || 0 : 0;
+      await dangBaiNhomVaPage(maxG, offset);
     }
     return;
   }
