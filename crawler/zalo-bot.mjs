@@ -16,9 +16,10 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 import { canonProvince, quanTheoDB } from "./chung.mjs";
-import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH } from "./zalo-tu-van-lead.mjs";
+import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH, soanTinSanKhach, TIEN_ICH } from "./zalo-tu-van-lead.mjs";
 import { taoKhoHoiThoai } from "./zalo-hoi-thoai.mjs";
-import { taoCongGui } from "./zalo-gui.mjs";
+import { taoCongGui, trongGioIm } from "./zalo-gui.mjs";
+import { laBaiTimPhong, SYS_TIM, SCHEMA_TIM, chuanHoaNhuCau } from "./khach-tim.mjs";
 
 // Windows: spawn/execFileSync KHÔNG chạy được shim .cmd của npm (ENOENT/EINVAL)
 // -> tìm file bin thật của zalo-agent-cli trong npm global rồi gọi `node <bin>`.
@@ -318,6 +319,121 @@ async function harvestGroup(text, anh = [], khoaAnh = null) {
   }
 }
 
+// ---- SĂN KHÁCH TÌM PHÒNG TRONG NHÓM: Thả tim + Rep ngắn nhóm + Nhắn riêng 2 căn ----
+const daTuongTacKhach = new Map(); // senderId -> ms
+const nhomVuaTuongTac = new Map(); // groupId -> ms
+const lichSuOutreachNgay = [];     // [ms]
+const MAX_OUTREACH_NGAY = Number(process.env.ZALO_MAX_OUTREACH_NGAY || 10);
+const GIAN_CACH_NHOM_MS = 15 * 60_000;
+const GIAN_CACH_KHACH_MS = 48 * 3600_000;
+
+async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, text }) {
+  if (!text || text.length < 12) return;
+  // Lớp 1: Lọc thô regex chống tốn quota
+  if (!laBaiTimPhong(text)) return;
+
+  const nowMs = Date.now();
+  // Khung giờ nghỉ ban đêm (22h30 - 07h30)
+  if (trongGioIm(nowMs, [22, 7])) {
+    console.log(`[Săn khách] Đang trong giờ nghỉ đêm -> bỏ qua tương tác: "${text.slice(0, 40)}"`);
+    return;
+  }
+
+  // Giữ an toàn nick: kiểm tra hạn mức
+  while (lichSuOutreachNgay.length && nowMs - lichSuOutreachNgay[0] > 24 * 3600_000) {
+    lichSuOutreachNgay.shift();
+  }
+  if (lichSuOutreachNgay.length >= MAX_OUTREACH_NGAY) {
+    console.log(`[Săn khách] Đạt hạn mức an toàn (${MAX_OUTREACH_NGAY} khách/ngày) -> tạm dừng`);
+    return;
+  }
+  if (daTuongTacKhach.has(senderId) && nowMs - daTuongTacKhach.get(senderId) < GIAN_CACH_KHACH_MS) {
+    return;
+  }
+  if (nhomVuaTuongTac.has(groupId) && nowMs - nhomVuaTuongTac.get(groupId) < GIAN_CACH_NHOM_MS) {
+    return;
+  }
+
+  console.log(`🎯 [Săn khách] Phát hiện khách tìm phòng từ ${senderName} (${senderId}): "${text.slice(0, 50)}"`);
+
+  // Lớp 2: AI Gemini bóc tách nhu cầu
+  const prompt = `${SYS_TIM}\n${SCHEMA_TIM}\n\n--- BÀI ĐĂNG TÌM PHÒNG TRONG NHÓM ZALO ---\n${text}`;
+  const aiRaw = await goiGeminiJSON(prompt);
+  const nhuCau = chuanHoaNhuCau(aiRaw);
+  if (!nhuCau || !nhuCau.quan || !nhuCau.quan.length) {
+    console.log("  - bỏ (AI xác định không phải nhu cầu tìm phòng rõ ràng)");
+    return;
+  }
+
+  // Khớp phòng trong kho Supabase (ưu tiên phòng trống còn published)
+  let canKhop = [];
+  try {
+    let q = sb.from("listings").select("id, title, price_vnd, area_m2, kind, address, ward, district, specs, amenities")
+      .eq("deal", "cho_thue")
+      .eq("status", "published");
+    if (nhuCau.quan[0]) {
+      const qClean = nhuCau.quan[0].replace(/^(Quận|Huyện|Thành phố|TP\.?)\s+/i, "").trim();
+      q = q.ilike("district", `%${qClean}%`);
+    }
+    if (nhuCau.gia_den) {
+      q = q.lte("price_vnd", Math.round(nhuCau.gia_den * 1.15));
+    }
+    if (nhuCau.gia_tu) {
+      q = q.gte("price_vnd", Math.round(nhuCau.gia_tu * 0.8));
+    }
+    const { data } = await q.order("price_vnd", { ascending: true }).limit(2);
+    if (Array.isArray(data)) canKhop = data;
+  } catch (err) {
+    console.error("[Săn khách] Lỗi tìm phòng khớp:", err.message);
+  }
+
+  // Đánh dấu thời gian tương tác
+  daTuongTacKhach.set(senderId, nowMs);
+  nhomVuaTuongTac.set(groupId, nowMs);
+  lichSuOutreachNgay.push(nowMs);
+
+  const { repNhom, tinRieng } = soanTinSanKhach({ senderName, nhuCau, canKhop });
+
+  // Bước 1: Thả tim tin nhắn của khách trong group
+  if (msgId) {
+    try {
+      await congGui.react(msgId, groupId, "/-heart", { type: "1", cliMsgId });
+      console.log(`  ✓ Thả tim tin nhắn của ${senderName}`);
+    } catch (e) {
+      console.error("  (thả tim lỗi:", e.message, ")");
+    }
+  }
+
+  // Bước 2: Rep ngắn vào group kèm mention
+  try {
+    const mentionSpec = `0:${senderId}:${senderName.length + 1}`;
+    await congGui.gui(groupId, repNhom, { loai: "khach_tu_dong", type: "1", mention: mentionSpec });
+    console.log(`  ✓ Đã rep nhóm cho ${senderName}`);
+  } catch (e) {
+    console.error("  (rep nhóm lỗi:", e.message, ")");
+  }
+
+  // Bước 3: Nhắn tin riêng 1-1 cho khách
+  try {
+    await congGui.gui(senderId, tinRieng, { loai: "khach_tu_dong", type: "0" });
+    console.log(`  ✓ Đã gửi tin nhắn riêng cho ${senderName}`);
+  } catch (e) {
+    console.error("  (nhắn riêng lỗi:", e.message, ")");
+  }
+
+  // Báo thẻ về Zalo Admin
+  try {
+    const theAdmin = `🎯 SĂN ĐƯỢC KHÁCH TÌM PHÒNG (Group)\n` +
+      `Khách: ${senderName} (${senderId})\n` +
+      `Nhu cầu: ${nhuCau.tom_tat || `${nhuCau.quan.join(", ")} ${nhuCau.gia_den ? `dưới ${(nhuCau.gia_den/1e6).toFixed(1)}tr` : ""}`}\n` +
+      `Đã làm: Thả tim + Rep nhóm + Nhắn riêng ${canKhop.length} căn.\n` +
+      `Gõ "K${senderId.slice(-4)} <câu của anh>" nếu muốn chat tiếp với khách.`;
+    await congGui.gui(ADMIN_ZALO_UID, theAdmin, { loai: "admin" });
+  } catch (e) {
+    console.error("  (báo admin lỗi:", e.message, ")");
+  }
+}
+
 // ---- CRM SYNC (Tự động đồng bộ khách hàng, lịch xem, deals vào CRM) ----
 
 async function crmUpsertSeller({ zaloId, phone = null, name = null, listingId = null, sellerType = "ccrb" }) {
@@ -457,7 +573,13 @@ function startListener() {
 
     // CHỈ CÀO TIN TỪ GROUP:
     console.log(`← (group ${fromId}) ${text.slice(0, 60)}`);
-    await harvestGroup(text, layAnh(khoaAnh), khoaAnh); // chỉ bóc data, không trả lời trong group
+    await harvestGroup(text, layAnh(khoaAnh), khoaAnh);
+    if (d.uidFrom && String(d.uidFrom) !== ADMIN_ZALO_UID) {
+      const msgId = d.msgId || d.id || ev.msgId || null;
+      const cliMsgId = d.cliMsgId || d.msgId || d.id || null;
+      const senderName = d.dName || d.sender?.name || d.displayName || d.name || "bạn";
+      await sanKhachGroup({ msgId, cliMsgId, groupId: fromId, senderId: d.uidFrom, senderName, text });
+    }
   }
 
   let buf = "", queue = Promise.resolve();

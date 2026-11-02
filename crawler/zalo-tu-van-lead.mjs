@@ -580,12 +580,12 @@ export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
     ? `@${ten} Dạ em vừa gửi riêng cho mình ${canKhop.length} căn đúng nhu cầu ở ${quanText} rồi á, bạn check tin nhắn chờ Zalo giúp em nha!`
     : `@${ten} Dạ em vừa nhắn tin riêng hỗ trợ mình tìm phòng ở ${quanText} rồi á, bạn check tin nhắn chờ Zalo giúp em nha!`;
 
-  const giaMaxStr = nhuCau?.gia_den ? ` tầm ${(nhuCau.gia_den / 1e6).toFixed(1).replace(/\.0$/, "")}tr` : "";
+  const giaMaxStr = nhuCau?.gia_den ? ` tầm ${(nhuCau.gia_den / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",")}tr` : "";
   let tinRieng = `Dạ em chào ${ten}! Em thấy bạn vừa đăng tìm phòng ở ${quanText}${giaMaxStr}.\n`;
   if (coCan) {
     tinRieng += `Bên em đang có sẵn ${canKhop.length} căn đúng tiêu chí gửi bạn tham khảo trước:\n`;
     canKhop.forEach((c, idx) => {
-      const giaStr = c.price_vnd ? `${(c.price_vnd / 1e6).toFixed(1).replace(/\.0$/, "")}tr/tháng` : "Giá thoả thuận";
+      const giaStr = c.price_vnd ? `${(c.price_vnd / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",")}tr/tháng` : "Giá thoả thuận";
       const kvStr = [c.ward, c.district].filter(Boolean).join(", ");
       const ti = [...new Set((c.amenities || []).map((a) => TIEN_ICH[a] || a).filter(Boolean))].slice(0, 3).join(", ");
       tinRieng += `${idx + 1}. Căn ${kvStr} - ${giaStr}${ti ? ` (${ti})` : ""}\n`;

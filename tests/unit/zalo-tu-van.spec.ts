@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 import {
-  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh,
+  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach,
 } from "../../crawler/zalo-tu-van-lead.mjs";
+import { laBaiTimPhong } from "../../crawler/khach-tim.mjs";
 import { hoiThoaiMoi, themTin, nguoiNhan } from "../../crawler/zalo-hoi-thoai.mjs";
 import { taoCongGui, trongGioIm } from "../../crawler/zalo-gui.mjs";
 
@@ -266,4 +267,50 @@ test("sự kiện phi ngôn ngữ: cuộc gọi, sticker, tin thoại có câu p
   const KHACH_VOICE = "9990003333";
   await tv.khachNhan({ uid: KHACH_VOICE, ten: "Nam", chu: "", kieu: "giong_noi" });
   expect(dem.get(KHACH_VOICE)!.goi_y[0]).toContain("tin nhắn thoại");
+});
+
+test("săn khách tìm phòng: nhận diện tin tìm phòng, soạn tin rep nhóm và tin nhắn riêng 1-1", () => {
+  // 1. Nhận diện tin tìm phòng và loại trừ tin rao
+  expect(laBaiTimPhong("Mình cần tìm phòng trọ Bình Thạnh dưới 4tr có gác lửng")).toBe(true);
+  expect(laBaiTimPhong("Ai có phòng trọ Q7 tầm 3tr5 cho em xin info với ạ")).toBe(true);
+  expect(laBaiTimPhong("Chính chủ cho thuê phòng trọ Quận 10 giá 4tr full nội thất")).toBe(false);
+
+  // 2. Soạn tin khi có 2 căn khớp
+  const canKhop = [
+    { title: "Phòng trọ D2", price_vnd: 3800000, district: "Quận Bình Thạnh", ward: "Phường 25", amenities: ["gac_lung", "ban_cong"] },
+    { title: "Phòng trọ Bạch Đằng", price_vnd: 4000000, district: "Quận Bình Thạnh", ward: "Phường 15", amenities: ["dieu_hoa"] },
+  ];
+  const { repNhom, tinRieng } = soanTinSanKhach({
+    senderName: "Tuấn Anh",
+    nhuCau: { quan: ["Quận Bình Thạnh"], gia_den: 4000000 },
+    canKhop,
+  });
+
+  expect(repNhom).toContain("@Tuấn Anh");
+  expect(repNhom).toContain("2 căn đúng nhu cầu ở Quận Bình Thạnh");
+  expect(repNhom).toContain("tin nhắn chờ Zalo");
+
+  expect(tinRieng).toContain("Dạ em chào Tuấn Anh!");
+  expect(tinRieng).toContain("3,8tr/tháng (gác lửng, ban công)");
+  expect(tinRieng).toContain("4tr/tháng (điều hoà)");
+  expect(tinRieng).toContain("Radar dẫn xem phòng trực tiếp miễn phí 100%");
+  expect(tinRieng).toContain("Tối nay tầm 18h30 hoặc chiều mai");
+});
+
+test("cổng gửi: hỗ trợ gửi tin nhóm có mention và thả tim (react)", async () => {
+  const cacLenh: string[][] = [];
+  const chay = (args: string[]) => { cacLenh.push(args); return Promise.resolve(JSON.stringify({ ok: true })); };
+  const cong = taoCongGui({ cli: chay, now: () => SANG, ngu: () => Promise.resolve(), rand: () => 0 });
+
+  // 1. Gửi tin nhóm có mention
+  await cong.gui("group_123", "@Tuấn Anh Em vừa nhắn riêng á", {
+    loai: "khach_tu_dong",
+    type: "1",
+    mention: "0:user_456:9",
+  });
+  expect(cacLenh).toContainEqual(["msg", "send", "-t", "1", "--mention", "0:user_456:9", "group_123", "@Tuấn Anh Em vừa nhắn riêng á"]);
+
+  // 2. Thả tim tin nhắn
+  await cong.react("msg_999", "group_123", "/-heart", { type: "1", cliMsgId: "cli_888" });
+  expect(cacLenh).toContainEqual(["msg", "react", "-t", "1", "-c", "cli_888", "msg_999", "group_123", "/-heart"]);
 });
