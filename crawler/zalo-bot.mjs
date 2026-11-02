@@ -115,6 +115,7 @@ function kieuTin(msgType, laAnh, text) {
   if (/video/i.test(msgType)) return "video";
   if (/file/i.test(msgType)) return "tep";
   if (/location/i.test(msgType)) return "vi_tri";
+  if (/call/i.test(msgType) || /cuộc gọi/i.test(text)) return "cuoc_goi";
   return text ? "chu" : "khac";
 }
 

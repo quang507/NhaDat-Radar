@@ -244,3 +244,26 @@ test("tiếng vọng câu bot tự gửi không bị coi là người thật nh�
   await tv.tuGuiNhan({ uid: "777", chu: cauBot.text });
   expect(dem.get("777")!.che_do).toBe("bot");
 });
+
+test("sự kiện phi ngôn ngữ: cuộc gọi, sticker, tin thoại có câu phản hồi và gợi ý chuẩn", async () => {
+  const { tv, daGui, dem } = heGia();
+  const KHACH_GOI = "9990001111";
+
+  // 1. Khách gọi nhỡ -> báo thẻ khẩn, có gợi ý xin lỗi lỡ cuộc gọi
+  await tv.khachNhan({ uid: KHACH_GOI, ten: "Hoàng", chu: "", kieu: "cuoc_goi" });
+  const theAdmin = daGui.find((g) => g.thread === "ADMIN" && g.text.includes("K1111"));
+  expect(theAdmin).toBeDefined();
+  expect(theAdmin!.text).toContain("🚨 K1111 · Hoàng");
+  expect(theAdmin!.text).toContain("lỡ cuộc gọi");
+  expect(dem.get(KHACH_GOI)!.goi_y[0]).toContain("lỡ cuộc gọi");
+
+  // 2. Khách gửi sticker -> gợi ý chào hỏi lọc rổ hàng 1.400+ căn
+  const KHACH_STICKER = "9990002222";
+  await tv.khachNhan({ uid: KHACH_STICKER, ten: "Hà", chu: "", kieu: "sticker" });
+  expect(dem.get(KHACH_STICKER)!.goi_y[0]).toContain("1.400+ căn");
+
+  // 3. Khách gửi tin thoại -> gợi ý báo đang ngoài đường hơi ồn xin gửi chữ
+  const KHACH_VOICE = "9990003333";
+  await tv.khachNhan({ uid: KHACH_VOICE, ten: "Nam", chu: "", kieu: "giong_noi" });
+  expect(dem.get(KHACH_VOICE)!.goi_y[0]).toContain("tin nhắn thoại");
+});

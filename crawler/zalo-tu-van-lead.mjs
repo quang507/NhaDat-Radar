@@ -129,11 +129,14 @@ const LUAT_CUNG = [
   { ly_do: "dat_coc_hop_dong", khan: false, bo_dau: /(hop dong|\bhd\b|dat coc|coc giu|giu phong|ky hd)/ },
 ];
 
-/** kieu: "chu" | "anh" | "sticker" | "giong_noi" | ... - mọi thứ không phải chữ bot không đọc được */
+/** kieu: "chu" | "anh" | "sticker" | "giong_noi" | "cuoc_goi" | ... - mọi thứ không phải chữ */
 export function tinHieuCung(text, kieu = "chu") {
   const ly_do = [];
   let khan = false;
-  if (kieu !== "chu") ly_do.push(`gui_${kieu}`);
+  if (kieu !== "chu") {
+    ly_do.push(`gui_${kieu}`);
+    if (kieu === "cuoc_goi") khan = true;
+  }
   const khongDau = boDau(String(text || "").trim());
   for (const l of LUAT_CUNG)
     if (l.bo_dau.test(khongDau)) {
@@ -207,7 +210,7 @@ LUẬT CỨNG cho goi_y (vi phạm là bản nháp bị loại):
 7. ngon_ngu = "en" thì goi_y viết HOÀN TOÀN bằng tiếng Anh, xưng "I/we", gọi "you".`;
 
 const NHAN_VAI = { khach: "Khách", nguoi: "Radar-người", bot: "Radar-bot" };
-const NHAN_KIEU = { anh: "[ảnh]", sticker: "[sticker]", giong_noi: "[tin thoại]", tep: "[tệp]" };
+const NHAN_KIEU = { anh: "[ảnh]", sticker: "[sticker]", giong_noi: "[tin thoại]", tep: "[tệp]", vi_tri: "[vị trí]", cuoc_goi: "[cuộc gọi nhỡ]" };
 export const moTaTin = (chu, kieu) => (chu && String(chu).trim()) || NHAN_KIEU[kieu] || `[${kieu}]`;
 
 const NHAN = { gia: "Giá thuê", dien_tich: "Diện tích", loai_phong: "Loại phòng", noi_that: "Nội thất", tien_ich: "Tiện ích",
@@ -273,10 +276,67 @@ export function soanTraLoiTuFacts(hoiVe, f, isEn = false) {
     : `Dạ phòng ${f.ma}:\n${dong.join("\n")}\nBạn cần hỏi thêm gì cứ nhắn nha.`;
 }
 
-/** Câu chào DUY NHẤT bot được gửi khi chưa biết khách hỏi căn nào - nói thật, xin mã phòng */
+/** Câu chào chuẩn kịch bản của Radar Nhà Đất */
 export const cauChao = (isEn) => isEn
-  ? "Hi, Radar has received your message. Please send the room code (like RH1A2B3C, shown on the listing page) or the listing link so we can give you the exact price and fees."
-  : "Chào bạn, Radar đã nhận tin nhắn. Bạn gửi giúp mã phòng (dạng RH1A2B3C, có trên trang phòng) hoặc link phòng để bên mình báo đúng giá và chi phí nha.";
+  ? "Hi there! Radar has received your message. Which district or area are you looking for a room in, and what is your approximate budget? Let me know so I can filter our 1,400+ available rooms for you right away!"
+  : "Dạ em chào anh/chị! Anh/chị đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc rổ hàng 1.400+ căn trống hôm nay gửi liền cho mình tham khảo ạ?";
+
+/** Phản hồi các sự kiện phi ngôn ngữ (cuộc gọi nhỡ, sticker/icon, tin nhắn thoại, ảnh) */
+export function cauPhanHoiPhiNgonNgu({ kieu, facts, isEn = false }) {
+  if (kieu === "cuoc_goi") {
+    return isEn
+      ? "Hi there! I missed your call because I was busy showing a room to a tenant. Could you please text me your rental requirements (district, budget) so I can assist you right away?"
+      : "Dạ em chào anh/chị! Em vừa lỡ cuộc gọi của mình do đang bận dẫn khách xem phòng một chút xíu ạ. Anh/chị đang quan tâm căn phòng ở khu vực nào, nhắn em nhu cầu em kiểm tra và gửi thông tin chi tiết qua liền cho mình nha!";
+  }
+  if (kieu === "sticker") {
+    if (facts) {
+      return isEn
+        ? `Hi! Are you interested in unit ${facts.ma}? Would you like more information or would you like to schedule a viewing?`
+        : `Dạ anh/chị đang quan tâm căn ${facts.ma} đúng không ạ? Anh/chị cần em hỗ trợ thêm thông tin gì về căn này hay muốn hẹn giờ qua xem thực tế không nè?`;
+    }
+    return cauChao(isEn);
+  }
+  if (kieu === "giong_noi") {
+    return isEn
+      ? "Hi there! I'm outside and it's quite noisy so I couldn't listen to your voice message clearly. Please text me your room requirements so I can assist you right away!"
+      : "Dạ em đang ở ngoài đường hơi ồn nên chưa nghe rõ tin nhắn thoại của mình á. Anh/chị nhắn tin chữ giúp em nhu cầu tìm phòng (khu vực, ngân sách) để em hỗ trợ mình nhanh nhất nha!";
+  }
+  if (kieu === "anh") {
+    return isEn
+      ? "I received your photo! Could you please share the room code or your requirements so I can check it for you?"
+      : "Dạ em nhận được hình ảnh anh/chị gửi rồi ạ. Anh/chị gửi em xin thêm mã phòng hoặc nhu cầu chi tiết để em kiểm tra ngay cho mình nha!";
+  }
+  return null;
+}
+
+export function goiYPhiNgonNgu({ kieu, facts, isEn = false }) {
+  const c1 = cauPhanHoiPhiNgonNgu({ kieu, facts, isEn });
+  if (kieu === "cuoc_goi") {
+    return [
+      c1,
+      "Dạ em chào anh/chị, em vừa thấy cuộc gọi nhỡ từ mình. Mình đang cần xem phòng gấp hay cần tư vấn khu vực nào nhắn em gọi lại ngay nhé ạ!",
+    ].filter(Boolean);
+  }
+  if (kieu === "sticker") {
+    return [
+      c1,
+      "Dạ em chào anh/chị, Radar có thể hỗ trợ gì cho mình về tìm phòng trọ/căn hộ hôm nay ạ?",
+    ].filter(Boolean);
+  }
+  if (kieu === "giong_noi") {
+    return [
+      c1,
+      "Dạ em vừa nhận tin nhắn thoại của mình. Anh/chị gửi lại bằng tin nhắn chữ giúp em để em tra cứu phòng nhanh nhất nhé ạ!",
+    ].filter(Boolean);
+  }
+  if (kieu === "anh") {
+    return [
+      c1,
+      "Dạ căn phòng trong ảnh anh/chị muốn xem thực tế hay cần em check giá và các chi phí cụ thể ạ?",
+    ].filter(Boolean);
+  }
+  return [c1].filter(Boolean);
+}
 
 // ---------------------------------------------------------------------------
 //  Chính sách: hàm thuần, mọi nhánh có test
@@ -286,7 +346,7 @@ export const cauChao = (isEn) => isEn
  * cuaSoMoi: tin này mở một lượt chờ mới (trước đó không có tin khách nào đang chờ)
  * doiCan: khách vừa chuyển sang hỏi căn khác
  */
-export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, doiCan = false }) {
+export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, doiCan = false, kieu = "chu" }) {
   const nguoi = dangDoNguoi(h, luc);
   const nguoiTrongCuoc = nguoi && luc - h.nguoi_luc < NGUOI_TRONG_CUOC_MS;
   const khan = cung.khan || !!pl?.khan || Y_DINH_KHAN.has(pl?.y_dinh);
@@ -294,9 +354,21 @@ export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, d
   const isEn = pl?.ngon_ngu === "en";
 
   let tuTraLoi = null, laChao = false;
-  if (!nguoi && tuDong && !canNguoi) {
-    if (pl.y_dinh === "hoi_thong_tin") tuTraLoi = soanTraLoiTuFacts(pl.hoi_ve, facts, isEn);
-    else if (!facts && !h.da_chao && (pl.y_dinh === "chao_hoi" || pl.y_dinh === "tim_phong")) { tuTraLoi = cauChao(isEn); laChao = true; }
+  if (!nguoi && tuDong) {
+    if (!canNguoi) {
+      if (pl.y_dinh === "hoi_thong_tin") tuTraLoi = soanTraLoiTuFacts(pl.hoi_ve, facts, isEn);
+      else if (!facts && !h.da_chao && (pl.y_dinh === "chao_hoi" || pl.y_dinh === "tim_phong")) { tuTraLoi = cauChao(isEn); laChao = true; }
+    } else if (["cuoc_goi", "sticker", "giong_noi"].includes(kieu)) {
+      if (kieu === "cuoc_goi" && !h.da_chao_cuoc_goi) {
+        tuTraLoi = cauPhanHoiPhiNgonNgu({ kieu, facts, isEn });
+        h.da_chao_cuoc_goi = true;
+      } else if (kieu === "sticker" && !h.da_chao) {
+        tuTraLoi = cauPhanHoiPhiNgonNgu({ kieu, facts, isEn });
+        laChao = true;
+      } else if (kieu === "giong_noi") {
+        tuTraLoi = cauPhanHoiPhiNgonNgu({ kieu, facts, isEn });
+      }
+    }
   }
 
   const ketThuc = pl?.y_dinh === "cam_on_ket_thuc" && !cung.can_nguoi;
@@ -310,9 +382,11 @@ export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, d
     baoAdmin = "khan";
   } else if (ketThuc) {
     baoAdmin = null;
+  } else if (["cuoc_goi", "giong_noi", "anh"].includes(kieu)) {
+    baoAdmin = khan ? "khan" : "thuong";
   } else if (tuTraLoi && !laChao) {
-    baoAdmin = leadMoi ? "thuong" : null; // bot đã trả lời trọn: chỉ báo lead lần đầu
-  } else if (cuaSoMoi || doiCan || leadMoi) {
+    baoAdmin = leadMoi ? "thuong" : null;
+  } else if (cuaSoMoi || doiCan || leadMoi || kieu === "sticker") {
     baoAdmin = "thuong";
   }
 
@@ -324,8 +398,9 @@ export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, d
 // ---------------------------------------------------------------------------
 const LY_DO_DOC = { nghi_bot: "khách nghi đang nói với bot", hen_xem: "khách muốn xem phòng / đang ở gần",
   phan_nan: "khách đang bực", goi_nguoi: "khách đang gọi người", mac_ca: "khách mặc cả",
-  dat_coc_hop_dong: "khách hỏi cọc / hợp đồng", gui_anh: "khách gửi ảnh (bot không đọc được)",
-  gui_giong_noi: "khách gửi tin thoại", gui_sticker: "khách gửi sticker" };
+  dat_coc_hop_dong: "khách hỏi cọc / hợp đồng", gui_anh: "khách gửi ảnh",
+  gui_giong_noi: "khách gửi tin thoại", gui_sticker: "khách gửi sticker/icon",
+  gui_cuoc_goi: "khách vừa gọi điện / lỡ cuộc gọi" };
 
 export function soanThe({ h, phong, facts, pl, cung, muc, luc, botDaTraLoi = null }) {
   const ma = maThe(h.uid);
@@ -407,7 +482,7 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
       ? chuanHoaPhanLoai(await goiAI(taoPromptPhanLoai({ tin: h.tin, facts, tinMoi: chu })).catch(() => null))
       : null;
 
-    const qd = quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi, doiCan });
+    const qd = quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi, doiCan, kieu });
     log.log(`[tư vấn] ${maThe(uid)} ${pl?.y_dinh || "-"}${pl ? ` (${pl.do_tin_cay})` : ""} luật:[${cung.ly_do}] -> ${qd.tuTraLoi ? "bot trả lời" : "bot im"}, thẻ ${qd.baoAdmin || "không"}`);
 
     if (qd.ketThuc) { h.cho_tu = null; h.nhac_luc = null; }
@@ -420,9 +495,14 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
         await kho.luu(h);
       });
     }
+    const nhap = facts && pl?.y_dinh === "hoi_thong_tin" ? soanTraLoiTuFacts(pl.hoi_ve, facts, pl.ngon_ngu === "en") : null;
+    let danhSachGoiY = [...new Set([nhap, ...locNhapTheoNguCanh(pl?.goi_y || [], pl, h)].filter(Boolean))];
+    if (!danhSachGoiY.length && kieu !== "chu") {
+      danhSachGoiY = goiYPhiNgonNgu({ kieu, facts, isEn: pl?.ngon_ngu === "en" });
+    }
+    h.goi_y = danhSachGoiY.slice(0, 3);
+
     if (qd.baoAdmin) {
-      const nhap = facts && pl?.y_dinh === "hoi_thong_tin" ? soanTraLoiTuFacts(pl.hoi_ve, facts, pl.ngon_ngu === "en") : null;
-      h.goi_y = [...new Set([nhap, ...locNhapTheoNguCanh(pl?.goi_y || [], pl, h)].filter(Boolean))].slice(0, 3);
       if (qd.baoAdmin === "khan") h.khan_luc = luc; else h.the_luc = luc;
       if (facts) h.lead_bao = { ...h.lead_bao, [facts.id]: luc };
       baoAdmin(soanThe({ h, phong, facts, pl, cung, muc: qd.baoAdmin, luc, botDaTraLoi: qd.tuTraLoi }));
