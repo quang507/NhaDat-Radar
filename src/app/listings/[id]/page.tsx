@@ -428,6 +428,36 @@ export default async function ListingDetail({
         { "@type": "ListItem", position: x.district ? 5 : 4, name: x.title, item: `${SITE_URL}/listings/${x.id}` },
       ],
     },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: `Giá ${x.deal === "cho_thue" ? "thuê" : "bán"} của bất động sản này là bao nhiêu?`,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: `Mức giá đang rao là ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? ` cho diện tích ${x.area_m2}m²` : ""}${myPpm2 ? ` (khoảng ${fmtPpm2(myPpm2)})` : ""}. Số liệu tổng hợp minh bạch từ thị trường.`,
+          },
+        },
+        {
+          "@type": "Question",
+          name: `Bất động sản này ở khu vực nào?`,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: `Bất động sản tọa lạc tại ${[x.ward, x.district, x.province].filter(Boolean).join(", ")}. Vị trí thuận tiện di chuyển và gần các tiện ích sinh hoạt.`,
+          },
+        },
+        {
+          "@type": "Question",
+          name: `Làm sao để đặt lịch xem ${x.deal === "cho_thue" ? "phòng" : "nhà"} thực tế?`,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: `Bạn có thể bấm nút "Liên hệ Zalo" hoặc gọi Hotline ${HOTLINE} trên Radar Nhà Đất để được hỗ trợ kết nối hẹn lịch xem trực tiếp miễn phí 100%.`,
+          },
+        },
+      ],
+    },
   ];
 
   return (
