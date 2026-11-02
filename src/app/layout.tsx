@@ -15,6 +15,7 @@ export const viewport: Viewport = {
   themeColor: "#0f172a",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 // Body: Inter · Display: Lora (self-host qua next/font, không gọi link ngoài)

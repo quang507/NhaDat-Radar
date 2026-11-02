@@ -82,7 +82,7 @@ export async function traCuuPhong(sb, dinhDanh) {
   return { tin, roHang: roHang || null };
 }
 
-const TIEN_ICH = { dieu_hoa: "điều hoà", may_giat: "máy giặt", tu_lanh: "tủ lạnh", ke_bep: "kệ bếp", giuong: "giường",
+export const TIEN_ICH = { dieu_hoa: "điều hoà", may_giat: "máy giặt", tu_lanh: "tủ lạnh", ke_bep: "kệ bếp", giuong: "giường",
   cua_so: "cửa sổ", an_ninh: "an ninh", thang_may: "thang máy", nuoc_nong: "nước nóng", tu_quan_ao: "tủ quần áo",
   ban_cong: "ban công", gac_lung: "gác lửng", tivi: "tivi", san_phoi: "sân phơi", bon_rua: "bồn rửa", de_xe: "chỗ để xe",
   ac: "điều hoà", parking: "chỗ để xe", elevator: "thang máy", security: "an ninh", pet: "nuôi thú cưng" };
@@ -568,4 +568,32 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
   }
 
   return { khachNhan, tuGuiNhan, adminNhan, nhacViec };
+}
+
+/** Soạn nội dung rep nhóm + tin riêng 1-1 khi săn được khách tìm phòng trong group */
+export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
+  const ten = senderName || "bạn";
+  const quanText = nhuCau?.quan?.[0] || "khu vực bạn cần";
+  const coCan = Array.isArray(canKhop) && canKhop.length > 0;
+
+  const repNhom = coCan
+    ? `@${ten} Dạ em vừa gửi riêng cho mình ${canKhop.length} căn đúng nhu cầu ở ${quanText} rồi á, bạn check tin nhắn chờ Zalo giúp em nha!`
+    : `@${ten} Dạ em vừa nhắn tin riêng hỗ trợ mình tìm phòng ở ${quanText} rồi á, bạn check tin nhắn chờ Zalo giúp em nha!`;
+
+  const giaMaxStr = nhuCau?.gia_den ? ` tầm ${(nhuCau.gia_den / 1e6).toFixed(1).replace(/\.0$/, "")}tr` : "";
+  let tinRieng = `Dạ em chào ${ten}! Em thấy bạn vừa đăng tìm phòng ở ${quanText}${giaMaxStr}.\n`;
+  if (coCan) {
+    tinRieng += `Bên em đang có sẵn ${canKhop.length} căn đúng tiêu chí gửi bạn tham khảo trước:\n`;
+    canKhop.forEach((c, idx) => {
+      const giaStr = c.price_vnd ? `${(c.price_vnd / 1e6).toFixed(1).replace(/\.0$/, "")}tr/tháng` : "Giá thoả thuận";
+      const kvStr = [c.ward, c.district].filter(Boolean).join(", ");
+      const ti = [...new Set((c.amenities || []).map((a) => TIEN_ICH[a] || a).filter(Boolean))].slice(0, 3).join(", ");
+      tinRieng += `${idx + 1}. Căn ${kvStr} - ${giaStr}${ti ? ` (${ti})` : ""}\n`;
+    });
+    tinRieng += `\nRadar dẫn xem phòng trực tiếp miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ?`;
+  } else {
+    tinRieng += `Hôm nay bên em đang cập nhật thêm rổ hàng 1.400+ căn trống mới quanh khu vực này. Bạn cho em xin thêm yêu cầu chi tiết (gác/ban công, nuôi pet, ngày dọn vào) để em lọc gửi liền cho mình nhé ạ!\nRadar hỗ trợ tìm và dẫn xem phòng miễn phí 100% ạ.`;
+  }
+
+  return { repNhom, tinRieng };
 }

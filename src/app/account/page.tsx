@@ -4,8 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ImageUpload from "@/components/ImageUpload";
-import { updateProfile } from "./actions";
-import { User, Briefcase } from "lucide-react";
+import { updateProfile, deleteAccount } from "./actions";
+import { User, Briefcase, Trash2 } from "lucide-react";
 
 export const metadata = { title: "Tài khoản của tôi - NhaDat Radar" };
 
@@ -98,6 +98,24 @@ export default async function AccountPage({
 
         <button className="btn btn-primary" type="submit">Lưu hồ sơ</button>
       </form>
+
+      <div className="mt-12 p-6 rounded-2xl border border-rose-500/20 bg-rose-500/5">
+        <h3 className="text-base font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2 mb-2">
+          <Trash2 className="w-4 h-4" /> Vùng nguy hiểm: Xóa tài khoản
+        </h3>
+        <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+          Theo quy định bảo vệ dữ liệu cá nhân (Nghị định 13/2023, Luật 91/2025) và tiêu chuẩn Google Play / Apple App Store: 
+          Bạn có toàn quyền yêu cầu xóa vĩnh viễn tài khoản và mọi thông tin hồ sơ liên quan khỏi hệ thống Radar Nhà Đất. Hành động này không thể hoàn tác.
+        </p>
+        <form action={deleteAccount}>
+          <button
+            type="submit"
+            className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer min-h-[44px]"
+          >
+            Xác nhận xóa tài khoản vĩnh viễn
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

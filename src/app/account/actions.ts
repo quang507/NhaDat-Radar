@@ -38,3 +38,17 @@ export async function updateProfile(formData: FormData) {
   revalidatePath("/agents");
   redirect("/account?message=" + encodeURIComponent("Đã lưu hồ sơ!"));
 }
+
+
+export async function deleteAccount() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/auth");
+
+  // Xóa hồ sơ người dùng trong bảng profiles
+  await supabase.from("profiles").delete().eq("id", user.id);
+  // Đăng xuất phiên làm việc
+  await supabase.auth.signOut();
+  revalidatePath("/");
+  redirect("/?message=" + encodeURIComponent("Tài khoản của bạn đã được xóa thành công khỏi hệ thống."));
+}

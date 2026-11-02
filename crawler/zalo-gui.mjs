@@ -78,7 +78,7 @@ export function taoCongGui({ cli, now = () => Date.now(), ngu = (ms) => new Prom
     return null;
   }
 
-  function gui(thread, text, { loai }) {
+  function gui(thread, text, { loai, ...options } = {}) {
     thread = String(thread);
     const chu = chuanHoaChu(text);
     const luc0 = now();
@@ -106,7 +106,10 @@ export function taoCongGui({ cli, now = () => Date.now(), ngu = (ms) => new Prom
       // ghi sổ TRƯỚC khi gửi: tiếng vọng có thể về trước khi CLI trả kết quả
       soGui.set(thread, [...(soGui.get(thread) || []), { chu, luc: now() }]);
       try {
-        await cli(["msg", "send", "-t", "0", thread, text]);
+        const args = ["msg", "send", "-t", String(options.type || "0")];
+        if (options.mention) args.push("--mention", options.mention);
+        args.push(thread, text);
+        await cli(args);
       } catch (e) {
         traCho();
         return { ok: false, lyDo: "loi_cli", loi: e.message };
@@ -117,5 +120,22 @@ export function taoCongGui({ cli, now = () => Date.now(), ngu = (ms) => new Prom
     return viec;
   }
 
-  return { gui, laTiengVong };
+  function react(msgId, thread, reaction = "/-heart", { type = "1", cliMsgId = null } = {}) {
+    const viec = hangDoi.then(async () => {
+      await ngu(500 + Math.round(rand() * 1000));
+      try {
+        const args = ["msg", "react", "-t", String(type || "1")];
+        if (cliMsgId) args.push("-c", String(cliMsgId));
+        args.push(String(msgId), String(thread), reaction);
+        await cli(args);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, loi: e.message };
+      }
+    });
+    hangDoi = viec.catch(() => {});
+    return viec;
+  }
+
+  return { gui, react, laTiengVong };
 }
