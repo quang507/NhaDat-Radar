@@ -21,7 +21,9 @@ export function laTinDocQuyen(x: { source?: string | null; source_site?: string 
 // cache và bị cào hàng loạt. Tin web vẫn xem được số thật qua nút "Xem SĐT" (đăng nhập, PhoneReveal).
 export function cheSoVanBan(s: string | null | undefined, docQuyen = true) {
   const goiY = docQuyen ? "*** (liên hệ qua Radar)" : "*** (bấm Xem SĐT)";
-  return String(s || "").replace(/(\+?84|0)[\s.\-]?(\d[\s.\-]?){7,10}/g, (m) => m.slice(0, 4) + goiY);
+  // Biên 2 đầu: không dính chữ số / dấu phân cách nghìn liền trước-sau, để giá "1.500.000.000"
+  // không bị cắt nửa chừng (regex cũ cắt "Giá 1.500.000.000" thành "1.500.0***").
+  return String(s || "").replace(/(?<!\d[.,]?)(?:\+?84|0)(?:[\s.\-]?\d){7,10}(?![.,]?\d)/g, (m) => m.slice(0, 4) + goiY);
 }
 
 // Che SỐ NHÀ của tin độc quyền, giữ tên đường (quyết định 21/8: "để tên đường thôi, số nhà
