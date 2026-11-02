@@ -6,7 +6,8 @@ import Link from "next/link";
 import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
 import { LISTING_THE_COLS } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
-import DaiDocQuyen from "@/components/DaiDocQuyen";
+import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
+import { boTinTrung } from "@/lib/tin-trung";
 import TimPhongNhanh from "@/components/TimPhongNhanh";
 import { NutZalo } from "@/components/TheoDoi";
 import { HOTLINE_ZALO } from "@/lib/hotline";
@@ -22,7 +23,16 @@ import { Sparkles, Calculator, Scale, BarChart3, BellRing, Home as HomeIcon, Bui
 // thứ hạng ưu tiên trong lưới kết quả: tin Zalo (0) -> rổ hàng Radar (1) -> tin FB (2) -> nguồn web (3)
 const uuTienDocQuyen = (x: Listing) =>
   !laTinDocQuyen(x) ? 3 : (x.source_site || "").startsWith("zalo") || x.source === "zalo_oa" || x.source === "zalo_miniapp" ? 0 : laRoHang(x) ? 1 : 2;
-import MapResults, { type MapItem } from "@/components/MapResults";
+import dynamic from "next/dynamic";
+import type { MapItem } from "@/components/MapResults";
+
+const MapResults = dynamic(() => import("@/components/MapResults"), {
+  loading: () => (
+    <div className="w-full h-[480px] rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-slate-400 text-sm">
+      Đang tải bản đồ khu vực...
+    </div>
+  ),
+});
 import { tinLenBanDo } from "@/lib/ban-do-tin";
 import { fmtPrice, PROP } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
@@ -85,19 +95,24 @@ const HERO: string | null = (() => {
   return null;
 })();
 
+// 3/11 (UX audit): 92% lượt xem là tin THUÊ, 77% là phòng trọ (su_kien 8/10-3/11) mà trang chủ không có khối
+// phòng trọ nào, khối bán đứng đầu. Xếp lại theo nhu cầu: thuê trước, bán sau; "Căn hộ" tách thuê / bán.
 const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
-  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/search?kind=nha&deal=ban" },
-  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/search?kind=dat&deal=ban" },
-  { t: "Căn hộ", f: (x) => x.kind === "can_ho", href: "/search?kind=can_ho" },
+  { t: "Phòng trọ cho thuê", f: (x) => x.kind === "phong_tro" && x.deal === "cho_thue", href: "/search?kind=phong_tro&deal=cho_thue" },
+  { t: "Căn hộ cho thuê", f: (x) => x.kind === "can_ho" && x.deal === "cho_thue", href: "/search?kind=can_ho&deal=cho_thue" },
   { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/search?kind=nha&deal=cho_thue" },
   // khối và link phải cùng bộ lọc - bản cũ khối gồm cả "khac" nhưng link chỉ mat_bang,
   // bấm "Xem tất cả" là tin đang hiện biến mất
   { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/search?kind=mat_bang" },
+  { t: "Căn hộ bán", f: (x) => x.kind === "can_ho" && x.deal === "ban", href: "/search?kind=can_ho&deal=ban" },
+  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/search?kind=nha&deal=ban" },
+  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/search?kind=dat&deal=ban" },
 ];
 
 export default async function Home() {
   const { data, projData, projectCount } = await layTinTrangChu();
-  const listings = ((data ?? []) as Listing[]).map(cheSoTin);
+  // 3/11: bỏ tin trùng (môi giới đăng 1 căn vào nhiều nhóm Zalo -> trang chủ hiện 1 căn 3 lần)
+  const listings = boTinTrung(((data ?? []) as Listing[]).map(cheSoTin));
 
   // count exact: bộ đếm "dự án" phải là tổng toàn DB, không phải độ dài danh sách limit(6) (bug 17/8: hero hiện "6 dự án" trong khi DB có 30)
   const projects = (projData ?? []) as Project[];
@@ -132,16 +147,21 @@ export default async function Home() {
       return [p, Object.fromEntries([...tot.values()].map((d) => [d, [] as string[]]))];
     })));
   const hasFilter = false;
+  const idsDaiXacMinh = new Set(locDocQuyen(listings).map((x) => x.id));
   const mapItems: MapItem[] = listings.flatMap(tinLenBanDo);
 
   const hero = HERO;
   return (
     <div>
+      {/* 3/11 (UX audit): banner + hero trong 1 cột flex để ĐỔI THỨ TỰ theo khổ: điện thoại banner xuống DƯỚI hero
+          (bản cũ banner cao ~490px đẩy ô tìm kiếm xuống y=708/812, bị banner cookie che - khách từ Google vào để tìm);
+          md+ banner gọn ~210px nên giữ trên đầu như anh Quang chọn 27/10. */}
+      <div className="flex flex-col">
       {/* ===== BANNER TIÊU ĐIỂM: NHÀ COMPOUND BÌNH PHÚ Q.6 (26/10) =====
           27/10 (anh Quang): đưa lên đầu trang, trên ô tìm kiếm. Máy tính: ảnh phủ tuyệt đối theo chiều cao phần chữ
           (~210px) - bản cũ ảnh tự cao ~430px, đặt ở đầu thì đẩy ô tìm kiếm xuống quá xa. */}
       {!hasFilter && (
-        <section className="band-zalo mt-1 sm:mt-3 mb-4">
+        <section className="band-zalo mt-1 sm:mt-3 mb-4 order-2 md:order-1">
           <Link
             href="/listings/df3a7f4f-048a-4cce-a271-bc9c19ad32f5"
             className="group flex flex-col md:flex-row items-stretch overflow-hidden transition"
@@ -165,7 +185,7 @@ export default async function Home() {
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    Tin độc quyền xác minh thực tế
+                    Tin độc quyền Radar
                   </span>
                   <span className="text-white/50 text-xs">·</span>
                   <span className="text-xs text-white/80">Đường Hậu Giang, P.11, Q.6</span>
@@ -200,7 +220,7 @@ export default async function Home() {
       )}
 
       {/* ===== HERO: Sàn thực tế ===== */}
-      <section className="hero-radar-bg px-3.5 pt-2.5 pb-4 sm:p-6 mb-4">
+      <section className="hero-radar-bg px-3.5 pt-2.5 pb-4 sm:p-6 mb-4 order-1 md:order-2">
         {/* Vòng sóng Radar trang trí góc phải (chỉ hiện trên sm+, aria-hidden để bỏ qua kiểm tra chồng lấp) */}
         <svg
           aria-hidden="true"
@@ -224,7 +244,7 @@ export default async function Home() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {/* mobile: 1 dòng ngắn (câu dài cũ rớt 2 dòng, đẩy ô tìm kiếm xuống) */}
             <span className="sm:hidden">1.380+ phòng trống mới hôm nay</span>
-            <span className="hidden sm:inline">Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay (Xác minh trực tiếp)</span>
+            <span className="hidden sm:inline">Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform opacity-70 group-hover:opacity-100" />
           </Link>
 
@@ -240,14 +260,14 @@ export default async function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-3.5 sm:mt-5 text-xs">
             <Link
               href="/search?own=1"
-              title="Xem danh sách tin đã xác minh thực tế"
+              title="Xem phòng đã được đơn vị quản lý xác nhận còn trống"
               className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-emerald-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:border-brand hover:shadow-xs transition group cursor-pointer"
             >
               <div className="w-7 h-7 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-[var(--ink)] group-hover:text-brand text-xs sm:text-sm leading-tight transition-colors">100% Tin xác minh</div>
+                <div className="font-bold text-[var(--ink)] group-hover:text-brand text-xs sm:text-sm leading-tight transition-colors">Rổ hàng xác minh</div>
                 <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Tự động gỡ phòng đã thuê</div>
               </div>
             </Link>
@@ -295,6 +315,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
+      </div>
 
       {hasFilter ? (
         <section className="mt-2">
@@ -373,7 +394,14 @@ export default async function Home() {
                     <div className="p-3.5">
                       <h3 className="font-semibold leading-snug group-hover:text-brand transition line-clamp-1">{p.name}</h3>
                       <div className="flex items-baseline gap-2 mt-1">
-                        <span className="text-brand font-bold text-sm whitespace-nowrap">{fmtPrice(p.price_min, "ban")} - {fmtPrice(p.price_max, "ban")}</span>
+                        {/* dự án chưa có giá: bản cũ hiện "Thoả thuận - Thoả thuận" */}
+                        {(p.price_min || p.price_max) ? (
+                          <span className="text-brand font-bold text-sm whitespace-nowrap">
+                            {p.price_min && p.price_max && p.price_min !== p.price_max
+                              ? `${fmtPrice(p.price_min, "ban")} - ${fmtPrice(p.price_max, "ban")}`
+                              : p.price_min ? `Từ ${fmtPrice(p.price_min, "ban")}` : fmtPrice(p.price_max, "ban")}
+                          </span>
+                        ) : null}
                         <span className="text-xs text-[var(--ink-soft)] truncate ml-auto">{[p.district, p.province].filter(Boolean).join(", ")}</span>
                       </div>
                     </div>
@@ -384,7 +412,8 @@ export default async function Home() {
 
           {/* 30/9: bỏ khối "Bất động sản nổi bật" - trùng dải độc quyền phía trên (cùng các phòng rổ hàng) */}
           {CATS.map((c) => {
-            const items = listings.filter(c.f).filter((x) => x.images && x.images.length > 0).slice(0, 8);
+            // tin đã có ở dải xác minh phía trên thì không lặp lại; khối nổi bật bỏ tin "Thoả thuận" (không giá)
+            const items = listings.filter(c.f).filter((x) => !idsDaiXacMinh.has(x.id) && !!x.price_vnd && x.images && x.images.length > 0).slice(0, 8);
             if (!items.length) return null;
             return (
               <Section key={c.t} title={c.t} href={c.href}>

@@ -33,7 +33,15 @@ import ScoreInfo from "@/components/ScoreInfo";
 import LegalHint from "@/components/LegalHint";
 import MortgageMini from "@/components/MortgageMini";
 import RecentlyViewed, { RecentlyViewedTracker } from "@/components/RecentlyViewed";
-import ListingMap from "@/components/ListingMap";
+import dynamic from "next/dynamic";
+
+const ListingMap = dynamic(() => import("@/components/ListingMap"), {
+  loading: () => (
+    <div className="w-full h-72 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center text-slate-400 text-sm">
+      Đang tải vị trí bất động sản...
+    </div>
+  ),
+});
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
 import PhoneReveal from "@/components/PhoneReveal";
@@ -233,7 +241,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   const moTa = cheSoVanBan(data.description, docQuyen);
   const description = catChu(
-    `${baseTitle}. Giá niêm yết: ${gia}. Địa chỉ: ${[data.address, data.district, data.province].filter(Boolean).join(", ")}. Hình ảnh và toạ độ xác minh thực tế, liên hệ xem phòng trực tiếp không kê giá.`,
+    // 3/11: tin độc quyền che số nhà như trên trang (bản cũ thả địa chỉ thô vào snippet Google); bỏ "toạ độ xác minh thực tế"
+    `${baseTitle}. Giá niêm yết: ${gia}. Địa chỉ: ${[docQuyen ? cheSoNha(data.address) : data.address, data.district, data.province].filter(Boolean).join(", ")}. Xem ảnh, bản đồ và hẹn xem miễn phí qua Radar.`,
     160
   );
   const img = cleanImages(data.images || [])[0];
@@ -308,6 +317,7 @@ export default async function ListingDetail({
   const isCrawl = x.source === "crawl";
   // RỔ HÀNG RADAR (28/9): hàng mình nắm - không link gốc, không tên đối tác, CTA chỉ về Radar (lib/ro-hang)
   const roHang = laRoHang(x);
+  const lienHeRadar = docQuyen; // rổ hàng + tin nhóm Zalo/FB: khách hỏi phí qua Radar; tin web thì hỏi người đăng
   // tin nhắn Zalo chép sẵn (2/10) - khách khỏi gõ, Radar biết ngay khách hỏi phòng/tin nào.
   // Audit 25/10: tin web cũng gắn mã (maPhong tra được cho MỌI tin qua /rh/[mã]) - trước đây chỉ có tiêu đề
   const ma = maPhong(x.id);
@@ -345,6 +355,7 @@ export default async function ListingDetail({
     ? [["Tiền phòng", fmtPrice(x.price_vnd, x.deal)], ...PHI.map(([nhan, re]) => [nhan, giaTriSpec(re)] as [string, string | null])]
     : null;
   const tienCoc = x.deal === "cho_thue" ? giaTriSpec(/cọc/i) : null;
+  const soPhiCo = bangPhi ? bangPhi.filter(([, v]) => v).length : 0;
 
   // Sáp nhập 1/7/2025: người đăng lúc ghi tên CŨ (quen miệng), lúc ghi tên MỚI. Các sàn lớn
   // đều hiện CẢ HAI để ai đọc cũng nhận ra chỗ đó - chotot: "Quận 11, TP.HCM (Phường Phú Thọ,
@@ -457,7 +468,7 @@ export default async function ListingDetail({
             )}
             {roHang && (
               <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-xs border border-emerald-200">
-                ✓ Cam kết giá thật 100% · Không phí ẩn
+                ✓ Không thu phí dẫn xem · Không phí môi giới
               </span>
             )}
           </div>
@@ -476,7 +487,7 @@ export default async function ListingDetail({
             <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs">
               <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 border border-emerald-200">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                {x.deal === "ban" ? "Tin đã xác minh · nhà phố đã xác thực sổ hồng" : "Tin đã xác minh · phòng trống thực tế"}
+                {x.deal === "ban" ? "Rổ hàng Radar · đơn vị quản lý xác nhận còn bán" : "Tin đã xác minh · đơn vị quản lý xác nhận còn trống"}
               </span>
               {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded">{giuPhong}</span>}
             </div>
@@ -586,9 +597,11 @@ export default async function ListingDetail({
               <div className="flex items-center justify-between gap-3 mb-3.5 flex-wrap">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-base text-[var(--ink)]">Bảng chi phí hằng tháng</h3>
-                  <span className="inline-flex items-center gap-1 text-overline font-bold px-2 py-0.5 rounded-sm bg-emerald-50 dark:bg-emerald-950/40 text-brand border border-emerald-200/60 dark:border-emerald-800/50">
-                    <ShieldCheck className="w-3 h-3 stroke-[2.5]" />
-                    Minh bạch 100%
+                  {/* 3/11 (UX audit): bản cũ gắn "Minh bạch 100%" kể cả khi 4/5 dòng trống -> nói đúng số khoản đã có */}
+                  <span className={`text-overline font-bold px-2 py-0.5 rounded-sm border whitespace-nowrap ${soPhiCo === bangPhi.length
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 text-brand border-emerald-200/60 dark:border-emerald-800/50"
+                    : "bg-[var(--surface-2)] text-[var(--ink-soft)] border-[var(--line)]"}`}>
+                    Đã có {soPhiCo}/{bangPhi.length} khoản
                   </span>
                 </div>
                 {tienCoc && (
@@ -602,15 +615,20 @@ export default async function ListingDetail({
                   <div key={nhan} className="flex items-center justify-between gap-3 py-2.5 min-h-11">
                     <dt className="text-[var(--ink-soft)] font-medium">{nhan}</dt>
                     <dd className={giaTri ? "font-bold text-[var(--ink)] text-right" : "text-xs text-[var(--ink-faint)] text-right"}>
-                      {giaTri ?? "Chưa có - hỏi Radar"}
+                      {giaTri ?? (lienHeRadar ? "Chưa có - hỏi Radar" : "Tin không ghi")}
                     </dd>
                   </div>
                 ))}
               </dl>
-              <div className="mt-3.5 pt-3 border-t border-[var(--line)] flex items-center justify-between text-xs text-[var(--ink-faint)]">
-                <span>Không thu phí xem phòng hay phụ phí môi giới</span>
-                <span className="text-brand font-semibold">Cam kết giá chuẩn</span>
-              </div>
+              {lienHeRadar && soPhiCo < bangPhi.length && (
+                <NutZalo listingId={x.id} tinNhan={`Chào Radar, cho mình hỏi đủ tiền điện, nước, gửi xe, dịch vụ của ${roHang ? `phòng ${maPhong(x.id)}` : `tin ${x.id.slice(0, 8)}`} nhé.`} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full mt-3 text-center border border-[#0068ff] text-[#0068ff] font-semibold flex items-center justify-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+                  <span>Hỏi đủ chi phí qua Zalo</span>
+                </NutZalo>
+              )}
+              {lienHeRadar && (
+                <p className="mt-3.5 pt-3 border-t border-[var(--line)] text-xs text-[var(--ink-faint)]">Radar không thu phí xem phòng hay phụ phí môi giới</p>
+              )}
             </div>
           )}
           <div className="card rounded-lg p-5">
@@ -785,7 +803,8 @@ export default async function ListingDetail({
                   Chưa tìm được căn vừa ý tại {x.district || "khu vực này"}?
                 </h4>
                 <p className="text-xs text-[var(--ink-soft)] max-w-xl leading-relaxed">
-                  Radar hiện có hơn 1.000 phòng trống và nhà đất xác minh tại {x.district || "TP.HCM"}. Nhắn Zalo nhu cầu (tài chính, khu vực, tiện ích), đội ngũ Radar lọc và gửi ngay 3 căn đẹp nhất trong 5 phút.
+                  {/* 3/11: bỏ "hơn 1.000 phòng tại <quận>" (sai với đa số quận) và "5 phút" (trang chủ hứa 15 phút) */}
+                  Nhắn Zalo nhu cầu (tài chính, khu vực, tiện ích), đội ngũ Radar lọc rổ hàng {x.district ? `tại ${x.district} ` : ""}và gửi bạn 3 căn phù hợp nhất trong 15 phút.
                 </p>
               </div>
               <NutZalo
@@ -814,7 +833,7 @@ export default async function ListingDetail({
               <div>
                 <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {docQuyen ? "Tin đã xác minh - liên hệ qua Radar" : (coSdt || x.phone_masked) ? "Đăng nhập hoặc liên hệ để xem SĐT" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
+                  {roHang ? "Tin đã xác minh - liên hệ qua Radar" : docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (coSdt || x.phone_masked) ? "Đăng nhập hoặc liên hệ để xem SĐT" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
                 </div>
               </div>
             </div>
@@ -826,7 +845,7 @@ export default async function ListingDetail({
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-[var(--ink-soft)]">
                   <div className="font-bold text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 mb-1">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>{x.deal === "ban" ? "Tin đã xác minh Radar" : "Tin phòng đã xác minh"}</span>
+                    <span>{x.deal === "ban" ? "Rổ hàng Radar" : "Tin phòng đã xác minh"}</span>
                   </div>
                   {cauChotXemPhong(fmtPrice(x.price_vnd, x.deal), x.deal)}
                 </div>
@@ -854,10 +873,11 @@ export default async function ListingDetail({
               <div className="mb-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
                 <div className="font-bold mb-1 text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Tin đã xác minh</span>
+                  <span>Liên hệ qua Radar</span>
                 </div>
+                {/* 3/11 (UX audit): tin nhóm Zalo/FB - Radar chưa kiểm thực tế/pháp lý, bản cũ ghi "đã xác minh thực tế và pháp lý" */}
                 <p className="text-xs text-[var(--ink-soft)]">
-                  Tin này đã được Radar xác minh thực tế và pháp lý. Radar hỗ trợ kết nối trực tiếp:
+                  Tin đăng trong nhóm Zalo/Facebook, Radar giữ kín SĐT người đăng. Radar hỗ trợ kết nối và đi xem cùng bạn:
                   gọi hotline bên dưới, hoặc hỏi chi tiết và hẹn xem nhà - hoàn toàn miễn phí.
                 </p>
               </div>
