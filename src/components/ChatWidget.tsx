@@ -78,17 +78,17 @@ export default function ChatWidget() {
       {!anThanhDay && (
         <>
           <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
-          <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur">
-            {/* 2/11 (audit Q6): thanh đáy là nguồn gọi/Zalo lớn nhất ngoài trang tin -> phải ghi ndr_goi / ndr_zalo */}
-            <LinkTheoDoi loai="goi" href={`tel:${HOTLINE}`} aria-label={`Gọi Hotline ${HOTLINE}`} className="btn btn-primary min-h-11 font-bold">
+          <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.625rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur shadow-lg">
+            {/* 2/11 (audit Q6): thanh đáy là nguồn gọi/Zalo lớn nhất ngoài trang tin -> ghi ndr_goi / ndr_zalo */}
+            <LinkTheoDoi loai="goi" href={`tel:${HOTLINE}`} aria-label={`Gọi Hotline ${HOTLINE}`} className="btn btn-primary min-h-12 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-xs">
               <PhoneCall className="w-4 h-4" />
               <span>Gọi ngay</span>
             </LinkTheoDoi>
-            <NutZalo tinNhan="Chào Radar, mình cần tư vấn tìm phòng" href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo tư vấn phòng" className="btn min-h-11 font-bold !border-[#0068ff] !text-[#0068ff]">
+            <NutZalo tinNhan="Chào Radar, mình cần tư vấn tìm phòng" href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo tư vấn phòng" className="btn min-h-12 rounded-xl font-bold bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 shadow-xs flex items-center justify-center gap-1.5">
               <IconZalo className="w-4 h-4 shrink-0" />
               <span>Zalo</span>
             </NutZalo>
-            <button type="button" aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"} onClick={() => setOpen((v) => !v)} className="btn min-h-11 min-w-11 !px-3">
+            <button type="button" aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"} onClick={() => setOpen((v) => !v)} className="btn min-h-12 min-w-12 rounded-xl !px-3 bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-brand">
               {open ? <X className="w-4 h-4" /> : <><Sparkles className="w-4 h-4 text-amber-500" /><span className="font-bold">AI</span></>}
             </button>
           </nav>

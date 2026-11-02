@@ -1015,8 +1015,8 @@ export default async function ListingDetail({
         {roHang ? (
           <span className="ml-auto flex gap-1.5">
             <HienSoRadar listingId={x.id} nho />
-            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold inline-flex items-center gap-1.5">
-              <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3.5 bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 font-bold inline-flex items-center gap-1.5 rounded-lg shadow-xs">
+              <MessageCircle className="w-4 h-4 fill-white shrink-0" />
               <span>Zalo</span>
             </NutZalo>
           </span>
@@ -1027,8 +1027,8 @@ export default async function ListingDetail({
           // chỉ cuộn trang, mất nút Gọi/Zalo 1-chạm trong vùng ngón cái dù Radar là đầu mối duy nhất.
           <span className="ml-auto flex gap-1.5">
             <HienSoRadar listingId={x.id} nho />
-            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3 border border-[#0068ff] text-[#0068ff] font-semibold inline-flex items-center gap-1.5">
-              <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3.5 bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 font-bold inline-flex items-center gap-1.5 rounded-lg shadow-xs">
+              <MessageCircle className="w-4 h-4 fill-white shrink-0" />
               <span>Zalo</span>
             </NutZalo>
           </span>
