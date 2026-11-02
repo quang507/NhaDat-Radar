@@ -48,9 +48,9 @@ export function khoangIdTuMa(ma: string): [string, string] | null {
 /** Câu chốt khi khách hỏi giá / bớt / hợp đồng một tin rổ hàng (web + chatbot dùng chung) */
 export function cauChotXemPhong(giaHienThi: string, deal: string = "cho_thue") {
   if (deal === "ban") {
-    return `Dạ nhà giá chào bán ${giaHienThi}, nhưng anh/chị cứ qua xem nhà thực tế ưng ý thì em sẽ trực tiếp hỗ trợ làm việc giá và thương lượng bớt lộc tốt nhất với chính chủ cho mình nhé! Anh/chị ghé xem được sáng hay chiều nay ạ?`;
+    return `Dạ nhà giá chào bán ${giaHienThi}. Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào ạ. Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em đón mình qua xem thực tế ạ? Anh/chị cho em xin Zalo để em gửi định vị Maps và video nhà trước nha!`;
   }
-  return `Dạ phòng giá niêm yết ${giaHienThi}, nhưng anh/chị cứ qua xem phòng thực tế ưng ý thì em sẽ trực tiếp hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà cho mình nhé! Anh/chị ghé xem được sáng hay chiều nay ạ?`;
+  return `Dạ phòng giá niêm yết ${giaHienThi}. Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào ạ. Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ? Anh/chị cho em xin Zalo để em gửi định vị Maps và video phòng trước nha!`;
 }
 
 /**

@@ -193,7 +193,10 @@ tom_tat: một câu ngắn cho nhân viên, nói khách muốn gì và đang ở
 
 ngon_ngu: ngôn ngữ của TIN MỚI (không phải của lịch sử).
 
-goi_y: 2 hoặc 3 bản nháp trả lời KHÁC NHAU để nhân viên chọn. Giọng nhân viên tư vấn: xưng "mình", gọi "bạn", tối đa 2 câu, tự nhiên như chat Zalo, không emoji thừa. Khi y_dinh = cam_on_ket_thuc thì goi_y = [].
+goi_y: 2 hoặc 3 bản nháp trả lời KHÁC NHAU để nhân viên chọn. Giọng nhân viên tư vấn: nhiệt tình, tự nhiên, xưng "mình", gọi "bạn", tối đa 2 câu, chuẩn kịch bản chống mùi robot:
+- Khi khách hỏi phòng / phí: Báo rõ chi phí, nhấn mạnh "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
+- Khi chốt giờ xem: Gợi ý khung giờ cụ thể ("Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào hơn để mình báo mở cửa sẵn đón qua xem thực tế nha?").
+Khi y_dinh = cam_on_ket_thuc thì goi_y = [].
 LUẬT CỨNG cho goi_y (vi phạm là bản nháp bị loại):
 1. Chỉ dùng dữ kiện có trong PHÒNG ĐANG NÓI và LỊCH SỬ. Thứ không có thì KHÔNG đoán, để chỗ trống trong ngoặc vuông cho nhân viên điền, ví dụ "[còn/hết phòng]", "[được/không được nuôi mèo]", "[cần hỏi chủ nhà]".
 2. Bảng dữ kiện KHÔNG có tình trạng còn phòng: không bao giờ viết "phòng vẫn còn", "còn trống" khi chưa có trong LỊCH SỬ; dùng "[còn/hết phòng]".

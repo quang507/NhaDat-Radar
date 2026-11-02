@@ -91,7 +91,7 @@ function getMaPhong(id) {
   return "RH" + (id || "").replace(/-/g, "").slice(0, 6).toUpperCase();
 }
 
-// Sinh nội dung bài đăng chuẩn Spintax cho 1 tin BĐS
+// Sinh nội dung bài đăng chuẩn Spintax cho 1 tin BĐS (Thổ địa Sài Gòn - 100% humanizer)
 export function taoBaiDang(item) {
   const ma = getMaPhong(item.id);
   const giaStr = item.price_vnd
@@ -103,21 +103,16 @@ export function taoBaiDang(item) {
   const khuVuc = [item.district, item.province].filter(Boolean).join(", ");
   const linkWeb = `${SITE_URL}/listings/${item.id}`;
 
-  const spintax = `{[w]🔥|⚡|✨} {[CĂN MỚI RA]|CHÍNH CHỦ GỬI|SIÊU PHẨM BĐS} {TẠI|KHU VỰC} ${khuVuc.toUpperCase()}[w]
+  const spintax = `{[PASS PHÒNG GẤP]|[CĂN DUY NHẤT CÒN TRỐNG]|[CHÍNH CHỦ GIẢM 1TR THÁNG ĐẦU]|[NÓI KHÔNG VỚI ẢNH MẠNG]} {Phòng y hình 100%|Căn hộ mini sạch sẽ|Phòng trọ gác cao không đụng đầu} khu vực ${khuVuc}[w]
 
-📍 {Vị trí|Địa chỉ}: {Đường ${item.address || khuVuc}|Khu dân cư hiện hữu, an ninh, tiện di chuyển}.
-📐 {Quy mô & Diện tích|Thông số}: ${dtStr ? dtStr + ", " : ""}{thiết kế hiện đại, thông thoáng, ánh sáng tự nhiên|không gian thoáng mát, tối ưu công năng}.
-💰 {Mức giá|Giá công khai}: ${giaStr}{/tháng| (cam kết thông tin & giá thật 100%)}.
-
-🛋️ {Chi tiết căn|Điểm nổi bật}:
-- {Pháp lý minh bạch, hỗ trợ xem nhà/phòng trực tiếp|Giờ giấc tự do, an ninh đảm bảo 24/7}.
-- {Chi phí rõ ràng, không phụ phí phát sinh ngoài hợp đồng|Nội thất hoàn thiện, sẵn sàng dọn vào ở ngay}.[w]
+- Vị trí: {Hẻm xe hơi quay đầu ${item.address || khuVuc}|Đường ${item.address || khuVuc}, khu dân cư an ninh, không ngập nước, tiện di chuyển}.
+- Diện tích & không gian: ${dtStr ? dtStr + ", " : ""}{gác đúc kiên cố cao ráo mét tám đứng không đụng đầu, thoáng mát sạch sẽ|thiết kế gọn gàng, cửa sổ đón gió tự nhiên}.
+- Mức giá: ${giaStr}/tháng {(cọc đúng 1 tháng, cam kết không tăng giá điện nước vô lý)|(chủ nhà dễ tính, hỗ trợ dọn vào ở ngay)}.
+- Sinh hoạt & an ninh: {Không chung chủ, giờ giấc tự do 100%, khoá cổng vân tay, bạn bè đến chơi thoải mái|Nhà xe rộng rãi có camera an ninh 24/7, lối thoát hiểm PCCC đầy đủ}.[w]
 
 ---
-🔗 {Xem toạ độ bản đồ & hình ảnh thực tế tại:|Xem chi tiết & ảnh gốc không nén tại:}[w]
-👉 ${linkWeb}
-📲 {Liên hệ trực tiếp qua Zalo/Hotline (kèm mã căn):|Nhắn Zalo kèm mã căn để được hỗ trợ nhanh:}[w] 0387365020 (Mã: ${ma})
-👉 Chat Zalo: https://zalo.me/0387365020
+Mã phòng tra cứu: ${ma} (xem ảnh gốc và định vị vệ tinh tại: ${linkWeb})
+Hẹn xem phòng thực tế: Nhắn Zalo 0387 365 020 (Lê Quang) mình gửi định vị Google Maps ghé xem tự do, dẫn xem miễn phí 24/7.
 `;
 
   return spinText(spintax);
@@ -201,7 +196,7 @@ export async function dangBaiProfile(noiDung, imageFiles = []) {
   console.log("✅ ĐÃ ĐĂNG BÀI KÈM ẢNH LÊN PROFILE FACEBOOK THÀNH CÔNG!");
 }
 
-// Tạo caption không chứa link (tránh bị FB bóp reach) + comment đầu tiên chứa link & Zalo
+// Tạo caption giật tít, đậm chất Thổ địa Sài Gòn (không mùi AI, không nút đỏ)
 export function taoBaiDangNhomHiFriendz(item) {
   const ma = getMaPhong(item.id);
   const giaStr = item.price_vnd
@@ -213,18 +208,24 @@ export function taoBaiDangNhomHiFriendz(item) {
   const khuVuc = [item.ward, item.district].filter(Boolean).join(", ");
   const linkWeb = `${SITE_URL}/listings/${item.id}`;
 
+  const headline = spinText(
+    `{[PASS PHÒNG GẤP]|[CĂN DUY NHẤT CÒN TRỐNG]|[CHÍNH CHỦ GIẢM 1TR THÁNG ĐẦU]|[NÓI KHÔNG VỚI ẢNH MẠNG] Ảnh thật 100%} ` +
+    `{Phòng y hình gác cao không đụng đầu|Căn hộ mini full đồ dọn vào ở ngay|Phòng trọ ban công thoáng sáng không chung chủ} khu vực ${khuVuc}[w]`
+  );
+
   const caption = spinText(
-    `{[w]🏠|✨|🌿} {Góc cho thuê|Cần tìm khách thuê thiện chí|Phòng trống xác minh thực tế dọn vào ở ngay} khu vực ${khuVuc}[w]\n\n` +
-    `• {Thông tin|Chi tiết}: ${item.title}${dtStr ? ` (${dtStr})` : ""}\n` +
-    `• {Giá thuê|Mức giá}: ${giaStr} {(báo đúng giá thực tế, minh bạch điện nước từ đầu)|(cam kết ảnh thật - giá thật 100%)}\n` +
-    `• {Khu vực|Vị trí}: ${item.address || khuVuc}\n` +
-    `• {Tình trạng|Ưu điểm}: {Phòng sạch thoáng, an ninh, giờ giấc tự do, dẫn xem trực tiếp miễn phí 24/7|Đã ghim vị trí trên bản đồ Radar, hỗ trợ thương lượng hợp đồng trực tiếp}.\n\n` +
-    `💡 {Ngoài căn này, hệ thống Nhà Đất Radar đang có sẵn hơn 1.400+ phòng trống & nhà nguyên căn đã lọc theo từng Phường/Quận (không cần lướt trăm group tìm mỏi mắt).|Nếu căn này chưa đúng tầm giá bạn tìm, nhắn mình khu vực + ngân sách để mình lọc nhanh 3–5 phòng khớp nhất từ rổ hàng 1.400+ căn hôm nay nhé!}\n` +
-    `📌 Mã căn: ${ma} — {Xem toạ độ bản đồ & full ảnh dưới bình luận hoặc nhắn Zalo 0387 365 020 giúp mình nha!|Mình để link bản đồ chi tiết dưới bình luận đầu tiên, cần xem phòng nhắn Zalo 0387 365 020 kèm mã căn nhé!}[w]`
+    `${headline}\n\n` +
+    `- Căn phòng: ${item.title}${dtStr ? ` (${dtStr})` : ""}\n` +
+    `- Giá thuê: ${giaStr} {(cọc 1 tháng, cam kết ảnh thật - giá chuẩn chủ nhà, không kê chênh)|(chủ nhà dễ tính bớt lộc đầu tháng, minh bạch điện nước từ đầu)}\n` +
+    `- Vị trí: ${item.address || khuVuc} {hẻm an ninh, tiện đường qua các trường đại học & trục đường lớn|gần chợ, bách hoá, hẻm xe hơi quay đầu thoải mái}\n` +
+    `- Tiện nghi: {Đầy đủ máy lạnh, tủ lạnh, gác đúc cao không đụng đầu, kệ bếp riêng biệt|Máy lạnh, giường nệm cao su, tủ quần áo, bồn rửa chén tiện nghi sạch sẽ}\n` +
+    `- An ninh & giờ giấc: {Giờ giấc tự do 100%, không chung chủ, cửa khoá vân tay, bạn bè người thân ghé chơi thoải mái|Khu an ninh yên tĩnh, camera 24/7, có lối thoát hiểm PCCC rõ ràng}\n\n` +
+    `Ngoài căn này, hệ thống Radar Nhà Đất đang có sẵn hơn 1.400+ phòng trống khắp các quận Sài Gòn. Bạn cần tìm phòng mạn nào cứ nhắn mình ngân sách, mình lọc 3-5 căn khớp nhất gửi qua xem liền.\n` +
+    `Mã căn: ${ma} — Nhắn Zalo 0387 365 020 (Lê Quang) mình gửi định vị Maps ghé xem phòng thực tế miễn phí 24/7 nhé![w]`
   );
 
   const firstComment = spinText(
-    `{[w]👉|🗺️} Xem vị trí trên Bản đồ Radar & bộ ảnh thực tế căn ${ma} (hoặc tự lọc hơn 12.900+ phòng theo Phường/Quận) tại: ${linkWeb}\n📲 Cần tìm phòng theo yêu cầu riêng? Nhắn Zalo/Hotline: 0387 365 020 (báo mã ${ma} hoặc gửi khu vực + tầm giá để mình lọc phòng miễn phí trong 30s ạ!)[w]`
+    `Xem định vị bản đồ & album ảnh thực tế căn ${ma} tại: ${linkWeb}\nNhắn Zalo 0387 365 020 (Lê Quang) kèm mã ${ma} để mình gửi tọa độ Google Maps ghé xem phòng bất cứ lúc nào nha![w]`
   );
 
   return { caption, firstComment, ma };

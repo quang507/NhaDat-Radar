@@ -127,5 +127,117 @@
     "query": "nhà đất bình tân",
     "status": "requested",
     "joined_at": "2026-10-26T18:06:13.394Z"
+  },
+  {
+    "name": "Hội Căn Hộ Dịch Vụ - Khách Sạn - Homestay Sài Gòn (CHDV HCM)",
+    "query": "hội căn hộ dịch vụ tphcm",
+    "category": "chu_nha_lap_phong",
+    "district": "Hồ Chí Minh",
+    "target_type": "host_can_lap_phong",
+    "status": "pending_join"
+  },
+  {
+    "name": "Hội Quản Lý Vận Hành & Khai Thác Nhà Trọ - CHDV TP.HCM",
+    "query": "quản lý vận hành phòng trọ chdv",
+    "category": "chu_nha_lap_phong",
+    "district": "Hồ Chí Minh",
+    "target_type": "host_can_lap_phong",
+    "status": "pending_join"
+  },
+  {
+    "name": "Kinh Doanh Nhà Trọ & Căn Hộ Dịch Vụ Sài Gòn (Hội Chủ Trọ)",
+    "query": "kinh doanh nhà trọ chdv",
+    "category": "chu_nha_lap_phong",
+    "district": "Hồ Chí Minh",
+    "target_type": "host_can_lap_phong",
+    "status": "pending_join"
+  },
+  {
+    "name": "Hội Thuê và Cho Thuê Lại Nhà Trọ - CHDV TP.HCM (Sublease)",
+    "query": "thuê và cho thuê lại phòng trọ tphcm",
+    "category": "chu_nha_lap_phong",
+    "district": "Hồ Chí Minh",
+    "target_type": "host_can_lap_phong",
+    "status": "pending_join"
+  },
+  {
+    "name": "Hội Sang Nhượng & Lấp Đầy Phòng Trọ CHDV TP.HCM",
+    "query": "lấp đầy phòng trọ chdv",
+    "category": "chu_nha_lap_phong",
+    "district": "Hồ Chí Minh",
+    "target_type": "host_can_lap_phong",
+    "status": "pending_join"
+  },
+  {
+    "name": "Cộng Đồng Chủ Nhà Trọ TP.HCM - Chia Sẻ Khách Thuê & Vận Hành",
+    "query": "hội chủ nhà trọ tphcm",
+    "category": "chu_nha_lap_phong",
+    "district": "Hồ Chí Minh",
+    "target_type": "host_can_lap_phong",
+    "status": "pending_join"
+  },
+  {
+    "name": "Phòng Trọ Chính Chủ TP.HCM (Không Môi Giới - Không Trung Gian)",
+    "query": "phòng trọ chính chủ không qua môi giới",
+    "category": "phong_tro_chinh_chu",
+    "district": "Hồ Chí Minh",
+    "target_type": "chu_nha_truc_tiep",
+    "status": "pending_join"
+  },
+  {
+    "name": "Tìm Phòng Trọ Chính Chủ Sài Gòn (Chủ Trọ Trực Tiếp Đăng Tin)",
+    "query": "tìm phòng trọ chính chủ sài gòn",
+    "category": "phong_tro_chinh_chu",
+    "district": "Hồ Chí Minh",
+    "target_type": "chu_nha_truc_tiep",
+    "status": "pending_join"
+  },
+  {
+    "name": "Hội Cho Thuê Phòng Trọ & Nhà Trọ Chính Chủ TP.HCM",
+    "query": "chủ nhà cho thuê phòng trọ tphcm",
+    "category": "phong_tro_chinh_chu",
+    "district": "Hồ Chí Minh",
+    "target_type": "chu_nha_truc_tiep",
+    "status": "pending_join"
+  },
+  {
+    "name": "Phòng Trọ Chính Chủ Bình Thạnh - Gò Vấp - Phú Nhuận",
+    "query": "phòng trọ chính chủ bình thạnh gò vấp",
+    "category": "phong_tro_chinh_chu",
+    "district": "Bình Thạnh",
+    "target_type": "chu_nha_truc_tiep",
+    "status": "pending_join"
+  },
+  {
+    "name": "Phòng Trọ Chính Chủ TP. Thủ Đức - Quận 9 - Quận 2",
+    "query": "phòng trọ chính chủ thủ đức",
+    "category": "phong_tro_chinh_chu",
+    "district": "TP. Thủ Đức",
+    "target_type": "chu_nha_truc_tiep",
+    "status": "pending_join"
+  },
+  {
+    "name": "Phòng Trọ Chính Chủ Tân Bình - Tân Phú - Quận 10",
+    "query": "phòng trọ chính chủ tân bình tân phú",
+    "category": "phong_tro_chinh_chu",
+    "district": "Tân Bình",
+    "target_type": "chu_nha_truc_tiep",
+    "status": "pending_join"
+  },
+  {
+    "name": "Phòng Trọ & CHDV Chính Chủ Quận 7 - Nhà Bè",
+    "query": "phòng trọ chính chủ quận 7",
+    "category": "phong_tro_chinh_chu",
+    "district": "Quận 7",
+    "target_type": "chu_nha_truc_tiep",
+    "status": "pending_join"
+  },
+  {
+    "name": "Hội Ký Gửi & Quản Lý Nhà Trọ, CHDV Chính Chủ Sài Gòn",
+    "query": "ký gửi phòng trọ chính chủ",
+    "category": "chu_nha_lap_phong",
+    "district": "Hồ Chí Minh",
+    "target_type": "host_can_lap_phong",
+    "status": "pending_join"
   }
 ]

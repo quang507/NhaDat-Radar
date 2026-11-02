@@ -116,9 +116,9 @@ export async function POST(req: Request) {
         (x, i) =>
           `${i + 1}. ${catChu(x.title || "", 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}`,
       );
-      await sendZaloText(userId, `🔎 Tìm thấy ${data.length} tin phù hợp:\n\n${lines.join("\n\n")}\n\nNhắn tiếp để lọc thêm nhé!`);
+      await sendZaloText(userId, `🔎 Tìm thấy ${data.length} tin phù hợp:\n\n${lines.join("\n\n")}\n\n🎯 Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào.\nTối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em đón mình qua xem thực tế ạ?`);
     } else {
-      await sendZaloText(userId, "Hiện chưa có tin khớp yêu cầu. Anh/chị để lại nhu cầu (khu vực + giá + loại), có tin phù hợp em báo ngay ạ! 🔔");
+      await sendZaloText(userId, "Dạ hiện tại bên em chưa có căn khớp đúng 100% tiêu chí này 😥 Anh/chị gửi em xin số Zalo/SĐT để em theo dõi rổ hàng 1.400+ căn trống, có phòng mới bung em gửi video và định vị Maps qua liền cho mình nhé! 🏠");
     }
     return NextResponse.json({ ok: true });
   }
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
   await sendZaloText(
     userId,
     ai.reply_hint ||
-      "Xin chào 👋 Em là trợ lý NhaDat Radar.\n• Muốn ĐĂNG tin: gửi thông tin nhà/đất (giá, diện tích, khu vực, SĐT).\n• Muốn TÌM nhà: nhắn ví dụ \"thuê phòng trọ Quận 7 dưới 5 triệu\".",
+      "Dạ em chào anh/chị! Anh/chị đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc rổ hàng 1.400+ căn trống hôm nay gửi liền cho mình tham khảo ạ?",
   );
   return NextResponse.json({ ok: true });
 }

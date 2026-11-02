@@ -39,3 +39,5 @@ supabase/DB/
 public/listings/
 scratch/
 internal_all.csv
+
+scratch-*.mjs

@@ -6,6 +6,7 @@ import { getAreas } from "@/lib/geo";
 import { SITE, xmlSitemap, xmlResponse, type MucSitemap } from "@/lib/sitemap";
 import { dsQuanBaoCao } from "@/lib/bao-cao-gia";
 import { BAI_VIET } from "@/lib/bai-viet";
+import { DANH_SACH_DAI_HOC } from "@/lib/dai-hoc";
 
 export const revalidate = 3600;
 
@@ -35,6 +36,8 @@ export async function GET() {
     // tin tức (3/10): báo cáo giá thuê theo quận (đổi mỗi ngày) + bài hướng dẫn
     for (const q of await dsQuanBaoCao()) muc.push({ url: `${SITE}/tin-tuc/gia-thue-phong-tro-${q.slug}`, changefreq: "daily", priority: 0.8 });
     for (const b of BAI_VIET) muc.push({ url: `${SITE}/tin-tuc/${b.slug}`, lastmod: b.ngay, changefreq: "monthly", priority: 0.6 });
+    muc.push({ url: `${SITE}/phong-tro-gan-truong-dai-hoc`, changefreq: "daily", priority: 0.85 });
+    for (const u of DANH_SACH_DAI_HOC) muc.push({ url: `${SITE}/phong-tro-gan-truong-dai-hoc/${u.slug}`, changefreq: "daily", priority: 0.8 });
     const { data: ps } = await createAnonClient().from("projects").select("id").eq("status", "published").limit(1000);
     for (const p of ps ?? []) muc.push({ url: `${SITE}/projects/${p.id}`, priority: 0.5 });
   } catch { /* DB lỗi -> ít nhất vẫn có trang tĩnh */ }

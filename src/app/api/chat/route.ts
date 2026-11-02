@@ -34,7 +34,19 @@ type Parsed = {
   small_talk_reply?: string | null;
 };
 
-const PARSE_PROMPT = `Bạn là trợ lý AI của sàn nhà đất NhaDat Radar (Việt Nam). Phân tích TIN NHẮN CUỐI của người dùng (kèm ngữ cảnh hội thoại) và trả về DUY NHẤT 1 JSON:
+const PARSE_PROMPT = `Bạn là Trợ lý Tư vấn Tìm phòng & Chốt lịch xem nhà của Radar Nhà Đất.
+Nhiệm vụ: Tư vấn nhiệt tình, bắt đúng nhu cầu của khách tìm phòng, gửi 3-5 lựa chọn phù hợp nhất và chốt giờ dẫn đi xem trực tiếp.
+
+[QUY TẮC PHẢN HỒI (CHỐNG MÙI ROBOT)]:
+1. KHÔNG chào hỏi vòng vo kiểu "Kính thưa quý khách", "Cảm ơn bạn đã liên hệ".
+2. Vào thẳng vấn đề tự nhiên: Xưng "em - anh/chị" (hoặc "em - mình").
+3. KỊCH BẢN CHỐT KHÁCH 3 BƯỚC:
+   - Bước 1 (Lắng nghe & Khớp phòng): Tóm tắt lại nhu cầu (Quận, Giá, Có gác/Ban công, Nuôi thú cưng không).
+   - Bước 2 (Minh bạch chi phí): Báo giá phòng + giá điện/nước/xe rõ ràng từ đầu (nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào").
+   - Bước 3 (Chốt giờ xem): "Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ?"
+4. LUÔN HỎI XIN SỐ ĐIỆN THOẠI/ZALO: Nếu khách chat trên web, luôn khéo léo xin Zalo/SĐT để gửi vị trí Maps và video phòng thực tế.
+
+Phân tích TIN NHẮN CUỐI của người dùng (kèm ngữ cảnh hội thoại) và trả về DUY NHẤT 1 JSON:
 {
  "mode": "search"|"analyze"|"chat",
    // search: tìm tin cụ thể (mua/thuê nhà theo tiêu chí)
@@ -48,10 +60,10 @@ const PARSE_PROMPT = `Bạn là trợ lý AI của sàn nhà đất NhaDat Radar
  "price_max": number|null,
  "bedrooms": number|null,
  "keyword": string|null,   // tên đường / dự án / địa danh nhỏ hơn quận. VIẾT CÓ DẤU CHUẨN kể cả khi người dùng gõ không dấu ("pham huu lau" -> "Phạm Hữu Lầu"); KHÔNG kèm chữ "đường", "phố", "hẻm", "gần"
- "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời thân thiện ngắn tiếng Việt. Gợi ý được: tìm kiếm /search, Hotline/Zalo 0387 365 020 để xem nhà thực tế, AI định giá /dinh-gia, tính lãi vay /tinh-lai-vay, đăng tin cần đăng nhập /auth rồi vào /dashboard/new, lưu tin bằng nút ♥.
+ "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời theo đúng kịch bản chống mùi robot: xưng em - anh/chị, tự nhiên, ngắn gọn. Nếu khách hỏi phòng đang xem thì giải đáp thông tin, nhấn mạnh "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào", chốt xem tối nay 18h30 hoặc chiều mai, và xin Zalo/SĐT để gửi vị trí Maps cùng video phòng thực tế (Hotline/Zalo: ${HOTLINE}).
 }
 Không bịa. Giá quy về VND.
-Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu") -> mode "chat", small_talk_reply trả lời từ thông tin tin đó (không bịa thêm), mời gọi/nhắn Zalo hotline ${HOTLINE} để hẹn xem thực tế.`;
+Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu") -> mode "chat", small_talk_reply trả lời đúng thông tin tin đó, nhấn mạnh dẫn xem miễn phí 100% không thu phí cò, chốt xem tối nay 18h30 hoặc chiều mai, và mời để lại Zalo/SĐT hoặc nhắn Zalo ${HOTLINE} để gửi Maps và video phòng thực tế.`;
 
 // Nhúng câu hỏi thành vector 768 chiều (gemini-embedding-001 - cùng model với listings.embedding và
 // projects.embedding chép từ kho AI Ơi). Xoay key khi 429. null nếu hết key / lỗi.
@@ -456,16 +468,23 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
     // 30/9: nói RÕ cho AI kết quả khớp đúng hay là tin gần đúng (đã nới lọc) - bản cũ để AI tự đoán nên
     // có lúc đưa 5 phòng đúng đường mà vẫn trả lời "chưa có phòng trên đường này"
     reply = await gemini(
-      `Bạn là trợ lý sàn NhaDat Radar. Người dùng hỏi: "${last}".\nKết quả tìm được:\n${summary}\n\n${
-        ghiChuNoi
-          ? `LƯU Ý: kết quả gần đúng - ${ghiChuNoi}.`
-          : "Kết quả khớp đúng yêu cầu."
-      }\nQUY TẮC BẮT BUỘC:\n- Cực kỳ ngắn gọn (1-2 câu, dưới 30 từ).\n- KHÔNG liệt kê lại tên nhà hay giá (đã có thẻ bên dưới).\n- Đưa ra 1 câu gợi ý phương án tiếp theo cho khách chọn.`,
+      `Bạn là Trợ lý Tư vấn Tìm phòng & Chốt lịch xem nhà của Radar Nhà Đất. Người dùng hỏi: "${last}".
+Kết quả rổ hàng tìm được:
+${summary}
+
+${ghiChuNoi ? `LƯU Ý: kết quả gần đúng - ${ghiChuNoi}.` : "Kết quả khớp đúng yêu cầu."}
+
+QUY TẮC PHẢN HỒI (CHỐNG MÙI ROBOT):
+- Xưng "em - anh/chị", nhiệt tình, tự nhiên như môi giới thực thụ.
+- Độ dài vừa phải (2-3 câu).
+- Tóm tắt nhanh rổ hàng tìm được, nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
+- Chốt lịch xem và xin Zalo: "Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em báo bạn mở cửa sẵn đón mình qua xem thực tế ạ? Anh/chị cho em xin Zalo để em gửi định vị Maps và video phòng trước nha!"
+- KHÔNG liệt kê lại danh sách tên nhà hay giá (vì các thẻ bên dưới đã hiển thị sẵn).`,
       { json: false },
     );
     reply ||= ghiChuNoi
-      ? `Em gửi bạn các tin gần đúng ở bên dưới nhé!`
-      : `Em tìm được ${found.length} tin phù hợp ở bên dưới nhé 🏠`;
+      ? `Dạ em gửi anh/chị một số căn gần đúng tiêu chí ở bên dưới nhé. Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em đón mình qua xem thực tế ạ? Anh/chị cho em xin Zalo để em gửi định vị Maps và video phòng trước nha!`
+      : `Dạ em tìm được các căn trống đẹp đúng ý anh/chị ở bên dưới nhé! Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em đón mình qua xem thực tế ạ? Anh/chị cho em xin Zalo để em gửi định vị Maps và video phòng trước nha!`;
     if (parsed?.district) {
       suggestions.push(`Căn rẻ hơn ở ${parsed.district}`);
       suggestions.push(`Hẻm xe hơi ở ${parsed.district}`);
@@ -475,7 +494,7 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
     }
     suggestions.push("Đặt lịch hẹn xem nhà");
   } else {
-    reply = "Hiện chưa có tin nào khớp đúng mức này 😥 Bạn thử chọn các phương án nới tìm kiếm dưới đây xem sao nhé:";
+    reply = "Dạ hiện tại bên em chưa có căn khớp đúng 100% mức này 😥 Anh/chị cho em xin Zalo hoặc SĐT để em theo dõi rổ hàng 1.400+ căn trống, có phòng mới bung em gửi video và định vị Maps qua liền cho mình nha! Hoặc anh/chị thử chọn nới khoảng tìm kiếm dưới đây giúp em nhé:";
     if (parsed?.district) {
       suggestions.push(`Tất cả tin tại ${parsed.district}`);
       suggestions.push(`Nới giá tại ${parsed.district}`);

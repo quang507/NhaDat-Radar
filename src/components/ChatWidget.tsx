@@ -12,8 +12,8 @@ type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[]; sugge
 
 const GREET_DEFAULT: Msg = {
   role: "bot",
-  text: "Xin chào! Mình là trợ lý của NhaDat Radar 🏠\n\nMình có thể lọc nhanh căn phù hợp theo nhu cầu của bạn. Bạn muốn xem phương án nào?",
-  suggestions: ["Phòng trọ Bình Thạnh dưới 4tr", "Nhà Tân Phú 3 - 5 tỷ hxh", "Căn hộ 2PN Quận 7"],
+  text: "Dạ em chào anh/chị! Anh/chị đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc rổ hàng 1.400+ căn trống hôm nay gửi liền cho mình tham khảo ạ?",
+  suggestions: ["Phòng trọ Bình Thạnh dưới 4tr", "Studio Quận 7 có ban công", "Phòng Tân Bình nuôi pet"],
 };
 
 const CHIPS_DEFAULT = [

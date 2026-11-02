@@ -193,7 +193,8 @@ export async function POST(req: Request) {
         ]);
       });
 
-      resp += `Anh/chị có thể bấm vào từng căn để xem ảnh thực tế & đặt lịch xem trực tiếp! ✨`;
+      resp += `🎯 <b>Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào.</b>\n` +
+        `Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em báo bạn mở cửa sẵn đón mình qua xem thực tế ạ? Anh/chị nhắn lại SĐT/Zalo để em gửi định vị Maps và video phòng trước nha! ✨`;
 
       buttons.push([
         { text: "🔍 Tìm kiếm thêm trên web", url: `${SITE_URL}/search` },
@@ -207,7 +208,7 @@ export async function POST(req: Request) {
       });
     } else {
       await sendTelegramMessage(
-        `Hiện tại chưa có tin nào khớp 100% với yêu cầu trên.\n\nAnh/chị có thể xem thêm các phòng đang trống gần khu vực đó tại website hoặc liên hệ hotline để bên em kiểm tra thêm rổ hàng mới về nhé! 🏠`,
+        `Dạ hiện tại bên em chưa có căn khớp đúng 100% tiêu chí này 😥\n\nAnh/chị gửi em xin số Zalo hoặc SĐT để em theo dõi rổ hàng 1.400+ căn trống hôm nay, vừa có phòng mới bung là em gửi video và định vị Maps qua liền cho mình nhé! 🏠`,
         {
           chatId,
           parse_mode: "HTML",
