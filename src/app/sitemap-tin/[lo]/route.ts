@@ -1,7 +1,8 @@
 // Sitemap tin theo lô: /sitemap-tin/0.xml, /sitemap-tin/1.xml... (5.000 URL mỗi lô).
 import { loTin, xmlSitemap, xmlResponse, SITE, loiTamThoi } from "@/lib/sitemap";
 
-export const dynamic = "force-dynamic";   // 3/10: cache CDN 1 giờ (xmlResponse); DB lỗi -> 503 không cache
+// Cache CDN 24 giờ - Googlebot cào không tốn Egress Supabase (mỗi lô 5.000 tin)
+export const revalidate = 86400;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ lo: string }> }) {
   const { lo } = await params;

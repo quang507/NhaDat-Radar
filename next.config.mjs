@@ -57,6 +57,8 @@ const nextConfig = {
       },
       // Service worker (public/sw.js): trình duyệt luôn hỏi lại bản mới - deploy công tắc khẩn có hiệu lực ngay
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }] },
+      // Cache sitemap 24h trên CDN Edge: Googlebot cào sitemap tốn 0 byte Egress Supabase
+      { source: "/sitemap(.*)", headers: [{ key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" }] },
     ];
   },
 

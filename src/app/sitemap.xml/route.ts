@@ -3,7 +3,7 @@
 import { SITE, MOI_LO, demTin, xmlSitemapIndex, xmlResponse, loiTamThoi } from "@/lib/sitemap";
 
 // 3/10: động + cache CDN 1 giờ (xmlResponse s-maxage) thay vì ISR - ISR từng giữ 1 giờ bản index THIẾU lô khi DB lỗi tạm
-export const dynamic = "force-dynamic";
+export const revalidate = 86400;
 
 export async function GET() {
   let soLo: number;
