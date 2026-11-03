@@ -72,6 +72,12 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
             action="/search"
             className="flex flex-col gap-2.5"
             onSubmit={(e) => {
+              const trimmed = q.trim();
+              if (/^rh[0-9a-f]{6}$/i.test(trimmed)) {
+                e.preventDefault();
+                router.push(`/rh/${trimmed.toUpperCase()}`);
+                return;
+              }
               for (const el of Array.from(e.currentTarget.elements) as HTMLInputElement[]) {
                 if (el.name && !el.value) el.disabled = true;
               }

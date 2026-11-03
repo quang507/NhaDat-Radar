@@ -7,6 +7,13 @@
 
 ---
 
+## 0. Vận hành hai cỗ máy (Creative Studio vs Distribution Engine) - Cập nhật 03/11/2026
+- **Creative Studio (Chat sản xuất nội dung):** Chuyên kịch bản, storyboard, voiceover ElevenLabs Matilda và render video dọc 9:16 qua Remotion (`video/`) & HyperFrames. Brief chi tiết tại [`video/TVC-BRIEF.md`](video/TVC-BRIEF.md).
+- **Distribution Engine (Chat phân phối & tăng trưởng):** Chuyên kiểm duyệt 4 cổng (Humanizer, Anti-ban, SEO local & Brand, CTA Business Funnel) và xuất bản lên Threads, TikTok, Instagram, Zalo. Quy chuẩn bắt buộc tại [`docs/QUY-TRINH-PHAN-PHOI-MARKETING.md`](docs/QUY-TRINH-PHAN-PHOI-MARKETING.md) và [`docs/QUY-CHUAN-AUTOMATION-FB-ZALO.md`](docs/QUY-CHUAN-AUTOMATION-FB-ZALO.md).
+- **Hotline & Zalo duy nhất:** `0387 365 020` (Lê Quang).
+
+---
+
 ## 1. Link quan trọng
 | | |
 |---|---|

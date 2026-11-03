@@ -106,3 +106,6 @@ Trong Next.js 15, chỉ cần 1 lời gọi `await cookies()` xuất hiện ở 
    * Nhiều file trong dự án dùng định dạng xuống dòng **CRLF**, giữ nguyên format này khi chỉnh sửa.
 4. **Bảo mật biến môi trường:**
    * Tuyệt đối không gửi giá trị mật khẩu hay private key qua chat. Mọi biến bí mật được quản lý tập trung trong Vercel Environment Variables và GitHub Secrets.
+5. **Quy chuẩn Phân phối Đa kênh & Marketing (Distribution SOP):**
+   * Tuân thủ nghiêm ngặt [`docs/QUY-TRINH-PHAN-PHOI-MARKETING.md`](docs/QUY-TRINH-PHAN-PHOI-MARKETING.md) và [`docs/QUY-CHUAN-AUTOMATION-FB-ZALO.md`](docs/QUY-CHUAN-AUTOMATION-FB-ZALO.md).
+   * Mọi nội dung xuất bản phải qua bộ lọc Humanizer (cấm em-dash `—`, cấm ngoặc giật tít AI `[...]`), cấm để link ngoài trong caption bài đăng (Threads thả link ở Reply đầu tiên, TikTok/Reels điều hướng link Bio). Hotline & Zalo duy nhất của Radar: **`0387 365 020`**.

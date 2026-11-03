@@ -7,13 +7,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { gemini, median } from "@/lib/gemini";
 import { fmtPrice, PROP } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
-import { cauChotXemPhong, tronRoHang, laRoHang, maPhong } from "@/lib/ro-hang";
+import { cauChotXemPhong, tronRoHang, laRoHang, maPhong, khoangIdTuMa } from "@/lib/ro-hang";
 import { lamSachTuKhoa, cacMucNoi, type BoLoc } from "@/lib/chat-tim";
 import { bocTruyVanBDS } from "@/lib/boc-truy-van";
 import { layTinTuongTu } from "@/lib/tuong-tu";
 import { cheSoVanBan } from "@/lib/doc-quyen";
 import { layDuAnToaDo, duAnTrongCau, chuanTen, khoangCachKm } from "@/lib/du-an";
-import { HOTLINE } from "@/components/TuVanRadar";
+import { HOTLINE, HOTLINE_DISPLAY, HOTLINE_NAME } from "@/lib/hotline";
 
 // %/_ là wildcard ilike, ",()" phá cú pháp .or() - cùng luật clean của /search (soát 21/8:
 // province/district/keyword từ output Gemini đi thẳng vào ilike không rửa)
@@ -44,17 +44,18 @@ type Parsed = {
 };
 
 const PARSE_PROMPT = `Bạn là TRỢ LÝ AI tư vấn tìm phòng & chốt lịch xem nhà của Radar Nhà Đất.
-Nhiệm vụ: Tư vấn nhiệt tình, bắt đúng nhu cầu của khách tìm phòng, gửi 3-5 lựa chọn phù hợp nhất và chốt giờ dẫn đi xem trực tiếp.
+Nhiệm vụ: Tư vấn nhiệt tình, bắt đúng nhu cầu của khách tìm phòng, gửi 3-5 lựa chọn phù hợp nhất và chốt giờ dẫn đi xem trực tiếp miễn phí.
+Hotline và Zalo tư vấn duy nhất của Radar: ${HOTLINE_DISPLAY} (${HOTLINE_NAME}).
 
 [QUY TẮC PHẢN HỒI (GIỌNG TỰ NHIÊN, NHƯNG LUÔN LÀ AI)]:
-0. Bạn là AI. KHÔNG BAO GIỜ tự nhận là người, nhân viên hay "bạn phụ trách". Nếu khách hỏi có phải người thật/bot không, trả lời rõ: "Dạ em là trợ lý AI của Radar" và đưa Hotline/Zalo ${HOTLINE} để gặp nhân viên.
+0. Bạn là AI. KHÔNG BAO GIỜ tự nhận là người, nhân viên hay "bạn phụ trách". Nếu khách hỏi có phải người thật/bot không, trả lời rõ: "Dạ em là trợ lý AI của Radar" và đưa Hotline/Zalo duy nhất ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) để gặp nhân viên trực tiếp.
 1. KHÔNG chào hỏi vòng vo kiểu "Kính thưa quý khách", "Cảm ơn bạn đã liên hệ".
 2. Vào thẳng vấn đề tự nhiên: Xưng "em - anh/chị" (hoặc "em - mình").
 3. KỊCH BẢN CHỐT KHÁCH 3 BƯỚC:
-   - Bước 1 (Lắng nghe & Khớp phòng): Tóm tắt lại nhu cầu (Quận, Giá, Có gác/Ban công, Nuôi thú cưng không).
-   - Bước 2 (Minh bạch chi phí): Báo giá phòng + giá điện/nước/xe rõ ràng từ đầu (nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào").
-   - Bước 3 (Chốt giờ xem): "Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ?"
-4. MỜI ĐỂ LẠI SỐ ĐIỆN THOẠI/ZALO (không ép, khách từ chối thì thôi): xin Zalo/SĐT để nhân viên Radar gửi vị trí Maps và video phòng thực tế.
+   - Bước 1 (Lắng nghe & Khớp phòng): Tóm tắt lại nhu cầu (Quận, Giá, Có gác/Ban công, Nuôi thú cưng không). Khi khách hỏi theo mã phòng RHxxxxxx, tra cứu chính xác theo dữ liệu rổ hàng.
+   - Bước 2 (Minh bạch chi phí): Luôn bóc tách đủ 5 khoản phí minh bạch (nói không với chi phí ẩn): 1. Tiền phòng (giá thuê), 2. Tiền điện, 3. Tiền nước, 4. Tiền gửi xe, 5. Tiền dịch vụ (phí quản lý/dịch vụ). Nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
+   - Bước 3 (Chốt giờ xem): Mục tiêu là giải đáp nhanh và chốt lịch hẹn dẫn khách xem phòng thực tế miễn phí: "Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ?"
+4. MỜI ĐỂ LẠI SỐ ĐIỆN THOẠI/ZALO: Mời để lại SĐT hoặc nhắn Zalo ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) để nhân viên Radar gửi vị trí Maps và video phòng thực tế.
 
 Phân tích TIN NHẮN CUỐI của người dùng (kèm ngữ cảnh hội thoại) và trả về DUY NHẤT 1 JSON:
 {
@@ -70,10 +71,10 @@ Phân tích TIN NHẮN CUỐI của người dùng (kèm ngữ cảnh hội tho�
  "price_max": number|null,
  "bedrooms": number|null,
  "keyword": string|null,   // tên đường / dự án / địa danh nhỏ hơn quận. VIẾT CÓ DẤU CHUẨN kể cả khi người dùng gõ không dấu ("pham huu lau" -> "Phạm Hữu Lầu"); KHÔNG kèm chữ "đường", "phố", "hẻm", "gần"
- "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời tự nhiên, ngắn gọn, xưng em - anh/chị (vẫn là trợ lý AI, không tự nhận là người). Nếu khách hỏi phòng đang xem thì giải đáp thông tin, nhấn mạnh "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào", chốt xem tối nay 18h30 hoặc chiều mai, và xin Zalo/SĐT để gửi vị trí Maps cùng video phòng thực tế (Hotline/Zalo: ${HOTLINE}).
+ "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời tự nhiên, ngắn gọn, xưng em - anh/chị (vẫn là trợ lý AI, không tự nhận là người). Nếu khách hỏi phòng đang xem/mã phòng thì giải đáp thông tin bóc tách đủ 5 khoản phí minh bạch, nhấn mạnh "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào", chốt xem tối nay 18h30 hoặc chiều mai, và xin Zalo/SĐT để gửi vị trí Maps cùng video phòng thực tế (Hotline/Zalo: ${HOTLINE_DISPLAY} - ${HOTLINE_NAME}).
 }
 Không bịa. Giá quy về VND.
-Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu") -> mode "chat", small_talk_reply trả lời đúng thông tin tin đó, nhấn mạnh dẫn xem miễn phí 100% không thu phí cò, chốt xem tối nay 18h30 hoặc chiều mai, và mời để lại Zalo/SĐT hoặc nhắn Zalo ${HOTLINE} để gửi Maps và video phòng thực tế.`;
+Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" hoặc "NGƯỜI DÙNG ĐANG HỎI MÃ PHÒNG" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu", "phí sao") -> mode "chat", small_talk_reply trả lời đúng thông tin tin đó, bóc tách đủ 5 khoản phí minh bạch (tiền phòng, điện, nước, gửi xe, dịch vụ), nhấn mạnh dẫn xem miễn phí 100% không thu phí cò, chốt xem tối nay 18h30 hoặc chiều mai, và mời để lại Zalo/SĐT hoặc nhắn Zalo ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) để gửi Maps và video phòng thực tế.`;
 
 // Nhúng câu hỏi thành vector 768 chiều (gemini-embedding-001 - cùng model với listings.embedding và
 // projects.embedding chép từ kho AI Ơi). Xoay key khi 429. null nếu hết key / lỗi.
@@ -241,12 +242,35 @@ export async function POST(req: NextRequest) {
   let tinDangXemData: any = null;
   if (typeof body.dangXem === "string" && /^[0-9a-f-]{36}$/i.test(body.dangXem)) {
     const { data } = await createAnonClient().from("listings")
-      .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site").eq("id", body.dangXem).eq("status", "published").maybeSingle();
+      .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site,specs,amenities").eq("id", body.dangXem).eq("status", "published").maybeSingle();
     if (data) {
       tinDangXemData = data;
       const rh = laRoHang(data);
       // địa chỉ công khai (rổ hàng/độc quyền đã che số nhà) - không bao giờ đưa địa chỉ thật cho AI
-      dangXem = `NGƯỜI DÙNG ĐANG XEM TIN: "${cheSoVanBan(data.title)}" - ${fmtPrice(data.price_vnd, data.deal)}${data.area_m2 ? `, ${data.area_m2}m²` : ""}, ${cheSoVanBan([data.address, data.district, data.province].filter(Boolean).join(", "))}${rh ? `. Đây là phòng trống rổ hàng Radar, mã phòng ${maPhong(data.id)}, hotline/Zalo ${HOTLINE} (khách nhắn kèm mã phòng)` : ""}.`;
+      dangXem = `NGƯỜI DÙNG ĐANG XEM TIN: "${cheSoVanBan(data.title)}" - ${fmtPrice(data.price_vnd, data.deal)}${data.area_m2 ? `, ${data.area_m2}m²` : ""}, ${cheSoVanBan([data.address, data.district, data.province].filter(Boolean).join(", "))}${rh ? `. Đây là phòng trống rổ hàng Radar, mã phòng ${maPhong(data.id)}, bảng phí: ${JSON.stringify(data.specs || {})}, hotline/Zalo duy nhất ${HOTLINE_DISPLAY} (${HOTLINE_NAME})` : ""}.`;
+    }
+  }
+
+  // Tra cứu theo mã phòng RHxxxxxx (docs/QUY-TRINH-PHAN-PHOI-MARKETING.md)
+  const rhMatch = last.match(/\b(RH[0-9a-fA-F]{6})\b/i) || last.match(/(?:mã|căn|phòng)\s*:?\s*([0-9a-fA-F]{6})\b/i);
+  if (rhMatch && !tinDangXemData) {
+    const rawMa = rhMatch[1].toUpperCase();
+    const maChuan = rawMa.startsWith("RH") ? rawMa : `RH${rawMa}`;
+    const khoang = khoangIdTuMa(maChuan);
+    if (khoang) {
+      const { data: listingRh } = await createAnonClient()
+        .from("listings")
+        .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site,specs,amenities")
+        .gte("id", khoang[0])
+        .lte("id", khoang[1])
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (listingRh) {
+        tinDangXemData = listingRh;
+        dangXem = `NGƯỜI DÙNG ĐANG HỎI MÃ PHÒNG ${maChuan}: "${cheSoVanBan(listingRh.title)}" - ${fmtPrice(listingRh.price_vnd, listingRh.deal)}${listingRh.area_m2 ? `, ${listingRh.area_m2}m²` : ""}, ${cheSoVanBan([listingRh.address, listingRh.district, listingRh.province].filter(Boolean).join(", "))}. Bảng phí chi tiết (bóc tách 5 khoản minh bạch, nói không với chi phí ẩn): ${JSON.stringify(listingRh.specs || {})}. Hotline/Zalo tư vấn duy nhất của Radar: ${HOTLINE_DISPLAY} (${HOTLINE_NAME}).`;
+      }
     }
   }
 

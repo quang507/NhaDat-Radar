@@ -227,7 +227,14 @@ export default function SearchClient({
     if (Object.values(next).some(Boolean)) rememberSearch(label, href);
     chuyenTrang(() => router.push(href));
   }
-  const submit = () => push({ ...f, sort });
+  const submit = () => {
+    const trimmed = (f.q || "").trim();
+    if (/^rh[0-9a-f]{6}$/i.test(trimmed)) {
+      router.push(`/rh/${trimmed.toUpperCase()}`);
+      return;
+    }
+    push({ ...f, sort });
+  };
   const clear = () => { setNewAddr(false); setF(tuParams({})); chuyenTrang(() => router.push("/search")); };
 
   const sel = "inp appearance-none pr-8 cursor-pointer";

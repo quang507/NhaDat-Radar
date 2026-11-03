@@ -31,5 +31,5 @@ export async function GET(
     return NextResponse.redirect(new URL(`/listings/${listing.id}`, request.url));
   }
 
-  return NextResponse.redirect(new URL(`/search?q=${encodeURIComponent(rawCode)}`, request.url));
+  return NextResponse.redirect(new URL(`/search?q=${encodeURIComponent(rawCode)}&khong_tim_thay_ma=1`, request.url));
 }

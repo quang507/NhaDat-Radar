@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
-  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach,
+  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach, trichXuatDinhDanh,
 } from "../../crawler/zalo-tu-van-lead.mjs";
 import { laBaiTimPhong } from "../../crawler/khach-tim.mjs";
 import { hoiThoaiMoi, themTin, nguoiNhan } from "../../crawler/zalo-hoi-thoai.mjs";
@@ -313,4 +313,31 @@ test("cổng gửi: hỗ trợ gửi tin nhóm có mention và thả tim (react)
   // 2. Thả tim tin nhắn
   await cong.react("msg_999", "group_123", "/-heart", { type: "1", cliMsgId: "cli_888" });
   expect(cacLenh).toContainEqual(["msg", "react", "-t", "1", "-c", "cli_888", "msg_999", "group_123", "/-heart"]);
+});
+
+test("đồng bộ vận hành: hotline 0387 365 020 (Lê Quang), mã phòng RH, 5 khoản phí minh bạch", () => {
+  // 1. Tra cứu mã phòng RHxxxxxx từ tin nhắn
+  expect(trichXuatDinhDanh("Phòng RH017FC5 còn không bạn?")).toEqual({ kieu: "ma_rh", giaTri: "RH017FC5" });
+  expect(trichXuatDinhDanh("căn rh1a2b3c giá sao")).toEqual({ kieu: "ma_rh", giaTri: "RH1A2B3C" });
+  expect(trichXuatDinhDanh("mã: 1A2B3C")).toEqual({ kieu: "ma_rh", giaTri: "RH1A2B3C" });
+
+  // 2. Bóc tách 5 khoản phí minh bạch và Hotline Radar
+  const f = factsTuTin(TIN, RO_HANG);
+  const r = soanTraLoiTuFacts(["chi_phi"], f)!;
+  expect(r).toContain("5 khoản phí minh bạch (nói không với chi phí ẩn)");
+  expect(r).toContain("Điện: 3.800 đ/kWh");
+  expect(r).toContain("Nước: 100.000 đ/người");
+  expect(r).toContain("Gửi xe: 100.000 đ/xe");
+  expect(r).toContain("Phí dịch vụ: 150.000 đ/phòng");
+  expect(r).toContain("Tiền phòng: 4,2 triệu/tháng");
+  expect(r).toContain("0387 365 020 (Lê Quang)");
+  expect(r).toContain("Radar dẫn xem miễn phí 100%");
+
+  // 3. AI draft cho phép hotline chính thức nhưng chặn SĐT lạ
+  const goiYHopLe = ["Hotline/Zalo: 0387 365 020 (Lê Quang)"];
+  const pl1 = chuanHoaPhanLoai({ y_dinh: "hoi_thong_tin", hoi_ve: ["dien"], do_tin_cay: 0.9, goi_y: goiYHopLe });
+  expect(pl1?.goi_y).toEqual(goiYHopLe);
+
+  const pl2 = chuanHoaPhanLoai({ y_dinh: "hoi_thong_tin", hoi_ve: ["dien"], do_tin_cay: 0.9, goi_y: ["Gọi số 0912 345 678 nhé"] });
+  expect(pl2?.goi_y).toEqual([]);
 });

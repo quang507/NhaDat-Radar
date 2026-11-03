@@ -11,7 +11,7 @@ import { LISTING_SEARCH_COLS } from "@/lib/cols";
 import { tinhCuGopVao, TINH_MAC_DINH, MOI_TINH } from "@/lib/sap-nhap";
 import SearchClient, { type DieuHuong } from "./SearchClient";
 import { cheSoTin } from "@/lib/doc-quyen";
-import { oTronRoHang, xepTheoThuTu } from "@/lib/ro-hang";
+import { oTronRoHang, xepTheoThuTu, khoangIdTuMa } from "@/lib/ro-hang";
 import { docTienIch, dieuKienTienIch, tienIchCua } from "@/lib/tien-ich";
 import { bocTruyVanBDS } from "@/lib/boc-truy-van";
 
@@ -192,7 +192,11 @@ const timKiemCoCache = unstable_cache(
     // cả cụm ("Tây Nam"), không cắt lấy chữ đầu - split(" ")[0] làm "Tây Nam" lọc thành
     // "Tây" và trả về lẫn cả Tây Bắc, 4 lựa chọn hướng ghép thành vô nghĩa (soát 21/8)
     if (direction) query = query.ilike("direction", `%${clean(direction)}%`);
-    if (q) {
+    const khoang = q ? khoangIdTuMa(q) : null;
+    if (khoang) {
+      // Khách tìm theo mã phòng RHxxxxxx -> lọc trực tiếp dải UUID
+      query = query.gte("id", khoang[0]).lte("id", khoang[1]);
+    } else if (q) {
       // Học flow batdongsan: từ khoá khớp cả tiêu đề + địa chỉ/đường + phường + quận
       const safe = clean(q);
       if (safe) query = query.or(`title.ilike.%${safe}%,address.ilike.%${safe}%,ward.ilike.%${safe}%,district.ilike.%${safe}%`);
@@ -277,6 +281,13 @@ export default async function SearchPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const spGoc = await searchParams;
+  const rawQ = (spGoc.q || "").trim();
+  // Khách gõ mã phòng RHxxxxxx -> chuyển thẳng tới trang tin chi tiết qua route /rh/[code]
+  const khoang = !spGoc.khong_tim_thay_ma && rawQ ? khoangIdTuMa(rawQ) : null;
+  if (khoang) {
+    redirect(`/rh/${rawQ.toUpperCase()}`);
+  }
+
   // làm sạch giá NGAY từ đầu -> khoá cache, truy vấn và bộ lọc phía client cùng một giá trị
   const sp: Record<string, string | undefined> = { ...spGoc, ...sachGia(spGoc.priceMin, spGoc.priceMax) };
   // 3/11: chưa chọn khu vực -> lọc sẵn TP.HCM; province=all là khách đã bỏ lọc tỉnh (xem cả nước)

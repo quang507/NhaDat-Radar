@@ -20,6 +20,9 @@ import { themTin, nguoiNhan, traChoBot, dangDoNguoi, maThe } from "./zalo-hoi-th
 
 // Zalo nhận thẻ báo của admin (0346689460)
 export const ADMIN_ZALO_UID = process.env.ZALO_ADMIN_UID || "199426642744249709";
+// Hotline và Zalo tư vấn duy nhất của Radar (docs/QUY-TRINH-PHAN-PHOI-MARKETING.md)
+export const HOTLINE = "0387 365 020";
+export const HOTLINE_NAME = "Lê Quang";
 // Mặc định TẮT: bot không tự nhắn khách, chỉ gợi ý cho admin
 export const BOT_TU_DONG_TRA_LOI_KHACH = process.env.ZALO_AUTO_REPLY_KHACH === "true";
 const SITE_URL = "https://nhadatradar.com";
@@ -57,8 +60,11 @@ export function trichXuatDinhDanh(text) {
   if (url) return { kieu: "uuid", giaTri: url[1].toLowerCase() };
   const uuid = s.match(/\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\b/);
   if (uuid) return { kieu: "uuid", giaTri: uuid[1].toLowerCase() };
-  const rh = s.match(/\b(RH[0-9a-fA-F]{6})\b/i);
-  if (rh) return { kieu: "ma_rh", giaTri: rh[1].toUpperCase() };
+  const rh = s.match(/\b(RH[0-9a-fA-F]{6})\b/i) || s.match(/(?:mã|căn|phòng)\s*:?\s*([0-9a-fA-F]{6})\b/i);
+  if (rh) {
+    const code = rh[1].toUpperCase();
+    return { kieu: "ma_rh", giaTri: code.startsWith("RH") ? code : `RH${code}` };
+  }
   const lst = s.match(/\b(LST-[a-zA-Z0-9_-]{10,})\b/);
   if (lst) return { kieu: "source_id", giaTri: lst[1] };
   return null;
@@ -197,8 +203,9 @@ tom_tat: một câu ngắn cho nhân viên, nói khách muốn gì và đang ở
 ngon_ngu: ngôn ngữ của TIN MỚI (không phải của lịch sử).
 
 goi_y: 2 hoặc 3 bản nháp trả lời KHÁC NHAU để nhân viên chọn. Giọng nhân viên tư vấn: nhiệt tình, tự nhiên, xưng "mình", gọi "bạn", tối đa 2 câu, chuẩn kịch bản chống mùi robot:
-- Khi khách hỏi phòng / phí: Báo rõ chi phí, nhấn mạnh "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
-- Khi chốt giờ xem: Gợi ý khung giờ cụ thể ("Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào hơn để mình báo mở cửa sẵn đón qua xem thực tế nha?").
+- Hotline và Zalo tư vấn duy nhất của Radar: 0387 365 020 (Lê Quang).
+- Khi khách hỏi phòng / phí: Luôn bóc tách đủ 5 khoản phí minh bạch (nói không với chi phí ẩn): 1. Tiền phòng (giá thuê), 2. Điện, 3. Nước, 4. Gửi xe, 5. Dịch vụ (phí quản lý). Nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
+- Khi chốt giờ xem: Mục tiêu là giải đáp nhanh và chốt lịch hẹn dẫn khách xem phòng thực tế miễn phí ("Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào hơn để mình báo mở cửa sẵn đón qua xem thực tế nha?").
 Khi y_dinh = cam_on_ket_thuc thì goi_y = [].
 LUẬT CỨNG cho goi_y (vi phạm là bản nháp bị loại):
 1. Chỉ dùng dữ kiện có trong PHÒNG ĐANG NÓI và LỊCH SỬ. Thứ không có thì KHÔNG đoán, để chỗ trống trong ngoặc vuông cho nhân viên điền, ví dụ "[còn/hết phòng]", "[được/không được nuôi mèo]", "[cần hỏi chủ nhà]".
@@ -206,7 +213,7 @@ LUẬT CỨNG cho goi_y (vi phạm là bản nháp bị loại):
 3. Không quyết thay nhân viên: không nhận lời hẹn ("được bạn qua liền"), không tự đặt giờ, không hứa bớt giá. Hỏi lại thông tin để nhân viên chốt, ví dụ "Bạn đang ở đoạn nào, khoảng mấy giờ qua được để mình [sắp xếp người mở cửa]?".
 4. Không bịa người hay hoàn cảnh: không "quản lý đón", "chủ nhà bảo", "đang chạy xe", "đang ở toà", không nhận là chủ nhà.
 5. Khách hỏi có phải bot không thì nói thật. LỊCH SỬ có [Radar-bot] thì thừa nhận tin trước là tin tự động và giờ nhân viên trực tiếp hỗ trợ; không viết "không phải bot".
-6. Không nêu số điện thoại, số nhà, số phòng, tên đối tác, hoa hồng.
+6. Không nêu số điện thoại lạ (ngoài Hotline/Zalo duy nhất 0387 365 020), không nêu số nhà, số phòng, tên đối tác, hoa hồng.
 7. ngon_ngu = "en" thì goi_y viết HOÀN TOÀN bằng tiếng Anh, xưng "I/we", gọi "you".`;
 
 const NHAN_VAI = { khach: "Khách", nguoi: "Radar-người", bot: "Radar-bot" };
@@ -227,6 +234,10 @@ export function taoPromptPhanLoai({ tin = [], facts = null, tinMoi }) {
 }
 
 const SDT_RE = /(\+?84|0)[\s.\-]?\d([\s.\-]?\d){7,9}/;
+const laSdtLa = (s) => {
+  const clean = String(s || "").replace(/0387\s*365\s*020/g, "").replace(/0387365020/g, "");
+  return SDT_RE.test(clean);
+};
 // Lưới an toàn cho luật 2 của prompt: DB không có tình trạng còn phòng, nháp nào khẳng định là bỏ
 const KHANG_DINH_CON_PHONG = /(vẫn còn|còn trống|còn phòng|vẫn trống|still available|is available)/i;
 
@@ -243,7 +254,7 @@ export function chuanHoaPhanLoai(raw) {
     do_tin_cay: Number.isFinite(tc) ? Math.min(1, Math.max(0, tc)) : 0,
     tom_tat: typeof raw.tom_tat === "string" ? raw.tom_tat.trim().slice(0, 200) : "",
     goi_y: (Array.isArray(raw.goi_y) ? raw.goi_y : [])
-      .filter((s) => typeof s === "string" && s.trim() && !SDT_RE.test(s) && !KHANG_DINH_CON_PHONG.test(s.replace(/\[[^\]]*\]/g, "")))
+      .filter((s) => typeof s === "string" && s.trim() && !laSdtLa(s) && !KHANG_DINH_CON_PHONG.test(s.replace(/\[[^\]]*\]/g, "")))
       .map((s) => s.trim().slice(0, 400)).slice(0, 3),
   };
 }
@@ -264,7 +275,7 @@ export function soanTraLoiTuFacts(hoiVe, f, isEn = false) {
   if (!f || !hoiVe?.length || hoiVe.some((k) => !HOI_VE_DU_KIEN.includes(k))) return null;
   const can = [], them = [];
   for (const k of hoiVe) {
-    if (k === "chi_phi") { can.push(...CHI_PHI_BAT_BUOC); them.push("gui_xe"); }
+    if (k === "chi_phi") { can.push(...CHI_PHI_BAT_BUOC); them.push("gui_xe"); them.push("gia"); }
     else can.push(k);
   }
   if (can.some((k) => !f[k])) return null;
@@ -272,8 +283,8 @@ export function soanTraLoiTuFacts(hoiVe, f, isEn = false) {
   const nhan = isEn ? NHAN_EN : NHAN;
   const dong = khoa.map((k) => `• ${nhan[k]}: ${k === "gia" && isEn ? f.gia_en : f[k]}`);
   return isEn
-    ? `Room ${f.ma}:\n${dong.join("\n")}\nFeel free to ask if you need anything else.`
-    : `Dạ phòng ${f.ma}:\n${dong.join("\n")}\nBạn cần hỏi thêm gì cứ nhắn nha.`;
+    ? `Room ${f.ma} - Transparent fee breakdown:\n${dong.join("\n")}\nRadar viewing is 100% free with no brokerage fees. Hotline/Zalo: 0387 365 020 (Le Quang).`
+    : `Dạ phòng ${f.ma} - thông tin 5 khoản phí minh bạch (nói không với chi phí ẩn):\n${dong.join("\n")}\nRadar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay 18h30 hoặc chiều mai bạn tiện qua xem trực tiếp không ạ? Hotline/Zalo tư vấn duy nhất: 0387 365 020 (Lê Quang).`;
 }
 
 /** Câu chào chuẩn kịch bản của Radar Nhà Đất */
@@ -585,14 +596,15 @@ export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
   if (coCan) {
     tinRieng += `Bên em đang có sẵn ${canKhop.length} căn đúng tiêu chí gửi bạn tham khảo trước:\n`;
     canKhop.forEach((c, idx) => {
+      const maStr = c.id ? `[${maPhong(c.id)}] ` : "";
       const giaStr = c.price_vnd ? `${(c.price_vnd / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",")}tr/tháng` : "Giá thoả thuận";
       const kvStr = [c.ward, c.district].filter(Boolean).join(", ");
       const ti = [...new Set((c.amenities || []).map((a) => TIEN_ICH[a] || a).filter(Boolean))].slice(0, 3).join(", ");
-      tinRieng += `${idx + 1}. Căn ${kvStr} - ${giaStr}${ti ? ` (${ti})` : ""}\n`;
+      tinRieng += `${idx + 1}. Căn ${maStr}${kvStr} - ${giaStr}${ti ? ` (${ti})` : ""}\n`;
     });
-    tinRieng += `\nRadar dẫn xem phòng trực tiếp miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ?`;
+    tinRieng += `\nRadar dẫn xem phòng trực tiếp miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ? Hotline/Zalo tư vấn: 0387 365 020 (Lê Quang).`;
   } else {
-    tinRieng += `Hôm nay bên em đang cập nhật thêm rổ hàng 1.400+ căn trống mới quanh khu vực này. Bạn cho em xin thêm yêu cầu chi tiết (gác/ban công, nuôi pet, ngày dọn vào) để em lọc gửi liền cho mình nhé ạ!\nRadar hỗ trợ tìm và dẫn xem phòng miễn phí 100% ạ.`;
+    tinRieng += `Hôm nay bên em đang cập nhật thêm rổ hàng 1.400+ căn trống mới quanh khu vực này. Bạn cho em xin thêm yêu cầu chi tiết (gác/ban công, nuôi pet, ngày dọn vào) để em lọc gửi liền cho mình nhé ạ!\nRadar hỗ trợ tìm và dẫn xem phòng miễn phí 100% ạ. Hotline/Zalo: 0387 365 020 (Lê Quang).`;
   }
 
   return { repNhom, tinRieng };
