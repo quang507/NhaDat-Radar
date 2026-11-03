@@ -59,19 +59,57 @@ export const metadata: Metadata = {
     description: "Tin nhà đất nhiều nguồn, giá trung vị theo khu vực, cảnh báo giá lệch.",
     images: ["/og-default.png"],
   },
-  robots: { index: true, follow: true },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   other: {
     "google-adsense-account": "ca-pub-8747500665166380",
   },
 };
 
-// Organization + WebSite (SearchAction): khai báo một lần ở layout cho mọi trang
+// Organization + WebSite: chuẩn hoá thực thể schema.org có logo, hotline và @id định danh
 const LD_SITE = [
-  { "@context": "https://schema.org", "@type": "Organization", name: "NhaDat Radar", url: SITE_URL,
-    description: "Sàn tổng hợp tin nhà đất bán & cho thuê tại Việt Nam." },
-  { "@context": "https://schema.org", "@type": "WebSite", name: "NhaDat Radar", url: SITE_URL,
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": `${SITE_URL}/#org`,
+    name: "NhaDat Radar",
+    alternateName: "Radar Nhà Đất",
+    url: SITE_URL,
+    logo: {
+      "@type": "ImageObject",
+      url: `${SITE_URL}/icon-512.png`,
+      width: 512,
+      height: 512,
+    },
+    description: "Sàn tổng hợp tin nhà đất bán & cho thuê, rổ hàng phòng trọ đã xác minh tại TP.HCM.",
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        telephone: "+84-387-365-020",
+        contactType: "customer service",
+        areaServed: "VN",
+        availableLanguage: ["vi"],
+      },
+    ],
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": `${SITE_URL}/#web`,
+    name: "NhaDat Radar",
+    url: SITE_URL,
     inLanguage: "vi-VN",
-    potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" } },
+    publisher: { "@id": `${SITE_URL}/#org` },
+  },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -232,14 +232,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const docQuyen = laTinDocQuyen(data);
   const baseTitle = cheSoVanBan(data.title, docQuyen);
   const gia = fmtPrice(data.price_vnd, data.deal);
-  const vids = (data.images || []).some((u) => typeof u === "string" && /\.(mp4|mov|webm)$/i.test(u.split(/[?#]/)[0]));
-  const videoPrefix = vids ? "▶ [Có Video] " : "";
-  // 29/10 (Screaming Frog): title trung vị 98 ký tự, Google cắt giữa chừng và mất luôn giá + tên site ở đuôi.
+  // 29/10 (Screaming Frog) & 4/11 Audit: title trung vị 98 ký tự, Google cắt giữa chừng và mất luôn giá + tên site ở đuôi.
+  // Bỏ `▶ [Có Video]` khỏi thẻ title để nhường 13 ký tự quý cho từ khóa tìm kiếm và tránh bị Google cắt cụm từ.
   // Giữ đuôi " - <giá> | NhaDat Radar" nguyên vẹn, cắt phần tên tin (ở ranh giới từ) cho tổng <= 60 ký tự.
   const duoi = ` - ${gia} | NhaDat Radar`;
-  const choTen = Math.max(20, 60 - videoPrefix.length - duoi.length);
+  const choTen = Math.max(20, 60 - duoi.length);
   const tenGon = Array.from(baseTitle).length <= choTen ? baseTitle : `${catChu(baseTitle, choTen - 1).replace(/\s+\S*$/, "").trim()}…`;
-  const title = `${videoPrefix}${tenGon}${duoi}`;
+  const title = `${tenGon}${duoi}`;
 
   const moTa = cheSoVanBan(data.description, docQuyen);
   const description = catChu(
@@ -252,10 +251,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title,
     description,
     // canonical: trang tin trước đây không khai báo -> mọi biến thể URL (tham số utm, tracking) đều
-    // được coi là trang riêng. Tin đã gỡ thì noindex,follow: URL còn mở cho người đang giữ link,
-    // nhưng không nên nằm trong kết quả tìm kiếm (23/9).
+    // được coi là trang riêng.
     alternates: { canonical: `/listings/${id}` },
-    ...(data.status === "gone" ? { robots: { index: false, follow: true } } : {}),
     openGraph: { type: "article", url: `${SITE_URL}/listings/${id}`, title, description, ...(img ? { images: [{ url: img }] } : {}) },
     twitter: {
       card: "summary_large_image",
@@ -417,62 +414,77 @@ export default async function ListingDetail({
     [roHang ? "Mã phòng" : "Mã tin", roHang ? <span className="font-mono">{maPhong(x.id)}</span> : x.id.slice(0, 8)],
   ];
 
-  // ---- JSON-LD (23/9): trước đây chỉ trang khu vực có, trang tin không có gì. Chỉ khai báo dữ liệu
-  // ĐÃ hiển thị trên trang (giá, diện tích, phòng, khu vực) - không bịa thêm thuộc tính.
+  // ---- JSON-LD (23/9, kiểm toán 4/11): chỉ khai báo dữ liệu ĐÃ hiển thị trên trang
+  // (giá, diện tích, phòng, khu vực) - không bịa thêm thuộc tính.
+  // Đã gỡ bỏ toàn bộ FAQPage ẩn (tránh rủi ro Google phạt manual action Spammy structured markup).
   const ldTin: Record<string, unknown>[] = [
     {
-      "@context": "https://schema.org", "@type": "RealEstateListing",
-      name: x.title, url: `${SITE_URL}/listings/${x.id}`,
+      "@context": "https://schema.org",
+      "@type": "RealEstateListing",
+      "@id": `${SITE_URL}/listings/${x.id}#tin`,
+      name: x.title,
+      url: `${SITE_URL}/listings/${x.id}`,
       ...(x.description ? { description: catChu(x.description, 500) } : {}),
       ...(images.length ? { image: images.slice(0, 5) } : {}),
       ...(x.first_seen_at ? { datePosted: x.first_seen_at } : {}),
-      ...(x.price_vnd ? { offers: { "@type": "Offer", price: x.price_vnd, priceCurrency: "VND",
-        availability: isGone ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
-        ...(x.deal === "cho_thue" ? { priceSpecification: { "@type": "UnitPriceSpecification", price: x.price_vnd, priceCurrency: "VND", unitText: "THÁNG" } } : {}) } } : {}),
-      ...(x.province ? { address: { "@type": "PostalAddress", addressCountry: "VN", addressRegion: x.province,
-        ...(x.district ? { addressLocality: x.district } : {}), ...(x.ward ? { addressSubLocality: x.ward } : {}) } } : {}),
+      ...(x.price_vnd
+        ? {
+            offers: {
+              "@type": "Offer",
+              price: x.price_vnd,
+              priceCurrency: "VND",
+              businessFunction:
+                x.deal === "cho_thue"
+                  ? "http://purl.org/goodrelations/v1#LeaseOut"
+                  : "http://purl.org/goodrelations/v1#Sell",
+              offeredBy: { "@id": `${SITE_URL}/#org` },
+              availability: "https://schema.org/InStock",
+              ...(x.deal === "cho_thue"
+                ? {
+                    priceSpecification: {
+                      "@type": "UnitPriceSpecification",
+                      price: x.price_vnd,
+                      priceCurrency: "VND",
+                      unitCode: "MON",
+                    },
+                  }
+                : {}),
+            },
+          }
+        : {}),
+      ...(x.province
+        ? {
+            address: {
+              "@type": "PostalAddress",
+              addressCountry: "VN",
+              addressRegion: x.province,
+              addressLocality: [x.ward, x.district].filter(Boolean).join(", ") || undefined,
+            },
+          }
+        : {}),
       ...(x.lat && x.lng ? { geo: { "@type": "GeoCoordinates", latitude: x.lat, longitude: x.lng } } : {}),
       ...(x.area_m2 ? { floorSize: { "@type": "QuantitativeValue", value: x.area_m2, unitCode: "MTK" } } : {}),
       ...(x.bedrooms ? { numberOfBedrooms: x.bedrooms } : {}),
       ...(x.bathrooms ? { numberOfBathroomsTotal: x.bathrooms } : {}),
     },
     {
-      "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
-        { "@type": "ListItem", position: 2, name: `${DEAL_WORD[x.deal === "cho_thue" ? "cho_thue" : "ban"]} nhà đất`, item: SITE_URL + (x.deal === "cho_thue" ? "/nha-dat-cho-thue" : "/nha-dat-ban") },
-        ...(x.province ? [{ "@type": "ListItem", position: 3, name: x.province, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province) }] : []),
-        ...(x.province && x.district ? [{ "@type": "ListItem", position: 4, name: x.district, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province, x.district) }] : []),
-        { "@type": "ListItem", position: x.district ? 5 : 4, name: x.title, item: `${SITE_URL}/listings/${x.id}` },
-      ],
-    },
-    {
       "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: [
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
         {
-          "@type": "Question",
-          name: `Giá ${x.deal === "cho_thue" ? "thuê" : "bán"} của bất động sản này là bao nhiêu?`,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: `Mức giá đang rao là ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? ` cho diện tích ${x.area_m2}m²` : ""}${myPpm2 ? ` (khoảng ${fmtPpm2(myPpm2)})` : ""}. Số liệu tổng hợp minh bạch từ thị trường.`,
-          },
+          "@type": "ListItem",
+          position: 2,
+          name: `${DEAL_WORD[x.deal === "cho_thue" ? "cho_thue" : "ban"]} nhà đất`,
+          item: SITE_URL + (x.deal === "cho_thue" ? "/nha-dat-cho-thue" : "/nha-dat-ban"),
         },
-        {
-          "@type": "Question",
-          name: `Bất động sản này ở khu vực nào?`,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: `Bất động sản tọa lạc tại ${[x.ward, x.district, x.province].filter(Boolean).join(", ")}. Vị trí thuận tiện di chuyển và gần các tiện ích sinh hoạt.`,
-          },
-        },
-        {
-          "@type": "Question",
-          name: `Làm sao để đặt lịch xem ${x.deal === "cho_thue" ? "phòng" : "nhà"} thực tế?`,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: `Bạn có thể bấm nút "Liên hệ Zalo" hoặc gọi Hotline ${HOTLINE} trên Radar Nhà Đất để được hỗ trợ kết nối hẹn lịch xem trực tiếp miễn phí 100%.`,
-          },
-        },
+        ...(x.province
+          ? [{ "@type": "ListItem", position: 3, name: x.province, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province) }]
+          : []),
+        ...(x.province && x.district
+          ? [{ "@type": "ListItem", position: 4, name: x.district, item: SITE_URL + areaPath(x.deal === "cho_thue" ? "cho_thue" : "ban", x.province, x.district) }]
+          : []),
+        { "@type": "ListItem", position: x.district ? 5 : 4, name: x.title, item: `${SITE_URL}/listings/${x.id}` },
       ],
     },
   ];
