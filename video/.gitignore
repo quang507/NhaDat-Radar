@@ -1,0 +1,6 @@
+node_modules
+out
+.env
+# dữ liệu sinh ra, tạo lại bằng scripts/lay-tin.mjs và scripts/long-tieng.mjs
+public/vo
+public/tin

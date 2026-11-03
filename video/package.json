@@ -1,0 +1,22 @@
+{
+  "name": "nhadatradar-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "sfx": "node scripts/gen-sfx.mjs",
+    "tin": "node scripts/lay-tin.mjs",
+    "render": "remotion render src/index.ts RadarPromo out/radar-promo.mp4 --codec h264 --crf 17 --overwrite --browser-executable=\"C:/Program Files/Google/Chrome/Application/chrome.exe\""
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.539",
+    "@remotion/google-fonts": "^4.0.539",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "^4.0.539"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}
