@@ -305,14 +305,14 @@ export default async function Home() {
               href={HOTLINE_ZALO}
               target="_blank"
               rel="noopener noreferrer"
-              title="Chat Zalo hoặc gọi hotline tư vấn"
+              title="Chat Zalo hoặc gọi hotline tư vấn 24/7"
               className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-blue-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:border-blue-500 hover:shadow-xs transition group cursor-pointer"
             >
               <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <Clock className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Trả lời trong 15 phút</div>
+                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Hỗ trợ 24/7</div>
                 <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Hotline: 0387 365 020</div>
               </div>
             </a>

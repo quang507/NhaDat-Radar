@@ -12,7 +12,7 @@ import ChipLoc from "@/components/ChipLoc";
 import { TIEN_ICH, docTienIch } from "@/lib/tien-ich";
 import { PROP, shortPrice } from "@/lib/format";
 import { areaPath } from "@/lib/slug";
-import { tinhCuGopVao } from "@/lib/sap-nhap";
+import { tinhCuGopVao, MOI_TINH } from "@/lib/sap-nhap";
 import type { Listing } from "@/lib/types";
 import PlaceSuggest, { buildPlaces, type Place, type DuAnGoiY } from "@/components/PlaceSuggest";
 import RecentlyViewed, { RecentSearches, rememberSearch } from "@/components/RecentlyViewed";
@@ -216,13 +216,15 @@ export default function SearchClient({
     if ((next.priceMin || next.priceMax) && !next.deal) next = { ...next, deal: "ban" };
     const usp = new URLSearchParams();
     for (const [k, v] of Object.entries(next)) if (v) usp.set(k, v);
+    // không khu vực nào -> server tự lọc TP.HCM; đánh dấu "cả nước" để bỏ lọc tỉnh có tác dụng (3/11)
+    if (!["province", "district", "ward", "q", "gan", "project", "street"].some((k) => next[k])) usp.set("province", MOI_TINH);
     if (newAddr && !("newAddr" in next)) usp.set("newAddr", "1");
     if (own && !("own" in next)) usp.set("own", "1");
     if (sort && !("sort" in next)) usp.set("sort", sort); // chip/toggle không làm mất sort đang chọn
     const href = "/search" + (usp.size ? "?" + usp.toString() : "");
     // NN/g #6: nhớ tìm kiếm gần đây (nhãn ngắn dễ nhận ra)
     const label = [next.deal === "cho_thue" ? "Thuê" : next.deal === "ban" ? "Mua" : "", tenLoai(next.kind || ""), next.ward || next.district || next.province || next.q || "toàn quốc", next.priceMax ? "≤" + shortPrice(Number(next.priceMax)) : ""].filter(Boolean).join(" · ");
-    if (usp.size) rememberSearch(label, href);
+    if (Object.values(next).some(Boolean)) rememberSearch(label, href);
     chuyenTrang(() => router.push(href));
   }
   const submit = () => push({ ...f, sort });

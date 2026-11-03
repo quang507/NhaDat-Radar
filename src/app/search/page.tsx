@@ -8,7 +8,7 @@ import type { Listing } from "@/lib/types";
 import { canonDistrict, startOfDayVN } from "@/lib/format";
 import { getAreas } from "@/lib/geo";
 import { LISTING_SEARCH_COLS } from "@/lib/cols";
-import { tinhCuGopVao } from "@/lib/sap-nhap";
+import { tinhCuGopVao, TINH_MAC_DINH, MOI_TINH } from "@/lib/sap-nhap";
 import SearchClient, { type DieuHuong } from "./SearchClient";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { oTronRoHang, xepTheoThuTu } from "@/lib/ro-hang";
@@ -279,6 +279,9 @@ export default async function SearchPage({
   const spGoc = await searchParams;
   // làm sạch giá NGAY từ đầu -> khoá cache, truy vấn và bộ lọc phía client cùng một giá trị
   const sp: Record<string, string | undefined> = { ...spGoc, ...sachGia(spGoc.priceMin, spGoc.priceMax) };
+  // 3/11: chưa chọn khu vực -> lọc sẵn TP.HCM; province=all là khách đã bỏ lọc tỉnh (xem cả nước)
+  if (sp.province === MOI_TINH) delete sp.province;
+  else if (!["province", "district", "ward", "q", "gan", "project", "street"].some((k) => sp[k])) sp.province = TINH_MAC_DINH;
   const { kind, province, district } = sp;
   // cùng luật suyDeal với truy vấn (kể cả deal bóc từ câu gõ ở ô q) -> client không hiện "Mua" khi đang ra tin thuê
   const bocQ = sp.q ? bocTruyVanBDS(sp.q) : null;

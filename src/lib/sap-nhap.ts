@@ -49,3 +49,8 @@ export function tinhCuGopVao(tinhHienHanh: string | null | undefined): string[] 
   if (!t) return [];
   return [...new Set(Object.entries(SAP_NHAP_TINH).filter(([, moi]) => moi === t).map(([cu]) => cu))];
 }
+
+// /search không chọn khu vực thì lọc sẵn TP.HCM (3/11: ~94% kho ở đây). Khách bỏ lọc tỉnh thì URL mang
+// province=all để server biết là muốn xem cả nước, không áp mặc định lại.
+export const TINH_MAC_DINH = "Hồ Chí Minh";
+export const MOI_TINH = "all";
