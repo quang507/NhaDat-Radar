@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import sharp from "sharp";
 import { cheMedia, conLoNguon } from "../../crawler/che-media.mjs";
 import nextConfig from "../../next.config.mjs";
-import { NGUON_HF, catWatermark, tiLeLogo } from "../../src/lib/che-watermark";
+import { NGUON_HF, catWatermark, phanCat, tiLeLogo } from "../../src/lib/che-watermark";
 
 // 3/11: URL ảnh/video rổ hàng che qua /m của Radar - bảng tiền tố (che-media.mjs), rewrites (next.config.mjs) và
 // route ảnh /m/h/[f] (NGUON_HF) phải khớp: đổi một bên mà quên bên kia là ảnh vỡ hàng loạt
@@ -47,12 +47,31 @@ const anhGia = (logo: boolean) => sharp({ create: { width: 1000, height: 750, ch
   .composite(logo ? [{ input: { create: { width: 380, height: 90, channels: 3, background: { r: 0, g: 160, b: 160 } } }, left: 20, top: 40 }] : [])
   .jpeg().toBuffer();
 
-test("catWatermark: có logo góc trên -> cắt 18% trên + 12% dưới; không logo -> chỉ cắt 12% dưới", async () => {
+test("catWatermark: có logo góc trên -> cắt 18% trên + 16% dưới; không logo -> chỉ cắt 16% dưới", async () => {
   const coLogo = await anhGia(true), khong = await anhGia(false);
   expect(await tiLeLogo(sharp(coLogo))).toBeGreaterThan(0.01);
   expect(await tiLeLogo(sharp(khong))).toBe(0);
-  expect(await sharp(await catWatermark(coLogo)).metadata()).toMatchObject({ width: 1000, height: 750 - 135 - 90 });
-  expect(await sharp(await catWatermark(khong)).metadata()).toMatchObject({ width: 1000, height: 750 - 90 });
+  expect(await sharp(await catWatermark(coLogo)).metadata()).toMatchObject({ width: 1000, height: 750 - 135 - 120 });
+  expect(await sharp(await catWatermark(khong)).metadata()).toMatchObject({ width: 1000, height: 750 - 120 });
+});
+
+// dải logo trắng tinh kiểu "◎ HiFriendz" lặp ngang ảnh: 20 vạch trắng rộng 20px cách đều, ở y 82-86% trên sàn xám
+const dai = (y: number, nen = "#9a9a96") => sharp({ create: { width: 1000, height: 750, channels: 3, background: nen } })
+  .composite(Array.from({ length: 20 }, (_, i) => ({ input: { create: { width: 20, height: 30, channels: 3, background: "#ffffff" } }, left: 10 + i * 50, top: Math.round(750 * y) })))
+  .png().toBuffer();
+
+test("dải logo trắng nằm cao (khuôn 1450x1085) -> cắt đáy tới ngay trên dải", async () => {
+  const c = await phanCat(sharp(await dai(0.82)));
+  expect(c.tren).toBe(0);
+  expect(c.duoi).toBeGreaterThan(0.18);   // 1 - 0.82 + lề
+  expect(c.duoi).toBeLessThanOrEqual(0.22);
+});
+
+test("mảng trắng lớn ở đáy (sàn bóng, cửa sổ cháy sáng) và vạch trắng cao hơn 80% không bị coi là dải logo", async () => {
+  const sanBong = await sharp({ create: { width: 1000, height: 750, channels: 3, background: "#9a9a96" } })
+    .composite([{ input: { create: { width: 1000, height: 150, channels: 3, background: "#ffffff" } }, left: 0, top: 600 }]).png().toBuffer();
+  expect((await phanCat(sharp(sanBong))).duoi).toBe(0.16);
+  expect((await phanCat(sharp(await dai(0.7)))).duoi).toBe(0.16);
 });
 
 test("tường sơn màu mint không bị nhận nhầm là logo", async () => {
