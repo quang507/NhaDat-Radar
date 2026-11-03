@@ -162,7 +162,7 @@ const layTinKhuVuc = unstable_cache(
       coAnh: coAnh ?? 0,
     };
   },
-  ["area-listings-v3"],
+  ["area-listings-v4"],
   { revalidate: 10800, tags: ["listings"] },   // 3 giờ: dữ liệu chỉ đổi mỗi lượt crawl (4 tiếng)
 );
 

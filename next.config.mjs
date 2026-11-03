@@ -45,11 +45,17 @@ const nextConfig = {
   // máy chủ đối tác (CLAUDE.md §4.1). URL trong DB do crawler/che-media.mjs đổi sang /m/...; chỉ đúng 2 tiền
   // tố dưới đây được chuyển tiếp nên /m không thành proxy công cộng. Tên file là uuid, không bao giờ đổi
   // nội dung -> cache CDN 1 năm (header ở dưới), Vercel chỉ kéo từ nguồn lần đầu.
+  // Ảnh HiFriendz (/m/h/*.jpg) không chuyển thẳng mà qua route src/app/m/h/[f] để cắt logo đối tác in trên ảnh;
+  // video HiFriendz thì chuyển thẳng (beforeFiles: đi trước route đó).
   async rewrites() {
-    return [
-      { source: "/m/h/:f", destination: "https://firebasestorage.googleapis.com/v0/b/hifriendz-agent.firebasestorage.app/o/listings%2Fuploads%2F:f" },
-      { source: "/m/e/:p*", destination: "https://media.evohome.it.com/:p*" },
-    ];
+    return {
+      beforeFiles: [
+        { source: "/m/h/:f(.+\\.(?:mp4|mov|m4v|webm))", destination: "https://firebasestorage.googleapis.com/v0/b/hifriendz-agent.firebasestorage.app/o/listings%2Fuploads%2F:f" },
+      ],
+      afterFiles: [
+        { source: "/m/e/:p*", destination: "https://media.evohome.it.com/:p*" },
+      ],
+    };
   },
 
   // Header bảo mật cơ bản. CSP mới ở chế độ Report-Only (xem hằng CSP ở đầu file).

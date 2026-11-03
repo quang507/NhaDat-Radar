@@ -267,7 +267,7 @@ const timKiemCoCache = unstable_cache(
   const listings = gon(xepTheoThuTu(o.thuTu, (rh ?? []) as Listing[], (khac ?? []) as Listing[]));
   return { listings, newToday: newToday ?? 0, total: total ?? listings.length, trang };
   },
-  ["search-v10"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10); v9: tin da xac minh; v10: quận khớp mọi biến thể tên (29/10)
+  ["search-v11"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10); v9: tin da xac minh; v10: quận khớp mọi biến thể tên (29/10); v11: ảnh rổ hàng qua /m (3/11)
   { revalidate: 900, tags: ["listings"] },   // 15 phút (2/10, egress)
 );
 

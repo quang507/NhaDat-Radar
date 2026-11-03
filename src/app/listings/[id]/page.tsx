@@ -96,7 +96,7 @@ const lienQuanNhom = unstable_cache(
       .order("ai_score", { ascending: false, nullsFirst: false }).limit(7);
     return (data ?? []) as unknown as Listing[];
   },
-  ["lien-quan-nhom-v1"], { revalidate: 43200, tags: ["listings"] },
+  ["lien-quan-nhom-v2"], { revalidate: 43200, tags: ["listings"] },
 );
 const cungNguoiDang = unstable_cache(
   async (posterKey: string) => {
@@ -105,7 +105,7 @@ const cungNguoiDang = unstable_cache(
       .order("first_seen_at", { ascending: false }).limit(7);
     return { rows: (data ?? []) as unknown as Listing[], count: count ?? 0 };
   },
-  ["cung-nguoi-dang-v1"], { revalidate: 43200, tags: ["listings"] },
+  ["cung-nguoi-dang-v2"], { revalidate: 43200, tags: ["listings"] },
 );
 
 async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
@@ -151,7 +151,7 @@ const layTinCongKhai = unstable_cache(
     if (!data) return null;
     return phuTroTin(sb, data as unknown as Listing);
   },
-  ["listing-detail-v4"],
+  ["listing-detail-v5"],
   { revalidate: 43200, tags: ["listings"] },   // 12 giờ (3/10, egress): ~22.000 trang tin bị bot quét; admin gỡ tin vẫn revalidateTag ngay
 );
 
