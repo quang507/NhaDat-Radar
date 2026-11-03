@@ -230,20 +230,37 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   // Tin độc quyền: thân trang đã che SĐT trong mô tả (cheSoVanBan) nhưng thẻ meta/OG trước đây lấy mô tả
   // THÔ -> số lộ qua <meta name=description>, og:description, ảnh xem trước khi share (audit 22/9).
   const docQuyen = laTinDocQuyen(data);
+  const roHang = laRoHang(data);
   const baseTitle = cheSoVanBan(data.title, docQuyen);
   const gia = fmtPrice(data.price_vnd, data.deal);
+  const mp = maPhong(data.id);
+
+  // 4/11 Audit (§3.3): Phòng rổ hàng 64% bị văn mẫu trùng tiêu đề ("Cho thuê Studio...").
+  // Tự động bổ sung diện tích + phường để tạo Title & Snippet DUY NHẤT 100%, chống phạt duplicate content.
+  let tieuDeGoc = baseTitle;
+  if (roHang) {
+    const phanPhu: string[] = [];
+    if (data.area_m2 && !/\d+\s*m²/i.test(tieuDeGoc)) phanPhu.push(`${data.area_m2}m²`);
+    if (data.ward && !tieuDeGoc.toLowerCase().includes(data.ward.toLowerCase())) {
+      phanPhu.push(data.ward.replace(/^(phường|xã)\s+/i, "P."));
+    }
+    if (phanPhu.length > 0) {
+      tieuDeGoc = `${tieuDeGoc.replace(/(\s*tại\s*khu\s*vực\s*|\s*khu\s*vực\s*).*$/i, "")} ${phanPhu.join(" ")}`.trim();
+    }
+  }
+
   // 29/10 (Screaming Frog) & 4/11 Audit: title trung vị 98 ký tự, Google cắt giữa chừng và mất luôn giá + tên site ở đuôi.
   // Bỏ `▶ [Có Video]` khỏi thẻ title để nhường 13 ký tự quý cho từ khóa tìm kiếm và tránh bị Google cắt cụm từ.
   // Giữ đuôi " - <giá> | NhaDat Radar" nguyên vẹn, cắt phần tên tin (ở ranh giới từ) cho tổng <= 60 ký tự.
   const duoi = ` - ${gia} | NhaDat Radar`;
   const choTen = Math.max(20, 60 - duoi.length);
-  const tenGon = Array.from(baseTitle).length <= choTen ? baseTitle : `${catChu(baseTitle, choTen - 1).replace(/\s+\S*$/, "").trim()}…`;
+  const tenGon = Array.from(tieuDeGoc).length <= choTen ? tieuDeGoc : `${catChu(tieuDeGoc, choTen - 1).replace(/\s+\S*$/, "").trim()}…`;
   const title = `${tenGon}${duoi}`;
 
   const moTa = cheSoVanBan(data.description, docQuyen);
+  const diaDiem = [docQuyen ? cheSoNha(data.address) : data.address, data.ward, data.district, data.province].filter(Boolean).join(", ");
   const description = catChu(
-    // 3/11: tin độc quyền che số nhà như trên trang (bản cũ thả địa chỉ thô vào snippet Google); bỏ "toạ độ xác minh thực tế"
-    `${baseTitle}. Giá niêm yết: ${gia}. Địa chỉ: ${[docQuyen ? cheSoNha(data.address) : data.address, data.district, data.province].filter(Boolean).join(", ")}. Xem ảnh, bản đồ và hẹn xem miễn phí qua Radar.`,
+    `${tieuDeGoc}. Giá niêm yết: ${gia}${data.area_m2 ? ` (${data.area_m2}m²)` : ""}. Vị trí: ${diaDiem}. 5 khoản phí minh bạch, ảnh thật, hẹn xem phòng miễn phí. Mã phòng: ${mp}.`,
     160
   );
   const img = cleanImages(data.images || [])[0];

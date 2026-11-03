@@ -40,6 +40,54 @@ export async function demTin(): Promise<number> {
 /** DB lỗi tạm thời -> 503 KHÔNG cache (Google tự thử lại), thay vì cache 1 giờ một sitemap rỗng/thiếu */
 export const loiTamThoi = () => new Response("Tạm thời không lấy được dữ liệu", { status: 503, headers: { "Retry-After": "600", "Cache-Control": "no-store" } });
 
+/** Các tháng có tin published (YYYY-MM), mới nhất trước */
+export async function thangCoTin(): Promise<string[]> {
+  const sb = createAnonClient();
+  const { data: cu, error } = await sb
+    .from("listings")
+    .select("first_seen_at")
+    .eq("status", "published")
+    .not("first_seen_at", "is", null)
+    .order("first_seen_at")
+    .limit(1);
+  if (error) throw new Error("thangCoTin: " + error.message);
+  const dau = cu?.[0]?.first_seen_at ? new Date(cu[0].first_seen_at) : new Date();
+  const ra: string[] = [];
+  for (
+    let d = new Date(Date.UTC(dau.getUTCFullYear(), dau.getUTCMonth(), 1));
+    d <= new Date();
+    d.setUTCMonth(d.getUTCMonth() + 1)
+  ) {
+    ra.push(d.toISOString().slice(0, 7));
+  }
+  return ra.reverse();
+}
+
+/** Tin của một tháng - lô KHÔNG đổi khi có tin mới ở tháng khác */
+export async function tinTheoThang(
+  thang: string
+): Promise<{ id: string; updated_at: string | null; created_at: string | null }[]> {
+  const tu = `${thang}-01T00:00:00Z`;
+  const d = new Date(tu);
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  const sb = createAnonClient();
+  const ra: { id: string; updated_at: string | null; created_at: string | null }[] = [];
+  for (let off = 0; ; off += 1000) {
+    const { data, error } = await sb
+      .from("listings")
+      .select("id, updated_at, created_at")
+      .eq("status", "published")
+      .gte("first_seen_at", tu)
+      .lt("first_seen_at", d.toISOString())
+      .order("id")
+      .range(off, off + 999);
+    if (error) throw new Error("tinTheoThang: " + error.message);
+    ra.push(...(data ?? []));
+    if (!data || data.length < 1000 || ra.length >= 45000) break; // trần 45.000 URL/file
+  }
+  return ra;
+}
+
 /**
  * Một lô tin (mới nhất trước). PostgREST trả TỐI ĐA 1.000 dòng mỗi lượt (đo 23/9: xin range 5.000
  * vẫn chỉ nhận 1.000) -> phải lặp từng trang 1.000 cho đủ MOI_LO.
