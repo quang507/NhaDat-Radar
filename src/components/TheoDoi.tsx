@@ -91,9 +91,79 @@ export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttrib
  * Nhãn "Mã: RH…" bấm để chép (29/10): Clarity ghi dead click nhiều nhất trang tin ở đúng nhãn này - khách bấm
  * vào mã để chép mà không có gì xảy ra. Chép xong đổi chữ thành "Đã chép" 2 giây (không cần toast).
  */
-export function NutChepMa({ ma, className }: { ma: string; className?: string }) {
+export function NutChepMa({
+  ma,
+  loai = "phòng",
+  dang = "pill",
+  className,
+  children,
+}: {
+  ma: string;
+  loai?: string;
+  dang?: "pill" | "box";
+  className?: string;
+  children?: React.ReactNode;
+}) {
   const [daChep, setDaChep] = useState(false);
   const [loi, setLoi] = useState(false);
+
+  const handleCopy = () => {
+    // 2/11 (audit Q5): chép qua chepVanBan (có đường lui execCommand), hỏng thì báo khách gõ tay mã
+    void chepVanBan(ma).then((ok) => {
+      if (ok) {
+        setDaChep(true);
+        setTimeout(() => setDaChep(false), 2000);
+      } else {
+        setLoi(true);
+        setTimeout(() => setLoi(false), 6000);
+      }
+    });
+  };
+
+  if (dang === "box") {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={handleCopy}
+          aria-label={`Chép mã ${ma}`}
+          title="Chạm để sao chép mã phòng - gửi kèm khi nhắn Zalo"
+          className={
+            className ||
+            "w-full rounded-lg border border-dashed border-brand/50 hover:border-brand bg-brand/5 p-3 text-center cursor-pointer transition-all active:scale-[0.98] group"
+          }
+        >
+          <div className="text-xs text-[var(--ink-soft)] group-hover:text-brand transition-colors">
+            {daChep ? (
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold inline-flex items-center justify-center gap-1">
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" /> Đã chép mã vào bộ nhớ tạm
+              </span>
+            ) : (
+              `Mã ${loai} · Chạm để sao chép`
+            )}
+          </div>
+          <div className="font-mono text-xl font-extrabold tracking-wider text-brand flex items-center justify-center gap-2 mt-0.5">
+            <span>{ma}</span>
+            <Copy className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </button>
+        {loi &&
+          createPortal(
+            <span
+              role="status"
+              className="fixed left-1/2 -translate-x-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 max-w-[90vw] px-4 py-2.5 rounded-sm bg-[var(--ink)] text-[var(--bg)] text-caption sm:text-body-sm font-semibold shadow-zen-4 flex items-center gap-2"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>
+                Chưa chép được - nhắn Zalo kèm mã <b className="font-mono">{ma}</b>
+              </span>
+            </span>,
+            document.body
+          )}
+      </>
+    );
+  }
+
   return (
     <>
       <button
@@ -101,23 +171,30 @@ export function NutChepMa({ ma, className }: { ma: string; className?: string })
         aria-label={`Chép mã ${ma}`}
         title="Bấm để chép mã - gửi kèm khi nhắn Zalo"
         className={className}
-        onClick={() => {
-          // 2/11 (audit Q5): chép qua chepVanBan (có đường lui execCommand), hỏng thì báo khách gõ tay mã
-          void chepVanBan(ma).then((ok) => {
-            if (ok) { setDaChep(true); setTimeout(() => setDaChep(false), 2000); }
-            else { setLoi(true); setTimeout(() => setLoi(false), 6000); }
-          });
-        }}
+        onClick={handleCopy}
       >
-        {daChep ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-70" />}
-        <span aria-live="polite">{daChep ? "Đã chép mã" : `Mã: ${ma}`}</span>
+        {children ? (
+          children
+        ) : (
+          <>
+            {daChep ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5 opacity-70" />}
+            <span aria-live="polite">{daChep ? "Đã chép mã" : `Mã: ${ma}`}</span>
+          </>
+        )}
       </button>
-      {loi && createPortal(
-        <span role="status" className="fixed left-1/2 -translate-x-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 max-w-[90vw] px-4 py-2.5 rounded-sm bg-[var(--ink)] text-[var(--bg)] text-caption sm:text-body-sm font-semibold shadow-zen-4 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>Chưa chép được - nhắn Zalo kèm mã <b className="font-mono">{ma}</b></span>
-        </span>
-      , document.body)}
+      {loi &&
+        createPortal(
+          <span
+            role="status"
+            className="fixed left-1/2 -translate-x-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 max-w-[90vw] px-4 py-2.5 rounded-sm bg-[var(--ink)] text-[var(--bg)] text-caption sm:text-body-sm font-semibold shadow-zen-4 flex items-center gap-2"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>
+              Chưa chép được - nhắn Zalo kèm mã <b className="font-mono">{ma}</b>
+            </span>
+          </span>,
+          document.body
+        )}
     </>
   );
 }

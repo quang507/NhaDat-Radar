@@ -100,16 +100,16 @@ export default function ThePhong({ x }: { x: Listing }) {
           {ageMin != null && <div suppressHydrationWarning className="text-caption text-[var(--ink-faint)]">Đăng: {fresh(ageMin)}</div>}
         </Link>
 
-        <div className="mt-auto pt-2 flex gap-1.5">
+        <div className="mt-auto pt-2 flex items-center gap-2">
           <button type="button" onClick={chep} title="Sao chép thông tin" aria-label="Sao chép thông tin"
-            className={`shrink-0 w-9 h-9 grid place-items-center rounded-md border transition ${daChep ? "border-brand text-brand bg-brand/5" : "border-[var(--line-strong)] hover:border-brand"}`}>
+            className={`shrink-0 w-11 h-11 grid place-items-center rounded-lg border transition cursor-pointer active:scale-95 ${daChep ? "border-brand text-brand bg-brand/10 font-bold" : "border-[var(--line-strong)] hover:border-brand"}`}>
             {daChep ? "✓" : (
               <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
                 <rect x="7" y="7" width="10" height="10" rx="2" /><path d="M13 7V5a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2" />
               </svg>
             )}
           </button>
-          <Link href={`${href}#lien-he`} onClick={() => baoGA("ndr_bam_lien_he_the", { listing_id: x.id })} className="btn btn-primary flex-1 h-9 rounded-md text-sm font-semibold flex items-center justify-center gap-1.5 shadow-2xs">
+          <Link href={`${href}#lien-he`} onClick={() => baoGA("ndr_bam_lien_he_the", { listing_id: x.id })} className="btn btn-primary flex-1 min-h-11 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 shadow-2xs">
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><rect x="3" y="4.5" width="14" height="12" rx="2" /><path d="M3 8.5h14M7 3v3M13 3v3" strokeLinecap="round" /></svg>
             Liên hệ
           </Link>

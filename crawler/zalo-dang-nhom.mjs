@@ -35,8 +35,8 @@ const chay = promisify(execFile);
 const CLI = process.env.ZALO_CLI || "zalo-agent";
 const FILE_NHOM = "crawler/private/zalo-nhom.json";
 const FILE_TT = "crawler/private/zalo-dang-trang-thai.json";
-const TOI_DA_NGAY = Number(process.env.ZALO_DANG_TOI_DA) || 10;
-const CACH_PHUT = Number(process.env.ZALO_DANG_CACH_PHUT) || 25;
+const TOI_DA_NGAY = Number(process.env.ZALO_DANG_TOI_DA) || 30;
+const CACH_PHUT = Number(process.env.ZALO_DANG_CACH_PHUT) || 15;
 const GIO_DAU = 8.5, GIO_CUOI = 19.5;   // khung rải giờ đăng
 const THU = process.argv.includes("--thu");
 const HOTLINE = "0387365020";            // = src/lib/hotline.ts

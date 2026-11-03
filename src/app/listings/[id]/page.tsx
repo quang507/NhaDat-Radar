@@ -140,8 +140,10 @@ async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
 }
 type TinCongKhai = Awaited<ReturnType<typeof phuTroTin>>;
 
-const layTinCongKhai = unstable_cache(
-  async (id: string): Promise<TinCongKhai | null> => {
+// 3/11: thêm tag riêng từng tin "tin:<id>" - lượt nhập rổ hàng (crawler/xa-cache.mjs) xả đúng phòng vừa cho thuê /
+// đổi giá, thay vì đợi 12 giờ hoặc xả cả tag "listings" (~22.000 trang, bot quét lại tốn egress)
+const layTinCongKhai = (id: string) => unstable_cache(
+  async (): Promise<TinCongKhai | null> => {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
     const sb = createAnonClient();
     const { data, error } = await sb.from("listings").select(`${LISTING_PUBLIC_COLS},has_contact_phone`).eq("id", id).maybeSingle();
@@ -151,9 +153,9 @@ const layTinCongKhai = unstable_cache(
     if (!data) return null;
     return phuTroTin(sb, data as unknown as Listing);
   },
-  ["listing-detail-v5"],
-  { revalidate: 43200, tags: ["listings"] },   // 12 giờ (3/10, egress): ~22.000 trang tin bị bot quét; admin gỡ tin vẫn revalidateTag ngay
-);
+  ["listing-detail-v5", id],
+  { revalidate: 43200, tags: ["listings", `tin:${id}`] },   // 12 giờ (3/10, egress): ~22.000 trang tin bị bot quét; admin gỡ tin vẫn revalidateTag ngay
+)();
 
 // 26/10: tin đã XOÁ hẳn (daily.mjs) trước đây ra 404 - Search Console báo 4.247 URL. Migration 036 ghi "bia mộ"
 // (id + khu vực) lúc xoá -> 301 về trang khu vực như tin gone. Bảng lỗi (chưa chạy 036) thì NÉM để unstable_cache
@@ -655,7 +657,22 @@ export default async function ListingDetail({
                   <div key={nhan} className="flex items-center justify-between gap-3 py-2.5 min-h-11">
                     <dt className="text-[var(--ink-soft)] font-medium">{nhan}</dt>
                     <dd className={giaTri ? "font-bold text-[var(--ink)] text-right" : "text-xs text-[var(--ink-faint)] text-right"}>
-                      {giaTri ?? (lienHeRadar ? "Chưa có - hỏi Radar" : "Tin không ghi")}
+                      {giaTri ? (
+                        giaTri
+                      ) : lienHeRadar ? (
+                        <NutZalo
+                          listingId={x.id}
+                          tinNhan={`Chào Radar, cho mình hỏi tiền ${nhan.toLowerCase()} của ${roHang ? `phòng ${maPhong(x.id)}` : `tin ${x.id.slice(0, 8)}`} nhé.`}
+                          href={HOTLINE_ZALO}
+                          target="_blank"
+                          rel="noopener"
+                          className="text-brand hover:underline font-semibold cursor-pointer inline-flex items-center gap-0.5"
+                        >
+                          Hỏi Radar ›
+                        </NutZalo>
+                      ) : (
+                        "Tin không ghi"
+                      )}
                     </dd>
                   </div>
                 ))}
@@ -668,7 +685,22 @@ export default async function ListingDetail({
                       <div key={nhan} className="flex items-center justify-between gap-3 py-2.5 min-h-11">
                         <dt className="text-[var(--ink-soft)] font-medium">{nhan}</dt>
                         <dd className={giaTri ? "font-bold text-[var(--ink)] text-right" : "text-xs text-[var(--ink-faint)] text-right"}>
-                          {giaTri ?? (lienHeRadar ? "Hỏi Radar" : "Tin không ghi")}
+                          {giaTri ? (
+                            giaTri
+                          ) : lienHeRadar ? (
+                            <NutZalo
+                              listingId={x.id}
+                              tinNhan={`Chào Radar, cho mình hỏi về ${nhan.toLowerCase()} của ${roHang ? `phòng ${maPhong(x.id)}` : `tin ${x.id.slice(0, 8)}`} nhé.`}
+                              href={HOTLINE_ZALO}
+                              target="_blank"
+                              rel="noopener"
+                              className="text-brand hover:underline font-semibold cursor-pointer inline-flex items-center gap-0.5"
+                            >
+                              Hỏi Radar ›
+                            </NutZalo>
+                          ) : (
+                            "Tin không ghi"
+                          )}
                         </dd>
                       </div>
                     ))}
@@ -914,14 +946,15 @@ export default async function ListingDetail({
                     <div className="text-[var(--ink)] break-words">{tinNhanZalo}</div>
                   </div>
                 </div>
-                {/* mã phòng / mã căn: zalo.me không điền sẵn tin nhắn -> khách gửi mã để biết hỏi căn nào */}
-                <div className="rounded-lg border border-dashed border-[var(--line)] p-3 text-center">
-                  <div className="text-xs text-[var(--ink-soft)]">{x.deal === "ban" ? "Mã căn" : "Mã phòng"} - gửi kèm khi nhắn Zalo</div>
-                  <div className="font-mono text-xl font-extrabold tracking-wider select-all">{maPhong(x.id)}</div>
-                </div>
+                {/* mã phòng / mã căn: Clarity dead click fix - bấm toàn bộ hộp để chép mã ngay */}
+                <NutChepMa
+                  ma={maPhong(x.id)}
+                  loai={x.deal === "ban" ? "căn" : "phòng"}
+                  dang="box"
+                />
                 <HienSoRadar listingId={x.id} />
-                <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center border border-[#0068ff] text-[#0068ff] font-semibold flex items-center justify-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
+                <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center bg-[#0068ff] hover:bg-[#0057d6] text-white font-bold min-h-12 border-0 shadow-xs flex items-center justify-center gap-2 rounded-lg">
+                  <MessageCircle className="w-4 h-4 fill-white shrink-0" />
                   <span>{x.deal === "ban" ? "Nhắn Zalo hẹn xem nhà" : "Nhắn Zalo hẹn xem phòng"}</span>
                 </NutZalo>
                 {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
@@ -1031,10 +1064,15 @@ export default async function ListingDetail({
               <span className="font-semibold">
                 {x.source === "agent" || roHang ? tenNguon(x) : (x.source_sites && x.source_sites.length > 1 ? [...new Set(x.source_sites.map(tenTrang))].join(" + ") : tenTrang(x.source_site))}
               </span>
-              {x.trust_score ? (<>
-                <span className="text-[var(--ink-soft)]" title="Chấm theo mức đầy đủ dữ liệu: ảnh, pháp lý, mô tả, giá & diện tích, dấu hiệu chính chủ - không phải xác minh">Độ đầy đủ tin</span>
-                <span className="font-semibold">{x.trust_score}/100</span>
-              </>) : null}
+              {x.trust_score ? (
+                <div className="col-span-2 flex items-center justify-between pt-1 border-t border-[var(--line)]">
+                  <span className="text-[var(--ink-soft)] flex items-center gap-1">
+                    <span>Độ đầy đủ tin</span>
+                    <ScoreInfo score={x.trust_score} canPhai />
+                  </span>
+                  <span className="font-semibold text-brand">{x.trust_score}/100</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

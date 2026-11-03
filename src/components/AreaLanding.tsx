@@ -163,7 +163,7 @@ const layTinKhuVuc = unstable_cache(
     };
   },
   ["area-listings-v4"],
-  { revalidate: 10800, tags: ["listings"] },   // 3 giờ: dữ liệu chỉ đổi mỗi lượt crawl (4 tiếng)
+  { revalidate: 10800, tags: ["listings", "ds-tin"] },   // 3 giờ: dữ liệu chỉ đổi mỗi lượt crawl (4 tiếng); "ds-tin": lượt nhập rổ hàng xả ngay (3/11)
 );
 
 /** Trang cha gần nhất CÒN TIN: quận (cho trang loại BĐS) -> tỉnh -> trang mua/thuê toàn quốc */
@@ -293,9 +293,24 @@ export default async function AreaLanding({ deal, provinceSlug, districtSlug, ki
         <section className="card rounded-xl p-5 mt-5">
           <h2 className="font-bold mb-2">Thị trường {where} {monthLabel}</h2>
           <div className="grid gap-3 sm:grid-cols-3 text-sm">
-            <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Giá phổ biến</div><div className="font-bold">{fmtP(p25!, deal)} - {fmtP(p75!, deal)}</div></div>
-            <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Trung vị</div><div className="font-bold">{fmtP(medPrice, deal)}{medPpm2 ? <span className="text-[var(--ink-soft)] font-normal"> · {fmtPpm2(medPpm2)}</span> : null}</div></div>
-            <div className="border-l-2 border-[var(--line)] pl-3"><div className="text-xs text-[var(--ink-soft)] uppercase">Tin có ảnh</div><div className="font-bold">{withImg.toLocaleString("vi-VN")}/{total.toLocaleString("vi-VN")}</div></div>
+            <Link href={`${searchHref}&priceMin=${p25}&priceMax=${p75}`} className="border-l-2 border-brand/50 pl-3 hover:bg-[var(--surface-2)] rounded-r-md transition p-1 group">
+              <div className="text-xs text-[var(--ink-soft)] uppercase flex items-center justify-between">
+                <span>Giá phổ biến</span>
+                <span className="text-[10px] text-brand font-semibold group-hover:underline">Xem tin ›</span>
+              </div>
+              <div className="font-bold text-brand">{fmtP(p25!, deal)} - {fmtP(p75!, deal)}</div>
+            </Link>
+            <div className="border-l-2 border-[var(--line)] pl-3 p-1">
+              <div className="text-xs text-[var(--ink-soft)] uppercase">Trung vị</div>
+              <div className="font-bold">{fmtP(medPrice, deal)}{medPpm2 ? <span className="text-[var(--ink-soft)] font-normal"> · {fmtPpm2(medPpm2)}</span> : null}</div>
+            </div>
+            <Link href={`${searchHref}&anh=co`} className="border-l-2 border-brand/50 pl-3 hover:bg-[var(--surface-2)] rounded-r-md transition p-1 group">
+              <div className="text-xs text-[var(--ink-soft)] uppercase flex items-center justify-between">
+                <span>Tin có ảnh</span>
+                <span className="text-[10px] text-brand font-semibold group-hover:underline">Lọc ảnh ›</span>
+              </div>
+              <div className="font-bold">{withImg.toLocaleString("vi-VN")}/{total.toLocaleString("vi-VN")}</div>
+            </Link>
           </div>
           {kindStats.length ? (
             <p className="text-sm text-[var(--ink-soft)] mt-3">

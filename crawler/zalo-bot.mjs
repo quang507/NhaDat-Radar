@@ -62,11 +62,22 @@ const sb = createClient(url, key, { auth: { persistSession: false } });
 const BO_QUA_NHOM = new Set((process.env.ZALO_BO_QUA_NHOM || "").split(/[\s,]+/).filter(Boolean));
 
 
+function lamSachMoTa(text) {
+  if (!text) return "";
+  let res = String(text);
+  res = res.split("\n")
+    .filter((l) => !/(tuyển\s+(ctv|cộng\s+tác|nhân\s+viên)|hoa\s+hồng\s+\d+|chấm\s+(nhẹ|\.)|inbox\s+(để|nhận)|ib\s+(zalo|em|mình)\s+xem|kho\s+hàng\s+\d+|quỹ\s+căn|zalo\.me\/g\/)/iu.test(l))
+    .join("\n");
+  res = res.replace(/([\uD800-\uDBFF][\uDC00-\uDFFF])\1{2,}/g, "$1");
+  res = res.replace(/\n{3,}/g, "\n\n").trim();
+  return res;
+}
+
 // ---- Gemini phân loại (giống lib/ai.ts) ----
 const PROMPT = `Bạn là trợ lý Zalo của sàn nhà đất. Đọc tin nhắn và trả về DUY NHẤT 1 JSON:
 {"intent":"dang_tin"|"hoi_tin"|"hoi_sau"|"xem_nha"|"sua_tin"|"khac","reply_hint":string,"ref_index":number|null,
  "sua":{"ma_tin":string|null,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"mo_ta_them":string|null},
- "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"direction":string|null,"furnishing":string|null,"amenities":string[],"contact_phone":string|null,"specs":object|null},
+ "listing":{"title":string,"price_vnd":number|null,"area_m2":number|null,"bedrooms":number|null,"bathrooms":number|null,"floors":number|null,"listing_type":"ban"|"cho_thue","property_type":"nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|"khac","province":string|null,"district":string|null,"ward":string|null,"legal":string|null,"direction":string|null,"furnishing":string|null,"amenities":string[],"contact_phone":string|null,"specs":object|null,"poster_role":"chinh_chu"|"moi_gioi"|"khong_ro"},
  "query":{"listing_type":"ban"|"cho_thue"|null,"property_type":string|null,"province":string|null,"district":string|null,"ward":string|null,"price_min":number|null,"price_max":number|null,"area_min":number|null}}
 dang_tin: họ RAO 1 BĐS. hoi_tin: họ TÌM nhà theo tiêu chí (khu vực/giá/loại). hoi_sau: họ hỏi CHI TIẾT về MỘT CĂN CỤ THỂ đã nhắc trong hội thoại hoặc có link/mã - xem sổ đỏ, pháp lý, quy hoạch, xin thêm ảnh, thương lượng giá, "căn số 2 còn không". xem_nha: họ muốn ĐI XEM TRỰC TIẾP / hẹn lịch xem một căn ("cho tôi xem nhà", "cuối tuần qua coi được không") - ưu tiên xem_nha hơn hoi_sau khi họ ngỏ ý đến tận nơi. sua_tin: NGƯỜI ĐĂNG muốn SỬA/BỔ SUNG tin của chính họ đã đăng ("sửa giá 5,5 tỷ", "đổi diện tích 80m2", "bổ sung: có gác lửng, 3PN") - điền vào "sua": ma_tin là mã 8 ký tự nếu họ nhắc, các trường số nếu họ đổi, mo_ta_them là phần bổ sung tự do. ref_index: số thứ tự căn họ nhắc (1-4) nếu họ nói rõ ("căn 2", "cái thứ nhất"), không thì null. khac: chào/khác. Giá quy về VND (3tr5->3500000, 6 tỷ->6000000000). Không bịa.
 specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng Việt":"giá trị"}. Bộ nhãn THEO TỪNG DÒNG BĐS:
@@ -74,8 +85,10 @@ specs: các ĐẶC ĐIỂM RIÊNG người bán có ghi, dạng {"nhãn tiếng 
 - can_ho: Dự án, Block/Tháp, Tầng, Mã căn, Loại căn (studio/1PN+1/duplex/penthouse/officetel), DT tim tường, DT thông thuỷ, Hướng cửa, Hướng ban công, View ("view sông", "view nội khu"), Phí quản lý, Năm bàn giao, Sổ (sổ hồng / HĐMB / chờ sổ)
 - dat (đất nền): Mặt tiền, Chiều dài, Thổ cư (m²), Loại đất (ONT/ODT/CLN/SKC/lúa), Đường vào (rộng mấy mét, nhựa hay đá), Lô/Thửa/Tờ bản đồ, Quy hoạch, Hiện trạng ("đã san lấp", "có nhà cấp 4", "trồng cây")
 - mat_bang: Ngang, Dài, DT sàn, Số tầng, Vị trí ("góc 2 mặt tiền", "gần chợ/trường"), Ngành phù hợp ("F&B, thời trang"), Hiện trạng ("đang trống", "sang lại nội thất"), Giá sang nhượng
-- phong_tro: DT phòng, Gác lửng, Máy lạnh, WC riêng/chung, Cửa sổ, Giữ xe, Giờ giấc ("tự do", "khoá 23h"), Ở ghép, Điện (đ/kWh), Nước (đ/người hoặc đ/m³), Wifi/rác
-- tin CHO THUÊ (mọi loại) thêm: Tiền cọc ("cọc 2 tháng"), Thời hạn HĐ tối thiểu, Phí quản lý, Điện, Nước, Bao gồm ("free wifi + rác")
+- phong_tro: DT phòng, Gác lửng ("có gác"/"không gác"), Máy lạnh, WC riêng/chung, Ban công/Cửa sổ, Nuôi thú cưng ("cho nuôi"/"không"), Giờ giấc ("tự do"/"khóa cửa"), Chung chủ ("không chung chủ"/"chung chủ"), Điện (đ/kWh), Nước (đ/người hoặc đ/m³), Phí xe (đ/tháng hoặc free), Phí quản lý, Gần trường/địa danh ("gần ĐH Hutech", "cách Làng ĐH 500m")
+- tin CHO THUÊ (mọi loại) thêm: Tiền cọc, Thời hạn HĐ, Phí quản lý, Điện, Nước, Phí xe, Nuôi pet, Bao gồm
+poster_role: "chinh_chu" nếu họ nói "chính chủ", "nhà mình/bác/chị còn phòng", "miễn trung gian/không qua môi giới"; "moi_gioi" nếu xưng "bên em", "kho hàng", "quỹ căn", "ib zalo giỏ hàng", hoa hồng; còn lại "khong_ro".
+amenities: nhận các nhãn chuẩn: ban_cong, cua_so, gac_lung, thang_may, gio_tu_do, khong_chung_chu, nuoi_pet, may_lanh, tu_lanh, may_giat, may_nuoc_nong, bao_ve, khoa_van_tay, ho_boi, phong_gym, noi_that_day_du.
 CHỈ lấy thứ họ ghi rõ, không có thì null/bỏ nhãn - tuyệt đối không bịa. direction là hướng nhà/đất (Đông, Tây Nam...), furnishing là nội thất, legal là pháp lý, bedrooms/bathrooms/floors là số PN/WC/tầng - các trường riêng này đừng lặp lại trong specs.`;
 
 // Gọi Gemini trả JSON - dùng chung cho classify + bóc specs từ đáp án Cầu Nối
@@ -258,7 +271,8 @@ async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
         .filter(([, v]) => typeof v === "string" || typeof v === "number").slice(0, 15));
       return Object.keys(s).length ? s : null;
     })(),
-    ai_score: fromGroup ? 70 : 85, poster_role_guess: "khong_ro",
+    ai_score: (L.poster_role === "chinh_chu" || /chính\s*chủ|nhà\s*(mình|bác|chị|anh)\s*(còn\s*trống|cho\s*thuê)|không\s*qua\s*(môi\s*giới|trung\s*gian)/iu.test(text)) ? 90 : (fromGroup ? 70 : 85),
+    poster_role_guess: L.poster_role || (/chính\s*chủ|nhà\s*(mình|bác|chị|anh)\s*(còn\s*trống|cho\s*thuê)|không\s*qua\s*(môi\s*giới|trung\s*gian)/iu.test(text) ? "chinh_chu" : "khong_ro"),
     status: "published", // 17/8: bỏ duyệt trước - lên thẳng, admin gỡ tin rác ngay trên trang tin
     first_seen_at: new Date().toISOString(), // thiếu là tin không vào email alert + rơi cuối sort "Mới nhất"
     // thread Zalo của người đăng - "Cầu Nối" cần nó để relay câu hỏi của khách mua sang
@@ -295,8 +309,14 @@ async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
 }
 
 // ---- Xử lý tin từ GROUP: chỉ bóc data BĐS, KHÔNG trả lời (tránh spam group) ----
+const lichSuHarvestNgay = [];
+const MAX_HARVEST_NGAY = Number(process.env.ZALO_MAX_HARVEST_NGAY || 50); // Giảm 1 nửa (từ 100 xuống 50 tin/ngày)
+
 async function harvestGroup(text, anh = [], khoaAnh = null) {
   if (text.length < 40) return; // tin ngắn/chat vặt -> bỏ
+  const nowMs = Date.now();
+  while (lichSuHarvestNgay.length && nowMs - lichSuHarvestNgay[0] > 24 * 3600_000) lichSuHarvestNgay.shift();
+  if (lichSuHarvestNgay.length >= MAX_HARVEST_NGAY) return; // Đạt giới hạn 50 tin/ngày -> dừng bóc thêm
   const ai = await classify(text);
   if (ai.intent === "dang_tin" && ai.listing) {
     // Cổng chất lượng 17/8 (bỏ duyệt tay): thiếu từ khoá BĐS / SĐT / khu vực -> bỏ, không đăng
@@ -314,8 +334,26 @@ async function harvestGroup(text, anh = [], khoaAnh = null) {
     // vực, không liên hệ được, đúng loại tin merge.mjs cố tình loại (soát 21/8).
     const coKhuVuc = !!(ai.listing.district || ai.listing.province);
     if (!coSdt && !coKhuVuc) { console.log("  - bo (thieu ca SDT lan khu vuc boc duoc)"); return; }
-    const { error } = await saveListing(ai.listing, text, { fromGroup: true, images: anh, khoaAnh });
-    console.log(error ? "  (lưu lỗi: " + error.message + ")" : `  ✓ bóc được 1 tin BĐS từ group${anh.length ? ` (+${anh.length} ảnh)` : ""} -> đã đăng`);
+
+    // Chống giá mồi / giá ảo: phòng riêng không thể dưới 1.2tr (trừ KTX / sleepbox)
+    const gia = ai.listing.price_vnd;
+    const laKtxSleepbox = /ktx|k[ýy]\s*t[úu]c\s*x[áa]|sleepbox|giường|ở\s*ghép/iu.test(vanBan);
+    if (gia && gia < 1_200_000) {
+      if (!laKtxSleepbox) {
+        console.log(`  - bo (gia ao < 1.2tr khong phai ktx): ${gia}d -> "${ai.listing.title}"`);
+        return;
+      }
+      if (ai.listing.specs) ai.listing.specs["Loại hình"] = "Ký túc xá / Giường tầng";
+    }
+
+    const cleanDesc = lamSachMoTa(text);
+    const { error } = await saveListing(ai.listing, cleanDesc || text, { fromGroup: true, images: anh, khoaAnh });
+    if (!error) {
+      lichSuHarvestNgay.push(Date.now());
+      console.log(`  ✓ bóc được 1 tin BĐS từ group (${lichSuHarvestNgay.length}/${MAX_HARVEST_NGAY} tin hôm nay)${anh.length ? ` (+${anh.length} ảnh)` : ""} -> đã đăng`);
+    } else {
+      console.log("  (lưu lỗi: " + error.message + ")");
+    }
   }
 }
 

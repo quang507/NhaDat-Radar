@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hiRes } from "@/lib/img";
-import { Play, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import { Play, X, ChevronLeft, ChevronRight, Maximize2, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDongBangBack } from "@/lib/dong-bang-back";
 
@@ -79,6 +79,7 @@ export default function Gallery({
   const router = useRouter();
   const [transitionMsg, setTransitionMsg] = useState<string | null>(null);
   const [lastViewed, setLastViewed] = useState<NavItem | null>(null);
+  const [daChepCode, setDaChepCode] = useState(false);
 
   // Ghi nhớ căn vừa xem từ sessionStorage
   useEffect(() => {
@@ -245,9 +246,23 @@ export default function Gallery({
           </button>
         )}
         {roomCode && (
-          <span className="absolute top-3 right-3 text-[11px] font-mono font-bold px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm text-white/95 pointer-events-none shadow-sm z-10">
-            {roomCode}
-          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              try {
+                void navigator.clipboard?.writeText(roomCode);
+                setDaChepCode(true);
+                setTimeout(() => setDaChepCode(false), 2000);
+              } catch {}
+            }}
+            aria-label={`Chép mã ${roomCode}`}
+            title="Chạm để sao chép mã phòng"
+            className="absolute top-3 right-3 text-[11px] font-mono font-bold px-2.5 py-1 rounded-md bg-black/70 hover:bg-black/85 backdrop-blur-sm text-white/95 shadow-sm z-10 flex items-center gap-1 cursor-pointer transition active:scale-95"
+          >
+            {daChepCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 opacity-70" />}
+            <span>{daChepCode ? "Đã chép" : roomCode}</span>
+          </button>
         )}
         <button
           type="button"
