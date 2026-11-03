@@ -23,8 +23,8 @@ export const ADMIN_ZALO_UID = process.env.ZALO_ADMIN_UID || "199426642744249709"
 // Hotline và Zalo tư vấn duy nhất của Radar (docs/QUY-TRINH-PHAN-PHOI-MARKETING.md)
 export const HOTLINE = "0387 365 020";
 export const HOTLINE_NAME = "Lê Quang";
-// Mặc định TẮT: bot không tự nhắn khách, chỉ gợi ý cho admin
-export const BOT_TU_DONG_TRA_LOI_KHACH = process.env.ZALO_AUTO_REPLY_KHACH === "true";
+// Mặc định BẬT: bot tự chào khách mới và tự báo giá/phí nếu có trong DB; đặt ZALO_AUTO_REPLY_KHACH=false để tắt
+export const BOT_TU_DONG_TRA_LOI_KHACH = process.env.ZALO_AUTO_REPLY_KHACH !== "false";
 const SITE_URL = "https://nhadatradar.com";
 
 const PHUT = 60_000;
@@ -287,35 +287,42 @@ export function soanTraLoiTuFacts(hoiVe, f, isEn = false) {
     : `Dạ phòng ${f.ma} - thông tin 5 khoản phí minh bạch (nói không với chi phí ẩn):\n${dong.join("\n")}\nRadar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay 18h30 hoặc chiều mai bạn tiện qua xem trực tiếp không ạ? Hotline/Zalo tư vấn duy nhất: 0387 365 020 (Lê Quang).`;
 }
 
-/** Câu chào chuẩn kịch bản của Radar Nhà Đất */
-export const cauChao = (isEn) => isEn
-  ? "Hi there! Radar has received your message. Which district or area are you looking for a room in, and what is your approximate budget? Let me know so I can filter our 1,400+ available rooms for you right away!"
-  : "Dạ em chào anh/chị! Anh/chị đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc rổ hàng 1.400+ căn trống hôm nay gửi liền cho mình tham khảo ạ?";
+/** Câu chào chuẩn kịch bản của Radar Nhà Đất - ngắn gọn, xưng 'mình - bạn' đỡ nhầm */
+export const cauChao = (isEn, facts = null) => {
+  if (isEn) {
+    if (facts?.ma) return `Hi! Are you interested in unit ${facts.ma}? Would you like more details or to schedule a viewing?`;
+    return "Hi there! Which area are you looking for a room in and what is your approximate budget? Let me know so I can help!";
+  }
+  if (facts?.ma) {
+    return `Dạ chào bạn! Bạn đang quan tâm căn ${facts.ma} đúng không nè? Bạn cần mình gửi thêm chi tiết hay hẹn giờ qua xem thực tế ạ?`;
+  }
+  return "Dạ chào bạn! Bạn đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để mình lọc rổ hàng 1.400+ căn gửi bạn liền nha?";
+};
 
 /** Phản hồi các sự kiện phi ngôn ngữ (cuộc gọi nhỡ, sticker/icon, tin nhắn thoại, ảnh) */
 export function cauPhanHoiPhiNgonNgu({ kieu, facts, isEn = false }) {
   if (kieu === "cuoc_goi") {
     return isEn
       ? "Hi there! I missed your call because I was busy showing a room to a tenant. Could you please text me your rental requirements (district, budget) so I can assist you right away?"
-      : "Dạ em chào anh/chị! Em vừa lỡ cuộc gọi của mình do đang bận dẫn khách xem phòng một chút xíu ạ. Anh/chị đang quan tâm căn phòng ở khu vực nào, nhắn em nhu cầu em kiểm tra và gửi thông tin chi tiết qua liền cho mình nha!";
+      : "Dạ chào bạn! Mình vừa lỡ cuộc gọi do đang bận dẫn khách xem phòng một xíu. Bạn đang quan tâm phòng khu vực nào nhắn mình nhu cầu để mình kiểm tra và gửi qua liền nha!";
   }
   if (kieu === "sticker") {
     if (facts) {
       return isEn
         ? `Hi! Are you interested in unit ${facts.ma}? Would you like more information or would you like to schedule a viewing?`
-        : `Dạ anh/chị đang quan tâm căn ${facts.ma} đúng không ạ? Anh/chị cần em hỗ trợ thêm thông tin gì về căn này hay muốn hẹn giờ qua xem thực tế không nè?`;
+        : `Dạ bạn đang quan tâm căn ${facts.ma} đúng không nè? Bạn cần mình hỗ trợ thêm thông tin gì hay muốn hẹn giờ qua xem thực tế ạ?`;
     }
-    return cauChao(isEn);
+    return cauChao(isEn, facts);
   }
   if (kieu === "giong_noi") {
     return isEn
       ? "Hi there! I'm outside and it's quite noisy so I couldn't listen to your voice message clearly. Please text me your room requirements so I can assist you right away!"
-      : "Dạ em đang ở ngoài đường hơi ồn nên chưa nghe rõ tin nhắn thoại của mình á. Anh/chị nhắn tin chữ giúp em nhu cầu tìm phòng (khu vực, ngân sách) để em hỗ trợ mình nhanh nhất nha!";
+      : "Dạ mình đang ở ngoài đường hơi ồn nên chưa nghe rõ tin nhắn thoại á. Bạn nhắn tin chữ giúp mình nhu cầu tìm phòng (khu vực, ngân sách) để mình hỗ trợ liền nha!";
   }
   if (kieu === "anh") {
     return isEn
       ? "I received your photo! Could you please share the room code or your requirements so I can check it for you?"
-      : "Dạ em nhận được hình ảnh anh/chị gửi rồi ạ. Anh/chị gửi em xin thêm mã phòng hoặc nhu cầu chi tiết để em kiểm tra ngay cho mình nha!";
+      : "Dạ mình nhận được hình ảnh bạn gửi rồi ạ. Bạn gửi mình xin thêm mã phòng hoặc nhu cầu chi tiết để mình kiểm tra ngay nha!";
   }
   return null;
 }
@@ -368,7 +375,7 @@ export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, d
   if (!nguoi && tuDong) {
     if (!canNguoi) {
       if (pl.y_dinh === "hoi_thong_tin") tuTraLoi = soanTraLoiTuFacts(pl.hoi_ve, facts, isEn);
-      else if (!facts && !h.da_chao && (pl.y_dinh === "chao_hoi" || pl.y_dinh === "tim_phong")) { tuTraLoi = cauChao(isEn); laChao = true; }
+      else if (!h.da_chao && (pl.y_dinh === "chao_hoi" || pl.y_dinh === "tim_phong")) { tuTraLoi = cauChao(isEn, facts); laChao = true; }
     } else if (["cuoc_goi", "sticker", "giong_noi"].includes(kieu)) {
       if (kieu === "cuoc_goi" && !h.da_chao_cuoc_goi) {
         tuTraLoi = cauPhanHoiPhiNgonNgu({ kieu, facts, isEn });
@@ -379,6 +386,9 @@ export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, d
       } else if (kieu === "giong_noi") {
         tuTraLoi = cauPhanHoiPhiNgonNgu({ kieu, facts, isEn });
       }
+    } else if (!h.da_chao && kieu === "chu" && (pl?.y_dinh === "chao_hoi" || pl?.y_dinh === "tim_phong")) {
+      tuTraLoi = cauChao(isEn, facts);
+      laChao = true;
     }
   }
 
@@ -395,7 +405,10 @@ export function quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi = false, d
     baoAdmin = null;
   } else if (["cuoc_goi", "giong_noi", "anh"].includes(kieu)) {
     baoAdmin = khan ? "khan" : "thuong";
-  } else if (tuTraLoi && !laChao) {
+  } else if (laChao) {
+    // VỪA CHÀO VỪA BÁO ADMIN (ngay khi bot chào khách thì cũng bắn thẻ báo cho anh)
+    baoAdmin = khan ? "khan" : "thuong";
+  } else if (tuTraLoi) {
     baoAdmin = leadMoi ? "thuong" : null;
   } else if (cuaSoMoi || doiCan || leadMoi || kieu === "sticker") {
     baoAdmin = "thuong";
