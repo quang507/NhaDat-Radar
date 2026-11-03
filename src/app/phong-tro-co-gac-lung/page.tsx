@@ -20,10 +20,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PhongTroCoGacLungPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ quan?: string }>;
-}) {
-  return <ThematicLanding slug={cd.slug} searchParams={searchParams} />;
+export default function PhongTroCoGacLungPage() {
+  return <ThematicLanding slug={cd.slug} />;
 }

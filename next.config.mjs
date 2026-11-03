@@ -33,12 +33,19 @@ const nextConfig = {
   // (Google đã index, link chia sẻ cũ) mà không chuyển thì khách thấy trang chủ trơn, mất bộ lọc.
   // Đẩy sang /search (giữ nguyên query string) - redirect chạy ở edge, không đụng cache của "/".
   async redirects() {
-    return ["deal", "kind", "province", "bedrooms", "priceMax", "q"].map((key) => ({
-      source: "/",
-      has: [{ type: "query", key }],
-      destination: "/search",
-      permanent: true,
-    }));
+    return [
+      ...["deal", "kind", "province", "bedrooms", "priceMax", "q"].map((key) => ({
+        source: "/",
+        has: [{ type: "query", key }],
+        destination: "/search",
+        permanent: true,
+      })),
+      // Chuẩn hoá slug tỉnh (Audit 4/11): hợp nhất các biến thể tp-hcm và tp-ho-chi-minh về ho-chi-minh
+      { source: "/nha-dat-cho-thue/tp-hcm/:path*", destination: "/nha-dat-cho-thue/ho-chi-minh/:path*", permanent: true },
+      { source: "/nha-dat-cho-thue/tp-ho-chi-minh/:path*", destination: "/nha-dat-cho-thue/ho-chi-minh/:path*", permanent: true },
+      { source: "/nha-dat-ban/tp-hcm/:path*", destination: "/nha-dat-ban/ho-chi-minh/:path*", permanent: true },
+      { source: "/nha-dat-ban/tp-ho-chi-minh/:path*", destination: "/nha-dat-ban/ho-chi-minh/:path*", permanent: true },
+    ];
   },
 
   // 3/11: ảnh/video rổ hàng đi qua tên miền Radar - HTML công khai, API anon và thanh địa chỉ không còn lộ

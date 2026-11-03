@@ -6,6 +6,7 @@ import { createAnonClient } from "@/lib/supabase/anon";
 import { quanDB } from "@/lib/chuyen-de";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { LISTING_CARD_COLS } from "@/lib/cols";
+import { slugify } from "@/lib/slug";
 import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
 import SanPhongHoCTA from "@/components/SanPhongHoCTA";
@@ -58,13 +59,10 @@ export async function generateMetadata({
 
 export default async function PhongTroDaiHocDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ gia?: string }>;
 }) {
   const { slug } = await params;
-  const { gia } = await searchParams;
   const u = getDaiHocBySlug(slug);
 
   if (!u) {
@@ -73,24 +71,14 @@ export default async function PhongTroDaiHocDetailPage({
 
   // Truy vấn tin đăng phòng trọ / căn hộ cho thuê thực tế gần trường
   const supabase = createAnonClient();
-  let query = supabase
+  const { data: rawListings, count } = await supabase
     .from("listings")
     .select(LISTING_CARD_COLS, { count: "exact" })
     .eq("status", "published")
     .eq("deal", "cho_thue")
     .ilike("province", "%Hồ Chí Minh%")
     // 2/11 (audit 🔴7): DB lưu "Quận Bình Thạnh", "TP. Thủ Đức" - tên trần trong dai-hoc.ts ra 0 tin
-    .in("district", u.quan.map(quanDB));
-
-  if (gia === "duoi-3-trieu") {
-    query = query.lte("price_vnd", 3000000);
-  } else if (gia === "3-5-trieu") {
-    query = query.gte("price_vnd", 3000000).lte("price_vnd", 5000000);
-  } else if (gia === "tren-5-trieu") {
-    query = query.gt("price_vnd", 5000000);
-  }
-
-  const { data: rawListings, count } = await query
+    .in("district", u.quan.map(quanDB))
     .order("first_seen_at", { ascending: false, nullsFirst: false })
     .limit(30);
 
@@ -210,6 +198,18 @@ export default async function PhongTroDaiHocDetailPage({
                   {kv}
                 </span>
               ))}
+              {u.quan.map((q, idx) => {
+                const slugQ = slugify(quanDB(q));
+                return (
+                  <Link
+                    key={`q-${idx}`}
+                    href={`/nha-dat-cho-thue/ho-chi-minh/${slugQ}/phong-tro`}
+                    className="px-2.5 py-1 rounded-md bg-[var(--surface-1)] border border-brand/30 text-brand hover:bg-brand/10 font-semibold transition-colors"
+                  >
+                    Thuê phòng {q} →
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -227,48 +227,29 @@ export default async function PhongTroDaiHocDetailPage({
           </p>
         </section>
 
-        {/* Filter Tabs by Price */}
+        {/* Cross-links theo chuyên đề & mức giá */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
+            <span className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-brand text-white shadow-xs whitespace-nowrap">
+              Tất cả giá quanh trường
+            </span>
             <Link
-              href={`/phong-tro-gan-truong-dai-hoc/${u.slug}`}
-              className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
-                !gia
-                  ? "bg-brand text-white shadow-xs"
-                  : "bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
-              }`}
+              href="/phong-tro-duoi-3-trieu"
+              className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
             >
-              Tất cả giá
+              Dưới 3 triệu →
             </Link>
             <Link
-              href={`/phong-tro-gan-truong-dai-hoc/${u.slug}?gia=duoi-3-trieu`}
-              className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
-                gia === "duoi-3-trieu"
-                  ? "bg-brand text-white shadow-xs"
-                  : "bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
-              }`}
+              href="/phong-tro-co-gac-lung"
+              className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
             >
-              Dưới 3 triệu
+              Có gác lửng →
             </Link>
             <Link
-              href={`/phong-tro-gan-truong-dai-hoc/${u.slug}?gia=3-5-trieu`}
-              className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
-                gia === "3-5-trieu"
-                  ? "bg-brand text-white shadow-xs"
-                  : "bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
-              }`}
+              href="/can-ho-mini-full-noi-that"
+              className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
             >
-              Từ 3 - 5 triệu
-            </Link>
-            <Link
-              href={`/phong-tro-gan-truong-dai-hoc/${u.slug}?gia=tren-5-trieu`}
-              className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap ${
-                gia === "tren-5-trieu"
-                  ? "bg-brand text-white shadow-xs"
-                  : "bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
-              }`}
-            >
-              Trên 5 triệu
+              CHDV Studio →
             </Link>
           </div>
 

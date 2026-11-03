@@ -20,10 +20,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CanHoMiniFullNoiThatPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ quan?: string }>;
-}) {
-  return <ThematicLanding slug={cd.slug} searchParams={searchParams} />;
+export default function CanHoMiniFullNoiThatPage() {
+  return <ThematicLanding slug={cd.slug} />;
 }

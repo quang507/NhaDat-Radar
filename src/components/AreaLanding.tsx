@@ -17,6 +17,7 @@ import PriceTrend from "@/components/PriceTrend";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { tronRoHang } from "@/lib/ro-hang";
 import { ldJson } from "@/lib/ld";
+import { NGUONG, robotsTheoSoTin } from "@/lib/seo-index";
 import { BarChart3 } from "lucide-react";
 import SanPhongHoCTA from "@/components/SanPhongHoCTA";
 
@@ -98,10 +99,12 @@ export async function areaMeta(deal: Deal, provinceSlug: string, districtSlug?: 
   const description = deal === "cho_thue" && (kind === "phong_tro" || kind === "can_ho" || !kind)
     ? `${so} ${kind === "can_ho" ? "căn hộ dịch vụ, studio" : "phòng trọ, căn hộ mini"} cho thuê tại ${where}: ảnh thật, giá rõ ràng, phòng trống đã xác thực. Studio, gác lửng, duplex, có máy lạnh, giờ tự do. Bấm xem số, hẹn xem phòng miễn phí - cập nhật mỗi ngày.`
     : `${so} tin ${hanhDong} ${what} tại ${where}: giá phổ biến và trung vị theo m², xu hướng giá, cảnh báo giá lệch, dấu hiệu môi giới/chính chủ và nguồn của từng tin. Cập nhật hằng ngày trên NhaDat Radar.`;
+  const nguong = kind ? NGUONG.loai : r.district ? NGUONG.quan : NGUONG.tinh;
   return {
     title: areaTitle(deal, r.province, r.district, n, kind),
     description,
     alternates: { canonical: areaPath(deal, r.province, r.district, kind) },
+    robots: robotsTheoSoTin(n, nguong),
   };
 }
 

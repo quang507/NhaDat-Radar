@@ -20,10 +20,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PhongTroDuoi3TrieuPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ quan?: string }>;
-}) {
-  return <ThematicLanding slug={cd.slug} searchParams={searchParams} />;
+export default function PhongTroDuoi3TrieuPage() {
+  return <ThematicLanding slug={cd.slug} />;
 }

@@ -7,6 +7,7 @@ import { SITE, xmlSitemap, xmlResponse, type MucSitemap } from "@/lib/sitemap";
 import { dsQuanBaoCao } from "@/lib/bao-cao-gia";
 import { BAI_VIET } from "@/lib/bai-viet";
 import { DANH_SACH_DAI_HOC } from "@/lib/dai-hoc";
+import { NGUONG } from "@/lib/seo-index";
 
 export const revalidate = 3600;
 
@@ -21,14 +22,14 @@ export async function GET() {
     const { counts } = await getAreas();
     for (const [p, c] of Object.entries(counts)) {
       for (const deal of ["ban", "cho_thue"] as const) {
-        if (c[deal] > 0) muc.push({ url: SITE + areaPath(deal, p), changefreq: "daily", priority: 0.8 });
+        if (c[deal] >= NGUONG.tinh) muc.push({ url: SITE + areaPath(deal, p), changefreq: "daily", priority: 0.8 });
         for (const [k, kc] of Object.entries(c.kinds || {})) {
-          if (KIND_SLUG[k] && kc[deal] >= 10) muc.push({ url: SITE + areaPath(deal, p, null, k), changefreq: "daily", priority: 0.75 });
+          if (KIND_SLUG[k] && kc[deal] >= NGUONG.loai) muc.push({ url: SITE + areaPath(deal, p, null, k), changefreq: "daily", priority: 0.75 });
         }
         for (const [d, dc] of Object.entries(c.districts)) {
-          if (dc[deal] >= 3) muc.push({ url: SITE + areaPath(deal, p, d), changefreq: "daily", priority: 0.7 });
+          if (dc[deal] >= NGUONG.quan) muc.push({ url: SITE + areaPath(deal, p, d), changefreq: "daily", priority: 0.7 });
           for (const [k, kc] of Object.entries(dc.kinds || {})) {
-            if (KIND_SLUG[k] && kc[deal] >= 5) muc.push({ url: SITE + areaPath(deal, p, d, k), changefreq: "daily", priority: 0.65 });
+            if (KIND_SLUG[k] && kc[deal] >= NGUONG.loai) muc.push({ url: SITE + areaPath(deal, p, d, k), changefreq: "daily", priority: 0.65 });
           }
         }
       }
@@ -40,8 +41,13 @@ export async function GET() {
     for (const u of DANH_SACH_DAI_HOC) muc.push({ url: `${SITE}/phong-tro-gan-truong-dai-hoc/${u.slug}`, changefreq: "daily", priority: 0.8 });
     // chuyen de hot
     for (const cd of ["phong-tro-duoi-3-trieu", "phong-tro-co-gac-lung", "can-ho-mini-full-noi-that"]) muc.push({ url: `${SITE}/${cd}`, changefreq: "daily", priority: 0.85 });
-    const { data: ps } = await createAnonClient().from("projects").select("id").eq("status", "published").limit(1000);
-    for (const p of ps ?? []) muc.push({ url: `${SITE}/projects/${p.id}`, priority: 0.5 });
+    // Chỉ đưa vào sitemap những dự án có mô tả thực chất (>= 200 ký tự), loại bỏ 649 trang rỗng làm loãng crawl budget
+    const { data: ps } = await createAnonClient().from("projects").select("id, description").eq("status", "published").limit(1000);
+    for (const p of ps ?? []) {
+      if ((p.description || "").length >= 200) {
+        muc.push({ url: `${SITE}/projects/${p.id}`, priority: 0.5 });
+      }
+    }
   } catch { /* DB lỗi -> ít nhất vẫn có trang tĩnh */ }
 
   return xmlResponse(xmlSitemap(muc));

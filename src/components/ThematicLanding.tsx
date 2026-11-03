@@ -8,6 +8,7 @@ import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
 import SanPhongHoCTA from "@/components/SanPhongHoCTA";
 import { ldJson } from "@/lib/ld";
+import { slugify } from "@/lib/slug";
 import {
   Sparkles,
   MapPin,
@@ -26,7 +27,7 @@ export default async function ThematicLanding({
   searchParams,
 }: {
   slug: string;
-  searchParams: Promise<{ quan?: string }>;
+  searchParams?: Promise<{ quan?: string }>;
 }) {
   const cd = DANH_SACH_CHUYEN_DE[slug];
   if (!cd) {
@@ -34,7 +35,8 @@ export default async function ThematicLanding({
   }
 
   // 2/11 (audit): chỉ nhận quận có trong danh sách chip - giá trị lạ không đi vào truy vấn
-  const { quan: quanGo } = await searchParams;
+  const sp = searchParams ? await searchParams : {};
+  const quanGo = sp.quan;
   const quan = quanGo && cd.khuVucNhieuTin.includes(quanGo) ? quanGo : undefined;
 
   // Truy vấn tin theo chủ đề (count exact -> hiện tổng tin thật, không phải số thẻ đang hiện)
@@ -163,36 +165,26 @@ export default async function ThematicLanding({
             </div>
           </div>
 
-          {/* Hot Districts Filter */}
+          {/* Hot Districts Links - Chuyển sang URL quận chuẩn SEO để thông dòng PageRank */}
           <div className="mt-6 pt-5 border-t border-[var(--border)]/60">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="font-semibold text-[var(--text-2)] flex items-center gap-1">
                 <Compass className="w-3.5 h-3.5 text-brand" />
-                Khu vực nhiều phòng:
+                Xem theo quận nhiều phòng:
               </span>
-              <Link
-                href={`/${cd.slug}`}
-                className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                  !quan
-                    ? "bg-brand text-white shadow-xs"
-                    : "bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-1)] hover:bg-[var(--surface-2)]"
-                }`}
-              >
-                Tất cả khu vực
-              </Link>
+              <span className="px-2.5 py-1 rounded-md font-medium bg-brand text-white shadow-xs">
+                Toàn TP.HCM
+              </span>
               {cd.khuVucNhieuTin.map((kv, idx) => {
-                const isSelected = quan === kv;
+                const slugQuan = slugify(quanDB(kv));
+                const linkQuan = `/nha-dat-cho-thue/ho-chi-minh/${slugQuan}/phong-tro`;
                 return (
                   <Link
                     key={idx}
-                    href={`/${cd.slug}?quan=${encodeURIComponent(kv)}`}
-                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                      isSelected
-                        ? "bg-brand text-white shadow-xs"
-                        : "bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-1)] hover:bg-[var(--surface-2)]"
-                    }`}
+                    href={linkQuan}
+                    className="px-2.5 py-1 rounded-md font-medium bg-[var(--surface-1)] border border-[var(--border)] text-[var(--text-1)] hover:bg-[var(--surface-2)] transition-colors"
                   >
-                    {kv}
+                    {kv} →
                   </Link>
                 );
               })}
