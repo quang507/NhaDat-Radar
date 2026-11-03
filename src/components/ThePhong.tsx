@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Listing } from "@/lib/types";
-import { fresh, PROP, thumb } from "@/lib/format";
+import { fmtPrice, fresh, PROP, thumb } from "@/lib/format";
 import FavButton from "./FavButton";
 import SafeImg from "./SafeImg";
 import PropertyPlaceholder from "./PropertyPlaceholder";
@@ -19,7 +19,8 @@ import { ShieldCheck, Eye, Play } from "lucide-react";
 // Màu theo brand Radar. Trang mua bán vẫn dùng ListingRow (thẻ ngang kiểu batdongsan).
 
 const LOAI_NGAN: Record<string, string> = { phong_tro: "Phòng", can_ho: "Căn hộ", nha: "Nhà", mat_bang: "Mặt bằng", dat: "Đất", khac: "Khác" };
-const giaThang = (v: number | null) => (v ? `${v.toLocaleString("vi-VN")} đ/tháng` : "Thoả thuận");
+// 3/11 (UX audit #9): cùng cách ghi giá với ListingCard ("3.8 triệu/th") - trước ghi "3.800.000 đ/tháng" cạnh dải xác minh
+const giaThang = (v: number | null) => fmtPrice(v, "cho_thue");
 
 export default function ThePhong({ x }: { x: Listing }) {
   const [daChep, setDaChep] = useState(false);
@@ -86,12 +87,13 @@ export default function ThePhong({ x }: { x: Listing }) {
             {roHang && <span className="ml-auto px-1.5 py-0.5 rounded border border-emerald-500/50 text-emerald-600 font-semibold">Trống</span>}
           </div>
 
+          {/* 3/11 (UX audit #8): chữ thay emoji - ❄ 🛡 🪟 🫧 không ai đọc ra, trình đọc màn hình cũng không */}
           {ti.length > 0 && (
-            <div className="flex items-center gap-1" title={ti.map((t) => t.ten).join(", ")}>
-              {ti.slice(0, 3).map((t) => (
-                <span key={t.k} className="grid place-items-center w-6 h-6 rounded-md bg-brand/10 text-caption" title={t.ten} aria-label={t.ten}>{t.icon}</span>
+            <div className="flex flex-wrap items-center gap-1" title={ti.map((t) => t.ten).join(", ")}>
+              {ti.slice(0, 2).map((t) => (
+                <span key={t.k} className="px-1.5 py-0.5 rounded-sm bg-[var(--surface-2)] text-caption text-[var(--ink-soft)] whitespace-nowrap">{t.ngan || t.ten}</span>
               ))}
-              {ti.length > 3 && <span className="text-caption text-[var(--ink-soft)] ml-0.5">+{ti.length - 3} tiện ích</span>}
+              {ti.length > 2 && <span className="text-caption text-[var(--ink-faint)] whitespace-nowrap">+{ti.length - 2}</span>}
             </div>
           )}
 

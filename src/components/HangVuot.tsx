@@ -14,17 +14,13 @@ const LUOI = {
 // ẩn thẻ dư ở từng breakpoint -> luôn đúng 1 hàng đầy. Điện thoại vẫn vuốt được hết.
 const MOT_HANG = "sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
 const anTheoCot = (i: number) => (i < 2 ? "" : i === 2 ? "sm:hidden md:flex" : i === 3 ? "sm:hidden lg:flex" : "sm:hidden");
-// 3/11: motHang="hep" cho cột hẹp (danh sách cạnh bản đồ ở /search): 4 cột ở 1024 ra thẻ 101px, ảnh 63px,
-// số ảnh đè nút tim -> 2 cột, xl 3 cột.
-const MOT_HANG_HEP = "sm:grid-cols-2 xl:grid-cols-3";
-const anTheoCotHep = (i: number) => (i < 2 ? "" : i === 2 ? "sm:hidden xl:flex" : "sm:hidden");
 
-export default function HangVuot({ items, cot = 250, motHang = false }: { items: { key: string; node: ReactNode }[]; cot?: keyof typeof LUOI; motHang?: boolean | "hep" }) {
+export default function HangVuot({ items, cot = 250, motHang = false }: { items: { key: string; node: ReactNode }[]; cot?: keyof typeof LUOI; motHang?: boolean }) {
   return (
     <div className={`cuon-ngang flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-px-4 -mx-4 px-4 sm:scroll-px-5 sm:-mx-5 sm:px-5 pb-2 [scrollbar-width:none]
-      sm:grid sm:gap-4 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 ${motHang === "hep" ? MOT_HANG_HEP : motHang ? MOT_HANG : LUOI[cot]}`}>
+      sm:grid sm:gap-4 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0 ${motHang ? MOT_HANG : LUOI[cot]}`}>
       {items.map((it, i) => (
-        <div key={it.key} className={`w-[78%] shrink-0 snap-start sm:w-auto flex ${motHang === "hep" ? anTheoCotHep(i) : motHang ? anTheoCot(i) : ""}`}>{it.node}</div>
+        <div key={it.key} className={`w-[78%] shrink-0 snap-start sm:w-auto flex ${motHang ? anTheoCot(i) : ""}`}>{it.node}</div>
       ))}
     </div>
   );

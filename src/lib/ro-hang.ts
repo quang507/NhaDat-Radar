@@ -15,11 +15,24 @@ export function laRoHang(x: { source?: string | null; source_site?: string | nul
 
 export const NHAN_RO_HANG = "Đã xác minh";
 
+/** source_site -> chữ khách đọc được (3/11: thẻ tin từng hiện thô "zalo_group", "batdongsan.com.vn") */
+export function tenTrang(site: string | null | undefined) {
+  const s = (site || "").toLowerCase();
+  if (!s) return "Tin web";
+  if (s.startsWith("zalo")) return "Nhóm Zalo";
+  if (s === "facebook") return "Nhóm Facebook";
+  if (s === "chotot" || s.startsWith("nhatot")) return "Chợ Tốt";
+  if (s.startsWith("batdongsan")) return "Batdongsan";
+  if (s === "radar") return "Radar";
+  const goc = s.replace(/\.(com\.vn|vn|com|net)$/, "");
+  return goc.charAt(0).toUpperCase() + goc.slice(1);
+}
+
 /** Tên nguồn để HIỂN THỊ - rổ hàng không bao giờ lộ tên đối tác */
 export function tenNguon(x: { source?: string | null; source_site?: string | null }) {
   if (laRoHang(x)) return NHAN_RO_HANG;
   if (x.source === "agent") return "Tự đăng";
-  return x.source_site || "crawl";
+  return tenTrang(x.source_site);
 }
 
 /** Từ ngày 20 trở đi khách thuê bắt đầu tìm phòng cho tháng sau -> gắn tag giữ phòng */

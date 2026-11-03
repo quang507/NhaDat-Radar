@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import ListingRow from "@/components/ListingRow";
 import ThePhong from "@/components/ThePhong";
-import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import MapResults, { type MapItem } from "@/components/MapResults";
 import { tinLenBanDo } from "@/lib/ban-do-tin";
 import SaveSearchButton from "@/components/SaveSearchButton";
@@ -70,6 +69,7 @@ const KHOANG_DT: [string, string][] = [
 ];
 const DEAL_OPTS: [string, string][] = [["", "Mua & thuê"], ["ban", "Mua bán"], ["cho_thue", "Cho thuê"]];
 /** tên loại cho tiêu đề/nhãn: 1 loại -> tên loại; nhiều loại (kind=nha,can_ho từ bộ lọc mua bán) -> rỗng */
+const NHAN_PHAP_LY: Record<string, string> = { "sổ": "Sổ đỏ/Sổ hồng", "hợp đồng": "Hợp đồng mua bán", "chờ sổ": "Đang chờ sổ", "thổ cư": "Thổ cư" };
 const tenLoai = (kind: string) => (kind && !kind.includes(",") ? (PROP as Record<string, string>)[kind] || "" : "");
 /** nhãn chip cho khoảng đang áp (kể cả khoảng gõ tay không nằm trong mốc) */
 function nhanKhoang(min: string, max: string, fmt: (n: number) => string) {
@@ -101,6 +101,9 @@ export default function SearchClient({
   duAn?: { id: string; name: string }[]; // ô "Chọn dự án..."
 }) {
   const router = useRouter();
+  // 3/11 (Clarity: dead click): đổi lọc/sắp xếp = router.push sang trang render động (~1 s + tải RSC), trước đó màn hình
+  // đứng im nên khách bấm lại. Trong transition: danh sách mờ đi + aria-busy cho tới khi kết quả mới về.
+  const [dangTai, chuyenTrang] = useTransition();
   const [showFilter, setShowFilter] = useState(false);
   const [showMap, setShowMap] = useState(false);
   // 26/10: page.tsx dựng lại SearchClient mỗi lần đổi trang/bộ lọc (key=searchParams) -> chế độ bản đồ bị tắt,
@@ -156,16 +159,10 @@ export default function SearchClient({
     return [...withImg, ...noImg];
   }, [listings, sort]);
 
-  // Tin ĐỘC QUYỀN (FB + Zalo, xem lib/doc-quyen) tách lên DẢI RIÊNG đầu kết quả, thẻ to hơn
-  // (21/8): nguồn không trang nào khác có = hàng bán được, cho đứng vị trí đẹp nhất.
-  // 3/11: dải chỉ còn rổ hàng (locDocQuyen). Cạnh bản đồ dải 2-3 cột -> lấy 3 tin, không giấu 6 tin khỏi danh sách
-  // trong khi dải chỉ hiện được 2-3.
-  // dải độc quyền chỉ ở trang 1 - các trang sau là danh sách thường (mỗi trang chỉ có 20 tin của chính nó)
-  const docQuyen = useMemo(() => (trang === 1 ? locDocQuyen(display, showMap ? 3 : 6) : []), [display, trang, showMap]);
-  const conLai = useMemo(() => {
-    const idsTrenDai = new Set(docQuyen.map((x) => x.id));
-    return display.filter((x) => !idsTrenDai.has(x.id));
-  }, [display, docQuyen]);
+  // 3/11 (UX audit #9): bỏ dải "Tin đã xác minh" khỏi trang kết quả. Dải dùng thẻ khác (giá "4.3 triệu/th" cạnh
+  // "3.800.000 đ/tháng" của lưới), lặp tin của danh sách và đẩy kết quả thật xuống dưới màn đầu điện thoại.
+  // Rổ hàng vẫn được server trộn lên đầu mỗi trang (oTronRoHang) và mang nhãn XÁC MINH; muốn chỉ xem rổ hàng
+  // thì bật công tắc "Tin đã xác minh". Trang chủ / trang khu vực vẫn giữ dải.
 
   // PHÂN TRANG THẬT (1/10): server chỉ gửi 20 tin của trang đang xem (?page=n), nút trang là link thật
   // (bot đi theo được, Back/Forward đúng). Đổi bộ lọc/sắp xếp thì push() bỏ page -> về trang 1.
@@ -226,10 +223,10 @@ export default function SearchClient({
     // NN/g #6: nhớ tìm kiếm gần đây (nhãn ngắn dễ nhận ra)
     const label = [next.deal === "cho_thue" ? "Thuê" : next.deal === "ban" ? "Mua" : "", tenLoai(next.kind || ""), next.ward || next.district || next.province || next.q || "toàn quốc", next.priceMax ? "≤" + shortPrice(Number(next.priceMax)) : ""].filter(Boolean).join(" · ");
     if (usp.size) rememberSearch(label, href);
-    router.push(href);
+    chuyenTrang(() => router.push(href));
   }
   const submit = () => push({ ...f, sort });
-  const clear = () => { setNewAddr(false); setF(tuParams({})); router.push("/search"); };
+  const clear = () => { setNewAddr(false); setF(tuParams({})); chuyenTrang(() => router.push("/search")); };
 
   const sel = "inp appearance-none pr-8 cursor-pointer";
   // ô trong popup: đang chọn giá trị thì viền màu brand (như "Tầng trệt" bên EvoHome)
@@ -249,7 +246,7 @@ export default function SearchClient({
   // đang lọc quanh 1 điểm -> "Cho thuê nhà đất quanh Ny'ah Bình Tây" thay vì "toàn quốc" (26/10)
   const pageTitle = goc.gan
     ? `${dealWord} ${kindWord} quanh ${goc.gan_ten || "vị trí đã chọn"}`
-    : `${dealWord} ${kindWord}${locWord ? " " + locWord : " toàn quốc"}`;
+    : `${dealWord} ${kindWord}${locWord ? " " + locWord : ""}`; // 3/11: bỏ "toàn quốc" - 94% kho là TP.HCM, chữ này hứa quá
 
   const muaBan = goc.deal === "ban"; // mua bán: bộ lọc kiểu batdongsan; cho thuê / gộp: kiểu EvoHome
   const choThue = goc.deal === "cho_thue"; // cho thuê: thẻ phòng dạng lưới kiểu EvoHome (ThePhong)
@@ -412,7 +409,7 @@ export default function SearchClient({
         {soLoc > 0 && <span className="grid place-items-center min-w-5 h-5 px-1 rounded-full bg-brand text-white text-overline font-bold">{soLoc}</span>}
       </button>
       <CongTac bat={own} onDoi={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
-        title="Chỉ hiển thị các tin đã được Radar xác minh thực tế & pháp lý"
+        title="Chỉ hiện phòng do đơn vị quản lý xác nhận còn trống"
         icon={<ShieldCheck className="w-4 h-4 text-emerald-600" />}>
         Tin đã xác minh
       </CongTac>
@@ -520,7 +517,7 @@ export default function SearchClient({
             role="switch" aria-checked={!!own}
             className="flex items-center gap-2 text-xs font-semibold text-[var(--ink-soft)]"
             onClick={() => push({ ...goc, own: own ? "" : "1" } as Record<string, string>)}
-            title="Chỉ hiển thị các tin đã được Radar xác minh thực tế & pháp lý"
+            title="Chỉ hiện phòng do đơn vị quản lý xác nhận còn trống"
           >
             <span className={`w-9 h-5 rounded-full transition relative ${own ? "bg-emerald-600" : "bg-[var(--line-strong)]"}`}>
               <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-[var(--surface)] transition-all ${own ? "left-[18px]" : "left-0.5"}`} />
@@ -766,7 +763,7 @@ export default function SearchClient({
         {/* min-w-0 BẮT BUỘC: mô tả trong ListingRow dùng line-clamp (-webkit-box) -> bề rộng nội tại = cả đoạn text
             chưa xuống dòng -> cột 1fr phình (đo được 2190px ở viewport 1400) đẩy cột bản đồ 420px ra NGOÀI màn hình.
             Sự cố 17/8: "Xem bản đồ" bấm không thấy gì. */}
-        <div className="min-w-0">
+        <div className={`min-w-0 transition-opacity ${dangTai ? "opacity-50 pointer-events-none" : ""}`} aria-busy={dangTai}>
           {/* Smart Context & Active Filter Pills */}
           {soLoc > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 mb-3.5 text-xs">
@@ -782,6 +779,15 @@ export default function SearchClient({
               {goc.project && chipDangAp(duAn.find((d) => d.id === goc.project)?.name || "Dự án", "Bỏ lọc dự án", () => push({ ...goc, project: "" }))}
               {goc.street && chipDangAp(goc.street, "Bỏ lọc tên đường", () => push({ ...goc, street: "" }))}
               {docTienIch(goc.ti).map((t) => chipDangAp(t.ten, `Bỏ lọc ${t.ten}`, () => push({ ...goc, ti: doiTi(goc.ti, t.k) }), t.k))}
+              {/* 3/11 (UX audit #10): badge "Lọc (n)" đếm cả các lọc dưới đây nhưng trước không có chip -> báo 3, thấy 2 */}
+              {goc.kind && chipDangAp(goc.kind.split(",").map((k) => (PROP as Record<string, string>)[k] || k).join(", "), "Bỏ lọc loại nhà đất", () => push({ ...goc, kind: "" }))}
+              {goc.bedrooms && chipDangAp(`${goc.bedrooms}+ phòng ngủ`, "Bỏ lọc phòng ngủ", () => push({ ...goc, bedrooms: "" }))}
+              {goc.bathrooms && chipDangAp(`${goc.bathrooms}+ WC`, "Bỏ lọc phòng tắm", () => push({ ...goc, bathrooms: "" }))}
+              {goc.direction && chipDangAp(`Hướng ${goc.direction}`, "Bỏ lọc hướng", () => push({ ...goc, direction: "" }))}
+              {goc.legal && chipDangAp(NHAN_PHAP_LY[goc.legal] || goc.legal, "Bỏ lọc pháp lý", () => push({ ...goc, legal: "" }))}
+              {goc.anh && chipDangAp(goc.anh === "khong" ? "Chưa có ảnh" : "Có ảnh", "Bỏ lọc hình ảnh", () => push({ ...goc, anh: "" }))}
+              {goc.gan && chipDangAp(`Gần ${goc.gan_ten || "vị trí đã chọn"}`, "Bỏ lọc khoảng cách", () => push({ ...goc, gan: "", bk: "", gan_ten: "" }))}
+              {own && chipDangAp("Tin đã xác minh", "Bỏ lọc tin đã xác minh", () => push({ ...goc, own: "" } as Record<string, string>))}
               <button type="button" onClick={clear} className="inline-flex items-center h-11 sm:h-7 px-1.5 text-brand font-semibold hover:underline cursor-pointer">
                 Xóa tất cả
               </button>
@@ -790,10 +796,9 @@ export default function SearchClient({
 
           {display.length ? (
             <>
-              {trang === 1 && <DaiDocQuyen listings={display} hep={showMap} toiDa={showMap ? 3 : 6} />}
               {choThue && phanTrang("mb-3")}
               <div className={choThue ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" : "flex flex-col gap-3"}>
-                {conLai.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}
+                {display.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}
               </div>
               {phanTrang("mt-5")}
 

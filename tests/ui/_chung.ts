@@ -45,10 +45,10 @@ export async function layTinMau(page: Page) {
   const web = await (async () => {
     await mo(page, `/search?deal=ban&province=${HCM}`);
     return page.evaluate(() => {
-      // tin cào web: thẻ có nhãn nguồn khác "Đã xác minh"/"Tự đăng" (vd batdongsan, chotot, mogi)
+      // tin cào web: thẻ có nhãn nguồn khác "Đã xác minh"/"Tự đăng" (vd Batdongsan, Chợ Tốt, Mogi - lib/ro-hang tenTrang)
       const a = [...document.querySelectorAll<HTMLAnchorElement>('a[href^="/listings/"]')].find((x) => {
         const t = x.closest("article, .card, li, div")?.textContent || "";
-        return /batdongsan|chotot|mogi|alonhadat|nhatot|homedy|muaban/i.test(t);
+        return /batdongsan|chotot|chợ tốt|mogi|guland|alonhadat|nhatot|homedy|muaban/i.test(t);
       });
       return a?.getAttribute("href") ?? document.querySelector('a[href^="/listings/"]')?.getAttribute("href") ?? null;
     });

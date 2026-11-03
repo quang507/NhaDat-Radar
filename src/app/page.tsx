@@ -122,6 +122,9 @@ export default async function Home() {
   // Dùng cây khu vực cache 10' (lib/geo) thay vì select 5.000 dòng mỗi lần vào trang chủ.
   const areas = await getAreas();
   const totalPublished = areas.total, districtCount = areas.districtCount, sourceCount = areas.sources;
+  // 3/11 (UX audit #12): mọi con số trên trang chủ lấy từ đây - trước ghi tay "1.380+", "14.000", "15.000" lệch nhau
+  const soThue = Object.values(areas.counts).reduce((s, c) => s + c.cho_thue, 0);
+  const vn = (n: number) => n.toLocaleString("vi-VN");
 
   // Ưu tiên hiển thị BĐS miền Nam (giữ thứ tự mới-nhất trong từng nhóm)
   const SOUTH = /hồ chí minh|bình dương|đồng nai|cần thơ|vũng tàu|bà rịa|long an|tây ninh|tiền giang|an giang|kiên giang|cà mau|bến tre|vĩnh long|sóc trăng|đồng tháp|hậu giang|bạc liêu|trà vinh/i;
@@ -238,13 +241,13 @@ export default async function Home() {
         <div className="relative z-10">
           <Link
             href="/search?deal=cho_thue"
-            title="Xem danh sách hơn 1.380 phòng trống mới cập nhật hôm nay"
+            title={`Xem ${vn(soThue)} tin cho thuê`}
             className="inline-flex items-center gap-2 px-2.5 py-1 rounded-sm bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:border-emerald-500 text-xs font-bold mb-2.5 shadow-2xs group transition-all"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {/* mobile: 1 dòng ngắn (câu dài cũ rớt 2 dòng, đẩy ô tìm kiếm xuống) */}
-            <span className="sm:hidden">1.380+ phòng trống mới hôm nay</span>
-            <span className="hidden sm:inline">Hệ thống vừa cập nhật 1.380+ phòng trống hôm nay</span>
+            <span className="sm:hidden">{vn(soThue)} tin cho thuê đang rao</span>
+            <span className="hidden sm:inline">{vn(soThue)} tin cho thuê, cập nhật nhiều lần mỗi ngày</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform opacity-70 group-hover:opacity-100" />
           </Link>
 
@@ -253,7 +256,8 @@ export default async function Home() {
           </h1>
           {/* mobile: ẩn đoạn giới thiệu - để ô tìm kiếm lên màn hình đầu (ZEN: gọn trên điện thoại) */}
           <p className="hidden sm:block text-base text-[var(--ink-soft)] mb-5 max-w-2xl leading-relaxed">
-            Hơn 14.000 căn phòng và nhà đất có video thực tế, định vị chuẩn xác và cam kết giá thuê trực tiếp từ chủ nhà, không tin ảo kê giá.
+            {/* 3/11: bỏ "video thực tế, định vị chuẩn xác, cam kết giá từ chủ nhà" - không đúng cho tin cào web/nhóm Zalo */}
+            {vn(totalPublished)} tin nhà đất từ {sourceCount} nguồn ở {districtCount} quận/huyện. Phòng gắn nhãn xác minh do đơn vị quản lý xác nhận còn trống.
           </p>
           <HeroTimKiem chip={chip} places={goiY} />
 
@@ -301,14 +305,14 @@ export default async function Home() {
               href={HOTLINE_ZALO}
               target="_blank"
               rel="noopener noreferrer"
-              title="Chat Zalo hoặc gọi hotline tư vấn 24/7"
+              title="Chat Zalo hoặc gọi hotline tư vấn"
               className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-blue-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:border-blue-500 hover:shadow-xs transition group cursor-pointer"
             >
               <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <Clock className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Hỗ trợ 24/7</div>
+                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Trả lời trong 15 phút</div>
                 <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Hotline: 0387 365 020</div>
               </div>
             </a>
@@ -493,7 +497,7 @@ export default async function Home() {
           <section className="mt-10 sm:mt-12">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="heading-2 border-l-4 border-brand pl-3 text-[var(--ink)]">Duyệt theo danh mục</h2>
-              <span className="text-xs sm:text-sm text-[var(--ink-faint)] font-medium">Hơn 15.000 căn nhà đất có sẵn</span>
+              <span className="text-xs sm:text-sm text-[var(--ink-faint)] font-medium">{vn(totalPublished)} tin đang rao</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[

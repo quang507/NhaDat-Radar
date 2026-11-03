@@ -14,7 +14,7 @@ export function locDocQuyen(listings: Listing[], toiDa = 6) {
   return boTinTrung(listings.filter((x) => laRoHang(x) && !!x.price_vnd)).slice(0, toiDa);
 }
 
-export default function DaiDocQuyen({ listings, toiDa = 6, hep = false }: { listings: Listing[]; toiDa?: number; hep?: boolean }) {
+export default function DaiDocQuyen({ listings, toiDa = 6 }: { listings: Listing[]; toiDa?: number }) {
   const tins = locDocQuyen(listings, toiDa);
   if (!tins.length) return null;
   return (
@@ -46,7 +46,7 @@ export default function DaiDocQuyen({ listings, toiDa = 6, hep = false }: { list
       </div>
       {/* không đè thêm badge - ListingCard tự gắn tag "XÁC MINH" cho rổ hàng */}
       {/* điện thoại: hàng vuốt ngang; sm+: lưới */}
-      <HangVuot motHang={hep ? "hep" : true} items={tins.map((x) => ({ key: x.id, node: <ListingCard x={x} /> }))} />
+      <HangVuot motHang items={tins.map((x) => ({ key: x.id, node: <ListingCard x={x} /> }))} />
     </section>
   );
 }

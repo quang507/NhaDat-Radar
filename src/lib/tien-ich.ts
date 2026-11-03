@@ -3,23 +3,24 @@
 // ghi trong mô tả ("• Máy lạnh", "• Máy giặt"...), tin FB/web khác chỉ có chữ trong mô tả.
 // -> mỗi tiện ích khớp khi amenities chứa khoá cũ HOẶC mô tả/tiêu đề có một trong các cụm từ.
 // Khớp chữ nên có thể lọt "không có thang máy" - chấp nhận, đổi lại không cần cột mới / migration.
-export type TienIch = { k: string; ten: string; icon: string; am?: string; tu: string[] };
+// ngan: chữ trên thẻ phòng hẹp (~165px); không có thì dùng ten
+export type TienIch = { k: string; ten: string; ngan?: string; icon: string; am?: string; tu: string[] };
 
 export const TIEN_ICH: TienIch[] = [
-  { k: "thu_cung", ten: "Nuôi thú cưng", icon: "🐾", am: "pet", tu: ["thú cưng", "nuôi chó", "nuôi mèo", "pet"] },
+  { k: "thu_cung", ten: "Nuôi thú cưng", ngan: "Thú cưng", icon: "🐾", am: "pet", tu: ["thú cưng", "nuôi chó", "nuôi mèo", "pet"] },
   { k: "gac_lung", ten: "Gác lửng", icon: "🪜", tu: ["gác lửng", "gác xép", "có gác", "duplex"] },
   { k: "gio_tu_do", ten: "Giờ tự do", icon: "⏰", tu: ["giờ tự do", "không chung chủ", "riêng chủ", "tự do"] },
   { k: "ban_cong", ten: "Ban công", icon: "🌇", tu: ["ban công"] },
   { k: "thang_may", ten: "Thang máy", icon: "🛗", am: "elevator", tu: ["thang máy"] },
-  { k: "dieu_hoa", ten: "Điều hòa", icon: "❄", am: "ac", tu: ["điều hòa", "điều hoà", "máy lạnh"] },
-  { k: "de_xe", ten: "Chỗ để xe", icon: "🛵", am: "parking", tu: ["để xe", "giữ xe", "hầm xe"] },
-  { k: "hem_xe_hoi", ten: "Hẻm xe hơi", icon: "🚗", tu: ["hẻm xe hơi", "hxh", "ô tô", "oto", "xe hơi đỗ"] },
+  { k: "dieu_hoa", ten: "Điều hòa", ngan: "Máy lạnh", icon: "❄", am: "ac", tu: ["điều hòa", "điều hoà", "máy lạnh"] },
+  { k: "de_xe", ten: "Chỗ để xe", ngan: "Để xe", icon: "🛵", am: "parking", tu: ["để xe", "giữ xe", "hầm xe"] },
+  { k: "hem_xe_hoi", ten: "Hẻm xe hơi", ngan: "Hẻm ô tô", icon: "🚗", tu: ["hẻm xe hơi", "hxh", "ô tô", "oto", "xe hơi đỗ"] },
   { k: "nuoc_nong", ten: "Nước nóng", icon: "♨", tu: ["nước nóng", "nóng lạnh"] },
   { k: "tu_lanh", ten: "Tủ lạnh", icon: "🧊", tu: ["tủ lạnh"] },
   { k: "may_giat", ten: "Máy giặt", icon: "🫧", tu: ["máy giặt"] },
   { k: "ke_bep", ten: "Kệ bếp", icon: "🍳", tu: ["kệ bếp", "tủ bếp", "bếp riêng"] },
   { k: "tivi", ten: "Tivi", icon: "📺", tu: ["tivi", "ti vi", "smart tv"] },
-  { k: "tu_quan_ao", ten: "Tủ quần áo", icon: "👕", tu: ["tủ quần áo", "tủ áo"] },
+  { k: "tu_quan_ao", ten: "Tủ quần áo", ngan: "Tủ áo", icon: "👕", tu: ["tủ quần áo", "tủ áo"] },
   { k: "giuong", ten: "Giường", icon: "🛏", tu: ["giường"] },
   { k: "san_phoi", ten: "Sân phơi", icon: "👚", tu: ["sân phơi", "chỗ phơi"] },
   { k: "an_ninh", ten: "An ninh", icon: "🛡", am: "security", tu: ["an ninh", "camera", "bảo vệ", "vân tay"] },

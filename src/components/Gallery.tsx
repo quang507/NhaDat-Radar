@@ -156,6 +156,10 @@ export default function Gallery({
     }
   };
   const [video, setVideo] = useState<string | null>(null);
+  // 3/11 (Clarity: dead tap): video 4-12 MB, mạng 4G mất vài giây mới có hình -> khách chạm liên tục vào khung đen.
+  // Hiện rõ đang tải / lỗi. Bỏ link "Mở video trực tiếp": mở thẳng URL kho ảnh đối tác (lộ tên nguồn rổ hàng).
+  const [vidTT, setVidTT] = useState<"tai" | "chay" | "loi">("tai");
+  useEffect(() => { if (video) setVidTT("tai"); }, [video]);
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);       // ảnh đang xem trong lightbox
   const [heroIdx, setHeroIdx] = useState(0); // ảnh đang xem ở carousel trang chi tiết
@@ -353,6 +357,10 @@ export default function Gallery({
                 controls 
                 autoPlay 
                 playsInline 
+                onWaiting={() => setVidTT("tai")}
+                onPlaying={() => setVidTT("chay")}
+                onCanPlay={() => setVidTT((t) => (t === "loi" ? t : "chay"))}
+                onError={() => setVidTT("loi")}
                 className="rounded-xl bg-black shadow-2xl object-contain border border-white/10"
                 style={{
                   maxHeight: "calc(100vh - 150px)",
@@ -362,14 +370,9 @@ export default function Gallery({
                 }}
               />
             </div>
-            <a 
-              href={video} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="mt-3 text-xs text-white/75 hover:text-white underline transition"
-            >
-              Không phát được? Mở video trực tiếp
-            </a>
+            <p role="status" className="mt-3 min-h-5 text-xs text-white/75 text-center">
+              {vidTT === "tai" ? "Đang tải video…" : vidTT === "loi" ? "Không phát được video này. Nhắn Zalo, Radar gửi lại video cho bạn." : ""}
+            </p>
           </div>
 
           <div className="h-2" />

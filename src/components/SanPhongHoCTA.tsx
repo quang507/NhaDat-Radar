@@ -12,7 +12,7 @@ interface SanPhongHoCTAProps {
 
 export default function SanPhongHoCTA({
   tieuDe = "Chưa tìm được phòng trọ ưng ý?",
-  moTa = "Nhắn tiêu chí (tài chính, khu vực, tiện ích mong muốn), trợ lý Radar sẽ lọc rổ hàng 13.800+ phòng xác minh và gửi bạn 3 lựa chọn tốt nhất trong 15 phút.",
+  moTa = "Nhắn tiêu chí (tài chính, khu vực, tiện ích mong muốn), trợ lý Radar sẽ lọc rổ hàng phòng trống của Radar và gửi bạn 3 lựa chọn tốt nhất trong 15 phút.",
   tinNhanZalo,
 }: SanPhongHoCTAProps) {
   return (

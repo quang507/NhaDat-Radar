@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       `• <i>"thuê phòng trọ Quận 10 dưới 5 triệu"</i>\n` +
       `• <i>"tìm căn hộ 1PN Bình Thạnh ban công"</i>\n` +
       `• <i>"mặt bằng kinh doanh Quận 1 dưới 20 triệu"</i>\n\n` +
-      `🏠 <b>RỔ HÀNG XÁC THỰC:</b> Hơn 2.500+ căn phòng trống có toạ độ thực, giá niêm yết rõ ràng.\n\n` +
+      `🏠 <b>RỔ HÀNG XÁC THỰC:</b> Hơn 1.400 phòng trống do đơn vị quản lý xác nhận, giá niêm yết rõ ràng.\n\n` +
       `☎️ <b>Hotline hỗ trợ:</b> <code>0387365020</code>\n` +
       `🆔 <b>Chat ID của bạn:</b> <code>${chatId}</code>`;
 

@@ -136,15 +136,15 @@ export default function ChatWidget() {
             href={HOTLINE_ZALO}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Nhắn Zalo tư vấn 24/7"
-            title="Nhắn Zalo tư vấn 24/7"
+            aria-label="Nhắn Zalo tư vấn"
+            title="Nhắn Zalo tư vấn"
             onClick={() => setMenuOpen(false)}
             className={`flex items-center gap-2 group transition-all duration-300 ease-out transform ${
               menuOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
             } hover:scale-105 active:scale-95`}
           >
             <span className="px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-blue-500 group-hover:text-blue-600 transition-colors">
-              Nhắn Zalo tư vấn 24/7
+              Nhắn Zalo tư vấn
             </span>
             <div className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md border border-blue-500 transition-colors">
               <IconZalo className="w-6 h-6" />

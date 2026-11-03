@@ -10,6 +10,7 @@ import GoogleAdSense from "@/components/GoogleAdSense";
 import MoiDienSdt from "@/components/MoiDienSdt";
 import DongYCookie from "@/components/DongYCookie";
 import DangKySW from "@/components/DangKySW";
+import ThanhTai from "@/components/ThanhTai";
 import { ldJson, SITE_URL } from "@/lib/ld";
 
 export const viewport: Viewport = {
@@ -92,6 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <ThanhTai />
         <Nav />
         <main className="max-w-6xl mx-auto px-4 sm:px-5 py-4 sm:py-6">{children}</main>
         <Footer />

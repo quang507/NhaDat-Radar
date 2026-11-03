@@ -50,7 +50,7 @@ import TuVanRadar from "@/components/TuVanRadar";
 import HienSoRadar from "@/components/HienSoRadar";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheSoTin } from "@/lib/doc-quyen";
-import { laRoHang, tenNguon, tagGiuPhong, cauChotXemPhong, maPhong } from "@/lib/ro-hang";
+import { laRoHang, tenNguon, tenTrang, tagGiuPhong, maPhong } from "@/lib/ro-hang";
 import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
 import FavButton from "@/components/FavButton";
@@ -356,6 +356,21 @@ export default async function ListingDetail({
     : null;
   const tienCoc = x.deal === "cho_thue" ? giaTriSpec(/cọc/i) : null;
   const soPhiCo = bangPhi ? bangPhi.filter(([, v]) => v).length : 0;
+  // 3/11 (UX audit #15): ĐIỀU KHOẢN THUÊ - sau tổng tiền, khách hỏi nhiều nhất về cọc / hợp đồng / số người / thú cưng /
+  // giờ giấc. Chỉ lấy khi specs hoặc mô tả NÓI RÕ; không nhắc thì ghi "Hỏi Radar", không đoán. Không dùng tienIchCua vì
+  // luật khớp của bộ lọc nhận cả "không nuôi thú cưng" là có thú cưng.
+  const chuTin = `${x.title || ""} ${x.description || ""}`.toLowerCase();
+  const timChu = (re: RegExp) => chuTin.match(re)?.[0] ?? null;
+  const thuCung = /khôngs*(chos*|đượcs*)?(nuôis*)?(thú cưng|pet|chó|mèo)/.test(chuTin) ? "Không cho nuôi"
+    : x.amenities?.some((a) => a === "pet" || a === "thu_cung") || /(cho|được)s*nuôi|nuôis*(thú cưng|chó|mèo|pet)|pet friendly/.test(chuTin) ? "Được nuôi" : null;
+  const dieuKhoan: [string, string | null][] | null = x.deal === "cho_thue" ? [
+    ["Tiền cọc", tienCoc],
+    ["Hợp đồng tối thiểu", giaTriSpec(/thời hạn|hợp đồng/i) || timChu(/(hợp đồng|hđ)s*(tối thiểus*)?d+s*(tháng|năm)/)],
+    ["Số người ở", giaTriSpec(/số người|người ở/i) || timChu(/(tối đa|ở được)s*d+s*người/)],
+    ["Thú cưng", thuCung],
+    ["Giờ giấc", /giờs*(giấcs*)?tự do|không chung chủ|riêng chủ/.test(chuTin) ? "Tự do" : null],
+  ] : null;
+  const thieuDieuKhoan = !!dieuKhoan?.some(([, v]) => !v);
 
   // Sáp nhập 1/7/2025: người đăng lúc ghi tên CŨ (quen miệng), lúc ghi tên MỚI. Các sàn lớn
   // đều hiện CẢ HAI để ai đọc cũng nhận ra chỗ đó - chotot: "Quận 11, TP.HCM (Phường Phú Thọ,
@@ -626,19 +641,14 @@ export default async function ListingDetail({
             <div id="chi-phi" className="card rounded-lg p-5 scroll-mt-28 border-t-2 border-t-brand">
               <div className="flex items-center justify-between gap-3 mb-3.5 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-base text-[var(--ink)]">Bảng chi phí hằng tháng</h3>
+                  <h3 className="font-bold text-base text-[var(--ink)]">Chi phí &amp; điều khoản thuê</h3>
                   {/* 3/11 (UX audit): bản cũ gắn "Minh bạch 100%" kể cả khi 4/5 dòng trống -> nói đúng số khoản đã có */}
                   <span className={`text-overline font-bold px-2 py-0.5 rounded-sm border whitespace-nowrap ${soPhiCo === bangPhi.length
                     ? "bg-emerald-50 dark:bg-emerald-950/40 text-brand border-emerald-200/60 dark:border-emerald-800/50"
                     : "bg-[var(--surface-2)] text-[var(--ink-soft)] border-[var(--line)]"}`}>
-                    Đã có {soPhiCo}/{bangPhi.length} khoản
+                    Đã có {soPhiCo}/{bangPhi.length} khoản phí
                   </span>
                 </div>
-                {tienCoc && (
-                  <span className="text-xs px-2.5 py-1 rounded-sm bg-[var(--surface-2)] text-[var(--ink-soft)] font-medium">
-                    Tiền cọc: <b className="text-[var(--ink)]">{tienCoc}</b>
-                  </span>
-                )}
               </div>
               <dl className="divide-y divide-[var(--line)] text-sm">
                 {bangPhi.map(([nhan, giaTri]) => (
@@ -650,10 +660,25 @@ export default async function ListingDetail({
                   </div>
                 ))}
               </dl>
-              {lienHeRadar && soPhiCo < bangPhi.length && (
-                <NutZalo listingId={x.id} tinNhan={`Chào Radar, cho mình hỏi đủ tiền điện, nước, gửi xe, dịch vụ của ${roHang ? `phòng ${maPhong(x.id)}` : `tin ${x.id.slice(0, 8)}`} nhé.`} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full mt-3 text-center border border-[#0068ff] text-[#0068ff] font-semibold flex items-center justify-center gap-2">
+              {dieuKhoan && (
+                <>
+                  <h4 className="mt-4 mb-1 font-bold text-sm text-[var(--ink)]">Điều khoản thuê</h4>
+                  <dl className="divide-y divide-[var(--line)] text-sm">
+                    {dieuKhoan.map(([nhan, giaTri]) => (
+                      <div key={nhan} className="flex items-center justify-between gap-3 py-2.5 min-h-11">
+                        <dt className="text-[var(--ink-soft)] font-medium">{nhan}</dt>
+                        <dd className={giaTri ? "font-bold text-[var(--ink)] text-right" : "text-xs text-[var(--ink-faint)] text-right"}>
+                          {giaTri ?? (lienHeRadar ? "Hỏi Radar" : "Tin không ghi")}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
+              )}
+              {lienHeRadar && (soPhiCo < bangPhi.length || thieuDieuKhoan) && (
+                <NutZalo listingId={x.id} tinNhan={`Chào Radar, cho mình hỏi đủ chi phí (điện, nước, gửi xe, dịch vụ) và điều khoản (cọc, hợp đồng, số người, thú cưng) của ${roHang ? `phòng ${maPhong(x.id)}` : `tin ${x.id.slice(0, 8)}`} nhé.`} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full mt-3 text-center border border-[#0068ff] text-[#0068ff] font-semibold flex items-center justify-center gap-2">
                   <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
-                  <span>Hỏi đủ chi phí qua Zalo</span>
+                  <span>Hỏi đủ chi phí &amp; điều khoản qua Zalo</span>
                 </NutZalo>
               )}
               {lienHeRadar && (
@@ -861,7 +886,7 @@ export default async function ListingDetail({
                 {x.source === "agent" ? "BÁN" : "TIN"}
               </div>
               <div>
-                <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${x.source_site || "nguồn"}`)}</div>
+                <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${tenTrang(x.source_site)}`)}</div>
                 <div className="text-xs text-[var(--ink-soft)]">
                   {roHang ? "Tin đã xác minh - liên hệ qua Radar" : docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (coSdt || x.phone_masked) ? "Đăng nhập hoặc liên hệ để xem SĐT" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
                 </div>
@@ -877,7 +902,17 @@ export default async function ListingDetail({
                     <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>{x.deal === "ban" ? "Rổ hàng Radar" : "Tin phòng đã xác minh"}</span>
                   </div>
-                  {cauChotXemPhong(fmtPrice(x.price_vnd, x.deal), x.deal)}
+                  {/* 3/11 (UX audit #14): bản cũ in câu chốt sale ("Tối nay tầm 18h30...") như bong bóng chat đã gửi -> khách
+                      tưởng Radar đã nhắn. Giờ là 3 bước + đúng tin nhắn NutZalo sẽ chép vào bộ nhớ tạm. */}
+                  <ol className="list-decimal pl-4 space-y-0.5">
+                    <li>Bấm <b className="text-[var(--ink)]">Nhắn Zalo</b> bên dưới, tin nhắn kèm mã được chép sẵn</li>
+                    <li>Trong khung chat Zalo, bấm giữ ô nhập và chọn <b className="text-[var(--ink)]">Dán</b></li>
+                    <li>Gửi. Radar trả lời trong 15 phút và hẹn giờ dẫn xem miễn phí</li>
+                  </ol>
+                  <div className="mt-2 rounded-sm border border-[var(--line)] bg-[var(--surface)] p-2">
+                    <div className="text-overline font-semibold uppercase tracking-wide text-[var(--ink-faint)] mb-0.5">Tin nhắn sẽ gửi</div>
+                    <div className="text-[var(--ink)] break-words">{tinNhanZalo}</div>
+                  </div>
                 </div>
                 {/* mã phòng / mã căn: zalo.me không điền sẵn tin nhắn -> khách gửi mã để biết hỏi căn nào */}
                 <div className="rounded-lg border border-dashed border-[var(--line)] p-3 text-center">
@@ -994,7 +1029,7 @@ export default async function ListingDetail({
               </span>
               <span className="text-[var(--ink-soft)]">Nguồn</span>
               <span className="font-semibold">
-                {x.source === "agent" || roHang ? tenNguon(x) : (x.source_sites && x.source_sites.length > 1 ? x.source_sites.join(" + ") : x.source_site || "crawl")}
+                {x.source === "agent" || roHang ? tenNguon(x) : (x.source_sites && x.source_sites.length > 1 ? [...new Set(x.source_sites.map(tenTrang))].join(" + ") : tenTrang(x.source_site))}
               </span>
               {x.trust_score ? (<>
                 <span className="text-[var(--ink-soft)]" title="Chấm theo mức đầy đủ dữ liệu: ảnh, pháp lý, mô tả, giá & diện tích, dấu hiệu chính chủ - không phải xác minh">Độ đầy đủ tin</span>

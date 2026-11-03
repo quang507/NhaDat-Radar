@@ -600,3 +600,8 @@ body {
     animation: none !important;
   }
 }
+
+/* Thanh tải khi chuyển trang (components/ThanhTai, 3/11): chạy nhanh tới 45% rồi chậm dần, không bao giờ "xong" giả */
+.thanh-tai { width: 0; animation: thanhTai 8s cubic-bezier(.1,.8,.2,1) forwards; }
+@keyframes thanhTai { 0% { width: 0; } 15% { width: 45%; } 100% { width: 92%; } }
+@media (prefers-reduced-motion: reduce) { .thanh-tai { animation: none; width: 60%; } }

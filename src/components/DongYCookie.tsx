@@ -42,15 +42,19 @@ export default function DongYCookie() {
       aria-label="Lựa chọn cookie"
       className="fixed inset-x-0 z-50 bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-4 px-4 pointer-events-none"
     >
-      <div className="pointer-events-auto max-w-xl mx-auto bg-[var(--surface)] border border-[var(--line-strong)] rounded-sm shadow-lg p-4 text-sm">
-        <p className="text-[var(--ink-soft)] leading-relaxed">
-          Radar dùng cookie đo lường (Google Analytics, Microsoft Clarity) và quảng cáo cá nhân hoá (Google AdSense).
-          Từ chối vẫn dùng đầy đủ mọi tính năng.{" "}
+      {/* 3/11 (UX audit #13): điện thoại 1 hàng (chữ ngắn + 2 nút 44px) - bản cũ cao ~170px che ô tìm kiếm ở màn đầu */}
+      <div className="pointer-events-auto max-w-xl mx-auto bg-[var(--surface)] border border-[var(--line-strong)] rounded-sm shadow-lg p-2.5 sm:p-4 text-caption sm:text-sm flex items-center gap-2 sm:block">
+        <p className="flex-1 min-w-0 text-[var(--ink-soft)] leading-snug sm:leading-relaxed">
+          <span className="sm:hidden">Radar dùng cookie đo lường và quảng cáo.</span>
+          <span className="hidden sm:inline">
+            Radar dùng cookie đo lường (Google Analytics, Microsoft Clarity) và quảng cáo cá nhân hoá (Google AdSense).
+            Từ chối vẫn dùng đầy đủ mọi tính năng.
+          </span>{" "}
           <Link href="/chinh-sach-bao-mat#cookie" className="text-brand font-semibold underline">Chi tiết</Link>
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button type="button" className="btn min-h-11 font-semibold" onClick={() => chon(false)}>Từ chối</button>
-          <button type="button" className="btn btn-primary min-h-11 font-semibold" onClick={() => chon(true)}>Đồng ý</button>
+        <div className="shrink-0 flex gap-1.5 sm:mt-3 sm:grid sm:grid-cols-2 sm:gap-2">
+          <button type="button" className="btn min-h-11 px-3 font-semibold" onClick={() => chon(false)}>Từ chối</button>
+          <button type="button" className="btn btn-primary min-h-11 px-3 font-semibold" onClick={() => chon(true)}>Đồng ý</button>
         </div>
       </div>
     </div>
