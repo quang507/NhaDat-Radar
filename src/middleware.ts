@@ -20,7 +20,7 @@ export const config = {
     {
       // bỏ qua static assets & ảnh. 2/11 (audit 🔴5, 🔴8): thêm sw.js, offline.html, assetlinks (.well-known),
       // manifest, robots, sitemap - không cần làm mới phiên
-      source: "/((?!_next/static|_next/image|favicon.ico|sw\\.js|offline\\.html|\\.well-known|manifest\\.webmanifest|robots\\.txt|sitemap.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+      source: "/((?!_next/static|_next/image|m/|favicon.ico|sw\\.js|offline\\.html|\\.well-known|manifest\\.webmanifest|robots\\.txt|sitemap.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
       // prefetch của <Link> không chạy middleware (updateSession vốn đã bỏ qua) - lần mở trang thật vẫn làm mới phiên
       missing: [
         { type: "header", key: "next-router-prefetch" },

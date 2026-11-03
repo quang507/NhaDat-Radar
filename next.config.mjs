@@ -41,6 +41,17 @@ const nextConfig = {
     }));
   },
 
+  // 3/11: ảnh/video rổ hàng đi qua tên miền Radar - HTML công khai, API anon và thanh địa chỉ không còn lộ
+  // máy chủ đối tác (CLAUDE.md §4.1). URL trong DB do crawler/che-media.mjs đổi sang /m/...; chỉ đúng 2 tiền
+  // tố dưới đây được chuyển tiếp nên /m không thành proxy công cộng. Tên file là uuid, không bao giờ đổi
+  // nội dung -> cache CDN 1 năm (header ở dưới), Vercel chỉ kéo từ nguồn lần đầu.
+  async rewrites() {
+    return [
+      { source: "/m/h/:f", destination: "https://firebasestorage.googleapis.com/v0/b/hifriendz-agent.firebasestorage.app/o/listings%2Fuploads%2F:f" },
+      { source: "/m/e/:p*", destination: "https://media.evohome.it.com/:p*" },
+    ];
+  },
+
   // Header bảo mật cơ bản. CSP mới ở chế độ Report-Only (xem hằng CSP ở đầu file).
   async headers() {
     return [
@@ -57,6 +68,16 @@ const nextConfig = {
       },
       // Service worker (public/sw.js): trình duyệt luôn hỏi lại bản mới - deploy công tắc khẩn có hiệu lực ngay
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }] },
+      // ảnh/video rổ hàng qua /m (rewrites ở trên): nguồn trả "private, max-age=0" -> ép cache CDN + trình duyệt;
+      // dự án tạo trước 6/4/2026 nên phải bật x-vercel-enable-rewrite-caching thì Vercel mới cache rewrite ra ngoài
+      {
+        source: "/m/:path*",
+        headers: [
+          { key: "x-vercel-enable-rewrite-caching", value: "1" },
+          { key: "CDN-Cache-Control", value: "max-age=31536000, immutable" },
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
       // Cache sitemap 24h trên CDN Edge: Googlebot cào sitemap tốn 0 byte Egress Supabase
       { source: "/sitemap(.*)", headers: [{ key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" }] },
     ];

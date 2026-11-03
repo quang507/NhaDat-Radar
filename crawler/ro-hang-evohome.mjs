@@ -21,6 +21,7 @@ import { createClient } from "@supabase/supabase-js";
 import { smartGeocode, LOI } from "./geo.mjs";
 import { laAnh, laVideo, lechToaDo, canonDistrictName } from "./chung.mjs";
 import { cheDiaChi } from "./che-dia-chi.mjs";
+import { cheMedia } from "./che-media.mjs";
 
 // 2/10: dùng chung cho mọi đối tác rổ hàng cùng khuôn file - RO_HANG_PARTNER=hifriendz (crawler/hifriendz-fetch.mjs)
 const PARTNER = process.env.RO_HANG_PARTNER || "evohome";
@@ -219,7 +220,8 @@ for (const x of dsNhap) {
     lng: lech?.lng ?? null,
     geo_precision: lech ? "duong" : null,
     // ảnh trước (thẻ tin dùng ảnh đầu), video (tối đa 2) nối cuối -> trang chi tiết phát được
-    images: [...anh, ...(x.images || []).filter(laVideo).slice(0, 2)],
+    // 3/11: URL qua /m của Radar - không lộ máy chủ đối tác (che-media.mjs)
+    images: [...anh, ...(x.images || []).filter(laVideo).slice(0, 2)].map(cheMedia),
     amenities: Array.isArray(x.amenities) ? x.amenities : [],   // khoá TIEN_ICH (evohome-fetch.mjs)
     specs: Object.fromEntries(Object.entries(specs).filter(([k]) => !/hoa hồng|số phòng|^mã /i.test(k))),   // mã/số phòng/hoa hồng chỉ ở listing_ro_hang
     contact_name: "NhaDat Radar",
