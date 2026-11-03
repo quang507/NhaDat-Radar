@@ -22,6 +22,7 @@ import { smartGeocode, LOI } from "./geo.mjs";
 import { laAnh, laVideo, lechToaDo, canonDistrictName } from "./chung.mjs";
 import { cheDiaChi } from "./che-dia-chi.mjs";
 import { cheMedia } from "./che-media.mjs";
+import { xaCacheTin } from "./xa-cache.mjs";
 
 // 2/10: dùng chung cho mọi đối tác rổ hàng cùng khuôn file - RO_HANG_PARTNER=hifriendz (crawler/hifriendz-fetch.mjs)
 const PARTNER = process.env.RO_HANG_PARTNER || "evohome";
@@ -318,3 +319,5 @@ for (let i = 0; i < xoa.length; i += 100) {
   await thuLai(() => sb.from("listing_ro_hang").delete().in("listing_id", lo));
 }
 console.log(`✓ ${rows.length} phòng trong rổ · hạ ${het.length} phòng đã cho thuê · ${xoa.length} phòng cho thuê quá 30 ngày thành dòng mộ`);
+// 3/11: xả cache web đúng các phòng vừa ghi (mới / cho thuê / đổi giá, ảnh) + danh sách khu vực để phòng mới lên ngay
+await xaCacheTin([...ghi.map((r) => r.id), ...het]);

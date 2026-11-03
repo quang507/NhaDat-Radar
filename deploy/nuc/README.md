@@ -39,6 +39,8 @@ Mỗi lượt rổ hàng `git pull` code mới nhất. Bot Zalo chỉ đọc cod
 Chỉ ghi tên biến: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
 `NEXT_PUBLIC_SITE_URL`, `EVOHOME_PHONE`, `EVOHOME_PASSWORD`, `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
 `ZALO_BO_QUA_NHOM` (mã các nhóm bot bỏ qua, cách nhau dấu phẩy).
+`REVALIDATE_SECRET` (TRÙNG giá trị trên Vercel; `crawler/xa-cache.mjs` dùng để xả cache đúng các phòng vừa đổi sau mỗi
+lượt nhập rổ hàng - thiếu thì phòng đã cho thuê vẫn hiện "còn trống" tới 12 giờ).
 `PHONE_HASH_KEY` (khoá HMAC băm SĐT ở `crawler/merge.mjs`; chỉ cần nếu máy chạy `crawler/daily.mjs`, phải TRÙNG giá trị
 GitHub Secret để cùng một SĐT ra cùng `poster_key`).
 
