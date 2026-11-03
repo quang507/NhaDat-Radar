@@ -51,9 +51,9 @@ export function maPhong(id: string) {
   return "RH" + id.replace(/-/g, "").slice(0, 6).toUpperCase();
 }
 
-/** "rh1a2b3c" / "1A2B3C" -> khoảng id [gte, lte] để lọc cột uuid; null nếu không phải mã hợp lệ */
+/** "rh1a2b3c" / "RH 1A2B3C" / "1A2B3C" -> khoảng id [gte, lte] để lọc cột uuid; null nếu không phải mã hợp lệ */
 export function khoangIdTuMa(ma: string): [string, string] | null {
-  const p = ma.trim().toLowerCase().replace(/^rh/, "");
+  const p = ma.trim().toLowerCase().replace(/^(mã\s*|code\s*|#)?\s*rh[\s-_]*/i, "").replace(/^#/, "").trim();
   if (!/^[0-9a-f]{6}$/.test(p)) return null;
   return [`${p}00-0000-0000-0000-000000000000`, `${p}ff-ffff-ffff-ffff-ffffffffffff`];
 }

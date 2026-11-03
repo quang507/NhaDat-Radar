@@ -229,8 +229,9 @@ export default function SearchClient({
   }
   const submit = () => {
     const trimmed = (f.q || "").trim();
-    if (/^rh[0-9a-f]{6}$/i.test(trimmed)) {
-      router.push(`/rh/${trimmed.toUpperCase()}`);
+    if (/^(mã\s*|code\s*|#)?\s*rh[\s-_]*[0-9a-f]{6}$|^[0-9a-f]{6}$/i.test(trimmed)) {
+      const code = trimmed.replace(/^(mã\s*|code\s*|#)?\s*rh[\s-_]*/i, "").replace(/^#/, "").trim();
+      router.push(`/rh/RH${code.toUpperCase()}`);
       return;
     }
     push({ ...f, sort });

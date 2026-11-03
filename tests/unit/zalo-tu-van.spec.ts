@@ -328,7 +328,7 @@ test("đồng bộ vận hành: hotline 0387 365 020 (Lê Quang), mã phòng RH,
   expect(r).toContain("Điện: 3.800 đ/kWh");
   expect(r).toContain("Nước: 100.000 đ/người");
   expect(r).toContain("Gửi xe: 100.000 đ/xe");
-  expect(r).toContain("Phí dịch vụ: 150.000 đ/phòng");
+  expect(r).toContain("Dịch vụ (Phí quản lý): 150.000 đ/phòng");
   expect(r).toContain("Tiền phòng: 4,2 triệu/tháng");
   expect(r).toContain("0387 365 020 (Lê Quang)");
   expect(r).toContain("Radar dẫn xem miễn phí 100%");

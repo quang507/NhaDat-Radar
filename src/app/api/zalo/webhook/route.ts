@@ -116,9 +116,9 @@ export async function POST(req: Request) {
         (x, i) =>
           `${i + 1}. ${catChu(x.title || "", 55)}\n   💰 ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? " · " + x.area_m2 + "m²" : ""} · ${PROP[x.kind] || x.kind}\n   📍 ${[x.ward, x.district].filter(Boolean).join(", ")}`,
       );
-      await sendZaloText(userId, `🔎 Tìm thấy ${data.length} tin phù hợp:\n\n${lines.join("\n\n")}\n\n🎯 Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào.\nTối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em đón mình qua xem thực tế ạ?`);
+      await sendZaloText(userId, `🔎 Tìm thấy ${data.length} tin phù hợp:\n\n${lines.join("\n\n")}\n\n🎯 Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào.\nTối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em đón mình qua xem thực tế ạ?\nHotline/Zalo tư vấn duy nhất: 0387 365 020 (Lê Quang).`);
     } else {
-      await sendZaloText(userId, "Dạ hiện tại bên em chưa có căn khớp đúng 100% tiêu chí này 😥 Anh/chị gửi em xin số Zalo/SĐT để em theo dõi rổ hàng 1.400+ căn trống, có phòng mới bung em gửi video và định vị Maps qua liền cho mình nhé! 🏠");
+      await sendZaloText(userId, "Dạ hiện tại bên em chưa có căn khớp đúng 100% tiêu chí này 😥 Anh/chị gửi em xin số Zalo/SĐT để em theo dõi rổ hàng 1.400+ căn trống, có phòng mới bung em gửi video và định vị Maps qua liền cho mình nhé! Hotline/Zalo tư vấn duy nhất: 0387 365 020 (Lê Quang). 🏠");
     }
     return NextResponse.json({ ok: true });
   }

@@ -73,9 +73,10 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
             className="flex flex-col gap-2.5"
             onSubmit={(e) => {
               const trimmed = q.trim();
-              if (/^rh[0-9a-f]{6}$/i.test(trimmed)) {
+              if (/^(mã\s*|code\s*|#)?\s*rh[\s-_]*[0-9a-f]{6}$|^[0-9a-f]{6}$/i.test(trimmed)) {
                 e.preventDefault();
-                router.push(`/rh/${trimmed.toUpperCase()}`);
+                const code = trimmed.replace(/^(mã\s*|code\s*|#)?\s*rh[\s-_]*/i, "").replace(/^#/, "").trim();
+                router.push(`/rh/RH${code.toUpperCase()}`);
                 return;
               }
               for (const el of Array.from(e.currentTarget.elements) as HTMLInputElement[]) {

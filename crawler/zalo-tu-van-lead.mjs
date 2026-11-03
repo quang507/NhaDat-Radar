@@ -220,8 +220,8 @@ const NHAN_VAI = { khach: "Khách", nguoi: "Radar-người", bot: "Radar-bot" };
 const NHAN_KIEU = { anh: "[ảnh]", sticker: "[sticker]", giong_noi: "[tin thoại]", tep: "[tệp]", vi_tri: "[vị trí]", cuoc_goi: "[cuộc gọi nhỡ]" };
 export const moTaTin = (chu, kieu) => (chu && String(chu).trim()) || NHAN_KIEU[kieu] || `[${kieu}]`;
 
-const NHAN = { gia: "Giá thuê", dien_tich: "Diện tích", loai_phong: "Loại phòng", noi_that: "Nội thất", tien_ich: "Tiện ích",
-  khu_vuc: "Khu vực", dien: "Điện", nuoc: "Nước", phi_quan_ly: "Phí quản lý", gui_xe: "Gửi xe", coc: "Tiền cọc" };
+const NHAN = { gia: "Tiền phòng", dien_tich: "Diện tích", loai_phong: "Loại phòng", noi_that: "Nội thất", tien_ich: "Tiện ích",
+  khu_vuc: "Khu vực", dien: "Điện", nuoc: "Nước", phi_quan_ly: "Dịch vụ (Phí quản lý)", gui_xe: "Gửi xe", coc: "Tiền cọc" };
 const NHAN_EN = { gia: "Rent", dien_tich: "Area", loai_phong: "Room type", noi_that: "Furniture", tien_ich: "Amenities",
   khu_vuc: "Area/district", dien: "Electricity", nuoc: "Water", phi_quan_ly: "Service fee", gui_xe: "Parking", coc: "Deposit" };
 
