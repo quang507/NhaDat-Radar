@@ -98,15 +98,15 @@ const HERO: string | null = (() => {
 // 3/11 (UX audit): 92% lượt xem là tin THUÊ, 77% là phòng trọ (su_kien 8/10-3/11) mà trang chủ không có khối
 // phòng trọ nào, khối bán đứng đầu. Xếp lại theo nhu cầu: thuê trước, bán sau; "Căn hộ" tách thuê / bán.
 const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
-  { t: "Phòng trọ cho thuê", f: (x) => x.kind === "phong_tro" && x.deal === "cho_thue", href: "/search?kind=phong_tro&deal=cho_thue" },
-  { t: "Căn hộ cho thuê", f: (x) => x.kind === "can_ho" && x.deal === "cho_thue", href: "/search?kind=can_ho&deal=cho_thue" },
-  { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/search?kind=nha&deal=cho_thue" },
+  { t: "Phòng trọ cho thuê", f: (x) => x.kind === "phong_tro" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh" },
+  { t: "Căn hộ cho thuê", f: (x) => x.kind === "can_ho" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh" },
+  { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh" },
   // khối và link phải cùng bộ lọc - bản cũ khối gồm cả "khac" nhưng link chỉ mat_bang,
   // bấm "Xem tất cả" là tin đang hiện biến mất
-  { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/search?kind=mat_bang" },
-  { t: "Căn hộ bán", f: (x) => x.kind === "can_ho" && x.deal === "ban", href: "/search?kind=can_ho&deal=ban" },
-  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/search?kind=nha&deal=ban" },
-  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/search?kind=dat&deal=ban" },
+  { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/nha-dat-cho-thue/ho-chi-minh" },
+  { t: "Căn hộ bán", f: (x) => x.kind === "can_ho" && x.deal === "ban", href: "/nha-dat-ban/ho-chi-minh" },
+  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/nha-dat-ban/ho-chi-minh" },
+  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/nha-dat-ban" },
 ];
 
 export default async function Home() {
@@ -240,7 +240,7 @@ export default async function Home() {
 
         <div className="relative z-10">
           <Link
-            href="/search?deal=cho_thue"
+            href="/nha-dat-cho-thue"
             title={`Xem ${vn(soThue)} tin cho thuê`}
             className="inline-flex items-center gap-2 px-2.5 py-1 rounded-sm bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300/80 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:border-emerald-500 text-xs font-bold mb-2.5 shadow-2xs group transition-all"
           >

@@ -8,7 +8,12 @@ import { ldJson, SITE_URL } from "@/lib/ld";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import SafeImg from "@/components/SafeImg";
 import AdSenseBanner from "@/components/AdSenseBanner";
-import { Home, ChevronRight, Calendar, Clock, MessageCircle, ShieldCheck, ArrowRight, Share2, BookOpen } from "lucide-react";
+import ListingCard from "@/components/ListingCard";
+import { createAnonClient } from "@/lib/supabase/anon";
+import { LISTING_CARD_COLS } from "@/lib/cols";
+import { cheSoTin } from "@/lib/doc-quyen";
+import type { Listing } from "@/lib/types";
+import { Home, ChevronRight, Calendar, Clock, MessageCircle, ShieldCheck, ArrowRight, Share2, BookOpen, SlidersHorizontal } from "lucide-react";
 
 export const revalidate = 43200;
 // 28/10: thiếu hàm này thì route là ƒ Dynamic, `revalidate` vô tác dụng (Vercel trả no-store). [] = dựng lần đầu rồi cache ISR.
@@ -80,7 +85,18 @@ export default async function BaiPage({ params }: { params: Promise<{ slug: stri
     const bc = await layBaoCao(q.quan).catch(() => null);
     if (!bc) notFound();
     const khac = (await dsQuanBaoCao()).filter((x) => x.slug !== q.slug).slice(0, 12);
-    return <BaoCaoQuan bc={bc} slug={slug} khac={khac} />;
+    // Kéo 6 phòng trọ thực tế mới nhất của quận để chuyển đổi traffic bài viết sang khách thuê
+    const supabase = createAnonClient();
+    const { data: rawTin } = await supabase
+      .from("listings")
+      .select(LISTING_CARD_COLS)
+      .eq("status", "published")
+      .eq("deal", "cho_thue")
+      .eq("district", q.quan)
+      .order("first_seen_at", { ascending: false, nullsFirst: false })
+      .limit(6);
+    const tinTieuBieu = (rawTin ?? []).map((x) => cheSoTin(x as unknown as Listing));
+    return <BaoCaoQuan bc={bc} slug={slug} khac={khac} tinTieuBieu={tinTieuBieu} />;
   }
   const b = BAI_VIET.find((x) => x.slug === slug);
   if (!b) notFound();
@@ -172,7 +188,17 @@ function KhungBai({
   );
 }
 
-function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan: string; slug: string; n: number }[] }) {
+function BaoCaoQuan({
+  bc,
+  slug,
+  khac,
+  tinTieuBieu,
+}: {
+  bc: BaoCao;
+  slug: string;
+  khac: { quan: string; slug: string; n: number }[];
+  tinTieuBieu: Listing[];
+}) {
   const { thang, nam } = thangNay();
   const ten = tenKhuVucGon(bc.quan);
   const tieuDe = `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam}`;
@@ -227,23 +253,20 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
             <span className="text-xs text-slate-400">Bấm để xem danh sách phòng</span>
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5">
-            {bc.theoDienTich.map((d) => {
-              const searchUrl = `/search?deal=cho_thue&province=${encodeURIComponent(TINH_BAO_CAO)}&district=${encodeURIComponent(bc.quan)}`;
-              return (
-                <Link
-                  key={d.nhan}
-                  href={searchUrl}
-                  className="group card rounded-xl p-3 border border-[var(--line)] bg-[var(--surface-2)] hover:bg-[var(--surface)] hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
-                  title={`Xem danh sách phòng tại ${ten}`}
-                >
-                  <span className="font-semibold text-slate-700 text-sm group-hover:text-brand transition-colors flex items-center gap-1.5">
-                    <span>{d.nhan}</span>
-                    <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-brand" />
-                  </span>
-                  <span className="font-bold text-brand text-sm">{trieu(d.trungVi)} <span className="text-xs text-slate-400 font-normal">({d.n} phòng)</span></span>
-                </Link>
-              );
-            })}
+            {bc.theoDienTich.map((d) => (
+              <Link
+                key={d.nhan}
+                href={linkPhong}
+                className="group card rounded-xl p-3 border border-[var(--line)] bg-[var(--surface-2)] hover:bg-[var(--surface)] hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
+                title={`Xem danh sách phòng tại ${ten}`}
+              >
+                <span className="font-semibold text-slate-700 text-sm group-hover:text-brand transition-colors flex items-center gap-1.5">
+                  <span>{d.nhan}</span>
+                  <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-brand" />
+                </span>
+                <span className="font-bold text-brand text-sm">{trieu(d.trungVi)} <span className="text-xs text-slate-400 font-normal">({d.n} phòng)</span></span>
+              </Link>
+            ))}
           </div>
         </section>
       )}
@@ -255,23 +278,20 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
             <span className="text-xs text-slate-400">Bấm phường để xem phòng cụ thể</span>
           </div>
           <div className="grid sm:grid-cols-2 gap-2.5">
-            {bc.theoPhuong.map((p) => {
-              const searchUrl = `/search?deal=cho_thue&province=${encodeURIComponent(TINH_BAO_CAO)}&district=${encodeURIComponent(bc.quan)}&q=${encodeURIComponent(p.phuong)}`;
-              return (
-                <Link
-                  key={p.phuong}
-                  href={searchUrl}
-                  className="group card rounded-xl p-3 border border-[var(--line)] bg-[var(--surface)] hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
-                  title={`Xem ${p.n} phòng cho thuê tại ${p.phuong}`}
-                >
-                  <span className="font-semibold text-slate-800 text-sm group-hover:text-brand transition-colors flex items-center gap-1.5">
-                    <span>{p.phuong}</span>
-                    <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-brand" />
-                  </span>
-                  <span className="font-bold text-emerald-700 text-sm">{trieu(p.trungVi)} <span className="text-xs text-slate-400 font-normal">({p.n} phòng)</span></span>
-                </Link>
-              );
-            })}
+            {bc.theoPhuong.map((p) => (
+              <Link
+                key={p.phuong}
+                href={linkPhong}
+                className="group card rounded-xl p-3 border border-[var(--line)] bg-[var(--surface)] hover:border-brand hover:shadow-xs transition-all flex items-center justify-between"
+                title={`Xem ${p.n} phòng cho thuê tại ${p.phuong}`}
+              >
+                <span className="font-semibold text-slate-800 text-sm group-hover:text-brand transition-colors flex items-center gap-1.5">
+                  <span>{p.phuong}</span>
+                  <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-brand" />
+                </span>
+                <span className="font-bold text-emerald-700 text-sm">{trieu(p.trungVi)} <span className="text-xs text-slate-400 font-normal">({p.n} phòng)</span></span>
+              </Link>
+            ))}
           </div>
         </section>
       )}
@@ -282,6 +302,35 @@ function BaoCaoQuan({ bc, slug, khac }: { bc: BaoCao; slug: string; khac: { quan
           <p className="text-slate-700">
             Căn hộ cho thuê tại {ten} có giá trung vị <b className="text-brand">{trieu(bc.canHo.trungVi)}</b>/tháng ({bc.canHo.n} căn) — cao hơn phòng trọ thường nhưng đã trang bị đầy đủ nội thất, thang máy và dịch vụ quản lý tiện nghi.
           </p>
+        </section>
+      )}
+
+      {/* Top 6 phòng trọ tiêu biểu trong quận */}
+      {tinTieuBieu.length > 0 && (
+        <section className="space-y-4 pt-4 border-t border-[var(--line)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-xl text-[var(--ink)] flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5 text-brand" />
+                <span>Phòng trọ mới đăng tại {ten}</span>
+              </h2>
+              <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                Tổng hợp phòng trống thực tế có ảnh &amp; 5 khoản phí minh bạch
+              </p>
+            </div>
+            <Link
+              href={linkPhong}
+              className="text-xs font-semibold text-brand hover:underline inline-flex items-center gap-1"
+            >
+              <span>Xem tất cả {bc.n} phòng</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tinTieuBieu.map((item) => (
+              <ListingCard key={item.id} x={item} />
+            ))}
+          </div>
         </section>
       )}
 

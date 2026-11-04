@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PlaceSuggest, { type Place, type DuAnGoiY } from "./PlaceSuggest";
 import { PROP } from "@/lib/format";
+import { areaPath } from "@/lib/slug";
 import { Search, Sparkles, ArrowRight, Map, GraduationCap } from "lucide-react";
 
 // Ô tìm kiếm trang chủ: tab Thuê | Mua | Định giá + chip lối tắt khu vực/giá.
@@ -165,7 +166,7 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
                 {chip[deal].map((c) => (
                   <Link
                     key={c.district}
-                    href={qs({ deal, province: c.province, district: c.district })}
+                    href={areaPath(deal, c.province, c.district)}
                     className="shrink-0 inline-flex items-center gap-1 min-h-10 sm:min-h-0 px-3 sm:px-2.5 py-1 rounded-md bg-[var(--surface-2)] text-[var(--ink-soft)] hover:text-brand transition whitespace-nowrap text-xs font-medium"
                   >
                     {tenGon(c.district)} <span className="text-brand font-mono text-overline font-bold">{c.n.toLocaleString("vi-VN")}</span>
