@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { fmtPrice, PROP, thumb } from "@/lib/format";
 import { cleanImages } from "@/lib/img";
+import { maPhong } from "@/lib/ro-hang";
 import type { ListingTuongTu } from "@/lib/tuong-tu";
 import { Sparkles, MapPin, CheckCircle2 } from "lucide-react";
 import HangVuot from "@/components/HangVuot";
@@ -11,26 +12,28 @@ import PropertyPlaceholder from "@/components/PropertyPlaceholder";
 export default function SimilarListings({
   items,
   loaiBDS,
+  className = "mt-8 scroll-mt-28",
 }: {
   items: ListingTuongTu[];
   loaiBDS?: string;
+  className?: string;
 }) {
   if (!items || items.length === 0) return null;
 
   return (
-    <section id="tin-tuong-tu" className="mt-12 scroll-mt-28">
-      <div className="flex items-center justify-between mb-4">
+    <section id="tin-tuong-tu" className={className}>
+      <div className="flex items-center justify-between mb-3.5">
         <div>
           <div className="flex items-center gap-2">
             <span className="p-1 rounded-lg bg-brand/10 text-brand">
               <Sparkles className="w-5 h-5" />
             </span>
-            <h2 className="prata text-xl font-bold">
-              Gợi ý {loaiBDS ? (PROP as Record<string, string>)[loaiBDS] || loaiBDS : "nhà đất"} tương tự
-            </h2>
+            <h3 className="font-bold text-base sm:text-lg text-[var(--ink)]">
+              Gợi ý {loaiBDS ? (PROP as Record<string, string>)[loaiBDS] || loaiBDS : "phòng"} tương tự cùng tầm giá
+            </h3>
           </div>
-          <p className="text-xs text-[var(--ink-soft)] mt-1">
-            Được AI chọn lọc theo vị trí gần nhất, phân khúc giá tương đương (±30%) &amp; đặc điểm phòng
+          <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+            Lọc theo vị trí sát bên, phân khúc giá tương đương (±30%) &amp; tiêu chuẩn phòng
           </p>
         </div>
       </div>
@@ -66,19 +69,26 @@ export default function SimilarListings({
                   )}
                   {x.source === "ro_hang" && (
                     <span className="absolute bottom-2.5 left-2.5 text-[0.65rem] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded shadow-sm">
-                      Rổ hàng xác minh
+                      Mã {maPhong(x.id)} · Rổ hàng xác minh
                     </span>
                   )}
                 </div>
 
                 <div className="p-3.5 flex flex-col flex-1 justify-between gap-2">
                   <div>
-                    <div className="text-brand font-extrabold text-base leading-snug">
-                      {fmtPrice(x.price_vnd, x.deal)}
+                    <div className="flex items-baseline justify-between gap-1">
+                      <span className="text-brand font-extrabold text-base leading-snug">
+                        {fmtPrice(x.price_vnd, x.deal)}
+                      </span>
+                      {x.area_m2 ? (
+                        <span className="text-xs font-semibold text-[var(--ink-soft)]">
+                          {x.area_m2} m²
+                        </span>
+                      ) : null}
                     </div>
-                    <h3 className="text-xs font-semibold text-[var(--ink)] line-clamp-2 mt-1 group-hover:text-brand transition-colors">
+                    <h4 className="text-xs font-semibold text-[var(--ink)] line-clamp-2 mt-1 group-hover:text-brand transition-colors">
                       {x.title}
-                    </h3>
+                    </h4>
                   </div>
 
                   <div className="text-[0.7rem] text-[var(--ink-soft)] flex items-center gap-1 truncate pt-2 border-t border-[var(--line)]">

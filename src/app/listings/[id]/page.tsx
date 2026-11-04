@@ -908,6 +908,25 @@ export default async function ListingDetail({
             )}
           </div>
 
+          {/* Bất động sản / Phòng tương tự theo thuật toán FR-31 - giảm Quick Backs (23% Clarity) */}
+          {tinTuongTu && tinTuongTu.length > 0 ? (
+            <SimilarListings items={tinTuongTu} loaiBDS={x.kind} />
+          ) : related.length > 0 ? (
+            <section id="tin-tuong-tu" className="mt-8 scroll-mt-28">
+              <div className="flex items-center justify-between mb-3.5">
+                <div>
+                  <h3 className="font-bold text-base sm:text-lg text-[var(--ink)]">
+                    {PROP[x.kind] || "Phòng"} cùng khu vực {x.district || x.province}
+                  </h3>
+                  <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                    Các lựa chọn khác đang có sẵn để bạn tham khảo thêm
+                  </p>
+                </div>
+              </div>
+              <HangVuot motHang items={related.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
+            </section>
+          ) : null}
+
           {/* Khối giữ chân khách vãng lai: Chưa ưng căn này? Nhắn Zalo Radar */}
           <div className="card rounded-xl p-5 border border-emerald-300/80 bg-gradient-to-br from-emerald-50/70 to-white dark:from-emerald-950/20 dark:to-[var(--surface)] shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1108,30 +1127,48 @@ export default async function ListingDetail({
       </div>
 
       {/* Mobile: thanh CTA dính đáy - khối liên hệ nằm cuối trang, khách phải cuộn 4-5 màn (UX audit).
-          Bù padding-bottom cho body qua div dưới. */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] flex items-center gap-3">
-        <div className="min-w-0">
-          <div className="text-brand font-extrabold leading-tight">{fmtPrice(x.price_vnd, x.deal)}</div>
-          <div className="text-[0.68rem] text-[var(--ink-soft)] truncate">{[roHang ? `Mã ${maPhong(x.id)}` : null, x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</div>
+          Bù padding-bottom cho body qua div dưới. Vùng chạm chuẩn ≥44px (48px) tối ưu ngón cái. */}
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] flex items-center gap-2.5">
+        <div className="min-w-0 flex-1">
+          <div className="text-brand font-extrabold leading-tight text-base sm:text-lg">{fmtPrice(x.price_vnd, x.deal)}</div>
+          <div className="text-[0.7rem] text-[var(--ink-soft)] flex items-center gap-1.5 truncate mt-0.5">
+            {roHang ? (
+              <NutChepMa
+                ma={maPhong(x.id)}
+                className="font-mono font-bold text-[0.65rem] bg-[var(--surface-2)] text-[var(--ink)] hover:text-brand px-1.5 py-0.5 rounded border border-[var(--line)] inline-flex items-center gap-1 shrink-0 active:scale-95 transition"
+              />
+            ) : null}
+            <span className="truncate">{[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</span>
+          </div>
         </div>
         {roHang ? (
-          <span className="ml-auto flex gap-1.5">
+          <span className="ml-auto flex items-center gap-2 shrink-0">
             <HienSoRadar listingId={x.id} nho />
-            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3.5 bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 font-bold inline-flex items-center gap-1.5 rounded-lg shadow-xs">
+            <NutZalo
+              listingId={x.id}
+              tinNhan={tinNhanZalo}
+              href={HOTLINE_ZALO}
+              target="_blank"
+              rel="noopener"
+              className="btn whitespace-nowrap min-h-12 !px-3.5 bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 font-bold inline-flex items-center gap-1.5 rounded-lg shadow-xs active:scale-95 transition"
+            >
               <MessageCircle className="w-4 h-4 fill-white shrink-0" />
-              <span>Zalo</span>
+              <span>Nhắn Zalo</span>
             </NutZalo>
           </span>
         ) : isCrawl || docQuyen ? (
-          // 2/10: trước đây nút chính là "Xem bài gốc ›" -> khách muốn liên hệ là bị đẩy sang trang khác.
-          // Giờ giữ khách ở Radar (gọi/Zalo tư vấn); "Xem bài gốc" vẫn có trong khối liên hệ.
-          // audit 25/10: + tin độc quyền Zalo OA (source không phải crawl) - trước rơi xuống nhánh "Liên hệ"
-          // chỉ cuộn trang, mất nút Gọi/Zalo 1-chạm trong vùng ngón cái dù Radar là đầu mối duy nhất.
-          <span className="ml-auto flex gap-1.5">
+          <span className="ml-auto flex items-center gap-2 shrink-0">
             <HienSoRadar listingId={x.id} nho />
-            <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn whitespace-nowrap min-h-12 !px-3.5 bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 font-bold inline-flex items-center gap-1.5 rounded-lg shadow-xs">
+            <NutZalo
+              listingId={x.id}
+              tinNhan={tinNhanZalo}
+              href={HOTLINE_ZALO}
+              target="_blank"
+              rel="noopener"
+              className="btn whitespace-nowrap min-h-12 !px-3.5 bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 font-bold inline-flex items-center gap-1.5 rounded-lg shadow-xs active:scale-95 transition"
+            >
               <MessageCircle className="w-4 h-4 fill-white shrink-0" />
-              <span>Zalo</span>
+              <span>Nhắn Zalo</span>
             </NutZalo>
           </span>
         ) : (
@@ -1149,11 +1186,6 @@ export default async function ListingDetail({
 
       {/* Vị trí quảng cáo AdSense tài trợ (tự ẩn nếu chưa có client ID / slot) */}
       <AdSenseBanner />
-
-      {/* Bất động sản / Phòng tương tự theo thuật toán FR-31 */}
-      {tinTuongTu && tinTuongTu.length > 0 && (
-        <SimilarListings items={tinTuongTu} loaiBDS={x.kind} />
-      )}
 
       {/* Tin liên quan */}
       {related.length > 0 && (
