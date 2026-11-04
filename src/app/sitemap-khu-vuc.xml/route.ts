@@ -7,6 +7,7 @@ import { SITE, xmlSitemap, xmlResponse, type MucSitemap } from "@/lib/sitemap";
 import { dsQuanBaoCao } from "@/lib/bao-cao-gia";
 import { BAI_VIET } from "@/lib/bai-viet";
 import { DANH_SACH_DAI_HOC } from "@/lib/dai-hoc";
+import { DIEM_NEO } from "@/lib/diem-neo";
 import { NGUONG } from "@/lib/seo-index";
 
 export const revalidate = 3600;
@@ -41,6 +42,8 @@ export async function GET() {
     for (const u of DANH_SACH_DAI_HOC) muc.push({ url: `${SITE}/phong-tro-gan-truong-dai-hoc/${u.slug}`, changefreq: "daily", priority: 0.8 });
     // chuyen de hot
     for (const cd of ["phong-tro-duoi-3-trieu", "phong-tro-co-gac-lung", "can-ho-mini-full-noi-that"]) muc.push({ url: `${SITE}/${cd}`, changefreq: "daily", priority: 0.85 });
+    // Diem neo pSEO chien luoc (Metro, San bay, Benh vien, KCN)
+    for (const d of DIEM_NEO) muc.push({ url: `${SITE}/phong-tro-gan/${d.slug}`, changefreq: "daily", priority: 0.85 });
     // Chỉ đưa vào sitemap những dự án có mô tả thực chất (>= 200 ký tự), loại bỏ 649 trang rỗng làm loãng crawl budget
     const { data: ps } = await createAnonClient().from("projects").select("id, description").eq("status", "published").limit(1000);
     for (const p of ps ?? []) {

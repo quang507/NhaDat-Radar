@@ -28,6 +28,17 @@ export default function Footer() {
             <li><Link className="hover:text-brand transition-colors" href="/search">Tìm kiếm bất động sản</Link></li>
             <li><Link className="hover:text-brand transition-colors text-brand font-medium" href="/phong-tro-gan-truong-dai-hoc">Phòng trọ gần Đại học TP.HCM</Link></li>
             <li><Link className="hover:text-brand transition-colors text-xs text-[var(--ink-faint)]" href="/phong-tro-duoi-3-trieu">Phòng trọ dưới 3 triệu</Link> · <Link className="hover:text-brand transition-colors text-xs text-[var(--ink-faint)]" href="/phong-tro-co-gac-lung">Có gác lửng</Link> · <Link className="hover:text-brand transition-colors text-xs text-[var(--ink-faint)]" href="/can-ho-mini-full-noi-that">CHDV Studio</Link></li>
+            <li>
+              <div className="text-xs text-[var(--ink-faint)] leading-relaxed">
+                <span>Phòng trọ gần: </span>
+                <Link className="hover:text-brand transition-colors" href="/phong-tro-gan/etown-cong-hoa">Etown</Link> ·{" "}
+                <Link className="hover:text-brand transition-colors" href="/phong-tro-gan/san-bay-tan-son-nhat">Sân bay</Link> ·{" "}
+                <Link className="hover:text-brand transition-colors" href="/phong-tro-gan/ga-metro-van-thanh">Metro</Link> ·{" "}
+                <Link className="hover:text-brand transition-colors" href="/phong-tro-gan/benh-vien-ung-buou">Ung Bướu</Link> ·{" "}
+                <Link className="hover:text-brand transition-colors" href="/phong-tro-gan/benh-vien-cho-ray">Chợ Rẫy</Link> ·{" "}
+                <Link className="hover:text-brand transition-colors" href="/phong-tro-gan/khu-che-xuat-tan-thuan">KCX Tân Thuận</Link>
+              </div>
+            </li>
             <li><Link className="hover:text-brand transition-colors" href="/nha-dat-ban">Nhà đất bán</Link></li>
             <li><Link className="hover:text-brand transition-colors" href="/nha-dat-cho-thue">Nhà đất cho thuê</Link></li>
             <li><Link className="hover:text-brand transition-colors" href="/projects">Dự án nổi bật</Link></li>
