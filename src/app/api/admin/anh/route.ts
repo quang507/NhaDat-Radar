@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 const HOST_CHO_PHEP = ["media.evohome.it.com"];
 // HiFriendz (2/10) để ảnh trên Firebase Storage - host dùng chung cho mọi app Firebase nên khoá thêm đúng bucket
 const FIREBASE_HIFRIENDZ = { host: "firebasestorage.googleapis.com", path: "/v0/b/hifriendz-agent.firebasestorage.app/" };
-// 3/11: ảnh trong DB đã đổi sang https://nhadatradar.com/m/... (crawler/che-media.mjs) - cũng chỉ trỏ về 2 nguồn trên
+// 3/11: ảnh trong DB từng đổi sang https://nhadatradar.com/m/... (crawler/che-media.mjs) - 5/11 /m redirect về 2 nguồn trên
 const choPhep = (u: URL) => HOST_CHO_PHEP.includes(u.hostname)
   || (u.hostname === FIREBASE_HIFRIENDZ.host && u.pathname.startsWith(FIREBASE_HIFRIENDZ.path))
   || (u.hostname === "nhadatradar.com" && /^\/m\/[he]\//.test(u.pathname));

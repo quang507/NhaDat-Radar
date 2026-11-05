@@ -10,12 +10,14 @@ Tài liệu này là chỉ dẫn cốt lõi dành cho AI (Claude, Antigravity) v
 * **Hosting:** Vercel Global Edge CDN (Hỗ trợ Incremental Static Regeneration - ISR Caching).
 * **Cơ sở dữ liệu & Auth:** Supabase PostgreSQL (`nalcvzwsescsxfzsxirg.supabase.co`) với Row Level Security (RLS).
 * **Kho dự án nguồn:** Supabase “AI Ơi Nhà Đất” `rqxmmqmctpklqcmbfxuj` (chỉ đọc).
-* **Crawler rổ hàng trên NUC công ty (từ 28/10/2026, `ssh quang@nuc` qua Tailscale):**
-  * EvoHome + HiFriendz: `~/radar/ro-hang.sh full` (06:00, 11:30, 17:00, 22:00) và `~/radar/ro-hang.sh evohome` (09:00, 14:30, 19:30), chạy bằng systemd `radar-ro-hang@.service` + `radar-ro-hang-full.timer` / `radar-ro-hang-evohome.timer` (Nice 15, CPUQuota 70% để nhường hệ thống gatemonitor cùng máy). Mỗi lượt `git pull` code mới nhất trong `~/radar/NhaDat-Radar`. Log: `~/radar/logs/ro-hang.log`.
-  * Chỉ được diệt Chromium của Playwright (`ms-playwright/chromium`): openwa trên NUC cũng chạy Chrome.
+* **Crawler rổ hàng trên máy 146 (Windows, từ 5/11/2026, `ssh nguye@nuc` qua Tailscale, mật khẩu Windows của tài khoản `nguye`):** chuyển từ NUC Ubuntu sang, chạy chung máy với gatemonitor. Cách chạy trên máy này: `C:\radar\README-MAY-NAY.md` (trên máy 146); các tác vụ chạy dưới quyền SYSTEM bằng Task Scheduler. Ổ C còn ~20GB: không lưu ảnh/video trên máy.
+  * EvoHome + HiFriendz giữ lịch cũ: đủ lúc 06:00, 11:30, 17:00, 22:00; chỉ EvoHome lúc 09:00, 14:30, 19:30. Mỗi lượt lấy code mới nhất từ GitHub.
+  * Chỉ được diệt Chromium của Playwright (`ms-playwright/chromium`): phần mềm khác trên máy (WhatsApp của gatemonitor) cũng chạy Chrome.
+  * Phần `deploy/nuc/` bên dưới là bản cài cho NUC cũ (systemd), giữ làm tham khảo.
   * HiFriendz chỉ đọc lại toà có dấu vân tay đổi (`crawler/private/hifriendz-toa.json`), toà không đổi lấy phòng từ lượt trước; quá 20 giờ hoặc sửa `hifriendz-fetch.mjs` thì tự quét đủ. Ép quét đủ: `HF_QUET_DU=1`.
   * Bot Zalo nghe nhóm BĐS (`crawler/zalo-bot.mjs`) chạy 24/7 bằng `radar-zalo-bot.service`, acc clone đăng nhập qua `zalo-agent-cli`.
   * Toàn bộ script + unit systemd + cách cài lại: [`deploy/nuc/`](deploy/nuc/README.md). Sửa ở đó rồi chạy lại `deploy/nuc/cai-dat.sh` trên NUC.
+* **Ảnh/video rổ hàng (từ 5/11/2026):** trình duyệt tải THẲNG từ máy chủ đối tác (Firebase HiFriendz, media.evohome), `listings.images` giữ URL gốc (anh Quang chấp nhận lộ nguồn ảnh 5/11). KHÔNG cho ảnh/video đi qua Vercel (rewrite, route handler, `next/image`): 3-4/11 từng để Vercel cắt logo + chuyển tiếp video, vượt Fast Origin Transfer gói Hobby, Vercel khoá tài khoản. `/m/*` cũ chỉ còn redirect về nguồn (`next.config.mjs`, khớp `crawler/che-media.mjs`).
 * **VPS `103.126.162.93` (sắp hết hạn) không còn chạy gì của Radar.** Các dịch vụ còn lại trên đó thuộc dự án khác: AOND (`aond-core` FastAPI 127.0.0.1:8000, bridge Zalo `nhadat-bridge*`), `goi-bot`, `stock-bot`.
 * **Crawler trên GitHub Actions:** `daily-crawl.yml`, `ro-hang.yml`, `db-prune.yml`, `e2e.yml`.
 

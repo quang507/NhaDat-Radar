@@ -1,22 +1,21 @@
-// Che máy chủ đối tác trong URL ảnh/video rổ hàng (3/11, CLAUDE.md §4.1).
+// URL ảnh/video rổ hàng (3/11 -> 5/11).
 //
-// Trước đây listings.images giữ nguyên URL gốc (firebasestorage .../hifriendz-agent..., media.evohome.it.com):
-// lộ tên đối tác trong HTML công khai, API anon (REST đọc thẳng cột images) và khi khách mở ảnh ở tab mới.
-// Giờ đổi sang https://nhadatradar.com/m/... - next.config.mjs (rewrites) chuyển tiếp về nguồn, cache CDN 1 năm.
-// Hai bảng tiền tố dưới đây và rewrites trong next.config.mjs phải khớp nhau.
+// 3/11: đổi URL đối tác sang https://nhadatradar.com/m/... để che máy chủ đối tác; Vercel chuyển tiếp ảnh/video
+// và cắt logo ảnh HiFriendz. ~100.000 ảnh + ~3.500 video 6-9MB đi qua Vercel, mỗi deploy kéo lại -> vượt Fast Origin
+// Transfer gói Hobby, Vercel khoá tài khoản (4/11).
+// 5/11: anh Quang chấp nhận lộ nguồn ảnh -> listings.images giữ URL GỐC của đối tác, trình duyệt tải thẳng từ nguồn,
+// Vercel không tốn byte nào. URL /m cũ (HTML còn cache, Google Images, link đã share) được next.config.mjs redirect
+// về nguồn - bảng tiền tố dưới đây và redirect đó phải khớp (tests/unit/che-media.spec.ts kiểm).
 
-const RADAR = "https://nhadatradar.com/m";
-const NGUON = [
+export const MEDIA_CU = "https://nhadatradar.com/m";
+export const NGUON = [
   ["https://firebasestorage.googleapis.com/v0/b/hifriendz-agent.firebasestorage.app/o/listings%2Fuploads%2F", "/h/"],
   ["https://media.evohome.it.com/", "/e/"],
 ];
 
-/** URL đối tác -> URL /m của Radar; URL khác (hoặc đã che) giữ nguyên */
-export function cheMedia(u) {
+/** URL /m cũ -> URL gốc của đối tác; URL khác giữ nguyên */
+export function veGoc(u) {
   if (typeof u !== "string") return u;
-  for (const [goc, ma] of NGUON) if (u.startsWith(goc)) return RADAR + ma + u.slice(goc.length);
+  for (const [nguon, ma] of NGUON) if (u.startsWith(MEDIA_CU + ma)) return nguon + u.slice((MEDIA_CU + ma).length);
   return u;
 }
-
-/** còn lộ máy chủ đối tác không - kiểm sau khi nhập / trong script đổi dữ liệu cũ */
-export const conLoNguon = (u) => typeof u === "string" && /hifriendz|evohome/i.test(u);

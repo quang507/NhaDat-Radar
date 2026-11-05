@@ -14,6 +14,8 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
+  // video rổ hàng phát thẳng từ máy chủ đối tác (5/11, crawler/che-media.mjs)
+  "media-src 'self' blob: https:",
   `connect-src 'self' ${SUPABASE} ${SUPABASE.replace(/^https:/, "wss:")} https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.clarity.ms https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.adtrafficquality.google https://challenges.cloudflare.com https://tiles.openfreemap.org https://server.arcgisonline.com`,
   "frame-src https://challenges.cloudflare.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com https://www.google.com https://*.adtrafficquality.google",
   "worker-src 'self' blob:",
@@ -45,24 +47,12 @@ const nextConfig = {
       { source: "/nha-dat-cho-thue/tp-ho-chi-minh/:path*", destination: "/nha-dat-cho-thue/ho-chi-minh/:path*", permanent: true },
       { source: "/nha-dat-ban/tp-hcm/:path*", destination: "/nha-dat-ban/ho-chi-minh/:path*", permanent: true },
       { source: "/nha-dat-ban/tp-ho-chi-minh/:path*", destination: "/nha-dat-ban/ho-chi-minh/:path*", permanent: true },
+      // 5/11: ảnh/video rổ hàng không còn đi qua Vercel (vượt Fast Origin Transfer, bị khoá 4/11). URL /m cũ (HTML
+      // còn cache, Google Images, link đã share) chuyển hướng ở edge về máy chủ đối tác - redirect không tốn origin
+      // transfer. Query (?alt=media&token=..) Next tự giữ nguyên. Tiền tố phải khớp NGUON trong crawler/che-media.mjs.
+      { source: "/m/h/:f*", destination: "https://firebasestorage.googleapis.com/v0/b/hifriendz-agent.firebasestorage.app/o/listings%2Fuploads%2F:f*", permanent: true },
+      { source: "/m/e/:p*", destination: "https://media.evohome.it.com/:p*", permanent: true },
     ];
-  },
-
-  // 3/11: ảnh/video rổ hàng đi qua tên miền Radar - HTML công khai, API anon và thanh địa chỉ không còn lộ
-  // máy chủ đối tác (CLAUDE.md §4.1). URL trong DB do crawler/che-media.mjs đổi sang /m/...; chỉ đúng 2 tiền
-  // tố dưới đây được chuyển tiếp nên /m không thành proxy công cộng. Tên file là uuid, không bao giờ đổi
-  // nội dung -> cache CDN 1 năm (header ở dưới), Vercel chỉ kéo từ nguồn lần đầu.
-  // Ảnh HiFriendz (/m/h/*.jpg) không chuyển thẳng mà qua route src/app/m/h/[f] để cắt logo đối tác in trên ảnh;
-  // video HiFriendz thì chuyển thẳng (beforeFiles: đi trước route đó).
-  async rewrites() {
-    return {
-      beforeFiles: [
-        { source: "/m/h/:f(.+\\.(?:mp4|mov|m4v|webm))", destination: "https://firebasestorage.googleapis.com/v0/b/hifriendz-agent.firebasestorage.app/o/listings%2Fuploads%2F:f" },
-      ],
-      afterFiles: [
-        { source: "/m/e/:p*", destination: "https://media.evohome.it.com/:p*" },
-      ],
-    };
   },
 
   // Header bảo mật cơ bản. CSP mới ở chế độ Report-Only (xem hằng CSP ở đầu file).
@@ -81,16 +71,6 @@ const nextConfig = {
       },
       // Service worker (public/sw.js): trình duyệt luôn hỏi lại bản mới - deploy công tắc khẩn có hiệu lực ngay
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }] },
-      // ảnh/video rổ hàng qua /m (rewrites ở trên): nguồn trả "private, max-age=0" -> ép cache CDN + trình duyệt;
-      // dự án tạo trước 6/4/2026 nên phải bật x-vercel-enable-rewrite-caching thì Vercel mới cache rewrite ra ngoài
-      {
-        source: "/m/:path*",
-        headers: [
-          { key: "x-vercel-enable-rewrite-caching", value: "1" },
-          { key: "CDN-Cache-Control", value: "max-age=31536000, immutable" },
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-        ],
-      },
       // Cache sitemap 24h trên CDN Edge: Googlebot cào sitemap tốn 0 byte Egress Supabase
       { source: "/sitemap(.*)", headers: [{ key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" }] },
     ];
