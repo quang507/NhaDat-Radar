@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ShieldCheck, Lock, Eye, Database, BellRing, Sparkles, UserCheck, Globe2 } from "lucide-react";
-import { NutDoiCookie } from "@/components/DongYCookie";
 import { DON_VI } from "@/lib/don-vi";
 
 export const metadata: Metadata = {
@@ -126,21 +125,19 @@ export default function ChinhSachBaoMatPage() {
               <strong>Cookie thiết yếu</strong> (phiên đăng nhập, giao diện sáng/tối, bộ lọc đã chọn) luôn được dùng vì website không hoạt động được nếu thiếu.
             </p>
             <p>
-              <strong>Cookie không thiết yếu</strong> chỉ được bật khi bạn bấm &quot;Đồng ý&quot; ở thông báo cookie. Nếu bạn từ chối hoặc chưa chọn, bạn vẫn dùng được đầy đủ mọi tính năng; khi đó:
+              <strong>Cookie đo lường và quảng cáo</strong> được nạp khi bạn truy cập website:
             </p>
             <ul className="list-disc pl-5 space-y-1.5">
-              <li><strong>Google Analytics</strong> không ghi cookie đo lường.</li>
-              <li><strong>Microsoft Clarity</strong> (bản đồ nhiệt, ghi lại phiên duyệt web) không được nạp.</li>
-              <li><strong>Google AdSense</strong> chỉ hiển thị quảng cáo không cá nhân hoá.</li>
+              <li><strong>Google Analytics</strong> đo lượt truy cập và cách trang được sử dụng.</li>
+              <li><strong>Microsoft Clarity</strong> tạo bản đồ nhiệt và ghi lại phiên duyệt web để cải thiện giao diện.</li>
+              <li><strong>Google AdSense</strong> hiển thị quảng cáo.</li>
             </ul>
-            <p>Khi bạn đồng ý, các nhà cung cấp bên thứ ba, bao gồm Google, sử dụng cookie để phân phát quảng cáo dựa trên các lần truy cập trước đây của bạn vào trang web này hoặc các trang web khác. Bạn có thể tắt quảng cáo cá nhân hoá bất cứ lúc nào tại{" "}
+            <p>Các nhà cung cấp bên thứ ba, bao gồm Google, sử dụng cookie để phân phát quảng cáo dựa trên các lần truy cập trước đây của bạn vào trang web này hoặc các trang web khác. Bạn có thể tắt quảng cáo cá nhân hoá bất cứ lúc nào tại{" "}
               <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-brand font-semibold underline">Cài đặt quảng cáo của Google</a>{" "}
               hoặc{" "}
               <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer" className="text-brand font-semibold underline">aboutads.info</a>.
+              Bạn cũng có thể chặn hoặc xoá cookie trong cài đặt trình duyệt; website vẫn dùng được đầy đủ tính năng.
             </p>
-            <div className="pt-1">
-              <NutDoiCookie />
-            </div>
           </div>
         </section>
 
@@ -185,7 +182,7 @@ export default function ChinhSachBaoMatPage() {
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong>Quyền được biết &amp; Quyền đồng ý:</strong> Được biết rõ mục đích, phạm vi thu thập dữ liệu và tự do đưa ra quyết định đồng ý.</li>
             <li><strong>Quyền truy cập &amp; Chỉnh sửa:</strong> Xem và cập nhật thông tin tài khoản của mình bất cứ lúc nào tại <Link href="/account" className="text-brand underline">trang tài khoản</Link>.</li>
-            <li><strong>Quyền rút lại sự đồng ý, hạn chế xử lý &amp; Yêu cầu xoá:</strong> Yêu cầu ngừng xử lý hoặc xoá dữ liệu cá nhân qua email {DON_VI.email} hoặc <Link href="/lien-he" className="text-brand underline">form Liên hệ</Link>. Tự xoá tài khoản ngay trong ứng dụng/website: xem hướng dẫn tại <Link href="/xoa-tai-khoan" className="text-brand underline">trang Xoá tài khoản</Link>. Riêng cookie, bạn đổi lựa chọn bằng nút ở mục 5.</li>
+            <li><strong>Quyền rút lại sự đồng ý, hạn chế xử lý &amp; Yêu cầu xoá:</strong> Yêu cầu ngừng xử lý hoặc xoá dữ liệu cá nhân qua email {DON_VI.email} hoặc <Link href="/lien-he" className="text-brand underline">form Liên hệ</Link>. Tự xoá tài khoản ngay trong ứng dụng/website: xem hướng dẫn tại <Link href="/xoa-tai-khoan" className="text-brand underline">trang Xoá tài khoản</Link>. Riêng cookie, xem cách tắt ở mục 5.</li>
             <li><strong>Quyền khiếu nại:</strong> Gửi khiếu nại tới ban quản trị hoặc cơ quan quản lý nhà nước nếu phát hiện vi phạm về bảo vệ dữ liệu.</li>
           </ul>
           <p className="mt-3 mb-1 font-semibold text-[var(--ink)]">Thời hạn xử lý yêu cầu (Nghị định 356/2025/NĐ-CP):</p>
