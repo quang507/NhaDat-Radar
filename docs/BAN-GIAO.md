@@ -16,7 +16,7 @@ Tài liệu cho đội tiếp nhận (Antigravity). Đọc kèm [`CLAUDE.md`](..
 | Google Cloud cũ | project `Quangpr0` (`gen-lang-client-0010758189`) | Dùng chung cho AI Ơi Nhà Đất + 2 app khác. Client cũ của Radar `797157676134-btdi…` đã gỡ redirect URI, giữ lại dự phòng |
 | SEO | Google Search Console `nhadatradar.com` | |
 | Đo lường | GA4 `G-FJ8QKCLWJZ` (chính) + `G-1XRXV857VE`; Microsoft Clarity "NhaDatRadar" | |
-| NUC công ty | `ssh quang@nuc` (Tailscale) | Crawler rổ hàng EvoHome + HiFriendz (systemd timer `radar-ro-hang-*`, từ 28/10/2026). VPS `103.126.162.93` cũ không còn chạy gì của Radar |
+| Máy 146 (Windows) | `ssh nguye@nuc` (Tailscale `100.85.245.112`) hoặc `ssh nguye@192.168.1.146` (LAN) | Từ 05/11/2026 thay NUC Ubuntu cũ (`192.168.1.52`, `nuc-old`): chạy Crawler rổ hàng EvoHome + HiFriendz, Bot Zalo & Đăng nhóm Zalo qua Windows Task Scheduler (`SYSTEM`), thư mục `C:\radar\` (`C:\radar\README-MAY-NAY.md`). VPS `103.126.162.93` cũ không còn chạy gì của Radar |
 | CI | GitHub Actions: `daily-crawl.yml`, `ro-hang.yml`, `db-prune.yml`, `e2e.yml` | |
 | Thiết kế | Figma file Nhadatradar + thư viện ZEN (đã đổi Brand sang Emerald) | |
 | Tên miền | Nơi quản lý DNS `nhadatradar.com` | |
@@ -119,8 +119,10 @@ Việc còn lại cho AG:
 
 - **Trước khi push**: `npm run build` - trang chủ `○ (Static)`, `/listings/[id]` và `/projects/[id]` `● (SSG/ISR)`.
 - **Làm mới cache**: `GET /api/revalidate` kèm header `x-revalidate-secret: <REVALIDATE_SECRET>` (từ 3/11 không nhận `?secret=` nữa: lọt vào log). Tham số tuỳ chọn `path=` / `tag=`. Thiếu biến thì 503, sai mã thì 401.
-- **NUC công ty** (thay VPS từ 28/10/2026, chi tiết + cách cài lại: [`deploy/nuc/README.md`](../deploy/nuc/README.md)):
-  - Rổ hàng: `ro-hang.sh full` 4 lượt/ngày, `ro-hang.sh evohome` 3 lượt/ngày (systemd timer). Bot Zalo `radar-zalo-bot` chạy 24/7.
+- **Máy 146 công ty (Windows PC khỏe hơn)** (thay NUC Ubuntu cũ từ 05/11/2026, chi tiết: [`deploy/nuc/README.md`](../deploy/nuc/README.md)):
+  - **SSH vào máy 146:** Cùng LAN dùng `ssh nguye@192.168.1.146`; khác mạng qua Tailscale (`quanggooner1996@gmail.com`) dùng `ssh nguye@nuc` hoặc `ssh nguye@100.85.245.112` (mật khẩu là mật khẩu Windows của user `nguye`; máy Designer đã có khoá SSH nên vào thẳng). Khi vào sẽ ở `cmd` của Windows (gõ `powershell` nếu cần).
+  - **Đọc trước khi thao tác:** Luôn đọc `C:\gatemonitor\CLAUDE.md` trước (ghi đủ cách mọi thứ đang chạy, kể cả Radar), sau đó xem `C:\radar\README-MAY-NAY.md` (repo tại `C:\radar\NhaDat-Radar`).
+  - Rổ hàng (EvoHome + HiFriendz 4 lượt full + 3 lượt EvoHome/ngày), Bot Zalo `crawler/zalo-bot.mjs` (24/7) và đăng nhóm Zalo `crawler/zalo-dang-nhom.mjs` chạy dưới quyền `SYSTEM` qua **Windows Task Scheduler** (không đụng vào các task `GateMonitor…`).
   - Mỗi lượt `git pull origin main` → code crawler push lên là lượt sau chạy bản mới.
   - Thay đổi dữ liệu mà crawler phụ thuộc thì push code TRƯỚC, sửa dữ liệu SAU.
 - **Dọn tin**: `crawler/daily.mjs` hạ `gone` tin crawl không thấy lại, xoá tin gone sau 21 ngày và mọi tin crawl sau 45 ngày. Từ 036, mỗi lần xoá đều có bia mộ.

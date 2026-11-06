@@ -169,12 +169,14 @@ if (PARTNER === "hifriendz") {
     console.log(`Bỏ ${src.length - dsNhap.length} phòng trùng EvoHome`);
   } catch { console.warn("Không đọc được crawler/private/evohome.json - không lọc trùng EvoHome"); }
 }
+const daThem = new Set();
 for (const x of dsNhap) {
-  if (!x.source_post_id || !x.price_vnd) continue;
+  if (!x.source_post_id || !x.price_vnd || daThem.has(x.source_post_id)) continue;
   let gia = Number(x.price_vnd) || 0;
   if (gia > 0 && gia < 1000) gia = Math.round(gia * 1e6);
   gia = Math.round(gia);
   if (!gia) continue;
+  daThem.add(x.source_post_id);
 
   const specs = x.specs || {};
   const dauDiaChi = gon(String(x.address || "").split(",")[0]);

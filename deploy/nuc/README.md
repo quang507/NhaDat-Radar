@@ -1,4 +1,19 @@
-# Việc nền Nhadatradar trên NUC công ty
+# Việc nền Nhadatradar trên máy 146 (Windows) & NUC cũ
+
+> **CẬP NHẬT 05/11/2026:** Toàn bộ việc nền của Radar (Crawler rổ hàng EvoHome + HiFriendz, Bot Zalo đọc nhóm `crawler/zalo-bot.mjs`, Đăng nhóm Zalo `crawler/zalo-dang-nhom.mjs`) đã được **chuyển từ NUC Ubuntu cũ sang Máy 146 (PC Windows khỏe hơn)**:
+> - **Hai cách SSH vào máy 146 (tên đăng nhập là `nguye`, không còn `quang`):**
+>   - **Ở công ty (cùng mạng LAN):** `ssh nguye@192.168.1.146`
+>   - **Ở mạng khác (ở nhà, 4G… qua Tailscale `quanggooner1996@gmail.com`):** `ssh nguye@nuc` (nếu tên `nuc` không nhận thì dùng IP Tailscale: `ssh nguye@100.85.245.112`).
+> - **Mật khẩu & Khoá SSH:** Là mật khẩu Windows của tài khoản `nguye` trên máy 146. Máy Designer vào thẳng không cần gõ mật khẩu vì đã có khoá SSH.
+> - **Môi trường khi đăng nhập:** Máy 146 chạy Windows nên khi vào sẽ ở cửa sổ `cmd` (không phải Linux). Gõ `powershell` nếu muốn dùng PowerShell.
+> - **Tài liệu bắt buộc đọc trước:** Nếu nhờ Claude hoặc làm việc từ máy khác, luôn chạy `ssh nguye@nuc` và đọc **`C:\gatemonitor\CLAUDE.md`** trước (file đó ghi đủ cách mọi thứ đang chạy, kể cả Radar), cùng với `C:\radar\README-MAY-NAY.md` (repo Radar nằm tại `C:\radar\NhaDat-Radar`).
+> - **Cơ chế chạy:** Chạy dưới quyền `SYSTEM` qua **Windows Task Scheduler** (tuyệt đối không tắt các task `GateMonitor…`).
+> - **Lưu ý ổ đĩa:** Ổ `C:` trên máy 146 chỉ còn trống ~20 GB, không lưu cache media lớn trên ổ `C:`.
+> - Máy NUC Ubuntu cũ (`192.168.1.52`, `nuc-old` trên Tailscale) đã tắt, giữ dữ liệu dự phòng. Các file cấu hình systemd trong thư mục `deploy/nuc/` dưới đây được giữ lại làm tài liệu tham khảo.
+
+---
+
+*(Tài liệu gốc khi chạy trên NUC Ubuntu 28/10/2026)*
 
 Từ 28/10/2026, NUC công ty (`ssh quang@nuc` qua Tailscale, Ubuntu 22.04, Celeron N3050 2 nhân, RAM 4 GB) chạy hai việc
 nền của Radar thay cho VPS Vinahost `103.126.162.93`:
