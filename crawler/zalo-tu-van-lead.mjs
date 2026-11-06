@@ -88,10 +88,10 @@ export async function traCuuPhong(sb, dinhDanh) {
   return { tin, roHang: roHang || null };
 }
 
-export const TIEN_ICH = { dieu_hoa: "điều hoà", may_giat: "máy giặt", tu_lanh: "tủ lạnh", ke_bep: "kệ bếp", giuong: "giường",
+export const TIEN_ICH = { dieu_hoa: "máy lạnh", may_giat: "máy giặt", tu_lanh: "tủ lạnh", ke_bep: "kệ bếp", giuong: "giường",
   cua_so: "cửa sổ", an_ninh: "an ninh", thang_may: "thang máy", nuoc_nong: "nước nóng", tu_quan_ao: "tủ quần áo",
   ban_cong: "ban công", gac_lung: "gác lửng", tivi: "tivi", san_phoi: "sân phơi", bon_rua: "bồn rửa", de_xe: "chỗ để xe",
-  ac: "điều hoà", parking: "chỗ để xe", elevator: "thang máy", security: "an ninh", pet: "nuôi thú cưng" };
+  ac: "máy lạnh", parking: "chỗ để xe", elevator: "thang máy", security: "an ninh", pet: "nuôi thú cưng" };
 
 // Chỉ những nhãn này được đọc từ specs - "Hoa hồng", "Số phòng", "Mã toà" không bao giờ tới khách
 const NHAN_SPECS = {
@@ -281,10 +281,10 @@ export function soanTraLoiTuFacts(hoiVe, f, isEn = false) {
   if (can.some((k) => !f[k])) return null;
   const khoa = [...new Set([...can, ...them.filter((k) => f[k])])];
   const nhan = isEn ? NHAN_EN : NHAN;
-  const dong = khoa.map((k) => `• ${nhan[k]}: ${k === "gia" && isEn ? f.gia_en : f[k]}`);
+  const dong = khoa.map((k) => `${nhan[k]}: ${k === "gia" && isEn ? f.gia_en : f[k]}`);
   return isEn
-    ? `Room ${f.ma} - Transparent fee breakdown:\n${dong.join("\n")}\nRadar viewing is 100% free with no brokerage fees. Hotline/Zalo: 0387 365 020 (Le Quang).`
-    : `Dạ phòng ${f.ma} - thông tin 5 khoản phí minh bạch (nói không với chi phí ẩn):\n${dong.join("\n")}\nRadar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay 18h30 hoặc chiều mai bạn tiện qua xem trực tiếp không ạ? Hotline/Zalo tư vấn duy nhất: 0387 365 020 (Lê Quang).`;
+    ? `Room ${f.ma} fee details:\n\n${dong.join("\n\n")}\n\nViewing is 100% free with no brokerage fees. Zalo/Hotline: 0387 365 020 (Quang).`
+    : `Phòng ${f.ma} bên mình tính phí rõ ràng từ đầu như này nha:\n\n${dong.join("\n\n")}\n\nBên mình dẫn coi phòng miễn phí hết, không thu phí dịch vụ gì đâu. Tối nay tầm 6h30 hoặc chiều mai bạn rảnh giờ nào nhắn mình hoặc Zalo 0387 365 020 (Quang) để mình hẹn mở cửa nha.`;
 }
 
 /** Câu chào chuẩn kịch bản của Radar Nhà Đất - ngắn gọn, xưng 'mình - bạn' đỡ nhầm */
@@ -595,30 +595,67 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
 }
 
 /** Soạn nội dung rep nhóm + tin riêng 1-1 khi săn được khách tìm phòng trong group */
+function gonDiaDanh(s) {
+  return String(s || "")
+    .replace(/^(Thành phố|TP\.?)\s+/i, "")
+    .replace(/^Phường\s+(\d+)$/i, "P$1")
+    .replace(/^Phường\s+/i, "")
+    .replace(/^Quận\s+(\d+)$/i, "Q$1")
+    .replace(/^(Quận|Huyện)\s+/i, "")
+    .trim();
+}
+
+function giaChat(vnd) {
+  if (!vnd) return "giá thương lượng";
+  const tr = Math.round(vnd / 1e5) / 10;
+  const nguyen = Math.floor(tr);
+  const le = Math.round((tr - nguyen) * 10);
+  return le ? `${nguyen}tr${le}` : `${nguyen}tr`;
+}
+
+function moTaMotCan(c) {
+  const kv = [gonDiaDanh(c.ward), gonDiaDanh(c.district)].filter(Boolean).join(" ");
+  const gia = giaChat(c.price_vnd);
+  const ti = [...new Set((c.amenities || []).map((a) => TIEN_ICH[a] || a).filter(Boolean))].slice(0, 3).join(", ");
+  const dt = c.area_m2 ? ` ${Math.round(c.area_m2)}m²` : "";
+  const link = c.id ? `\nnhadatradar.com/listings/${c.id}` : "";
+  return `một căn${dt} ở ${kv} giá ${gia}${ti ? ` có sẵn ${ti}` : ""}${link}`;
+}
+
 export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
   const ten = senderName || "bạn";
-  const quanText = nhuCau?.quan?.[0] || "khu vực bạn cần";
+  const quanText = gonDiaDanh(nhuCau?.quan?.[0]) || "khu vực bạn cần";
   const coCan = Array.isArray(canKhop) && canKhop.length > 0;
 
+  const mauRep = [
+    `@${ten} mình có sẵn phòng bên ${quanText} đúng tầm giá này, mới nhắn qua Zalo riêng bạn coi hình thử nha`,
+    `@${ten} check tin nhắn chờ Zalo giúp mình nha, mình vừa gửi hình phòng đang trống bên ${quanText} cho bạn coi thử á`,
+  ];
   const repNhom = coCan
-    ? `@${ten} Dạ em vừa gửi riêng cho mình ${canKhop.length} căn đúng nhu cầu ở ${quanText} rồi á, bạn check tin nhắn chờ Zalo giúp em nha!`
-    : `@${ten} Dạ em vừa nhắn tin riêng hỗ trợ mình tìm phòng ở ${quanText} rồi á, bạn check tin nhắn chờ Zalo giúp em nha!`;
+    ? mauRep[canKhop[0]?.id ? canKhop[0].id.charCodeAt(0) % mauRep.length : 0]
+    : `@${ten} bạn check tin nhắn chờ Zalo nha, mình hỏi thêm chút để gửi căn bên ${quanText} cho bạn`;
 
-  const giaMaxStr = nhuCau?.gia_den ? ` tầm ${(nhuCau.gia_den / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",")}tr` : "";
-  let tinRieng = `Dạ em chào ${ten}! Em thấy bạn vừa đăng tìm phòng ở ${quanText}${giaMaxStr}.\n`;
-  if (coCan) {
-    tinRieng += `Bên em đang có sẵn ${canKhop.length} căn đúng tiêu chí gửi bạn tham khảo trước:\n`;
-    canKhop.forEach((c, idx) => {
-      const maStr = c.id ? `[${maPhong(c.id)}] ` : "";
-      const giaStr = c.price_vnd ? `${(c.price_vnd / 1e6).toFixed(1).replace(/\.0$/, "").replace(".", ",")}tr/tháng` : "Giá thoả thuận";
-      const kvStr = [c.ward, c.district].filter(Boolean).join(", ");
-      const ti = [...new Set((c.amenities || []).map((a) => TIEN_ICH[a] || a).filter(Boolean))].slice(0, 3).join(", ");
-      tinRieng += `${idx + 1}. Căn ${maStr}${kvStr} - ${giaStr}${ti ? ` (${ti})` : ""}\n`;
-    });
-    tinRieng += `\nRadar dẫn xem phòng trực tiếp miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ? Hotline/Zalo tư vấn: 0387 365 020 (Lê Quang).`;
-  } else {
-    tinRieng += `Hôm nay bên em đang cập nhật thêm rổ hàng 1.400+ căn trống mới quanh khu vực này. Bạn cho em xin thêm yêu cầu chi tiết (gác/ban công, nuôi pet, ngày dọn vào) để em lọc gửi liền cho mình nhé ạ!\nRadar hỗ trợ tìm và dẫn xem phòng miễn phí 100% ạ. Hotline/Zalo: 0387 365 020 (Lê Quang).`;
+  if (!coCan) {
+    return {
+      repNhom,
+      tinRieng:
+        `Bạn ơi nãy thấy bạn tìm phòng bên ${quanText}.\n\n` +
+        `Bạn cần phòng có gác hay studio, tầm mấy người ở để mình gửi hình mấy căn đang trống qua bạn coi thử nha.`,
+    };
   }
+
+  let doanCan = "";
+  if (canKhop.length === 1) {
+    doanCan = `Mình đang có sẵn ${moTaMotCan(canKhop[0])}`;
+  } else {
+    doanCan = `Mình đang có ${moTaMotCan(canKhop[0])}\n\nvới thêm ${moTaMotCan(canKhop[1])}`;
+  }
+
+  const tinRieng =
+    `Bạn ơi nãy thấy bạn tìm phòng bên ${quanText}.\n\n` +
+    `${doanCan}\n\n` +
+    `Hình trên link là hình chụp thực tế tại phòng với có ghi đủ giá điện nước luôn á.\n\n` +
+    `Bạn ưng căn nào nhắn mình hoặc kết bạn Zalo 0387 365 020 (Quang) mình hẹn mở cửa coi phòng nha.`;
 
   return { repNhom, tinRieng };
 }

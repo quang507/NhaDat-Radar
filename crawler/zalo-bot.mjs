@@ -363,7 +363,7 @@ const nhomVuaTuongTac = new Map(); // groupId -> ms
 const lichSuOutreachNgay = [];     // [ms]
 const MAX_OUTREACH_NGAY = Number(process.env.ZALO_MAX_OUTREACH_NGAY || 10);
 const GIAN_CACH_NHOM_MS = 15 * 60_000;
-const GIAN_CACH_KHACH_MS = 48 * 3600_000;
+const GIAN_CACH_KHACH_MS = 14 * 24 * 3600_000;
 
 async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, text }) {
   if (!text || text.length < 12) return;
@@ -403,10 +403,11 @@ async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, t
     return;
   }
 
-  // Khớp phòng trong kho Supabase (ưu tiên phòng trống còn published)
+  // Khớp phòng trong kho Supabase (chỉ lấy rổ hàng thật của Radar, đúng tầm giá, không lấy KTX 1,5tr gửi cho khách tìm 25tr)
   let canKhop = [];
   try {
     let q = sb.from("listings").select("id, title, price_vnd, area_m2, kind, address, ward, district, specs, amenities")
+      .eq("source", "ro_hang")
       .eq("deal", "cho_thue")
       .eq("status", "published");
     if (nhuCau.quan[0]) {
@@ -415,14 +416,21 @@ async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, t
     }
     if (nhuCau.gia_den) {
       q = q.lte("price_vnd", Math.round(nhuCau.gia_den * 1.15));
+      q = q.gte("price_vnd", Math.round((nhuCau.gia_tu || nhuCau.gia_den * 0.7) * 0.9));
+    } else if (nhuCau.gia_tu) {
+      q = q.gte("price_vnd", Math.round(nhuCau.gia_tu * 0.85));
     }
-    if (nhuCau.gia_tu) {
-      q = q.gte("price_vnd", Math.round(nhuCau.gia_tu * 0.8));
+    const { data } = await q.order("first_seen_at", { ascending: false }).limit(20);
+    if (Array.isArray(data) && data.length) {
+      const mucTieu = nhuCau.gia_den || nhuCau.gia_tu || 4_000_000;
+      canKhop = data.sort((a, b) => Math.abs((a.price_vnd || 0) - mucTieu) - Math.abs((b.price_vnd || 0) - mucTieu)).slice(0, 2);
     }
-    const { data } = await q.order("price_vnd", { ascending: true }).limit(2);
-    if (Array.isArray(data)) canKhop = data;
   } catch (err) {
     console.error("[Săn khách] Lỗi tìm phòng khớp:", err.message);
+  }
+  if (!canKhop.length) {
+    console.log("  - bỏ (không có phòng rổ hàng khớp đúng khu vực và tầm giá)");
+    return;
   }
 
   // Đánh dấu thời gian tương tác

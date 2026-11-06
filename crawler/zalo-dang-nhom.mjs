@@ -50,7 +50,8 @@ const docJson = (f, macDinh) => { try { return JSON.parse(fs.readFileSync(f, "ut
 const ghiJson = (f, v) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(v, null, 2)); };
 
 async function cli(args) {
-  const { stdout } = await chay(CLI, ["--json", ...args], { timeout: 120_000, maxBuffer: 20 * 1024 * 1024 });
+  const laJs = /\.[cm]?js$/i.test(CLI);
+  const { stdout } = await chay(laJs ? process.execPath : CLI, [...(laJs ? [CLI] : []), "--json", ...args], { timeout: 120_000, maxBuffer: 20 * 1024 * 1024 });
   return stdout;
 }
 

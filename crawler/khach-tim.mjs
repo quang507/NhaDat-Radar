@@ -12,7 +12,7 @@ const TIM = new RegExp([
 ].join("|"), "i");
 // giọng NGƯỜI CHO THUÊ (chủ nhà/môi giới rao) -> không phải khách. KHÔNG chặn "cho thuê" trơn: khách hay viết
 // "ai có phòng cho thuê Q7 không ạ" - để AI phân xử; chỉ chặn các cụm chắc chắn là rao hàng.
-const RAO = /(cần cho thuê|can cho thue|chính chủ cho thuê|chinh chu cho thue|còn trống|con trong|phòng trống|phong trong|nhận khách|nhan khach|bên em (có|còn)|em (có|còn) (phòng|căn)|giá thuê\s*:|liên hệ xem phòng)/i;
+const RAO = /(cần cho thuê|can cho thue|chính chủ cho thuê|chinh chu cho thue|còn trống|con trong|phòng trống|phong trong|nhận khách|nhan khach|bên em (có|còn)|em (có|còn) (phòng|căn)|giá thuê\s*:|liên hệ xem phòng|khách\s*(cần|tìm|em|mình|nét|ruột)|khach\s*(can|tim|em|minh|net)|tìm\s*(giúp|giùm|hộ)\s*khách|ace\s*có\s*(căn|hàng|phòng)|anh\s*chị\s*có\s*(căn|hàng))/i;
 
 /** Bài có giống KHÁCH đang tìm phòng/nhà để thuê không (lọc thô, rẻ) */
 export function laBaiTimPhong(text) {
@@ -22,7 +22,7 @@ export function laBaiTimPhong(text) {
 }
 
 export const SYS_TIM = `Bạn đọc bài đăng nhóm Facebook của NGƯỜI ĐANG TÌM thuê/mua chỗ ở (văn phong lộn xộn, viết tắt: "q7"=Quận 7, "3tr"=3 triệu, "tr5"=500 nghìn).
-Chỉ trích từ nội dung, không bịa. Nếu bài thực ra là người CHO THUÊ / môi giới rao hàng thì is_demand=false.`;
+Chỉ trích từ nội dung, không bịa. Nếu bài thực ra là người CHO THUÊ / môi giới rao hàng HOẶC môi giới tìm hộ khách ("Khách cần thuê...", "Khách tìm thuê...", "Khách em tìm...") thì BẮT BUỘC is_demand=false.`;
 export const SCHEMA_TIM = `Trả về DUY NHẤT 1 JSON:
 {"is_demand":bool, "deal":"thue"|"mua",
  "districts":string[] (quận/huyện/TP như "Quận 7","Quận Gò Vấp","TP. Thủ Đức" - tối đa 3, rỗng nếu không nói),
@@ -44,6 +44,7 @@ export function chuanHoaNhuCau(ai) {
   let a = soVnd(ai.budget_min), b = soVnd(ai.budget_max);
   if (a && b && a > b) [a, b] = [b, a];
   if (a && !b) b = Math.round(a * 1.2);
+  if (b && !a) a = Math.round(b * 0.7);
   return {
     deal: ai.deal === "mua" ? "mua" : "thue",
     quan: (Array.isArray(ai.districts) ? ai.districts : []).map((s) => String(s).trim()).filter(Boolean).slice(0, 3),
