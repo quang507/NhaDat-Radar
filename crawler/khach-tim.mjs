@@ -1,28 +1,43 @@
-// SĂN KHÁCH TÌM PHÒNG (2/10) - bài "cần tìm phòng / ai có phòng Q7 không" trong nhóm Facebook.
+// SĂN KHÁCH TÌM PHÒNG (2/10) - bài "cần tìm phòng / ai có phòng Q7 không" trong nhóm Facebook/Zalo.
 // Trước đây facebook.mjs coi là "không phải tin BĐS" và vứt đi; đây lại là KHÁCH đang cần thuê ngay -
 // cách môi giới chốt nhiều làm: thấy bài là vào bình luận + nhắn riêng liền. Ở đây chỉ NHẬN DIỆN + TRÍCH
 // nhu cầu; đưa lên DB ở san-khach.mjs, nhân viên xử lý ở /admin?tab=san-khach (gửi tay, không tự động).
 
 // Lọc THÔ bằng regex trước khi gọi AI (giữ quota Gemini): có ý "tìm/cần thuê" và KHÔNG có giọng rao cho thuê.
 const TIM = new RegExp([
-  "(cần|can|tìm|tim|kiếm|kiem|muốn|muon|đang tìm|dang tim)\\s*(thuê|thue|phòng|phong|trọ|tro|nhà|nha|căn|can ho|chdv|studio|mặt bằng|mat bang|ở ghép|o ghep)",
-  "ai\\s*(có|co)\\s*(phòng|phong|trọ|tro|căn|can|nhà|nha)",
-  "(xin|cho\\s*(em|mình|minh)\\s*xin)\\s*(info|thông tin|thong tin|in4|ib)\\s*(phòng|phong|trọ|tro|căn|can)",
-  "(tìm|tim)\\s*(người|nguoi)?\\s*(ở ghép|o ghep|share phòng|share phong)",
+  "(cần|can|tìm|tim|kiếm|kiem|muốn|muon|đang tìm|dang tim)\\s*(gấp\\s+|gap\\s+|nhanh\\s+|thuê\\s+|thue\\s+)?(thuê|thue|phòng|phong|trọ|tro|nhà|nha|căn|can ho|chdv|studio|stu|duplex|sleepbox|ktx|mặt bằng|mat bang|ở ghép|o ghep|[123]\\s*pn|[12]\\+)",
+  "ai\\s*(có|co|còn|con|biết|biet)\\s*(phòng|phong|trọ|tro|căn|can|nhà|nha|chdv|studio|stu)",
+  "(xin|cho\\s*(em|mình|minh)\\s*xin)\\s*(info|thông tin|thong tin|in4|ib|giá|gia)\\s*(phòng|phong|trọ|tro|căn|can|chdv|studio)",
+  "(tìm|tim|cần|can)\\s*(người|nguoi|bạn|ban)?\\s*(ở ghép|o ghep|share phòng|share phong|pass phòng|pass lại)",
 ].join("|"), "i");
-// giọng NGƯỜI CHO THUÊ (chủ nhà/môi giới rao) -> không phải khách. KHÔNG chặn "cho thuê" trơn: khách hay viết
-// "ai có phòng cho thuê Q7 không ạ" - để AI phân xử; chỉ chặn các cụm chắc chắn là rao hàng.
-const RAO = /(cần cho thuê|can cho thue|chính chủ cho thuê|chinh chu cho thue|còn trống|con trong|phòng trống|phong trong|nhận khách|nhan khach|bên em (có|còn)|em (có|còn) (phòng|căn)|giá thuê\s*:|liên hệ xem phòng|khách\s*(cần|tìm|em|mình|nét|ruột)|khach\s*(can|tim|em|minh|net)|tìm\s*(giúp|giùm|hộ)\s*khách|ace\s*có\s*(căn|hàng|phòng)|anh\s*chị\s*có\s*(căn|hàng))/i;
+
+// giọng NGƯỜI CHO THUÊ / BÁN / MÔI GIỚI RAO HÀNG -> chặn ngay từ cổng regex để không bao giờ nhắn nhầm chủ nhà/sale.
+const RAO = new RegExp([
+  "cần cho thuê|can cho thue|chính chủ cho thuê|chinh chu cho thue|nhà cho thuê|phòng cho thuê",
+  "còn trống|con trong|phòng trống|phong trong|sẵn phòng|sẵn căn|sẵn chìa|pass phòng|nhận khách|nhan khach",
+  "bên em (có|còn)|em (có|còn) (phòng|căn)|giỏ hàng|quỹ căn|rổ hàng|bảng giá|cam kết hình thật",
+  "giá thuê\\s*:|giá\\s*:\\s*\\d|điện\\s*:\\s*\\d|lh\\s*:|liên hệ\\s*:|call\\/zalo|ib zalo|liên hệ xem phòng",
+  "bán nhanh|hàng bán|chuyển nhượng|sẵn sổ|sổ hồng riêng|công chứng ngay|btp|bao thuế phí",
+  "hoa hồng|hh\\s*\\d|phí mg|ráp khách|dẫn khách|kết hợp|ace\\s*(có|nắm)|anh\\s*chị\\s*(có|nắm)\\s*(căn|hàng|phòng)",
+  "khách\\s*(cần|tìm|em|mình|nét|ruột)|khach\\s*(can|tim|em|minh|net)|tìm\\s*(giúp|giùm|hộ)\\s*khách|có\\s*(căn|hàng|phòng)\\s*gửi\\s*(em|mình)",
+].join("|"), "i");
 
 /** Bài có giống KHÁCH đang tìm phòng/nhà để thuê không (lọc thô, rẻ) */
 export function laBaiTimPhong(text) {
   const t = String(text || "").replace(/\s+/g, " ").trim();
-  if (t.length < 12 || t.length > 900) return false;   // bài tìm phòng thường ngắn; bài dài là tin rao
+  if (t.length < 10 || t.length > 550) return false;   // bài khách tìm phòng thường ngắn; bài dài nhiều dòng là tin rao của sale
   return TIM.test(t) && !RAO.test(t);
 }
 
-export const SYS_TIM = `Bạn đọc bài đăng nhóm Facebook của NGƯỜI ĐANG TÌM thuê/mua chỗ ở (văn phong lộn xộn, viết tắt: "q7"=Quận 7, "3tr"=3 triệu, "tr5"=500 nghìn).
-Chỉ trích từ nội dung, không bịa. Nếu bài thực ra là người CHO THUÊ / môi giới rao hàng HOẶC môi giới tìm hộ khách ("Khách cần thuê...", "Khách tìm thuê...", "Khách em tìm...") thì BẮT BUỘC is_demand=false.`;
+export const SYS_TIM = `Bạn phân loại tin nhắn trong nhóm Zalo/Facebook để tìm ĐÚNG NGƯỜI THUÊ THẬT (sinh viên, người đi làm, gia đình đang tự đi tìm phòng trọ, CHDV, studio, căn hộ, nhà nguyên căn để ở).
+QUY TẮC CỨNG (vi phạm là sai):
+1. CHỈ đặt is_demand=true và deal="thue" khi người viết ĐANG TỰ TÌM THUÊ chỗ ở cho chính họ hoặc bạn bè/gia đình họ.
+2. BẮT BUỘC đặt is_demand=false trong mọi trường hợp sau:
+   - Người đăng đang BÁN hoặc CHO THUÊ bất động sản (rao phòng, báo giá phòng trống, pass phòng, sang nhượng, đăng giỏ hàng).
+   - Môi giới/sale tìm hàng hộ khách ("Khách cần...", "Khách em tìm...", "Tìm giúp khách...", "ACE có căn gửi em...", "Khách nét cần...").
+   - Người tìm MUA nhà đất/căn hộ (không phải tìm thuê).
+3. Nếu trong tin không ghi rõ tên Quận/Huyện nhưng có BỐI CẢNH NHÓM đi kèm ở cuối prompt, hãy lấy khu vực của nhóm đó điền vào districts.`;
+
 export const SCHEMA_TIM = `Trả về DUY NHẤT 1 JSON:
 {"is_demand":bool, "deal":"thue"|"mua",
  "districts":string[] (quận/huyện/TP như "Quận 7","Quận Gò Vấp","TP. Thủ Đức" - tối đa 3, rỗng nếu không nói),

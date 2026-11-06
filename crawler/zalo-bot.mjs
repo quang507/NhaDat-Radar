@@ -365,9 +365,18 @@ const MAX_OUTREACH_NGAY = Number(process.env.ZALO_MAX_OUTREACH_NGAY || 10);
 const GIAN_CACH_NHOM_MS = 15 * 60_000;
 const GIAN_CACH_KHACH_MS = 14 * 24 * 3600_000;
 
+// Nạp danh sách nhóm từ zalo-nhom.json để suy luận khu vực khi khách nhắn trong nhóm chuyên biệt mà không ghi tên Quận
+const thongTinNhom = new Map();
+try {
+  const rawNhom = JSON.parse(readFileSync(new URL("./private/zalo-nhom.json", import.meta.url), "utf8"));
+  for (const g of rawNhom?.nhom || []) {
+    if (g.id) thongTinNhom.set(String(g.id), g);
+  }
+} catch { /* không bắt buộc nếu chưa có file */ }
+
 async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, text }) {
-  if (!text || text.length < 12) return;
-  // Lớp 1: Lọc thô regex chống tốn quota
+  if (!text || text.length < 10) return;
+  // Lớp 1: Lọc thô regex chống tốn quota + chặn cứng tin rao bán/cho thuê/môi giới
   if (!laBaiTimPhong(text)) return;
 
   const nowMs = Date.now();
@@ -394,12 +403,26 @@ async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, t
 
   console.log(`🎯 [Săn khách] Phát hiện khách tìm phòng từ ${senderName} (${senderId}): "${text.slice(0, 50)}"`);
 
-  // Lớp 2: AI Gemini bóc tách nhu cầu
-  const prompt = `${SYS_TIM}\n${SCHEMA_TIM}\n\n--- BÀI ĐĂNG TÌM PHÒNG TRONG NHÓM ZALO ---\n${text}`;
+  // Lấy bối cảnh nhóm (nếu có) để AI và bước lọc biết khách đang hỏi trong nhóm khu vực nào
+  const nhomInfo = thongTinNhom.get(String(groupId));
+  const khuVucNhom = (nhomInfo?.khu_vuc || []).filter((k) => !/^(Hồ Chí Minh|TP\.?\s*HCM|Bình Dương)$/i.test(k));
+  const boiCanhNhom = nhomInfo
+    ? `\n\n--- BỐI CẢNH NHÓM ZALO ---\nTên nhóm: ${nhomInfo.ten || ""}${khuVucNhom.length ? `\nKhu vực mặc định của nhóm: ${khuVucNhom.join(", ")}` : ""}`
+    : "";
+
+  // Lớp 2: AI Gemini bóc tách nhu cầu (kèm kiểm định đúng người đi thuê thật)
+  const prompt = `${SYS_TIM}\n${SCHEMA_TIM}\n\n--- BÀI ĐĂNG TÌM PHÒNG TRONG NHÓM ZALO ---\n${text}${boiCanhNhom}`;
   const aiRaw = await goiGeminiJSON(prompt);
   const nhuCau = chuanHoaNhuCau(aiRaw);
-  if (!nhuCau || !nhuCau.quan || !nhuCau.quan.length) {
-    console.log("  - bỏ (AI xác định không phải nhu cầu tìm phòng rõ ràng)");
+  if (!nhuCau || nhuCau.deal !== "thue") {
+    console.log("  - bỏ (AI xác định không phải khách tìm thuê thật)");
+    return;
+  }
+  if ((!nhuCau.quan || !nhuCau.quan.length) && khuVucNhom.length) {
+    nhuCau.quan = [...khuVucNhom];
+  }
+  if (!nhuCau.quan || !nhuCau.quan.length) {
+    console.log("  - bỏ (không xác định được quận/khu vực cần tìm)");
     return;
   }
 
