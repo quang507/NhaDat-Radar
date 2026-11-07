@@ -126,6 +126,21 @@ const out = units.map((u) => {
     [u.room_hasPet, "thu_cung"], [u.room_hasTv, "tivi"],
   ].filter(([c]) => c).map(([, k]) => k);
   for (const [k, v] of Object.entries(u)) if (/^room_has/.test(k) && v && !DA_MAP.has(k)) TRUONG_LA.set(k, (TRUONG_LA.get(k) || 0) + 1);
+  const guiXe = Number(u.parkingPrice) > 0
+    ? `${so(u.parkingPrice)} đ/xe`
+    : u.parkingPrice === "0" || u.parkingPrice === 0
+      ? "Miễn phí"
+      : "-";
+  const hopDongMin = (() => {
+    const str = String(u.agreementDuration || "").replace(/\(.*?\)/g, "");
+    const nums = (str.match(/\d+/g) || []).map(Number).filter((n) => n >= 1 && n <= 36);
+    if (!nums.length) return "-";
+    const min = Math.min(...nums), max = Math.max(...nums);
+    return min === max ? `${min} tháng` : `Từ ${min} tháng`;
+  })();
+  const soNguoi = u.room_maxPeoples ? `Tối đa ${u.room_maxPeoples} người` : "-";
+  const thuCung = u.room_hasPet === true ? "Được nuôi" : u.room_hasPet === false ? "Không cho nuôi" : "-";
+  const gioGiac = u.roomActivityHours === "FREE" || u.room_sharedOwner === false ? "Tự do" : "-";
   const moTa = [
     `🏠 Cho thuê ${loai} tại ${site.name || ""}, ${phuong ? phuong + ", " : ""}${quan}, TP.HCM.`,
     `• Diện tích: ${dt ? dt + " m²" : "Rộng rãi thoáng mát"}`,
@@ -136,6 +151,7 @@ const out = units.map((u) => {
     "⚡ CHI PHÍ DỊCH VỤ:",
     u.electricityPrice ? `• Điện: ${so(u.electricityPrice)} đ/kWh` : "",
     u.waterPrice ? `• Nước: ${so(u.waterPrice)} đ/người/tháng` : "",
+    guiXe !== "-" ? `• Gửi xe: ${guiXe}` : "",
     u.managementPrice ? `• Phí quản lý: ${so(u.managementPrice)} đ/phòng` : "",
     u.washingMachinePrice ? `• Giặt sấy: ${so(u.washingMachinePrice)} đ/người` : "",
   ].filter(Boolean).join("\n");
@@ -160,7 +176,12 @@ const out = units.map((u) => {
       "Tiền cọc": tien(u.depositPrice),
       "Điện": u.electricityPrice ? `${so(u.electricityPrice)} đ/kWh` : "-",
       "Nước": u.waterPrice ? `${so(u.waterPrice)} đ/người` : "-",
+      "Gửi xe": guiXe,
       "Phí quản lý": u.managementPrice ? `${so(u.managementPrice)} đ/phòng` : "-",
+      "Thời hạn hợp đồng": hopDongMin,
+      "Số người ở": soNguoi,
+      "Thú cưng": thuCung,
+      "Giờ giấc": gioGiac,
     },
   };
 });

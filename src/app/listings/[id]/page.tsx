@@ -351,7 +351,7 @@ export default async function ListingDetail({
   // có bộ thông số riêng (đất: mặt tiền/chiều dài/hình dáng; nhà: số tầng/nội thất/thang máy).
   const specs = (x.specs ?? null) as Record<string, string> | null;
   // các nhãn đã có ô riêng ở trên -> không lặp lại ở phần thông số nguồn
-  const daCo = /^(hướng (nhà|đất)|pháp lý|giấy tờ pháp lý|loại sổ|tình trạng sổ|số tầng|nội thất|tổng diện tích đất|diện tích|phòng ngủ|phòng tắm|số phòng ngủ|số phòng tắm)/i;
+  const daCo = /^(hướng (nhà|đất)|pháp lý|giấy tờ pháp lý|loại sổ|tình trạng sổ|số tầng|nội thất|tổng diện tích đất|diện tích|phòng ngủ|phòng tắm|số phòng ngủ|số phòng tắm|thời hạn|hợp đồng|số người|người ở|thú cưng|giờ giấc|số xe)/i;
 
   // BẢNG 5 CHI PHÍ (audit 25/10): khách thuê quyết định liên hệ hay không dựa trên TỔNG tiền/tháng, không
   // chỉ giá phòng. Trước đây Điện/Nước/Phí quản lý (EvoHome ghi vào specs) lẫn trong lưới thông số, thiếu
@@ -377,14 +377,17 @@ export default async function ListingDetail({
   // luật khớp của bộ lọc nhận cả "không nuôi thú cưng" là có thú cưng.
   const chuTin = `${x.title || ""} ${x.description || ""}`.toLowerCase();
   const timChu = (re: RegExp) => chuTin.match(re)?.[0] ?? null;
-  const thuCung = /khôngs*(chos*|đượcs*)?(nuôis*)?(thú cưng|pet|chó|mèo)/.test(chuTin) ? "Không cho nuôi"
-    : x.amenities?.some((a) => a === "pet" || a === "thu_cung") || /(cho|được)s*nuôi|nuôis*(thú cưng|chó|mèo|pet)|pet friendly/.test(chuTin) ? "Được nuôi" : null;
+  const thuCung = giaTriSpec(/thú cưng|pet/i)
+    || (/không\s*(cho\s*|được\s*)?(nuôi\s*)?(thú cưng|pet|chó|mèo)/.test(chuTin) ? "Không cho nuôi"
+    : x.amenities?.some((a) => a === "pet" || a === "thu_cung") || /(cho|được)\s*nuôi|nuôi\s*(thú cưng|chó|mèo|pet)|pet friendly/.test(chuTin) ? "Được nuôi" : null);
+  const gioGiac = giaTriSpec(/giờ giấc/i)
+    || (/giờ\s*(giấc\s*)?tự do|không chung chủ|riêng chủ/.test(chuTin) ? "Tự do" : null);
   const dieuKhoan: [string, string | null][] | null = x.deal === "cho_thue" ? [
     ["Tiền cọc", tienCoc],
-    ["Hợp đồng tối thiểu", giaTriSpec(/thời hạn|hợp đồng/i) || timChu(/(hợp đồng|hđ)s*(tối thiểus*)?d+s*(tháng|năm)/)],
-    ["Số người ở", giaTriSpec(/số người|người ở/i) || timChu(/(tối đa|ở được)s*d+s*người/)],
+    ["Hợp đồng tối thiểu", giaTriSpec(/thời hạn|hợp đồng/i) || timChu(/(hợp đồng|hđ)\s*(tối thiểu\s*)?\d+\s*(tháng|năm)/)],
+    ["Số người ở", giaTriSpec(/số người|người ở/i) || timChu(/(tối đa|ở được)\s*\d+\s*người/)],
     ["Thú cưng", thuCung],
-    ["Giờ giấc", /giờs*(giấcs*)?tự do|không chung chủ|riêng chủ/.test(chuTin) ? "Tự do" : null],
+    ["Giờ giấc", gioGiac],
   ] : null;
   const thieuDieuKhoan = !!dieuKhoan?.some(([, v]) => !v);
 
