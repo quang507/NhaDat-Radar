@@ -18,6 +18,7 @@ Tài liệu cho đội tiếp nhận (Antigravity). Đọc kèm [`CLAUDE.md`](..
 | Đo lường | GA4 `G-FJ8QKCLWJZ` (chính) + `G-1XRXV857VE`; Microsoft Clarity "NhaDatRadar" | |
 | Máy 146 (Windows) | `ssh nguye@nuc` (Tailscale `100.85.245.112`) hoặc `ssh nguye@192.168.1.146` (LAN) | Từ 05/11/2026 thay NUC Ubuntu cũ (`192.168.1.52`, `nuc-old`): chạy Crawler rổ hàng EvoHome + HiFriendz, Bot Zalo & Đăng nhóm Zalo qua Windows Task Scheduler (`SYSTEM`), thư mục `C:\radar\` (`C:\radar\README-MAY-NAY.md`). VPS `103.126.162.93` cũ không còn chạy gì của Radar |
 | CI | GitHub Actions: `daily-crawl.yml`, `ro-hang.yml`, `db-prune.yml`, `e2e.yml` | |
+| Trình duyệt tự động | Chrome Antigravity (Port 9222) | Shortcut "Chrome - Antigravity" mở cổng remote debug 9222. Antigravity kết nối trực tiếp để chỉnh cấu hình dashboard (Supabase, Vercel, GSC, Google Cloud...) |
 | Thiết kế | Figma file Nhadatradar + thư viện ZEN (đã đổi Brand sang Emerald) | |
 | Tên miền | Nơi quản lý DNS `nhadatradar.com` | |
 
