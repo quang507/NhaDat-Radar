@@ -48,17 +48,17 @@ export function tinhDiemTuongDong(ungVien: Listing, goc: ThongSoTinGoc): { diem:
     const tiLe = Math.abs(ungVien.price_vnd - goc.price_vnd) / goc.price_vnd;
     if (tiLe <= 0.15) {
       diem += 3;
-      lyDoArr.push("Tầm giá rất sát");
+      lyDoArr.push("Ngang tầm giá");
     } else if (tiLe <= 0.3) {
       diem += 1.5;
-      lyDoArr.push("Tầm giá tương đương");
+      lyDoArr.push("Giá gần bằng");
     }
   }
 
   // 4. Số phòng ngủ
   if (goc.bedrooms && ungVien.bedrooms && goc.bedrooms === ungVien.bedrooms) {
     diem += 1.5;
-    lyDoArr.push(`${goc.bedrooms} phòng ngủ`);
+    lyDoArr.push(`${goc.bedrooms} PN`);
   }
 
   // 5. Rổ hàng xác minh
@@ -66,7 +66,7 @@ export function tinhDiemTuongDong(ungVien: Listing, goc: ThongSoTinGoc): { diem:
     diem += 1;
   }
 
-  return { diem, lyDo: lyDoArr.slice(0, 2).join(" · ") || "Phù hợp nhu cầu" };
+  return { diem, lyDo: lyDoArr.slice(0, 2).join(" · ") || "Gần đây" };
 }
 
 /**

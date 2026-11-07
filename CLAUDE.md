@@ -23,7 +23,7 @@ Tài liệu này là chỉ dẫn cốt lõi dành cho AI (Claude, Antigravity) v
   * Bot Zalo nghe nhóm BĐS (`crawler/zalo-bot.mjs`, chạy 24/7) và đăng nhóm (`crawler/zalo-dang-nhom.mjs`, mỗi 15 phút 08:30–19:45) chạy qua Task Scheduler trên máy 146, acc clone đăng nhập qua `zalo-agent-cli`.
   * Phần [`deploy/nuc/`](deploy/nuc/README.md) bên dưới là bản cấu hình systemd cho NUC Ubuntu cũ, giữ làm tham khảo.
 * **Ảnh/video rổ hàng (từ 5/11/2026):** trình duyệt tải THẲNG từ máy chủ đối tác (Firebase HiFriendz, media.evohome), `listings.images` giữ URL gốc (anh Quang chấp nhận lộ nguồn ảnh 5/11). KHÔNG cho ảnh/video đi qua Vercel (rewrite, route handler, `next/image`): 3-4/11 từng để Vercel cắt logo + chuyển tiếp video, vượt Fast Origin Transfer gói Hobby, Vercel khoá tài khoản. `/m/*` cũ chỉ còn redirect về nguồn (`next.config.mjs`, khớp `crawler/che-media.mjs`).
-* **VPS `103.126.162.93` (sắp hết hạn) không còn chạy gì của Radar.** Các dịch vụ còn lại trên đó thuộc dự án khác: AOND (`aond-core` FastAPI 127.0.0.1:8000, bridge Zalo `nhadat-bridge*`), `goi-bot`, `stock-bot`.
+* **VPS `103.126.162.93` đã ngừng sử dụng và gỡ sạch (06/11/2026):** Toàn bộ 5 dịch vụ cuối cùng trên VPS (`aond-core`, `nhadat-bridge`, `nhadat-bridge-tu-van`, `goi-bot`, `stockbot`) cũng đã được chuyển sang **Máy 146 (`C:\aond`, `C:\goi-bot`, `C:\stock-bot`)** chạy qua Windows Task Scheduler.
 * **Crawler trên GitHub Actions:** `daily-crawl.yml`, `ro-hang.yml`, `db-prune.yml`, `e2e.yml`.
 
 ---

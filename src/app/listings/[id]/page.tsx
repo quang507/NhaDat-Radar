@@ -928,18 +928,14 @@ export default async function ListingDetail({
           ) : null}
 
           {/* Khối giữ chân khách vãng lai: Chưa ưng căn này? Nhắn Zalo Radar */}
-          <div className="card rounded-xl p-5 border border-emerald-300/80 bg-gradient-to-br from-emerald-50/70 to-white dark:from-emerald-950/20 dark:to-[var(--surface)] shadow-sm">
+          <div className="card rounded-lg p-5 border border-emerald-300/80 bg-emerald-50/40 dark:bg-emerald-950/20">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-600/10 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
-                  <span>Dịch vụ tìm nhà nhanh Radar</span>
-                </div>
-                <h4 className="text-base font-extrabold text-[var(--ink)]">
-                  Chưa tìm được căn vừa ý tại {x.district || "khu vực này"}?
+                <h4 className="text-base font-bold text-[var(--ink)]">
+                  Chưa chọn được căn ưng ý ở {x.district || "khu vực này"}?
                 </h4>
-                <p className="text-xs text-[var(--ink-soft)] max-w-xl leading-relaxed">
-                  {/* 3/11: bỏ "hơn 1.000 phòng tại <quận>" (sai với đa số quận) và "5 phút" (trang chủ hứa 15 phút) */}
-                  Nhắn Zalo nhu cầu (tài chính, khu vực, tiện ích), đội ngũ Radar lọc rổ hàng {x.district ? `tại ${x.district} ` : ""}và gửi bạn 3 căn phù hợp nhất trong 15 phút.
+                <p className="text-xs sm:text-sm text-[var(--ink-soft)] max-w-xl leading-relaxed">
+                  Nhắn qua Zalo mức giá bạn cần và khu vực muốn ở, tụi mình lọc nhanh 3 căn đang trống {x.district ? `tại ${x.district} ` : ""}gửi bạn xem trong 15 phút.
                 </p>
               </div>
               <NutZalo

@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { fmtPrice, PROP, thumb } from "@/lib/format";
-import { cleanImages } from "@/lib/img";
-import { maPhong } from "@/lib/ro-hang";
+import { fmtPrice, PROP } from "@/lib/format";
+import { cleanImages, thongTinAnh } from "@/lib/img";
+import { maPhong, laRoHang } from "@/lib/ro-hang";
+import { laTinDocQuyen, cheSoVanBan } from "@/lib/doc-quyen";
 import type { ListingTuongTu } from "@/lib/tuong-tu";
-import { Sparkles, MapPin, CheckCircle2 } from "lucide-react";
+import { MapPin, ShieldCheck, Camera } from "lucide-react";
 import HangVuot from "@/components/HangVuot";
+import FavButton from "@/components/FavButton";
 
 import SafeImg from "@/components/SafeImg";
 import PropertyPlaceholder from "@/components/PropertyPlaceholder";
@@ -20,82 +22,102 @@ export default function SimilarListings({
 }) {
   if (!items || items.length === 0) return null;
 
+  const tenLoai = loaiBDS ? (PROP as Record<string, string>)[loaiBDS] || loaiBDS : "Phòng";
+
   return (
     <section id="tin-tuong-tu" className={className}>
-      <div className="flex items-center justify-between mb-3.5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-1 rounded-lg bg-brand/10 text-brand">
-              <Sparkles className="w-5 h-5" />
-            </span>
-            <h3 className="font-bold text-base sm:text-lg text-[var(--ink)]">
-              Gợi ý {loaiBDS ? (PROP as Record<string, string>)[loaiBDS] || loaiBDS : "phòng"} tương tự cùng tầm giá
-            </h3>
-          </div>
-          <p className="text-xs text-[var(--ink-soft)] mt-0.5">
-            Lọc theo vị trí sát bên, phân khúc giá tương đương (±30%) &amp; tiêu chuẩn phòng
-          </p>
-        </div>
+      <div className="mb-3.5">
+        <h3 className="font-bold text-base sm:text-lg text-[var(--ink)]">
+          {tenLoai} tương tự quanh đây
+        </h3>
+        <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+          Các căn đang trống gần địa chỉ này, mức giá chênh không quá 30%
+        </p>
       </div>
 
       <HangVuot
         motHang
         items={items.map((x) => {
           const img = cleanImages(x.images || [])[0] || null;
+          const xacThuc = laRoHang(x);
+          const anh = thongTinAnh(x);
+          const title = cheSoVanBan(x.title, laTinDocQuyen(x));
+          const diaChiNgan = [x.ward, x.district].filter(Boolean).join(", ") || x.province || "-";
+
           return {
             key: x.id,
             node: (
               <Link
                 href={`/listings/${x.id}`}
-                className="group card rounded-2xl overflow-hidden border border-[var(--line)] hover:border-brand/50 hover:shadow-lg transition-all flex flex-col h-full bg-[var(--surface)]"
+                className={`group card rounded-lg overflow-hidden border border-[var(--line)] hover:border-brand/50 transition-all duration-200 flex flex-col h-full bg-[var(--surface)] ${
+                  xacThuc ? "border-t-2 border-t-brand" : ""
+                }`}
               >
-                <div className="relative aspect-[4/3] overflow-hidden bg-[var(--surface-2)]">
+                <div className="relative aspect-[16/10] overflow-hidden bg-[var(--surface-2)]">
                   {img ? (
                     <SafeImg
                       the
                       src={img}
-                      alt={x.title}
+                      alt={title}
                       fallbackLabel={x.kind}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <PropertyPlaceholder kind={x.kind} />
                   )}
-                  {x.lyDoGoiY && (
-                    <span className="absolute top-2.5 left-2.5 text-[0.68rem] font-semibold bg-brand text-white px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>{x.lyDoGoiY}</span>
-                    </span>
-                  )}
-                  {x.source === "ro_hang" && (
-                    <span className="absolute bottom-2.5 left-2.5 text-[0.65rem] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded shadow-sm">
-                      Mã {maPhong(x.id)} · Rổ hàng xác minh
+
+                  {/* Góc trái: chỉ giữ 1 nhãn nhỏ gọn để không che ảnh phòng */}
+                  <div className="absolute top-2 left-2 right-12 flex items-center gap-1">
+                    {xacThuc && (
+                      <span className="inline-flex items-center gap-0.5 text-overline tracking-tight font-bold px-1.5 py-0.5 rounded-sm whitespace-nowrap bg-emerald-600/95 text-white shadow-xs">
+                        <ShieldCheck className="w-2.5 h-2.5 stroke-[2.5]" />
+                        XÁC MINH
+                      </span>
+                    )}
+                  </div>
+
+                  <FavButton id={x.id} className="absolute top-2 right-2" />
+
+                  {anh.so > 1 && (
+                    <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-overline font-semibold px-1.5 py-0.5 rounded bg-black/70 text-white">
+                      <Camera className="w-3 h-3" />
+                      <span>{anh.so}</span>
                     </span>
                   )}
                 </div>
 
                 <div className="p-3.5 flex flex-col flex-1 justify-between gap-2">
                   <div>
-                    <div className="flex items-baseline justify-between gap-1">
-                      <span className="text-brand font-extrabold text-base leading-snug">
+                    <div className="flex items-baseline justify-between gap-1.5">
+                      <span className="text-brand font-extrabold text-lg leading-none tracking-tight">
                         {fmtPrice(x.price_vnd, x.deal)}
                       </span>
                       {x.area_m2 ? (
-                        <span className="text-xs font-semibold text-[var(--ink-soft)]">
+                        <span className="text-xs font-semibold text-[var(--ink-soft)] shrink-0">
                           {x.area_m2} m²
                         </span>
                       ) : null}
                     </div>
-                    <h4 className="text-xs font-semibold text-[var(--ink)] line-clamp-2 mt-1 group-hover:text-brand transition-colors">
-                      {x.title}
+
+                    <h4 className="text-xs sm:text-sm font-bold text-[var(--ink)] leading-snug line-clamp-2 mt-1.5 group-hover:text-brand transition-colors">
+                      {title}
                     </h4>
                   </div>
 
-                  <div className="text-[0.7rem] text-[var(--ink-soft)] flex items-center gap-1 truncate pt-2 border-t border-[var(--line)]">
-                    <MapPin className="w-3.5 h-3.5 text-[var(--ink-faint)] shrink-0" />
-                    <span className="truncate">
-                      {[x.ward, x.district, x.province].filter(Boolean).join(", ")}
-                    </span>
+                  <div className="pt-2 border-t border-[var(--line)] space-y-1">
+                    <div className="text-xs text-[var(--ink-soft)] flex items-center gap-1 truncate">
+                      <MapPin className="w-3.5 h-3.5 text-brand/70 shrink-0" />
+                      <span className="truncate">{diaChiNgan}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-1 text-[0.7rem] text-[var(--ink-faint)]">
+                      <span className="truncate">{x.lyDoGoiY}</span>
+                      {xacThuc && (
+                        <span className="font-mono font-semibold text-[var(--ink-soft)] shrink-0">
+                          {maPhong(x.id)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Link>
