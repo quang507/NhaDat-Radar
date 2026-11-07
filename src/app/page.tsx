@@ -97,16 +97,17 @@ const HERO: string | null = (() => {
 
 // 3/11 (UX audit): 92% lượt xem là tin THUÊ, 77% là phòng trọ (su_kien 8/10-3/11) mà trang chủ không có khối
 // phòng trọ nào, khối bán đứng đầu. Xếp lại theo nhu cầu: thuê trước, bán sau; "Căn hộ" tách thuê / bán.
+// 7/11 (SEO audit §2.1): link "Xem tất cả" trỏ đúng trang loại BĐS tĩnh của TP.HCM để thông dòng PageRank.
 const CATS: { t: string; f: (x: Listing) => boolean; href: string }[] = [
-  { t: "Phòng trọ cho thuê", f: (x) => x.kind === "phong_tro" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh" },
-  { t: "Căn hộ cho thuê", f: (x) => x.kind === "can_ho" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh" },
-  { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh" },
+  { t: "Phòng trọ cho thuê", f: (x) => x.kind === "phong_tro" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh/phong-tro" },
+  { t: "Căn hộ cho thuê", f: (x) => x.kind === "can_ho" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh/can-ho" },
+  { t: "Nhà cho thuê", f: (x) => x.kind === "nha" && x.deal === "cho_thue", href: "/nha-dat-cho-thue/ho-chi-minh/nha" },
   // khối và link phải cùng bộ lọc - bản cũ khối gồm cả "khac" nhưng link chỉ mat_bang,
   // bấm "Xem tất cả" là tin đang hiện biến mất
-  { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/nha-dat-cho-thue/ho-chi-minh" },
-  { t: "Căn hộ bán", f: (x) => x.kind === "can_ho" && x.deal === "ban", href: "/nha-dat-ban/ho-chi-minh" },
-  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/nha-dat-ban/ho-chi-minh" },
-  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/nha-dat-ban" },
+  { t: "Mặt bằng kinh doanh", f: (x) => x.kind === "mat_bang", href: "/nha-dat-cho-thue/ho-chi-minh/mat-bang" },
+  { t: "Căn hộ bán", f: (x) => x.kind === "can_ho" && x.deal === "ban", href: "/nha-dat-ban/ho-chi-minh/can-ho" },
+  { t: "Nhà bán", f: (x) => x.kind === "nha" && x.deal === "ban", href: "/nha-dat-ban/ho-chi-minh/nha" },
+  { t: "Đất nền bán", f: (x) => x.kind === "dat" && x.deal === "ban", href: "/nha-dat-ban/ho-chi-minh/dat" },
 ];
 
 export default async function Home() {
@@ -305,14 +306,14 @@ export default async function Home() {
               href={HOTLINE_ZALO}
               target="_blank"
               rel="noopener noreferrer"
-              title="Chat Zalo hoặc gọi hotline tư vấn 24/7"
+              title="Chat Zalo hoặc gọi hotline tư vấn xem phòng (8:00 - 21:00)"
               className="p-2.5 sm:p-3 rounded-sm border border-[var(--line)] border-t-2 border-t-blue-500 bg-[var(--surface)] flex items-center gap-2 sm:gap-2.5 shadow-2xs hover:border-blue-500 hover:shadow-xs transition group cursor-pointer"
             >
               <div className="w-7 h-7 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                 <Clock className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Hỗ trợ 24/7</div>
+                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Phản hồi 15 phút</div>
                 <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Hotline: 0387 365 020</div>
               </div>
             </a>
@@ -493,7 +494,7 @@ export default async function Home() {
             </NutZalo>
           </section>
 
-          {/* ===== Duyệt theo danh mục ===== */}
+          {/* ===== Duyệt theo danh mục (7/11 SEO audit §2.1: trỏ thẳng trang loại BĐS tĩnh) ===== */}
           <section className="mt-10 sm:mt-12">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="heading-2 border-l-4 border-brand pl-3 text-[var(--ink)]">Duyệt theo danh mục</h2>
@@ -502,37 +503,41 @@ export default async function Home() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 { 
-                  kind: "nha", 
-                  t: "Nhà Riêng", 
-                  d: "Nhà phố, biệt thự, nhà hẻm ô tô đầy đủ tiện nghi", 
+                  kind: "phong_tro", 
+                  href: "/nha-dat-cho-thue/ho-chi-minh/phong-tro",
+                  t: "Phòng Trọ & Studio", 
+                  d: "Phòng trống xác minh, studio gác lửng, bảng 5 khoản phí rõ ràng", 
                   icon: HomeIcon, 
-                  img: "/categories/nha-rieng.jpg" 
-                },
-                { 
-                  kind: "can_ho", 
-                  t: "Căn Hộ", 
-                  d: "Chung cư, studio & căn hộ dịch vụ trung tâm", 
-                  icon: Building2, 
                   img: "/categories/can-ho.jpg" 
                 },
                 { 
-                  kind: "dat", 
-                  t: "Đất Nền", 
-                  d: "Đất thổ cư phân lô, sổ đỏ trao tay chính chủ", 
+                  kind: "can_ho", 
+                  href: "/nha-dat-cho-thue/ho-chi-minh/can-ho",
+                  t: "Căn Hộ & CHDV", 
+                  d: "Chung cư, studio và căn hộ dịch vụ đủ nội thất khu trung tâm", 
+                  icon: Building2, 
+                  img: "/categories/nha-rieng.jpg" 
+                },
+                { 
+                  kind: "nha", 
+                  href: "/nha-dat-ban/ho-chi-minh/nha",
+                  t: "Nhà Phố & Biệt Thự", 
+                  d: "Nhà riêng, nhà mặt tiền, hẻm xe hơi pháp lý sổ hồng chuẩn", 
                   icon: LandPlot, 
                   img: "/categories/dat-nen.jpg" 
                 },
                 { 
                   kind: "mat_bang", 
-                  t: "Mặt Bằng", 
-                  d: "Mặt tiền kinh doanh sầm uất, shophouse đắc địa", 
+                  href: "/nha-dat-cho-thue/ho-chi-minh/mat-bang",
+                  t: "Mặt Bằng Kinh Doanh", 
+                  d: "Mặt tiền kinh doanh sầm uất, văn phòng và shophouse khu đông dân", 
                   icon: Store, 
                   img: "/categories/mat-bang.jpg" 
                 },
-              ].map(({ kind, t, d, icon: Icon, img }) => (
+              ].map(({ kind, href, t, d, icon: Icon, img }) => (
                 <Link
                   key={kind}
-                  href={`/search?kind=${kind}`}
+                  href={href}
                   className="relative rounded-lg overflow-hidden min-h-[240px] group flex flex-col justify-between p-4 sm:p-5 text-white shadow-sm hover:shadow-md transition-all duration-300 border border-[var(--line)]"
                 >
                   {/* Ảnh nền thực tế */}

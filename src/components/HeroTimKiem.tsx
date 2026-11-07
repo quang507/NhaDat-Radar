@@ -211,7 +211,9 @@ export default function HeroTimKiem({ chip, places }: { chip: Record<"cho_thue" 
                     ["/phong-tro-gan-truong-dai-hoc/cong-nghiep-tphcm-iuh", "ĐH Công Nghiệp"],
                     ["/phong-tro-gan-truong-dai-hoc/su-pham-tphcm-hcmue", "ĐH Sư Phạm"],
                     ["/phong-tro-gan-truong-dai-hoc/y-duoc-tphcm-ump", "ĐH Y Dược"],
-                    [qs({ deal: "cho_thue", province: "Hồ Chí Minh", q: "Metro" }), "Tuyến Metro số 1"],
+                    ["/phong-tro-gan/ga-metro-van-thanh", "Tuyến Metro số 1"],
+                    ["/phong-tro-gan/etown-cong-hoa", "Etown Cộng Hoà"],
+                    ["/phong-tro-gan/san-bay-tan-son-nhat", "Sân bay Tân Sơn Nhất"],
                   ].map(([href, label]) => (
                     <Link
                       key={label}

@@ -25,7 +25,7 @@ export default function Footer() {
         <div>
           <div className="font-bold mb-3">Khám phá</div>
           <ul className="space-y-2 text-[var(--ink-soft)]">
-            <li><Link className="hover:text-brand transition-colors" href="/search">Tìm kiếm bất động sản</Link></li>
+            <li><Link className="hover:text-brand transition-colors" href="/nha-dat-cho-thue/ho-chi-minh/phong-tro">Phòng trọ TP.HCM</Link></li>
             <li><Link className="hover:text-brand transition-colors text-brand font-medium" href="/phong-tro-gan-truong-dai-hoc">Phòng trọ gần Đại học TP.HCM</Link></li>
             <li><Link className="hover:text-brand transition-colors text-xs text-[var(--ink-faint)]" href="/phong-tro-duoi-3-trieu">Phòng trọ dưới 3 triệu</Link> · <Link className="hover:text-brand transition-colors text-xs text-[var(--ink-faint)]" href="/phong-tro-co-gac-lung">Có gác lửng</Link> · <Link className="hover:text-brand transition-colors text-xs text-[var(--ink-faint)]" href="/can-ho-mini-full-noi-that">CHDV Studio</Link></li>
             <li>

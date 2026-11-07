@@ -160,7 +160,7 @@ export default async function ThematicLanding({
               </div>
               <div className="text-[11px] text-[var(--text-3)] flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                Tin cập nhật liên tục 24/7
+                Cập nhật phòng trống mỗi ngày
               </div>
             </div>
           </div>

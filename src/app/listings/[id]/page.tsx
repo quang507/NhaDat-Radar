@@ -292,18 +292,27 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const title = `${tenGon}${duoi}`;
 
   const moTa = cheSoVanBan(data.description, docQuyen);
-  const diaDiem = [docQuyen ? cheSoNha(data.address) : data.address, data.ward, data.district, data.province].filter(Boolean).join(", ");
+  const quanChuan = data.district ? canonDistrict(data.district) : data.district;
+  const diaDiem = [docQuyen ? cheSoNha(data.address) : data.address, data.ward, quanChuan, data.province].filter(Boolean).join(", ");
   const description = catChu(
     `${tieuDeGoc}. Giá niêm yết: ${gia}${data.area_m2 ? ` (${data.area_m2}m²)` : ""}. Vị trí: ${diaDiem}. 5 khoản phí minh bạch, ảnh thật, hẹn xem phòng miễn phí. Mã phòng: ${mp}.`,
     160
   );
   const img = cleanImages(data.images || [])[0];
+  // 7/11 (SEO audit §3.3): Nếu tòa nhà có > 1 phòng đang trống, chỉ cho phép Google index phòng đại diện
+  // (phòng giá tốt nhất / tạo sớm nhất trong cùng tòa) để tránh bị đánh lỗi Duplicate / Crawled - currently not indexed.
+  const tatCaCungToa = [data, ...(pub?.phongCungToa ?? [])];
+  const phongDaiDien = [...tatCaCungToa].sort(
+    (a, b) => (a.price_vnd || 9e15) - (b.price_vnd || 9e15) || String(a.id).localeCompare(String(b.id))
+  )[0];
+  const choIndex = !roHang || !phongDaiDien || phongDaiDien.id === data.id;
   return {
     title,
     description,
     // canonical: trang tin trước đây không khai báo -> mọi biến thể URL (tham số utm, tracking) đều
     // được coi là trang riêng.
     alternates: { canonical: `/listings/${id}` },
+    ...(choIndex ? {} : { robots: { index: false, follow: true } }),
     openGraph: { type: "article", url: `${SITE_URL}/listings/${id}`, title, description, ...(img ? { images: [{ url: img }] } : {}) },
     twitter: {
       card: "summary_large_image",
@@ -330,6 +339,7 @@ export default async function ListingDetail({
   const data = pub.tin;
   if (data.status === "gone") permanentRedirect(await khuVucCuaTin(data));
   const x = { ...data, contact_phone: null } as Listing;
+  if (x.district) x.district = canonDistrict(x.district);
   const docQuyen = laTinDocQuyen(x);
   Object.assign(x, cheSoTin(x));
   const t = thumb(x.kind);

@@ -36,7 +36,7 @@ export default function SanPhongHoCTA({
           <div className="mt-4 flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-[var(--text-3)] font-medium">
             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              100% phòng thật, không tin ảo
+              Phòng trống đã xác minh thực tế
             </span>
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4 text-brand shrink-0" />

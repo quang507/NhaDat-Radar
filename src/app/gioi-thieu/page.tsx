@@ -79,7 +79,7 @@ export default function GioiThieuPage() {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Trợ lý AI hỗ trợ gợi ý căn nhà phù hợp 24/7</span>
+              <span>Trợ lý AI hỗ trợ gợi ý căn nhà phù hợp theo nhu cầu</span>
             </div>
           </div>
         </section>
@@ -88,7 +88,7 @@ export default function GioiThieuPage() {
           <h2 className="text-xl font-bold text-[var(--ink)]">Bắt đầu trải nghiệm cùng NhaDat Radar</h2>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
-              href="/search"
+              href="/nha-dat-cho-thue/ho-chi-minh"
               className="px-6 py-2.5 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 transition-opacity"
             >
               Tìm kiếm nhà đất ngay

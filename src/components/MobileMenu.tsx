@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 
 const LINKS = [
-  { href: "/search?deal=ban", label: "Mua Bán", icon: Home },
-  { href: "/search?deal=cho_thue", label: "Cho Thuê", icon: KeyRound },
+  { href: "/nha-dat-ban", label: "Mua Bán", icon: Home },
+  { href: "/nha-dat-cho-thue", label: "Cho Thuê", icon: KeyRound },
   { href: "/projects", label: "Dự án", icon: Building2 },
   { href: "/agents", label: "Người Bán", icon: Users },
   { href: "/thong-ke", label: "Thống kê", icon: BarChart3 },

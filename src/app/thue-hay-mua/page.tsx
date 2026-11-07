@@ -3,6 +3,7 @@ export const revalidate = 3600;
 
 import { createAnonClient } from "@/lib/supabase/anon";
 import { median } from "@/lib/gemini";
+import { areaPath } from "@/lib/slug";
 import Link from "next/link";
 import RentVsBuyCalc from "./RentVsBuyCalc";
 import { TrendingUp, ArrowUpRight } from "lucide-react";
@@ -82,9 +83,9 @@ export default async function RentVsBuyPage() {
               {rows.slice(0, 15).map((r) => (
                 <Link
                   key={r.district + r.province}
-                  href={`/search?province=${encodeURIComponent(r.province)}&district=${encodeURIComponent(r.district)}`}
+                  href={areaPath("cho_thue", r.province, r.district)}
                   className="grid grid-cols-[1fr_70px_70px_60px] gap-2 items-center py-1.5 px-2 -mx-2 rounded-lg border-b border-[var(--line)] last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-brand transition-colors group cursor-pointer"
-                  title={`Xem tin bán & thuê tại ${r.district}, ${r.province}`}
+                  title={`Xem tin cho thuê & mua bán tại ${r.district}, ${r.province}`}
                 >
                   <span className="truncate group-hover:underline flex items-center gap-1">
                     <span>{r.district}</span>

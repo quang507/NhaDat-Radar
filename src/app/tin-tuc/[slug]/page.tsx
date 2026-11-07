@@ -300,7 +300,7 @@ function BaoCaoQuan({
         <section className="space-y-2">
           <h2 className="font-bold text-xl text-[var(--ink)]">So với căn hộ dịch vụ / studio</h2>
           <p className="text-slate-700">
-            Căn hộ cho thuê tại {ten} có giá trung vị <b className="text-brand">{trieu(bc.canHo.trungVi)}</b>/tháng ({bc.canHo.n} căn) — cao hơn phòng trọ thường nhưng đã trang bị đầy đủ nội thất, thang máy và dịch vụ quản lý tiện nghi.
+            Căn hộ cho thuê tại {ten} có giá trung vị <b className="text-brand">{trieu(bc.canHo.trungVi)}</b>/tháng ({bc.canHo.n} căn), cao hơn phòng trọ thường nhưng đã có sẵn nội thất, thang máy và dịch vụ quản lý tòa nhà.
           </p>
         </section>
       )}
@@ -341,7 +341,7 @@ function BaoCaoQuan({
           <h2 className="font-bold text-lg text-[var(--ink)]">Xem {bc.n.toLocaleString("vi-VN")} phòng trọ {ten} đã xác minh còn trống</h2>
         </div>
         <p className="text-sm text-[var(--ink-soft)]">
-          Hình ảnh thực tế, mức giá minh bạch, phòng trống đã xác thực trên NhaDat Radar — hỗ trợ xem phòng miễn phí và thương lượng trực tiếp với chủ nhà.
+          Hình ảnh thực tế, mức giá minh bạch, phòng trống đã xác thực trên NhaDat Radar. Hỗ trợ hẹn xem phòng miễn phí và làm việc trực tiếp với chủ nhà.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
           <Link href={linkPhong} className="btn btn-primary inline-flex items-center gap-1.5 shadow-sm">
@@ -484,7 +484,7 @@ function BaiHuongDan({ b, lienQuan }: { b: BaiViet; lienQuan?: BaiViet[] }) {
           NhaDat Radar giúp bạn tìm kiếm, thẩm định giá và xác minh thông tin nhà đất khắp Việt Nam. Chúng tôi cam kết dữ liệu minh bạch, hình ảnh thực tế và hỗ trợ thương lượng trực tiếp chủ nhà.
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
-          <Link href="/search" className="btn btn-primary inline-flex items-center gap-1.5">
+          <Link href="/nha-dat-cho-thue/ho-chi-minh" className="btn btn-primary inline-flex items-center gap-1.5">
             <span>Tìm nhà đất ngay</span>
             <ArrowRight className="w-4 h-4" />
           </Link>

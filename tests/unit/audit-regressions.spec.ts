@@ -53,5 +53,36 @@ test("schema.sql không còn đọc role từ metadata client lúc đăng ký", 
 
 test("rổ hàng EvoHome không ghi cột generated của listings (price_per_m2 từng làm upsert chết, 0 phòng lên web)", () => {
   const s = doc("crawler/ro-hang-evohome.mjs");
-  for (const c of ["price_per_m2", "has_contact_phone"]) expect(s, c).not.toMatch(new RegExp(`\b${c}\s*:`));
+  for (const c of ["price_per_m2", "has_contact_phone"]) expect(s, c).not.toMatch(new RegExp(`\\b${c}\\s*:`));
+});
+
+test("trang SEO động có generateStaticParams + revalidate để giữ cache ISR (docs/AUDIT-SEO-2026-11.md §2.2)", () => {
+  const ROUTE_ISR = [
+    "src/app/listings/[id]/page.tsx",
+    "src/app/projects/[id]/page.tsx",
+    "src/app/nha-dat-ban/[province]/page.tsx",
+    "src/app/nha-dat-ban/[province]/[district]/page.tsx",
+    "src/app/nha-dat-ban/[province]/[district]/[kind]/page.tsx",
+    "src/app/nha-dat-cho-thue/[province]/page.tsx",
+    "src/app/nha-dat-cho-thue/[province]/[district]/page.tsx",
+    "src/app/nha-dat-cho-thue/[province]/[district]/[kind]/page.tsx",
+    "src/app/phong-tro-gan/[diem]/page.tsx",
+    "src/app/phong-tro-gan-truong-dai-hoc/[slug]/page.tsx",
+    "src/app/tin-tuc/[slug]/page.tsx",
+  ];
+  for (const f of ROUTE_ISR) {
+    const s = doc(f);
+    expect(s, f).toMatch(/export\s+const\s+revalidate\s*=\s*\d+/);
+    expect(s, f).toMatch(/export\s+async\s+function\s+generateStaticParams/);
+    expect(s, f).not.toMatch(/export\s+const\s+dynamic\s*=\s*["']force-dynamic["']/);
+  }
+});
+
+test("trang chủ và menu không dẫn danh mục chính vào /search?kind= hay /search?deal= (docs/AUDIT-SEO-2026-11.md §2.1)", () => {
+  const home = doc("src/app/page.tsx");
+  expect(home).not.toContain("/search?kind=");
+  const menu = doc("src/components/MobileMenu.tsx");
+  expect(menu).not.toContain("/search?deal=");
+  const footer = doc("src/components/Footer.tsx");
+  expect(footer).not.toContain("/search");
 });

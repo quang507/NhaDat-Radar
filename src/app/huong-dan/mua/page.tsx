@@ -14,7 +14,7 @@ export default function BuyerGuidePage() {
       title="Hướng Dẫn Mua & Thuê Nhà"
       subtitle="Mọi thứ bạn cần biết để tìm và sở hữu (hoặc thuê) ngôi nhà mơ ước một cách an toàn"
       cta="Bắt Đầu Tìm Kiếm Bất Động Sản"
-      ctaHref="/search"
+      ctaHref="/nha-dat-ban"
       steps={[
         {
           title: "Xác Định Nhu Cầu",
