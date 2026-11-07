@@ -22,7 +22,7 @@ export default function AdSenseBanner({
   className = "",
 }: AdSenseBannerProps) {
   const adRef = useRef<HTMLModElement>(null);
-  const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim();
+  const clientId = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim() || "ca-pub-8747500665166380";
   const adSlot = slot || process.env.NEXT_PUBLIC_ADSENSE_DEFAULT_SLOT?.trim();
 
   useEffect(() => {
