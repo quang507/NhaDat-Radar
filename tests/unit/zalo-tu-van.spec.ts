@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
-  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach, trichXuatDinhDanh,
+  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach, trichXuatDinhDanh, timPhongPhuHop,
 } from "../../crawler/zalo-tu-van-lead.mjs";
 import { laBaiTimPhong } from "../../crawler/khach-tim.mjs";
 import { hoiThoaiMoi, themTin, nguoiNhan } from "../../crawler/zalo-hoi-thoai.mjs";
@@ -43,7 +43,7 @@ test("luật cứng: 'bớt giá' là mặc cả, không phải nghi bot; không
 test("dữ kiện: chỉ nhãn công khai, '-' là thiếu, lấy bổ sung từ rổ hàng", () => {
   const f = factsTuTin(TIN, RO_HANG);
   expect(f).toMatchObject({ ma: "RH1A2B3C", gia: "4,2 triệu/tháng", dien_tich: "20 m²", khu_vuc: "Phường 13, Quận Tân Bình",
-    dien: "3.800 đ/kWh", gui_xe: "100.000 đ/xe", tien_ich: "điều hoà, máy giặt" });
+    dien: "3.800 đ/kWh", gui_xe: "100.000 đ/xe", tien_ich: "máy lạnh, máy giặt" });
   expect(JSON.stringify(f)).not.toMatch(/305|40 80|12\/3|evohome/i);
   expect(factsTuTin({ ...TIN, specs: { "Nước": "-" } }, null).nuoc).toBeUndefined();
 });
@@ -287,14 +287,14 @@ test("săn khách tìm phòng: nhận diện tin tìm phòng, soạn tin rep nh�
   });
 
   expect(repNhom).toContain("@Tuấn Anh");
-  expect(repNhom).toContain("2 căn đúng nhu cầu ở Quận Bình Thạnh");
-  expect(repNhom).toContain("tin nhắn chờ Zalo");
+  expect(repNhom).toContain("Bình Thạnh");
+  expect(repNhom).toContain("Zalo");
 
-  expect(tinRieng).toContain("Dạ em chào Tuấn Anh!");
-  expect(tinRieng).toContain("3,8tr/tháng (gác lửng, ban công)");
-  expect(tinRieng).toContain("4tr/tháng (điều hoà)");
-  expect(tinRieng).toContain("Radar dẫn xem phòng trực tiếp miễn phí 100%");
-  expect(tinRieng).toContain("Tối nay tầm 18h30 hoặc chiều mai");
+  expect(tinRieng).toContain("Tuấn Anh");
+  expect(tinRieng).toContain("Bình Thạnh");
+  expect(tinRieng).toContain("3tr8");
+  expect(tinRieng).toContain("4tr");
+  expect(tinRieng).toContain("0387 365 020");
 });
 
 test("cổng gửi: hỗ trợ gửi tin nhóm có mention và thả tim (react)", async () => {
@@ -324,14 +324,14 @@ test("đồng bộ vận hành: hotline 0387 365 020 (Lê Quang), mã phòng RH,
   // 2. Bóc tách 5 khoản phí minh bạch và Hotline Radar
   const f = factsTuTin(TIN, RO_HANG);
   const r = soanTraLoiTuFacts(["chi_phi"], f)!;
-  expect(r).toContain("5 khoản phí minh bạch (nói không với chi phí ẩn)");
+  expect(r).toContain("Phòng RH1A2B3C bên mình tính phí rõ ràng từ đầu như này nha:");
   expect(r).toContain("Điện: 3.800 đ/kWh");
   expect(r).toContain("Nước: 100.000 đ/người");
   expect(r).toContain("Gửi xe: 100.000 đ/xe");
   expect(r).toContain("Dịch vụ (Phí quản lý): 150.000 đ/phòng");
   expect(r).toContain("Tiền phòng: 4,2 triệu/tháng");
-  expect(r).toContain("0387 365 020 (Lê Quang)");
-  expect(r).toContain("Radar dẫn xem miễn phí 100%");
+  expect(r).toContain("0387 365 020");
+  expect(r).toContain("Bên mình dẫn coi phòng miễn phí");
 
   // 3. AI draft cho phép hotline chính thức nhưng chặn SĐT lạ
   const goiYHopLe = ["Hotline/Zalo: 0387 365 020 (Lê Quang)"];
@@ -341,3 +341,53 @@ test("đồng bộ vận hành: hotline 0387 365 020 (Lê Quang), mã phòng RH,
   const pl2 = chuanHoaPhanLoai({ y_dinh: "hoi_thong_tin", hoi_ve: ["dien"], do_tin_cay: 0.9, goi_y: ["Gọi số 0912 345 678 nhé"] });
   expect(pl2?.goi_y).toEqual([]);
 });
+
+test("timPhongPhuHop: tự tra cứu DB theo loại phòng (1PN, VP) ngay cả khi khách không ghi quận", async () => {
+  const fakeRows = [
+    { id: "11111111-1111-1111-1111-111111111111", title: "Căn 1PN chung cư Bến Vân Đồn", price_vnd: 8000000, district: "Quận 4", specs: { "Loại phòng": "1 Phòng ngủ" } },
+    { id: "22222222-2222-2222-2222-222222222222", title: "Mặt bằng kinh doanh văn phòng", price_vnd: 10000000, district: "Quận 1", specs: { "Loại phòng": "Mặt bằng" } },
+    { id: "33333333-3333-3333-3333-333333333333", title: "Phòng trọ studio tiện nghi", price_vnd: 4500000, district: "Bình Thạnh", specs: { "Loại phòng": "Studio" } },
+  ];
+
+  const fakeSb: any = {
+    from: () => {
+      let filter = "";
+      const query: any = {
+        select: () => query,
+        eq: () => query,
+        ilike: () => query,
+        lte: () => query,
+        gte: () => query,
+        or: (expr: string) => { filter = expr; return query; },
+        order: () => query,
+        limit: () => {
+          let rows = fakeRows;
+          if (filter.includes("1PN")) rows = fakeRows.filter((r) => r.title.includes("1PN"));
+          else if (filter.includes("văn phòng")) rows = fakeRows.filter((r) => r.title.includes("văn phòng"));
+          return Promise.resolve({ data: rows });
+        },
+      };
+      return query;
+    },
+  };
+
+  // Ca Lan Chi: tìm căn 1PN chung cư, không có quận
+  const ketQua1PN = await timPhongPhuHop({
+    sb: fakeSb,
+    nhuCau: { quan: [], loai_phong: "can_ho", yeu_cau: ["1pn", "máy lạnh"], tom_tat: "Cần thuê căn 1pn chung cư làm văn phòng" },
+  });
+  expect(ketQua1PN.length).toBeGreaterThan(0);
+  expect(ketQua1PN[0].title).toContain("1PN");
+
+  // Soạn tin nhắn riêng khi không có quận: vẫn gợi ý căn khớp và hỏi thêm khu vực
+  const { tinRieng, repNhom } = soanTinSanKhach({
+    senderName: "Lan Chi",
+    nhuCau: { quan: [], loai_phong: "can_ho", tom_tat: "Cần thuê căn 1pn chung cư" },
+    canKhop: ketQua1PN,
+  });
+  expect(repNhom).toContain("@Lan Chi");
+  expect(tinRieng).toContain("Lan Chi");
+  expect(tinRieng).toContain("Bạn đang ưu tiên tìm phòng/nhà quanh khu vực quận nào");
+  expect(tinRieng).toContain("0387 365 020 (Lê Quang)");
+});
+

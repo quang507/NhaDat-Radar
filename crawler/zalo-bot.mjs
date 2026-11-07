@@ -16,7 +16,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 import { canonProvince, quanTheoDB } from "./chung.mjs";
-import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH, soanTinSanKhach, TIEN_ICH } from "./zalo-tu-van-lead.mjs";
+import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH, soanTinSanKhach, timPhongPhuHop, TIEN_ICH } from "./zalo-tu-van-lead.mjs";
 import { taoKhoHoiThoai } from "./zalo-hoi-thoai.mjs";
 import { taoCongGui, trongGioIm } from "./zalo-gui.mjs";
 import { laBaiTimPhong, SYS_TIM, SCHEMA_TIM, chuanHoaNhuCau } from "./khach-tim.mjs";
@@ -421,39 +421,13 @@ async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, t
   if ((!nhuCau.quan || !nhuCau.quan.length) && khuVucNhom.length) {
     nhuCau.quan = [...khuVucNhom];
   }
-  if (!nhuCau.quan || !nhuCau.quan.length) {
-    console.log("  - bỏ (không xác định được quận/khu vực cần tìm)");
-    return;
-  }
 
-  // Khớp phòng trong kho Supabase (chỉ lấy rổ hàng thật của Radar, đúng tầm giá, không lấy KTX 1,5tr gửi cho khách tìm 25tr)
+  // Khớp phòng trong kho Supabase với bộ lọc đa tầng thông minh (theo loại phòng, giá, quận)
   let canKhop = [];
   try {
-    let q = sb.from("listings").select("id, title, price_vnd, area_m2, kind, address, ward, district, specs, amenities")
-      .eq("source", "ro_hang")
-      .eq("deal", "cho_thue")
-      .eq("status", "published");
-    if (nhuCau.quan[0]) {
-      const qClean = nhuCau.quan[0].replace(/^(Quận|Huyện|Thành phố|TP\.?)\s+/i, "").trim();
-      q = q.ilike("district", `%${qClean}%`);
-    }
-    if (nhuCau.gia_den) {
-      q = q.lte("price_vnd", Math.round(nhuCau.gia_den * 1.15));
-      q = q.gte("price_vnd", Math.round((nhuCau.gia_tu || nhuCau.gia_den * 0.7) * 0.9));
-    } else if (nhuCau.gia_tu) {
-      q = q.gte("price_vnd", Math.round(nhuCau.gia_tu * 0.85));
-    }
-    const { data } = await q.order("first_seen_at", { ascending: false }).limit(20);
-    if (Array.isArray(data) && data.length) {
-      const mucTieu = nhuCau.gia_den || nhuCau.gia_tu || 4_000_000;
-      canKhop = data.sort((a, b) => Math.abs((a.price_vnd || 0) - mucTieu) - Math.abs((b.price_vnd || 0) - mucTieu)).slice(0, 2);
-    }
+    canKhop = await timPhongPhuHop({ sb, nhuCau, limit: 2 });
   } catch (err) {
     console.error("[Săn khách] Lỗi tìm phòng khớp:", err.message);
-  }
-  if (!canKhop.length) {
-    console.log("  - bỏ (không có phòng rổ hàng khớp đúng khu vực và tầm giá)");
-    return;
   }
 
   // Đánh dấu thời gian tương tác

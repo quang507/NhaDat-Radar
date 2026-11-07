@@ -13,7 +13,7 @@ const TIM = new RegExp([
 
 // giọng NGƯỜI CHO THUÊ / BÁN / MÔI GIỚI RAO HÀNG -> chặn ngay từ cổng regex để không bao giờ nhắn nhầm chủ nhà/sale.
 const RAO = new RegExp([
-  "cần cho thuê|can cho thue|chính chủ cho thuê|chinh chu cho thue|nhà cho thuê|phòng cho thuê",
+  "cần cho thuê|can cho thue|chính chủ cho thuê|chinh chu cho thue|(?<!(?:ai\\s+có|tìm|tim|cần|can)\\s*)(?:nhà|phòng)\\s+cho\\s+thuê",
   "còn trống|con trong|phòng trống|phong trong|sẵn phòng|sẵn căn|sẵn chìa|pass phòng|nhận khách|nhan khach",
   "bên em (có|còn)|em (có|còn) (phòng|căn)|giỏ hàng|quỹ căn|rổ hàng|bảng giá|cam kết hình thật",
   "giá thuê\\s*:|giá\\s*:\\s*\\d|điện\\s*:\\s*\\d|lh\\s*:|liên hệ\\s*:|call\\/zalo|ib zalo|liên hệ xem phòng",

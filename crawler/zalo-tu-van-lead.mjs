@@ -618,29 +618,137 @@ function moTaMotCan(c) {
   const gia = giaChat(c.price_vnd);
   const ti = [...new Set((c.amenities || []).map((a) => TIEN_ICH[a] || a).filter(Boolean))].slice(0, 3).join(", ");
   const dt = c.area_m2 ? ` ${Math.round(c.area_m2)}m²` : "";
+  const loai = c.specs?.["Loại phòng"] ? ` (${c.specs["Loại phòng"]})` : "";
+  const ma = c.id ? ` [${maPhong(c.id)}]` : "";
   const link = c.id ? `\nnhadatradar.com/listings/${c.id}` : "";
-  return `một căn${dt} ở ${kv} giá ${gia}${ti ? ` có sẵn ${ti}` : ""}${link}`;
+  return `một căn${ma}${loai}${dt} ở ${kv} giá ${gia}${ti ? ` có sẵn ${ti}` : ""}${link}`;
+}
+
+/**
+ * Tự tra cứu Database Supabase tìm các căn rổ hàng phù hợp với nhu cầu khách
+ */
+export async function timPhongPhuHop({ sb, nhuCau, limit = 2 }) {
+  if (!sb) return [];
+  try {
+    const quanList = (nhuCau?.quan || []).filter(Boolean);
+    const giaDen = nhuCau?.gia_den ? Number(nhuCau.gia_den) : null;
+    const giaTu = nhuCau?.gia_tu ? Number(nhuCau.gia_tu) : null;
+    const tomTat = `${nhuCau?.tom_tat || ""} ${(nhuCau?.yeu_cau || []).join(" ")}`.toLowerCase();
+    const loaiPhong = nhuCau?.loai_phong || "";
+
+    // Nhận diện từ khoá đặc thù
+    const is1PN = /1\s*pn|1\s*phòng\s*ngủ|1\s*bed/i.test(tomTat);
+    const is2PN = /2\s*pn|2\s*phòng\s*ngủ|2\s*bed/i.test(tomTat);
+    const isStudio = /studio|stu/i.test(tomTat);
+    const isGac = /gác|duplex/i.test(tomTat);
+    const isVP = /văn\s*phòng|van\s*phong|mặt\s*bằng|mat\s*bang|nhà\s*phố|nguyên\s*căn/i.test(tomTat) || loaiPhong === "mat_bang" || loaiPhong === "nha";
+
+    // Hàm thực hiện query với các tiêu chí
+    const buildQuery = ({ dungQuan = true, dungLoai = true, dungGia = true } = {}) => {
+      let q = sb.from("listings").select("id, title, price_vnd, area_m2, kind, address, ward, district, specs, amenities")
+        .eq("source", "ro_hang")
+        .eq("deal", "cho_thue")
+        .eq("status", "published");
+
+      if (dungQuan && quanList.length > 0) {
+        const qClean = quanList[0].replace(/^(Quận|Huyện|Thành phố|TP\.?)\s+/i, "").trim();
+        q = q.ilike("district", `%${qClean}%`);
+      }
+
+      if (dungGia) {
+        if (giaDen) {
+          q = q.lte("price_vnd", Math.round(giaDen * 1.15));
+          q = q.gte("price_vnd", Math.round((giaTu || giaDen * 0.7) * 0.85));
+        } else if (giaTu) {
+          q = q.gte("price_vnd", Math.round(giaTu * 0.85));
+          q = q.lte("price_vnd", Math.round(giaTu * 1.6));
+        }
+      }
+
+      if (dungLoai) {
+        if (is1PN) {
+          q = q.or("title.ilike.%1PN%,title.ilike.%1 phòng ngủ%,specs->>Loại phòng.ilike.%1 Phòng ngủ%");
+        } else if (is2PN) {
+          q = q.or("title.ilike.%2PN%,title.ilike.%2 phòng ngủ%,specs->>Loại phòng.ilike.%2 Phòng ngủ%");
+        } else if (isStudio) {
+          q = q.or("title.ilike.%studio%,specs->>Loại phòng.ilike.%Studio%");
+        } else if (isGac) {
+          q = q.or("title.ilike.%gác%,title.ilike.%duplex%,specs->>Loại phòng.ilike.%Gác lửng%,specs->>Loại phòng.ilike.%Duplex%");
+        } else if (isVP) {
+          q = q.or("title.ilike.%mặt bằng%,title.ilike.%văn phòng%,title.ilike.%nhà nguyên căn%,specs->>Loại phòng.ilike.%Mặt bằng%,specs->>Loại phòng.ilike.%Nhà nguyên căn%");
+        }
+      }
+
+      return q;
+    };
+
+    // Chiến lược khớp tầng (Cascade):
+    // 1. Thử khớp đầy đủ: Loại phòng + Quận + Giá
+    let { data } = await buildQuery({ dungQuan: true, dungLoai: true, dungGia: true }).order("first_seen_at", { ascending: false }).limit(20);
+
+    // 2. Nếu không ra căn nào và có lọc loại phòng: giữ loại phòng, nới quận
+    if (!data?.length && (is1PN || is2PN || isStudio || isGac || isVP)) {
+      const res = await buildQuery({ dungQuan: false, dungLoai: true, dungGia: !!giaDen || !!giaTu }).order("first_seen_at", { ascending: false }).limit(20);
+      data = res.data;
+    }
+
+    // 3. Nếu vẫn không ra: nới loại phòng, giữ quận và giá
+    if (!data?.length && quanList.length > 0) {
+      const res = await buildQuery({ dungQuan: true, dungLoai: false, dungGia: true }).order("first_seen_at", { ascending: false }).limit(20);
+      data = res.data;
+    }
+
+    // 4. Nếu vẫn không ra: lấy các căn rổ hàng mới nhất trong tầm giá
+    if (!data?.length) {
+      const res = await buildQuery({ dungQuan: false, dungLoai: false, dungGia: true }).order("first_seen_at", { ascending: false }).limit(20);
+      data = res.data;
+    }
+
+    // 5. Fallback cuối cùng: lấy 2 căn rổ hàng hot nhất đang published
+    if (!data?.length) {
+      const res = await sb.from("listings").select("id, title, price_vnd, area_m2, kind, address, ward, district, specs, amenities")
+        .eq("source", "ro_hang")
+        .eq("deal", "cho_thue")
+        .eq("status", "published")
+        .order("first_seen_at", { ascending: false })
+        .limit(10);
+      data = res.data;
+    }
+
+    if (!Array.isArray(data) || !data.length) return [];
+
+    // Sắp xếp ưu tiên căn sát mức giá mục tiêu
+    const mucTieu = giaDen || giaTu || 5_000_000;
+    const sorted = [...data].sort((a, b) => Math.abs((a.price_vnd || 0) - mucTieu) - Math.abs((b.price_vnd || 0) - mucTieu));
+    return sorted.slice(0, limit);
+  } catch (err) {
+    console.error("[timPhongPhuHop] Lỗi tra cứu DB:", err.message);
+    return [];
+  }
 }
 
 export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
   const ten = senderName || "bạn";
-  const quanText = gonDiaDanh(nhuCau?.quan?.[0]) || "khu vực bạn cần";
+  const coQuan = Array.isArray(nhuCau?.quan) && nhuCau.quan.length > 0;
+  const quanText = coQuan ? gonDiaDanh(nhuCau.quan[0]) : "";
   const coCan = Array.isArray(canKhop) && canKhop.length > 0;
 
+  const noiKhuVuc = quanText ? `bên ${quanText}` : "phù hợp";
   const mauRep = [
-    `@${ten} mình có sẵn phòng bên ${quanText} đúng tầm giá này, mới nhắn qua Zalo riêng bạn coi hình thử nha`,
-    `@${ten} check tin nhắn chờ Zalo giúp mình nha, mình vừa gửi hình phòng đang trống bên ${quanText} cho bạn coi thử á`,
+    `@${ten} mình có sẵn phòng ${noiKhuVuc} đúng tầm giá này, mới nhắn qua Zalo riêng bạn coi hình thử nha`,
+    `@${ten} check tin nhắn chờ Zalo giúp mình nha, mình vừa gửi hình phòng đang trống ${noiKhuVuc} cho bạn coi thử á`,
   ];
   const repNhom = coCan
     ? mauRep[canKhop[0]?.id ? canKhop[0].id.charCodeAt(0) % mauRep.length : 0]
-    : `@${ten} bạn check tin nhắn chờ Zalo nha, mình hỏi thêm chút để gửi căn bên ${quanText} cho bạn`;
+    : `@${ten} bạn check tin nhắn chờ Zalo nha, mình hỏi thêm chút để gửi căn ${noiKhuVuc} cho bạn`;
 
+  const chaoTen = ten && ten !== "bạn" ? `${ten} ơi, ` : "Bạn ơi, ";
   if (!coCan) {
     return {
       repNhom,
       tinRieng:
-        `Bạn ơi nãy thấy bạn tìm phòng bên ${quanText}.\n\n` +
-        `Bạn cần phòng có gác hay studio, tầm mấy người ở để mình gửi hình mấy căn đang trống qua bạn coi thử nha.`,
+        `${chaoTen}nãy thấy bạn tìm phòng ${noiKhuVuc}.\n\n` +
+        `Bạn cần phòng khu vực nào, tầm mấy người ở với ngân sách khoảng bao nhiêu để mình gửi hình mấy căn đang trống qua bạn coi thử nha.`,
     };
   }
 
@@ -651,11 +759,16 @@ export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
     doanCan = `Mình đang có ${moTaMotCan(canKhop[0])}\n\nvới thêm ${moTaMotCan(canKhop[1])}`;
   }
 
+  const doanKhuVucHoi = !coQuan
+    ? `Bạn đang ưu tiên tìm phòng/nhà quanh khu vực quận nào để mình lọc thêm các căn sát vị trí nhất cho bạn nha.\n\n`
+    : "";
+
   const tinRieng =
-    `Bạn ơi nãy thấy bạn tìm phòng bên ${quanText}.\n\n` +
+    `${chaoTen}nãy thấy bạn tìm phòng ${noiKhuVuc}.\n\n` +
     `${doanCan}\n\n` +
+    doanKhuVucHoi +
     `Hình trên link là hình chụp thực tế tại phòng với có ghi đủ giá điện nước luôn á.\n\n` +
-    `Bạn ưng căn nào nhắn mình hoặc kết bạn Zalo 0387 365 020 (Quang) mình hẹn mở cửa coi phòng nha.`;
+    `Bạn ưng căn nào nhắn mình hoặc kết bạn Zalo 0387 365 020 (Lê Quang) mình hẹn mở cửa coi phòng nha.`;
 
   return { repNhom, tinRieng };
 }
