@@ -12,7 +12,10 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 //   - request prefetch của Next (<Link> tự tải trước) -> lần mở trang thật sẽ làm mới
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const coPhien = request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token"));
+  // Bỏ qua route callback của auth để không can thiệp cookie trong quá trình trao đổi PKCE code
+  if (request.nextUrl.pathname.startsWith("/auth/callback")) return response;
+
+  const coPhien = request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("auth-token") && !c.name.includes("code-verifier"));
   const laPrefetch = request.headers.get("next-router-prefetch") === "1" || request.headers.get("purpose") === "prefetch";
   if (!coPhien || laPrefetch) return response;
 
