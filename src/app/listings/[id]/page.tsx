@@ -107,9 +107,39 @@ const cungNguoiDang = unstable_cache(
   },
   ["cung-nguoi-dang-v2"], { revalidate: 43200, tags: ["listings"] },
 );
+const cungToaNha = unstable_cache(
+  async (district: string, address: string, lat: number | null, lng: number | null) => {
+    const sb = createAnonClient();
+    // Ưu tiên khớp theo toạ độ công khai của toà nhà (mọi phòng cùng toà dùng chung 1 điểm lechToaDo) hoặc cùng address
+    let q = sb
+      .from("listings")
+      .select("id,title,price_vnd,area_m2,deal,kind,floors,specs")
+      .eq("status", "published")
+      .eq("source", "ro_hang")
+      .eq("deal", "cho_thue")
+      .eq("district", district);
+    if (lat != null && lng != null) {
+      q = q.eq("lat", lat).eq("lng", lng);
+    } else {
+      q = q.eq("address", address);
+    }
+    const { data } = await q.order("price_vnd", { ascending: true }).limit(16);
+    return (data ?? []) as {
+      id: string;
+      title: string;
+      price_vnd: number | null;
+      area_m2: number | null;
+      deal: string;
+      kind: string;
+      floors?: number | null;
+      specs?: Record<string, string> | null;
+    }[];
+  },
+  ["cung-toa-nha-v1"], { revalidate: 43200, tags: ["listings"] },
+);
 
 async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
-  const [du, dem, hd, comp, rel, poster, tuongTu] = await Promise.all([
+  const [du, dem, hd, comp, rel, poster, tuongTu, cungToa] = await Promise.all([
     x.project_id ? sb.from("projects").select("id,name,investor").eq("id", x.project_id).maybeSingle() : Promise.resolve({ data: null }),
     x.project_id ? sb.from("listings").select("id", { count: "exact", head: true }).eq("project_id", x.project_id).eq("status", "published") : Promise.resolve({ count: 0 }),
     // Hỏi đáp tích luỹ từ Cầu Nối (listing_facts đọc công khai qua RLS facts_read)
@@ -122,6 +152,9 @@ async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
       : Promise.resolve([] as Listing[]),
     x.poster_key ? cungNguoiDang(x.poster_key).catch(() => ({ rows: [] as Listing[], count: 0 })) : Promise.resolve({ rows: [] as Listing[], count: 0 }),
     layTinTuongTu(x, 6).catch(() => [] as ListingTuongTu[]),
+    x.source === "ro_hang" && x.deal === "cho_thue" && x.district && x.address
+      ? cungToaNha(x.district, x.address, x.lat ?? null, x.lng ?? null).catch(() => [])
+      : Promise.resolve([]),
   ]);
   const posterRows = poster.rows.filter((r) => r.id !== x.id).slice(0, 6);
   return {
@@ -134,6 +167,7 @@ async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
     compRows: comp,
     relRows: rel.filter((r) => r.id !== x.id),
     tinTuongTu: tuongTu || [],
+    phongCungToa: (cungToa || []).filter((r) => r.id !== x.id),
     posterRows,
     posterCount: Math.max(0, poster.count - (x.status === "published" ? 1 : 0)),   // count gồm cả chính tin này
   };
@@ -301,7 +335,7 @@ export default async function ListingDetail({
   const t = thumb(x.kind);
   const images = cleanImages(x.images || []);
 
-  const { duAn, tinCungDuAn, hoiDap, compRows, relRows, posterRows, posterCount, tinTuongTu } = pub;
+  const { duAn, tinCungDuAn, hoiDap, compRows, relRows, posterRows, posterCount, tinTuongTu, phongCungToa } = pub;
   const coSdt = pub.coSdt;
 
   const posterOthers = ((posterRows ?? []) as Listing[]).map(cheSoTin);
@@ -748,6 +782,57 @@ export default async function ListingDetail({
               {lienHeRadar && (
                 <p className="mt-3.5 pt-3 border-t border-[var(--line)] text-xs text-[var(--ink-faint)]">Radar không thu phí xem phòng hay phụ phí môi giới</p>
               )}
+            </div>
+          )}
+          {phongCungToa && phongCungToa.length > 0 && (
+            <div className="card rounded-lg p-5">
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                <div>
+                  <h3 className="font-bold text-base text-[var(--ink)] flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-brand shrink-0" />
+                    <span>Các phòng đang trống khác trong cùng tòa nhà ({phongCungToa.length})</span>
+                  </h3>
+                  <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                    Cùng địa chỉ {x.address ? x.address.split(",")[0] : "này"}, bấm vào từng phòng để xem chi tiết
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {phongCungToa.slice(0, 12).map((p) => {
+                  const maP = maPhong(p.id);
+                  const loaiP = p.specs?.["Loại phòng"] || PROP[p.kind] || "Phòng";
+                  const soP = p.title.match(/\(P\.([^)]+)\)/)?.[1];
+                  return (
+                    <Link
+                      key={p.id}
+                      href={`/listings/${p.id}`}
+                      className="group flex items-center justify-between gap-3 p-3 rounded-sm border border-[var(--line)] bg-[var(--surface)] hover:border-brand transition"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-sm text-[var(--ink)] group-hover:text-brand transition-colors">
+                            {soP ? `Phòng ${soP} · ${loaiP}` : loaiP}
+                          </span>
+                          <span className="font-mono text-[0.68rem] font-semibold px-1.5 py-0.5 rounded-xs bg-[var(--surface-2)] text-[var(--ink-soft)]">
+                            {maP}
+                          </span>
+                        </div>
+                        <div className="text-xs text-[var(--ink-soft)] mt-0.5 truncate">
+                          {[p.area_m2 ? `${p.area_m2} m²` : null, p.floors ? `Lầu ${p.floors}` : null].filter(Boolean).join(" · ") || p.title}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-brand font-extrabold text-sm">
+                          {fmtPrice(p.price_vnd, p.deal)}
+                        </div>
+                        <div className="text-[0.68rem] text-[var(--ink-faint)] group-hover:text-brand">
+                          Xem phòng ›
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           )}
           <div className="card rounded-lg p-5">

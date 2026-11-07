@@ -45,7 +45,7 @@ test("dữ kiện: chỉ nhãn công khai, '-' là thiếu, lấy bổ sung từ
   expect(f).toMatchObject({ ma: "RH1A2B3C", gia: "4,2 triệu/tháng", dien_tich: "20 m²", khu_vuc: "Phường 13, Quận Tân Bình",
     dien: "3.800 đ/kWh", gui_xe: "100.000 đ/xe", tien_ich: "máy lạnh, máy giặt" });
   expect(JSON.stringify(f)).not.toMatch(/305|40 80|12\/3|evohome/i);
-  expect(factsTuTin({ ...TIN, specs: { "Nước": "-" } }, null).nuoc).toBeUndefined();
+  expect((factsTuTin({ ...TIN, specs: { "Nước": "-" } }, null) as Record<string, unknown>).nuoc).toBeUndefined();
 });
 
 test("câu tự trả lời: ráp từ DB, thiếu một khoản là không trả lời", () => {
@@ -180,7 +180,7 @@ function heGia() {
   const rong: any = new Proxy({}, { get: (_t, k) => (k === "then" ? (r: any) => r({ data: [], error: null }) : () => rong) });
   const sb = { from: () => rong };
   const goiAI: { n: number; tra: any } = { n: 0, tra: null };
-  const tv = taoTuVan({ sb, kho, cong, adminUid: "ADMIN", tuDong: true, now: () => luc, log: { log() {}, error() {} },
+  const tv = taoTuVan({ sb, kho, cong, adminUid: "ADMIN", tuDong: true, now: () => luc, log: { log() {}, error() {} } as unknown as Console,
     goiAI: async () => { goiAI.n++; return goiAI.tra; } });
   return { tv, daGui, dem, goiAI, troi: (ms: number) => { luc += ms; } };
 }
@@ -204,7 +204,7 @@ test("phát lại sự cố: bot không chen vào cuộc người đang chat, nh
 
   // 3. khách hỏi tiếp "phí khác" -> bot im, không tốn lượt AI, không báo thẻ
   troi(PHUT); const truoc = daGui.length, aiTruoc = goiAI.n;
-  await tv.khachNhan({ uid: KHACH, chu: "Dạ phí khác bao nhiêu vậy a" });
+  await tv.khachNhan({ uid: KHACH, ten: "Lan", chu: "Dạ phí khác bao nhiêu vậy a" });
   expect(daGui.length).toBe(truoc);
   expect(goiAI.n).toBe(aiTruoc);
 
@@ -216,8 +216,8 @@ test("phát lại sự cố: bot không chen vào cuộc người đang chat, nh
   // 5. khách nhắn tiếp (kể cả nghi bot/khẩn) -> người thật đã tiếp nhận nên bot KHÔNG gửi báo số chính
   troi(PHUT);
   const truocKhan = daGui.length;
-  await tv.khachNhan({ uid: KHACH, chu: "Tin nhắn tự động à a" });
-  await tv.khachNhan({ uid: KHACH, chu: "alo anh ới?" });
+  await tv.khachNhan({ uid: KHACH, ten: "Lan", chu: "Tin nhắn tự động à a" });
+  await tv.khachNhan({ uid: KHACH, ten: "Lan", chu: "alo anh ới?" });
   expect(daGui.length).toBe(truocKhan); // không gửi thêm thẻ nào về admin
   expect(daGui.filter((g) => g.thread === KHACH)).toHaveLength(0); // bot cũng không nhắn khách
 
@@ -238,7 +238,7 @@ test("nhắc việc bỏ qua lượt chờ quá 12 giờ (nạp lại sau restar
 test("tiếng vọng câu bot tự gửi không bị coi là người thật nhận cuộc", async () => {
   const { tv, daGui, dem, goiAI } = heGia();
   goiAI.tra = { y_dinh: "chao_hoi", do_tin_cay: 0.95, khan: false, ngon_ngu: "vi", tom_tat: "", goi_y: [] };
-  await tv.khachNhan({ uid: "777", chu: "hello" });
+  await tv.khachNhan({ uid: "777", ten: "Khách", chu: "hello" });
   await new Promise((r) => setTimeout(r, 0));
   const cauBot = daGui.find((g) => g.thread === "777")!;
   expect(cauBot.text).toBe(cauChao(false));
@@ -256,17 +256,17 @@ test("sự kiện phi ngôn ngữ: cuộc gọi, sticker, tin thoại có câu p
   expect(theAdmin).toBeDefined();
   expect(theAdmin!.text).toContain("🚨 K1111 · Hoàng");
   expect(theAdmin!.text).toContain("lỡ cuộc gọi");
-  expect(dem.get(KHACH_GOI)!.goi_y[0]).toContain("lỡ cuộc gọi");
+  expect((dem.get(KHACH_GOI)!.goi_y as string[])[0]).toContain("lỡ cuộc gọi");
 
   // 2. Khách gửi sticker -> gợi ý chào hỏi lọc rổ hàng 1.400+ căn
   const KHACH_STICKER = "9990002222";
   await tv.khachNhan({ uid: KHACH_STICKER, ten: "Hà", chu: "", kieu: "sticker" });
-  expect(dem.get(KHACH_STICKER)!.goi_y[0]).toContain("1.400+ căn");
+  expect((dem.get(KHACH_STICKER)!.goi_y as string[])[0]).toContain("1.400+ căn");
 
   // 3. Khách gửi tin thoại -> gợi ý báo đang ngoài đường hơi ồn xin gửi chữ
   const KHACH_VOICE = "9990003333";
   await tv.khachNhan({ uid: KHACH_VOICE, ten: "Nam", chu: "", kieu: "giong_noi" });
-  expect(dem.get(KHACH_VOICE)!.goi_y[0]).toContain("tin nhắn thoại");
+  expect((dem.get(KHACH_VOICE)!.goi_y as string[])[0]).toContain("tin nhắn thoại");
 });
 
 test("săn khách tìm phòng: nhận diện tin tìm phòng, soạn tin rep nhóm và tin nhắn riêng 1-1", () => {
@@ -279,8 +279,8 @@ test("săn khách tìm phòng: nhận diện tin tìm phòng, soạn tin rep nh�
   const canKhop = [
     { title: "Phòng trọ D2", price_vnd: 3800000, district: "Quận Bình Thạnh", ward: "Phường 25", amenities: ["gac_lung", "ban_cong"] },
     { title: "Phòng trọ Bạch Đằng", price_vnd: 4000000, district: "Quận Bình Thạnh", ward: "Phường 15", amenities: ["dieu_hoa"] },
-  ];
-  const { repNhom, tinRieng } = soanTinSanKhach({
+  ] as any;
+  const { repNhom, tinRieng } = (soanTinSanKhach as any)({
     senderName: "Tuấn Anh",
     nhuCau: { quan: ["Quận Bình Thạnh"], gia_den: 4000000 },
     canKhop,
@@ -311,7 +311,7 @@ test("cổng gửi: hỗ trợ gửi tin nhóm có mention và thả tim (react)
   expect(cacLenh).toContainEqual(["msg", "send", "-t", "1", "--mention", "0:user_456:9", "group_123", "@Tuấn Anh Em vừa nhắn riêng á"]);
 
   // 2. Thả tim tin nhắn
-  await cong.react("msg_999", "group_123", "/-heart", { type: "1", cliMsgId: "cli_888" });
+  await cong.react("msg_999", "group_123", "/-heart", { type: "1", cliMsgId: "cli_888" as any });
   expect(cacLenh).toContainEqual(["msg", "react", "-t", "1", "-c", "cli_888", "msg_999", "group_123", "/-heart"]);
 });
 
@@ -380,7 +380,7 @@ test("timPhongPhuHop: tự tra cứu DB theo loại phòng (1PN, VP) ngay cả k
   expect(ketQua1PN[0].title).toContain("1PN");
 
   // Soạn tin nhắn riêng khi không có quận: vẫn gợi ý căn khớp và hỏi thêm khu vực
-  const { tinRieng, repNhom } = soanTinSanKhach({
+  const { tinRieng, repNhom } = (soanTinSanKhach as any)({
     senderName: "Lan Chi",
     nhuCau: { quan: [], loai_phong: "can_ho", tom_tat: "Cần thuê căn 1pn chung cư" },
     canKhop: ketQua1PN,
