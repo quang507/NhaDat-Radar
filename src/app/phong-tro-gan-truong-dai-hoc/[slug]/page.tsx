@@ -24,7 +24,7 @@ import {
   Compass,
 } from "lucide-react";
 
-export const revalidate = 3600;
+export const revalidate = 43200;
 
 export async function generateStaticParams() {
   return DANH_SACH_DAI_HOC.map((u) => ({ slug: u.slug }));

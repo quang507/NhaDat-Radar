@@ -1,4 +1,4 @@
-export const revalidate = 3600; // trang tĩnh, cache CDN như trang chủ (số liệu lấy từ cây khu vực đã cache)
+export const revalidate = 43200; // trang tĩnh, cache CDN như trang chủ (số liệu lấy từ cây khu vực đã cache)
 
 import type { Metadata } from "next";
 import { getAreas } from "@/lib/geo";

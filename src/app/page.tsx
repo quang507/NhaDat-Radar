@@ -1,4 +1,4 @@
-export const revalidate = 1800;
+export const revalidate = 21600; // Cache ISR 6 giờ trên CDN Vercel - bot cào không chọc thẳng Supabase
 
 import fs from "node:fs";
 import path from "node:path";
@@ -173,7 +173,7 @@ export default async function Home() {
             {/* Ảnh phòng khách thông tầng giếng trời */}
             <div className="relative md:w-5/12 h-40 sm:h-52 md:h-auto overflow-hidden shrink-0">
               <img
-                src="https://nalcvzwsescsxfzsxirg.supabase.co/storage/v1/object/public/anh-zalo/hau-giang-q6/living-room.jpg"
+                src="/hero.jpg"
                 alt="Cho thuê nhà compound Bình Phú Quận 6"
                 fetchPriority="high"
                 className="w-full h-full md:absolute md:inset-0 object-cover group-hover:scale-105 transition duration-500"

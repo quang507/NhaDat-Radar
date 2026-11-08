@@ -1,5 +1,5 @@
 // 1/10: ISR 1 giờ thay vì force-dynamic - mỗi lượt xem (kể cả bot) từng kéo 3.000 dòng từ Supabase
-export const revalidate = 3600;
+export const revalidate = 43200;
 
 import { createAnonClient } from "@/lib/supabase/anon";
 import { median } from "@/lib/gemini";

@@ -30,7 +30,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-export const revalidate = 3600;
+export const revalidate = 43200;
 
 export async function generateStaticParams() {
   return DIEM_NEO.map((d) => ({ diem: d.slug }));
