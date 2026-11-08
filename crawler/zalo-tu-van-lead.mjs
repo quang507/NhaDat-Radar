@@ -428,26 +428,27 @@ const LY_DO_DOC = { nghi_bot: "khách nghi đang nói với bot", hen_xem: "khá
 
 export function soanThe({ h, phong, facts, pl, cung, muc, luc, botDaTraLoi = null }) {
   const ma = maThe(h.uid);
-  const dau = muc === "khan" ? "🚨" : muc === "nhac" ? "⏰" : "💬";
-  const tieuDe = muc === "khan" ? " · CẦN NGƯỜI NGAY" : muc === "nhac" ? ` · khách chờ ${Math.round((luc - h.cho_tu) / PHUT)} phút chưa ai trả lời` : "";
-  const dong = [`${dau} ${ma} · ${h.ten || "Khách Zalo"}${tieuDe}`];
+  const dau = muc === "khan" ? "🚨" : "💬";
+  const dong = [`${dau} ${ma} · ${h.ten || "Khách Zalo"}`];
   const lyDo = [...(cung?.ly_do || []).map((x) => LY_DO_DOC[x] || x), pl?.tom_tat].filter(Boolean);
   if (lyDo.length) dong.push(`Tình hình: ${lyDo.join(" · ")}`);
   if (facts && phong) {
-    const t = phong.tin, r = phong.roHang;
-    dong.push(`Căn: ${facts.ma} · ${(t.title || "").slice(0, 50)} · ${facts.gia || "chưa có giá"} · ${t.district || ""}${t.status !== "published" ? ` · ⚠ tin đang ${t.status}` : ""}`);
-    const noiBo = [r?.unit_code && `phòng ${r.unit_code}`, r?.partner?.toUpperCase(), r?.commission && `HH ${r.commission}`, r?.exact_address].filter(Boolean);
-    if (noiBo.length) dong.push(`Nội bộ: ${noiBo.join(" · ")}`);
-    const thieu = ["dien", "nuoc", "phi_quan_ly", "coc"].filter((k) => !facts[k]).map((k) => NHAN[k].toLowerCase());
-    if (thieu.length) dong.push(`DB chưa có: ${thieu.join(", ")}`);
-  } else dong.push("Căn: chưa xác định");
+    const t = phong.tin;
+    dong.push(`Căn đang hỏi: ${facts.ma} · ${(t.title || "").slice(0, 50)} · ${facts.gia || ""}`);
+  }
   const choTra = [];
-  for (let i = h.tin.length - 1; i >= 0 && h.tin[i].vai === "khach" && choTra.length < 4; i--) choTra.unshift(moTaTin(h.tin[i].chu, h.tin[i].kieu));
+  for (let i = h.tin.length - 1; i >= 0 && h.tin[i].vai === "khach" && choTra.length < 3; i--) {
+    choTra.unshift(moTaTin(h.tin[i].chu, h.tin[i].kieu));
+  }
   if (choTra.length) dong.push("Khách:", ...choTra.map((c) => `  "${c.slice(0, 200)}"`));
-  if (botDaTraLoi) dong.push(`Bot đã tự trả lời:\n  "${botDaTraLoi.slice(0, 300)}"`);
-  if (h.goi_y?.length) dong.push("Gợi ý:", ...h.goi_y.map((g, i) => `${i + 1}. ${g}`));
-  dong.push(`Gõ "${ma} nhận" (hoặc chat tay) để ngắt báo thẻ · "${ma} 1" gửi gợi ý 1 · "${ma} <câu>" gửi câu đó · "${ma} bot" giao lại bot`);
-  if (facts) dong.push(`${SITE_URL}/listings/${facts.id}`);
+  if (botDaTraLoi) {
+    dong.push(`Em đã nhắn lại: "${botDaTraLoi.slice(0, 250)}"`);
+    dong.push(`Anh tiếp quản tiếp nhé!`);
+  } else {
+    dong.push(`Anh tiếp quản tiếp nhé!`);
+  }
+  if (h.goi_y?.length) dong.push("Gợi ý:", ...h.goi_y.slice(0, 2).map((g, i) => `${i + 1}. ${g}`));
+  dong.push(`Gõ "${ma} <câu>" để nhắn khách · "${ma} 1" gửi gợi ý 1 · "${ma} nhận" để ngắt bot`);
   return dong.join("\n");
 }
 
@@ -574,21 +575,9 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
     baoAdmin(`✓ Đã gửi ${lenh.ma}.`);
   }
 
-  /** Chạy mỗi phút: khách chờ quá lâu chưa ai trả lời -> nhắc admin một lần cho mỗi lượt chờ */
+  /** ĐÃ TẮT thông báo nhắc việc theo yêu cầu user (chỉ báo 1 tin duy nhất lúc khách nhắn, không báo thời gian, không spam thẻ) */
   async function nhacViec() {
-    const luc = now();
-    if (trongGioIm(luc)) return; // đêm khỏi đánh thức admin; báo khẩn vẫn đi ngay lúc khách nhắn
-    for (const h of kho.tatCa()) {
-      if (dangDoNguoi(h, luc)) continue; // Người thật đã tiếp nhận -> không gửi nhắc việc về số chính nữa
-      if (!h.cho_tu || h.nhac_luc) continue;
-      if (luc - h.cho_tu > NHAC_TOI_DA_MS) continue; // lượt chờ cũ nạp lại sau restart: không dội thẻ hàng loạt
-      if (luc - h.cho_tu < NHAC_SAU_MS.bot) continue;
-      h.nhac_luc = luc;
-      const phong = h.listing_id ? await traCuuPhong(sb, { kieu: "uuid", giaTri: h.listing_id }).catch(() => null) : null;
-      const facts = phong ? factsTuTin(phong.tin, phong.roHang) : null;
-      baoAdmin(soanThe({ h, phong, facts, pl: null, cung: null, muc: "nhac", luc }));
-      await kho.luu(h);
-    }
+    return;
   }
 
   return { khachNhan, tuGuiNhan, adminNhan, nhacViec };

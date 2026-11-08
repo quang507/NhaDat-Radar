@@ -464,13 +464,12 @@ async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, t
     console.error("  (nhắn riêng lỗi:", e.message, ")");
   }
 
-  // Báo thẻ về Zalo Admin
+  // Báo thẻ về Zalo Admin (gọn 1 tin, không rườm rà)
   try {
-    const theAdmin = `🎯 SĂN ĐƯỢC KHÁCH TÌM PHÒNG (Group)\n` +
-      `Khách: ${senderName} (${senderId})\n` +
-      `Nhu cầu: ${nhuCau.tom_tat || `${nhuCau.quan.join(", ")} ${nhuCau.gia_den ? `dưới ${(nhuCau.gia_den/1e6).toFixed(1)}tr` : ""}`}\n` +
-      `Đã làm: Thả tim + Rep nhóm + Nhắn riêng ${canKhop.length} căn.\n` +
-      `Gõ "K${senderId.slice(-4)} <câu của anh>" nếu muốn chat tiếp với khách.`;
+    const theAdmin = `🎯 Có khách tìm phòng: ${senderName}\n` +
+      `Nhu cầu: ${nhuCau.tom_tat || (nhuCau.quan?.length ? nhuCau.quan.join(", ") : "tìm phòng")}\n` +
+      `Em đã nhắn cho họ ${canKhop.length} căn rồi, anh tiếp quản tiếp nhé!\n` +
+      `Gõ "K${senderId.slice(-4)} <câu>" nếu muốn chat tiếp với khách.`;
     await congGui.gui(ADMIN_ZALO_UID, theAdmin, { loai: "admin" });
   } catch (e) {
     console.error("  (báo admin lỗi:", e.message, ")");
