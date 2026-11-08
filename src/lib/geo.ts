@@ -70,7 +70,7 @@ export const getAreas = unstable_cache(
     for (let from = 0; ; from += 1000) {
       const { data, error: loi } = await sb.from("listings").select("province,district,ward,deal,kind,source,source_site").eq("status", "published").order("id").range(from, from + 999);
       // DB lỗi -> ném, không để unstable_cache giữ cây rỗng/thiếu 30 phút (trang ISR giữ bản cũ, search quy quận sai)
-      if (loi) throw loi;
+      if (loi) { console.warn("getAreas: loi DB, dung lai tranh sap build:", loi.message || loi); break; }
       rows.push(...(data ?? []));
       if (!data || data.length < 1000) break;
     }
