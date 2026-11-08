@@ -2,6 +2,9 @@ import { test, expect } from "@playwright/test";
 import {
   tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach, trichXuatDinhDanh, timPhongPhuHop,
 } from "../../crawler/zalo-tu-van-lead.mjs";
+import {
+  tinhCanChi, tinhQuaiSo, traCuuPhongThuy, dinhDangPhongThuyChat, nhanDienCauHoiPhongThuy,
+} from "../../crawler/phong-thuy.mjs";
 import { laBaiTimPhong } from "../../crawler/khach-tim.mjs";
 import { hoiThoaiMoi, themTin, nguoiNhan } from "../../crawler/zalo-hoi-thoai.mjs";
 import { taoCongGui, trongGioIm } from "../../crawler/zalo-gui.mjs";
@@ -389,5 +392,71 @@ test("timPhongPhuHop: tự tra cứu DB theo loại phòng (1PN, VP) ngay cả k
   expect(tinRieng).toContain("Lan Chi");
   expect(tinRieng).toContain("Bạn đang ưu tiên tìm phòng/nhà quanh khu vực quận nào");
   expect(tinRieng).toContain("0387 365 020 (Lê Quang)");
+});
+
+test("tinh hoa MOSO: Phong thủy Bát Trạch & Can Chi chuẩn xác", () => {
+  // Can Chi
+  expect(tinhCanChi(1995)).toBe("Ất Hợi");
+  expect(tinhCanChi(1988)).toBe("Mậu Thìn");
+  expect(tinhCanChi(2000)).toBe("Canh Thìn");
+
+  // Quái số (Cung Phi)
+  // 1995: 9+5=14 -> 1+4=5. Nam 1995: (10-5)=5 hóa Khôn 2; Nữ 1995: (5+5)=10 -> 1 hóa Khảm 1
+  expect(tinhQuaiSo(1995, "nam")).toBe(2);
+  expect(tinhQuaiSo(1995, "nu")).toBe(1);
+
+  // 1988: 8+8=16 -> 1+6=7. Nam 1988: 10-7=3 (Chấn 3, Đông Tứ Mệnh)
+  expect(tinhQuaiSo(1988, "nam")).toBe(3);
+
+  // Tra cứu chi tiết
+  const ptNam95 = traCuuPhongThuy(1995, "nam", "dong_bac");
+  expect(ptNam95?.cung_phi).toBe("Khôn (Thổ)");
+  expect(ptNam95?.nhom_menh).toBe("Tây Tứ Mệnh");
+  expect(ptNam95?.danh_gia_huong?.sao).toBe("Sinh Khí");
+  expect(ptNam95?.danh_gia_huong?.hop_menh).toBe(true);
+
+  // Nhận diện câu hỏi phong thủy
+  const check = nhanDienCauHoiPhongThuy("Mình sinh năm 1995 có căn nào hợp hướng Đông Bắc ko shop");
+  expect(check.laPhongThuy).toBe(true);
+  expect(check.namSinh).toBe(1995);
+  expect(check.huongNha).toBe("đông bắc");
+
+  const chatPt = dinhDangPhongThuyChat(1995, "nam", "Đông Bắc");
+  expect(chatPt).toContain("TRA CỨU HƯỚNG NHÀ HỢP MỆNH");
+  expect(chatPt).toContain("ẤT HỢI");
+  expect(chatPt).toContain("Sinh Khí");
+});
+
+test("tinh hoa MOSO: tư vấn khuyết thông tin & 5 tiêu chuẩn chọn căn hộ gia đình", () => {
+  // 1. Khách chỉ có quận (Bình Thạnh) nhưng chưa có ngân sách: gợi ý 2 mốc giá điển hình
+  const { tinRieng: tinThieuGia } = (soanTinSanKhach as any)({
+    senderName: "Hoàng",
+    nhuCau: { quan: ["Quận Bình Thạnh"] },
+    canKhop: [],
+  });
+  expect(tinThieuGia).toContain("Bình Thạnh");
+  expect(tinThieuGia).toContain("3.5tr - 5tr");
+  expect(tinThieuGia).toContain("5.5tr - 8tr");
+
+  // 2. Khách chỉ có ngân sách 3.5tr nhưng chưa có quận: gợi ý các quận có sẵn phòng
+  const { tinRieng: tinThieuQuan } = (soanTinSanKhach as any)({
+    senderName: "Linh",
+    nhuCau: { quan: [], gia_den: 3500000 },
+    canKhop: [],
+  });
+  expect(tinThieuQuan).toContain("Gò Vấp, Quận 12, Bình Tân hoặc Bình Thạnh");
+
+  // 3. Khách tìm căn 2PN gia đình: lồng ghép tiêu chuẩn tầng trung, ban công thoáng và an toàn
+  const canKhopGiaDinh = [
+    { title: "Căn hộ 2PN Richmond", price_vnd: 12000000, district: "Bình Thạnh", ward: "Phường 26" },
+  ] as any;
+  const { tinRieng: tinGiaDinh } = (soanTinSanKhach as any)({
+    senderName: "Chị Thảo",
+    nhuCau: { quan: ["Bình Thạnh"], loai_phong: "2pn", tom_tat: "Tìm căn 2pn cho 2 vợ chồng và con nhỏ" },
+    canKhop: canKhopGiaDinh,
+  });
+  expect(tinGiaDinh).toContain("tầng trung (tầng 8-18) thoáng gió tránh bụi ồn");
+  expect(tinGiaDinh).toContain("ban công mát mẻ và khuôn viên an toàn");
+  expect(tinGiaDinh).toContain("tối nay tầm 18h30 hoặc chiều mai");
 });
 

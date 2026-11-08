@@ -17,6 +17,7 @@
 // ============================================================================
 import { trongGioIm } from "./zalo-gui.mjs";
 import { themTin, nguoiNhan, traChoBot, dangDoNguoi, maThe } from "./zalo-hoi-thoai.mjs";
+import { nhanDienCauHoiPhongThuy, dinhDangPhongThuyChat } from "./phong-thuy.mjs";
 
 // Zalo nhận thẻ báo của admin (0346689460)
 export const ADMIN_ZALO_UID = process.env.ZALO_ADMIN_UID || "199426642744249709";
@@ -205,7 +206,14 @@ ngon_ngu: ngôn ngữ của TIN MỚI (không phải của lịch sử).
 goi_y: 2 hoặc 3 bản nháp trả lời KHÁC NHAU để nhân viên chọn. Giọng nhân viên tư vấn: nhiệt tình, tự nhiên, xưng "mình", gọi "bạn", tối đa 2 câu, chuẩn kịch bản chống mùi robot:
 - Hotline và Zalo tư vấn duy nhất của Radar: 0387 365 020 (Lê Quang).
 - Khi khách hỏi phòng / phí: Luôn bóc tách đủ 5 khoản phí minh bạch (nói không với chi phí ẩn): 1. Tiền phòng (giá thuê), 2. Điện, 3. Nước, 4. Gửi xe, 5. Dịch vụ (phí quản lý). Nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
-- Khi chốt giờ xem: Mục tiêu là giải đáp nhanh và chốt lịch hẹn dẫn khách xem phòng thực tế miễn phí ("Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào hơn để mình báo mở cửa sẵn đón qua xem thực tế nha?").
+- Khi khách khuyết thông tin (kỹ thuật MOSO):
+  + Nếu khách chỉ nêu khu vực mà chưa có ngân sách: Không hỏi mở cụt lủn, hãy gợi ý sẵn 2 mốc giá phổ biến ở khu vực đó (VD: 3.5-5tr tiện nghi cơ bản/gác, và 5.5-8tr 1PN full nội thất) để khách chọn mốc dễ dàng.
+  + Nếu khách chỉ nêu ngân sách mà chưa có khu vực: Gợi ý 2-3 quận có nhiều căn đẹp trong tầm tiền đó (VD: Gò Vấp, Bình Thạnh, Q12 hoặc Tân Bình).
+- Khi khách tìm căn hộ gia đình / 2PN trở lên (5 Tiêu chuẩn vàng MOSO):
+  + Nhấn mạnh các ưu điểm thiết thực: tầng trung lý tưởng (tầng 8-18 thoáng mát, tránh bụi mịn & tiếng ồn tầng thấp, không hầm nóng tầng áp mái), ban công Đông Nam/Nam đón gió mát tránh nắng gắt, căn góc 2 mặt thoáng, an toàn nội khu cho trẻ nhỏ và người lớn tuổi.
+- Khi khách hỏi phong thủy / hướng nhà / năm sinh:
+  + Áp dụng Bát Trạch: Đông Tứ Mệnh hợp hướng Đông, Đông Nam, Nam, Bắc; Tây Tứ Mệnh hợp Tây, Tây Bắc, Tây Nam, Đông Bắc. Lưu ý khí hậu: ban công Nam/Đông Nam thoáng mát quanh năm, hướng Tây nên có rèm cách nhiệt 2 lớp.
+- Khi so sánh căn & chốt giờ xem: Bóc tách minh bạch chi phí và luôn gợi ý 2 khung giờ dẫn xem thực tế ("Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào hơn để mình báo mở cửa sẵn đón qua xem thực tế nha?").
 Khi y_dinh = cam_on_ket_thuc thì goi_y = [].
 LUẬT CỨNG cho goi_y (vi phạm là bản nháp bị loại):
 1. Chỉ dùng dữ kiện có trong PHÒNG ĐANG NÓI và LỊCH SỬ. Thứ không có thì KHÔNG đoán, để chỗ trống trong ngoặc vuông cho nhân viên điền, ví dụ "[còn/hết phòng]", "[được/không được nuôi mèo]", "[cần hỏi chủ nhà]".
@@ -522,6 +530,11 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
     }
     const nhap = facts && pl?.y_dinh === "hoi_thong_tin" ? soanTraLoiTuFacts(pl.hoi_ve, facts, pl.ngon_ngu === "en") : null;
     let danhSachGoiY = [...new Set([nhap, ...locNhapTheoNguCanh(pl?.goi_y || [], pl, h)].filter(Boolean))];
+    const ptCheck = nhanDienCauHoiPhongThuy(chu);
+    if (ptCheck.laPhongThuy && ptCheck.namSinh) {
+      const cauPt = dinhDangPhongThuyChat(ptCheck.namSinh, ptCheck.gioiTinh, ptCheck.huongNha);
+      if (cauPt) danhSachGoiY.unshift(cauPt);
+    }
     if (!danhSachGoiY.length && kieu !== "chu") {
       danhSachGoiY = goiYPhiNgonNgu({ kieu, facts, isEn: pl?.ngon_ngu === "en" });
     }
@@ -733,11 +746,23 @@ export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
 
   const chaoTen = ten && ten !== "bạn" ? `${ten} ơi, ` : "Bạn ơi, ";
   if (!coCan) {
+    let goiYThieu = `Bạn cần phòng khu vực nào, tầm mấy người ở với ngân sách khoảng bao nhiêu để mình gửi hình mấy căn đang trống qua bạn coi thử nha.`;
+    if (coQuan) {
+      const laQuanTrungTam = /(1|3|10|bình thạnh|phú nhuận|quận 1|quận 3|quận 10)/i.test(quanText);
+      goiYThieu = laQuanTrungTam
+        ? `Khu ${quanText} bên mình đang có nhiều phòng từ 3.5tr - 5tr (gác lửng/studio tiện nghi) và 5.5tr - 8tr (1PN full nội thất). Bạn nhắm tầm tài chính khoảng bao nhiêu để mình lọc căn sát nhất nha.`
+        : `Khu ${quanText} bên mình đang có nhiều phòng từ 2.8tr - 4tr (tiện nghi cơ bản) và 4.2tr - 6tr (studio/1PN full đồ). Bạn dự định tầm tài chính khoảng bao nhiêu để mình gửi căn nha.`;
+    } else if (nhuCau?.gia_den || nhuCau?.gia_tu) {
+      const gia = nhuCau.gia_den || nhuCau.gia_tu;
+      if (gia <= 4_500_000) {
+        goiYThieu = `Tầm ngân sách này bên mình đang có nhiều phòng đẹp ở Gò Vấp, Quận 12, Bình Tân hoặc Bình Thạnh. Bạn đang đi làm/đi học tiện cung đường nào nhất để mình gửi căn nha.`;
+      } else {
+        goiYThieu = `Tầm tài chính này bên mình có nhiều căn studio/1PN rất đẹp ở Bình Thạnh, Phú Nhuận, Tân Bình hoặc Quận 10. Bạn ưu tiên khu vực quận nào để mình lọc gửi hình bạn xem thử nha.`;
+      }
+    }
     return {
       repNhom,
-      tinRieng:
-        `${chaoTen}nãy thấy bạn tìm phòng ${noiKhuVuc}.\n\n` +
-        `Bạn cần phòng khu vực nào, tầm mấy người ở với ngân sách khoảng bao nhiêu để mình gửi hình mấy căn đang trống qua bạn coi thử nha.`,
+      tinRieng: `${chaoTen}nãy thấy bạn tìm phòng ${noiKhuVuc}.\n\n${goiYThieu}`,
     };
   }
 
@@ -748,6 +773,13 @@ export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
     doanCan = `Mình đang có ${moTaMotCan(canKhop[0])}\n\nvới thêm ${moTaMotCan(canKhop[1])}`;
   }
 
+  const loai = String(nhuCau?.loai_phong || "");
+  const tomTat = String(nhuCau?.tom_tat || "");
+  const laGiaDinh = /(2pn|3pn|gia dinh|gia đình|vợ chồng|con nhỏ)/i.test(loai + " " + tomTat);
+  const doanGiaDinh = laGiaDinh
+    ? `Căn này bên mình ưu tiên chọn tầng trung (tầng 8-18) thoáng gió tránh bụi ồn, ban công mát mẻ và khuôn viên an toàn, rất tiện cho gia đình sinh hoạt.\n\n`
+    : "";
+
   const doanKhuVucHoi = !coQuan
     ? `Bạn đang ưu tiên tìm phòng/nhà quanh khu vực quận nào để mình lọc thêm các căn sát vị trí nhất cho bạn nha.\n\n`
     : "";
@@ -755,9 +787,10 @@ export function soanTinSanKhach({ senderName, nhuCau, canKhop = [] }) {
   const tinRieng =
     `${chaoTen}nãy thấy bạn tìm phòng ${noiKhuVuc}.\n\n` +
     `${doanCan}\n\n` +
+    doanGiaDinh +
     doanKhuVucHoi +
     `Hình trên link là hình chụp thực tế tại phòng với có ghi đủ giá điện nước luôn á.\n\n` +
-    `Bạn ưng căn nào nhắn mình hoặc kết bạn Zalo 0387 365 020 (Lê Quang) mình hẹn mở cửa coi phòng nha.`;
+    `Bạn ưng căn nào nhắn mình hoặc kết bạn Zalo 0387 365 020 (Lê Quang), tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào để mình báo mở cửa đón bạn qua xem thực tế nha.`;
 
   return { repNhom, tinRieng };
 }
