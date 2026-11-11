@@ -86,6 +86,25 @@ export default async function PhongTroDaiHocDetailPage({
   const listings = ((rawListings || []) as Listing[]).map(cheSoTin);
   const tongTin = count ?? listings.length;
 
+  // Liên kết tĩnh bộ lọc cấp quận cho quận chính của trường (/nha-dat-cho-thue/ho-chi-minh/[district]/phong-tro/[bo-loc])
+  const quanChinh = u.quan[0] ?? "";
+  const boLocChips = quanChinh
+    ? [
+        { slug: "duoi-3-trieu", nhan: `Dưới 3 triệu (${quanChinh})` },
+        { slug: "duoi-4-trieu", nhan: `Dưới 4 triệu (${quanChinh})` },
+        { slug: "gac-lung", nhan: `Có gác lửng (${quanChinh})` },
+        { slug: "studio", nhan: `Studio (${quanChinh})` },
+        { slug: "full-noi-that", nhan: `Full nội thất (${quanChinh})` },
+      ].map((b) => ({
+        href: `/nha-dat-cho-thue/ho-chi-minh/${slugify(quanDB(quanChinh))}/phong-tro/${b.slug}`,
+        nhan: b.nhan,
+      }))
+    : [
+        { href: "/phong-tro-duoi-3-trieu", nhan: "Dưới 3 triệu" },
+        { href: "/phong-tro-co-gac-lung", nhan: "Có gác lửng" },
+        { href: "/can-ho-mini-full-noi-that", nhan: "CHDV Studio" },
+      ];
+
   // Trường lân cận cùng quận hoặc khu vực
   const truongLanCan = DANH_SACH_DAI_HOC.filter(
     (item) => item.slug !== u.slug && item.quan.some((q) => u.quan.includes(q))
@@ -227,30 +246,21 @@ export default async function PhongTroDaiHocDetailPage({
           </p>
         </section>
 
-        {/* Cross-links theo chuyên đề & mức giá */}
+        {/* Cross-links theo chuyên đề & mức giá cấp quận tĩnh */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-            <span className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-brand text-white shadow-xs whitespace-nowrap">
+            <span className="inline-flex items-center min-h-[44px] px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-brand text-white shadow-xs whitespace-nowrap">
               Tất cả giá quanh trường
             </span>
-            <Link
-              href="/phong-tro-duoi-3-trieu"
-              className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
-            >
-              Dưới 3 triệu →
-            </Link>
-            <Link
-              href="/phong-tro-co-gac-lung"
-              className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
-            >
-              Có gác lửng →
-            </Link>
-            <Link
-              href="/can-ho-mini-full-noi-that"
-              className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
-            >
-              CHDV Studio →
-            </Link>
+            {boLocChips.map((chip) => (
+              <Link
+                key={chip.href}
+                href={chip.href}
+                className="inline-flex items-center min-h-[44px] px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap bg-[var(--surface-1)] text-[var(--text-2)] hover:bg-[var(--surface-2)] border border-[var(--border)]"
+              >
+                {chip.nhan} →
+              </Link>
+            ))}
           </div>
 
           <div className="text-xs text-[var(--text-3)] font-medium">

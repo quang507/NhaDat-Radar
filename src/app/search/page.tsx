@@ -15,17 +15,13 @@ import { oTronRoHang, xepTheoThuTu, khoangIdTuMa } from "@/lib/ro-hang";
 import { docTienIch, dieuKienTienIch, tienIchCua } from "@/lib/tien-ich";
 import { bocTruyVanBDS } from "@/lib/boc-truy-van";
 
-// /search KHÔNG tham số là trang có ích (điểm vào bộ lọc) -> để index.
-// /search?... là vô số tổ hợp nội dung mỏng/trùng với trang khu vực -> noindex, follow (23/9).
-// Trang khu vực (/nha-dat-ban/[tinh]/[quan]/[loai]) mới là bản để Google lập chỉ mục.
-export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const sp = await searchParams;
-  const coLoc = Object.entries(sp).some(([k, v]) => v && k !== "page");
+// /search là công cụ lọc tương tác: luôn noindex (trang khu vực & hub /nha-dat-ban, /nha-dat-cho-thue là bản để Google index).
+export async function generateMetadata() {
   return {
     title: "Tìm kiếm bất động sản - NhaDat Radar",
     description: "Lọc tin nhà đất bán và cho thuê theo khu vực, mức giá, diện tích, số phòng; xem giá trung vị khu vực và cảnh báo giá lệch.",
     alternates: { canonical: "/search" },
-    robots: coLoc ? { index: false, follow: true } : { index: true, follow: true },
+    robots: { index: false, follow: true },
   };
 }
 

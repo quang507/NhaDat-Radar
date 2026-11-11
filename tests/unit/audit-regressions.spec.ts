@@ -130,3 +130,19 @@ test("trang chủ và menu không dẫn danh mục chính vào /search?kind= hay
   const footer = doc("src/components/Footer.tsx");
   expect(footer).not.toContain("/search");
 });
+
+test("/search luôn noindex, follow để không cạnh tranh trang khu vực & hub", () => {
+  const searchPage = doc("src/app/search/page.tsx");
+  expect(searchPage).toMatch(/robots:\s*\{\s*index:\s*false,\s*follow:\s*true\s*\}/);
+  expect(searchPage).not.toMatch(/index:\s*true/);
+});
+
+test("trang điểm neo pSEO có đủ 16 điểm TP.HCM & trang đại học trỏ bộ lọc tĩnh cấp quận", () => {
+  const diemNeoSrc = doc("src/lib/diem-neo.ts");
+  const slugMatches = diemNeoSrc.match(/slug:\s*"[a-z0-9-]+"/g) ?? [];
+  expect(slugMatches.length).toBe(16);
+
+  const uniPage = doc("src/app/phong-tro-gan-truong-dai-hoc/[slug]/page.tsx");
+  expect(uniPage).toContain("/nha-dat-cho-thue/ho-chi-minh/");
+  expect(uniPage).toContain("/phong-tro/${b.slug}");
+});
