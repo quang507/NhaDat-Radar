@@ -201,7 +201,9 @@ for (const x of dsNhap) {
   const anh = (x.images || []).filter(laAnh).slice(0, 20);
   const cuRow = cu.get(x.source_post_id);
   const id = cuRow?.id || crypto.randomUUID();
-  rows.push({
+    const vid = (x.images || []).filter(laVideo).slice(0, 2);
+    const amenities = [...new Set([...(Array.isArray(x.amenities) ? x.amenities : []), ...(vid.length ? ["video"] : [])])];
+    rows.push({
     id,
     source: "ro_hang",
     source_site: "radar",   // KHÔNG ghi tên đối tác ra cột anon đọc được - đối tác ở listing_ro_hang.partner
@@ -223,8 +225,8 @@ for (const x of dsNhap) {
     geo_precision: lech ? "duong" : null,
     // ảnh trước (thẻ tin dùng ảnh đầu), video (tối đa 2) nối cuối -> trang chi tiết phát được
     // 5/11: URL gốc của đối tác, trình duyệt tải thẳng - qua /m của Vercel từng làm vượt hạn mức (che-media.mjs)
-    images: [...anh, ...(x.images || []).filter(laVideo).slice(0, 2)],
-    amenities: Array.isArray(x.amenities) ? x.amenities : [],   // khoá TIEN_ICH (evohome-fetch.mjs)
+    images: [...anh, ...vid],
+    amenities,   // khoá TIEN_ICH (evohome-fetch.mjs) + "video" nếu phòng có clip thật
     specs: Object.fromEntries(Object.entries(specs).filter(([k]) => !/hoa hồng|số phòng|^mã /i.test(k))),   // mã/số phòng/hoa hồng chỉ ở listing_ro_hang
     contact_name: "NhaDat Radar",
     contact_phone: HOTLINE,

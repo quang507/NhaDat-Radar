@@ -61,10 +61,21 @@ function quanTinh(d) {
 }
 function tienIch(r) {
   const ti = new Set();
-  for (const f of r.features || []) {
+  const det = r._detail || {};
+  const labels = [
+    ...(r.features || []),
+    ...(det.furniture || []).map((x) => x?.label).filter(Boolean),
+    ...(det.amenities || []).filter((x) => x?.label && x.value && !/^(không|chưa)$/i.test(String(x.value).trim())).map((x) => x.label),
+  ];
+  for (const f of labels) {
     const hit = TI.filter(([re]) => re.test(f));
     if (!hit.length && !KHONG_KHOA.has(f)) LA.set(f, (LA.get(f) || 0) + 1);
     for (const [, k] of hit) ti.add(k);
+  }
+  for (const reg of det.regulations || []) {
+    const lb = String(reg?.label || ""), val = String(reg?.value || "").trim();
+    if (/giờ giấc/i.test(lb) && /tự do/i.test(val)) ti.add("gio_tu_do");
+    if (/thú cưng/i.test(lb) && /^(có|được|cho)/i.test(val)) ti.add("thu_cung");
   }
   if (r.hasBalcony) ti.add("ban_cong");
   if (r.hasWindow) ti.add("cua_so");
@@ -108,20 +119,32 @@ async function layJson(body, lan = 0, lan429 = 0) {
   }
 }
 
-/** mảng "rooms" trong payload RSC của trang toà nhà (bóc theo cặp ngoặc - payload không phải JSON trọn vẹn) */
+/** Bóc 1 khối JSON ([...] hoặc {...}) ngay sau marker trong payload RSC */
+function tachKhoiJson(t, marker, mo, dong) {
+  const k = t.indexOf(marker);
+  if (k < 0) return null;
+  let sau = 0, i = k + marker.length - 1;
+  for (; i < t.length; i++) {
+    const c = t[i];
+    if (c === '"') { i++; while (i < t.length && t[i] !== '"') { if (t[i] === "\\") i++; i++; } continue; }
+    if (c === mo) sau++;
+    else if (c === dong && --sau === 0) break;
+  }
+  return JSON.parse(t.slice(k + marker.length - 1, i + 1));
+}
+
+/** mảng "rooms" + bảng chi tiết "detailsById" (fees, regulations, furniture) trong payload RSC của trang toà nhà */
 async function phongCuaToa(id, lan = 0, lan429 = 0) {
   try {
     const t = await docCoHan(`${GOC}/du-an/${encodeURIComponent(id)}`, { headers: { ...UA, RSC: "1" } });
-    const k = t.indexOf('"rooms":[');
-    if (k < 0) return [];
-    let sau = 0, i = k + 8;
-    for (; i < t.length; i++) {
-      const c = t[i];
-      if (c === '"') { i++; while (i < t.length && t[i] !== '"') { if (t[i] === "\\") i++; i++; } continue; }
-      if (c === "[") sau++;
-      else if (c === "]" && --sau === 0) break;
+    const rooms = tachKhoiJson(t, '"rooms":[', "[", "]");
+    if (!rooms) return [];
+    let det = null;
+    try { det = tachKhoiJson(t, '"detailsById":{', "{", "}"); } catch { /* thiếu detailsById thì giữ null */ }
+    if (det && typeof det === "object") {
+      for (const r of rooms) r._detail = det[r.id] || null;
     }
-    return JSON.parse(t.slice(k + 8, i + 1));
+    return rooms;
   } catch (e) {
     if (e instanceof QuaDay && lan429 < CHO_429.length) { await choQuaDay(e, lan429, `toà ${id}`); return phongCuaToa(id, lan, lan429 + 1); }
     if (lan >= 2) { console.warn(`Bỏ toà ${id}: ${e.message}`); return null; }
@@ -215,6 +238,51 @@ async function tho() {
   }
 }
 
+function fmtPhiHf(nhan, raw) {
+  const s = String(raw || "").trim();
+  if (!s || s === "-" || /hỏi quản lý/i.test(s)) return "";
+  if (!/^[\d.,]+$/.test(s)) return s;
+  return /điện/i.test(nhan) ? `${s} đ/kWh` : `${s} đ`;
+}
+
+function tachChiTietHf(detail) {
+  const phi = {};
+  for (const f of detail?.fees || []) {
+    const nhan = String(f?.label || "").trim();
+    const giaTri = fmtPhiHf(nhan, f?.value);
+    if (!nhan || !giaTri) continue;
+    if (/^(tiền )?điện$/i.test(nhan)) phi["Điện"] = giaTri;
+    else if (/^(tiền )?nước$/i.test(nhan)) phi["Nước"] = giaTri;
+    else if (/(gửi|giữ|để) xe/i.test(nhan)) phi["Gửi xe"] = giaTri;
+    else if (/dịch vụ|quản lý/i.test(nhan)) phi["Dịch vụ"] = giaTri;
+    else phi[nhan] = giaTri;
+  }
+  const dk = {};
+  for (const reg of detail?.regulations || []) {
+    const nhan = String(reg?.label || "").trim();
+    const s = String(reg?.value || "").trim();
+    if (!nhan || !s || s === "-" || /hỏi quản lý/i.test(s)) continue;
+    if (/^cọc \(số tháng\)$/i.test(nhan)) {
+      dk["Tiền cọc"] = /^\d+([.,]\d+)?$/.test(s) ? `${s} tháng` : s;
+    } else if (/^hợp đồng \(tháng\)$/i.test(nhan)) {
+      dk["Thời hạn hợp đồng"] = /^[\d\s\-–,]+$/.test(s) ? `${s} tháng` : s;
+    } else if (/^số người tối đa$/i.test(nhan)) {
+      dk["Số người ở"] = /^\d+$/.test(s) ? `Tối đa ${s} người` : s;
+    } else if (/^thú cưng$/i.test(nhan)) {
+      dk["Thú cưng"] = s;
+    } else if (/^giờ giấc$/i.test(nhan)) {
+      dk["Giờ giấc"] = s;
+    }
+  }
+  const tnChiTiet = [
+    ...(detail?.furniture || []).map((f) => f?.label).filter(Boolean),
+    ...(detail?.amenities || [])
+      .filter((a) => a?.label && a.value && !/^(không|hỏi quản lý|-)$/i.test(String(a.value).trim()))
+      .map((a) => (String(a.value).trim() === "Có" ? a.label : `${a.label}: ${String(a.value).trim()}`)),
+  ];
+  return { phi, dk, tnChiTiet };
+}
+
 function chuanHoa(r, p) {
   const loai = LOAI[r.listingType] || r.listingType || "Phòng";
   const dt = Number(r.area) || null;
@@ -222,17 +290,29 @@ function chuanHoa(r, p) {
   const duong = r.street || p.street || "";
   const ti = tienIch(r);
   const { quan, tinh } = quanTinh(r.district || p.district);
-  const tn = [...new Set([...(r.features || []), r.furnitureLevel].filter(Boolean))];
+  const { phi, dk, tnChiTiet } = tachChiTietHf(r._detail);
+  const tn = [...new Set([...(r.features || []), r.furnitureLevel, ...tnChiTiet].filter(Boolean))];
+  const phiLines = Object.entries(phi).map(([k, v]) => `• ${k}: ${v}`);
+  const dkLines = Object.entries(dk)
+    .filter(([k]) => !/hợp đồng/i.test(k))
+    .map(([k, v]) => `• ${k}: ${v}`);
   const moTa = [
     `🏠 Cho thuê ${loai} tại ${[duong, phuong, quan, tinh].filter(Boolean).join(", ")}.`,   // importer đổi "<đường>" -> "khu vực <đường>"
     `• Diện tích: ${dt ? dt + " m²" : "Rộng rãi thoáng mát"}`,
     `• Giá thuê: ${tien(r.price)}/tháng`,
     r.availableDate ? `• Nhận phòng từ: ${r.availableDate}` : "",
+    ...(phiLines.length ? ["📌 CHI PHÍ DỊCH VỤ:", ...phiLines] : []),
+    ...(dkLines.length ? ["📋 ĐIỀU KHOẢN:", ...dkLines] : []),
     "✨ TIỆN NGHI PHÒNG:",
     ...(tn.length ? tn.map((t) => `• ${t}`) : ["• Đầy đủ tiện nghi cơ bản"]),
   ].filter(Boolean).join("\n");
   const anh = (r.media || []).filter((m) => m.type === "image").map((m) => m.url);
-  const video = (r.media || []).filter((m) => m.type === "video").map((m) => m.url);
+  const video = [
+    ...new Set([
+      ...(r.media || []).filter((m) => m.type === "video").map((m) => m.url),
+      ...(typeof r.coverVideo === "string" && /\.(mp4|mov|m4v|webm|avi|3gp|mkv)(\?|#|$)/i.test(r.coverVideo) ? [r.coverVideo] : []),
+    ]),
+  ];
   return {
     source_post_id: r.id,                         // mã tin đầy đủ LST-...
     posted_at: null,
@@ -252,6 +332,8 @@ function chuanHoa(r, p) {
       "Loại phòng": loai,
       "Số phòng": r.roomCode || "-",             // chỉ admin thấy (ro-hang-evohome.mjs lọc khỏi bản công khai)
       "Nội thất": r.furnitureLevel || "-",
+      ...phi,
+      ...dk,
       "Mã toà HiFriendz": p.id,
     },
   };

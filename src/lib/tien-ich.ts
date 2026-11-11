@@ -7,6 +7,7 @@
 export type TienIch = { k: string; ten: string; ngan?: string; icon: string; am?: string; tu: string[] };
 
 export const TIEN_ICH: TienIch[] = [
+  { k: "video", ten: "Có video", icon: "🎬", tu: ["youtu.be", "youtube.com", "zalo.video", ".mp4"] },
   { k: "thu_cung", ten: "Nuôi thú cưng", ngan: "Thú cưng", icon: "🐾", am: "pet", tu: ["thú cưng", "nuôi chó", "nuôi mèo", "pet"] },
   { k: "gac_lung", ten: "Gác lửng", icon: "🪜", tu: ["gác lửng", "gác xép", "có gác", "duplex"] },
   { k: "gio_tu_do", ten: "Giờ tự do", icon: "⏰", tu: ["giờ tự do", "không chung chủ", "riêng chủ", "tự do"] },
@@ -52,10 +53,11 @@ export const nhanTienIch = (k: string) => { const t = THEO_KHOA.get(k); return t
  * amenities chứa khoá mới/khoá cũ, HOẶC tiêu đề/mô tả có cụm từ. Tính ở server trên mô tả ĐẦY ĐỦ
  * (trước khi gonChoDanhSach cắt còn 160 ký tự).
  */
-export function tienIchCua(x: { title?: string | null; description?: string | null; amenities?: string[] | null }): string[] {
+export function tienIchCua(x: { title?: string | null; description?: string | null; amenities?: string[] | null; images?: string[] | null }): string[] {
   const chu = `${x.title || ""} ${x.description || ""}`.toLowerCase();
   const am = new Set(x.amenities || []);
-  return TIEN_ICH.filter((t) => am.has(t.k) || (t.am && am.has(t.am)) || t.tu.some((w) => chu.includes(w))).map((t) => t.k);
+  const coVideo = (x.images || []).some((u) => /\.(mp4|mov|m4v|webm|avi|3gp|mkv)$/i.test(String(u).split(/[?#]/)[0]));
+  return TIEN_ICH.filter((t) => am.has(t.k) || (t.am && am.has(t.am)) || (t.k === "video" && coVideo) || t.tu.some((w) => chu.includes(w))).map((t) => t.k);
 }
 
 /** khoá -> tiện ích (icon + tên) cho thẻ tin */

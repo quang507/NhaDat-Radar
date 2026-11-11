@@ -432,6 +432,8 @@ export default async function ListingDetail({
     ["Giờ giấc", gioGiac],
   ] : null;
   const thieuDieuKhoan = !!dieuKhoan?.some(([, v]) => !v);
+  const coPhiPhu = !!bangPhi?.slice(1).some(([, v]) => v);
+  const coDieuKhoan = !!dieuKhoan?.some(([, v]) => v);
 
   // Sáp nhập 1/7/2025: người đăng lúc ghi tên CŨ (quen miệng), lúc ghi tên MỚI. Các sàn lớn
   // đều hiện CẢ HAI để ai đọc cũng nhận ra chỗ đó - chotot: "Quận 11, TP.HCM (Phường Phú Thọ,
@@ -733,7 +735,7 @@ export default async function ListingDetail({
                 </div>
               </div>
               <dl className="divide-y divide-[var(--line)] text-sm">
-                {bangPhi.map(([nhan, giaTri]) => (
+                {(coPhiPhu ? bangPhi : bangPhi.slice(0, 1)).map(([nhan, giaTri]) => (
                   <div key={nhan} className="flex items-center justify-between gap-3 py-2.5 min-h-11">
                     <dt className="text-[var(--ink-soft)] font-medium">{nhan}</dt>
                     <dd className={giaTri ? "font-bold text-[var(--ink)] text-right" : "text-xs text-[var(--ink-faint)] text-right"}>
@@ -757,7 +759,14 @@ export default async function ListingDetail({
                   </div>
                 ))}
               </dl>
-              {dieuKhoan && (
+              {!coPhiPhu && (
+                <p className="mt-2.5 text-xs text-[var(--ink-soft)] leading-relaxed">
+                  {lienHeRadar
+                    ? "Điện, nước, gửi xe, dịch vụ chưa có bảng phí chi tiết trên tin này. Nhắn Zalo để Radar báo trọn gói trước khi qua xem."
+                    : "Tin không ghi chi tiết tiền điện, nước, gửi xe, dịch vụ."}
+                </p>
+              )}
+              {dieuKhoan && coDieuKhoan && (
                 <>
                   <h4 className="mt-4 mb-1 font-bold text-sm text-[var(--ink)]">Điều khoản thuê</h4>
                   <dl className="divide-y divide-[var(--line)] text-sm">
@@ -790,7 +799,7 @@ export default async function ListingDetail({
               {lienHeRadar && (soPhiCo < bangPhi.length || thieuDieuKhoan) && (
                 <NutZalo listingId={x.id} tinNhan={`Chào Radar, cho mình hỏi đủ chi phí (điện, nước, gửi xe, dịch vụ) và điều khoản (cọc, hợp đồng, số người, thú cưng) của ${roHang ? `phòng ${maPhong(x.id)}` : `tin ${x.id.slice(0, 8)}`} nhé.`} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full mt-3 text-center border border-[#0068ff] text-[#0068ff] font-semibold flex items-center justify-center gap-2">
                   <MessageCircle className="w-4 h-4 text-[#0068ff] shrink-0" />
-                  <span>Hỏi đủ chi phí &amp; điều khoản qua Zalo</span>
+                  <span>{!coPhiPhu && !coDieuKhoan ? "Nhận bảng phí & điều khoản qua Zalo" : "Hỏi đủ chi phí & điều khoản qua Zalo"}</span>
                 </NutZalo>
               )}
               {lienHeRadar && (
@@ -1055,8 +1064,8 @@ export default async function ListingDetail({
           </div>
         </div>
 
-        {/* lg: dính theo khi cuộn; khung liên hệ rổ hàng (QR + form đặt lịch) cao hơn màn hình -> cuộn trong */}
-        <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]">
+        {/* lg: sticky giữ nguyên khung liên hệ (#lien-he + Độ mới), bỏ overflow-y-auto nội bộ để khỏi kẹt scrollbar */}
+        <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
           <div className="card rounded-lg p-5" id="lien-he">
             <h3 className="font-bold mb-3">{roHang ? (x.deal === "ban" ? "Liên hệ xem nhà" : "Liên hệ xem phòng") : isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
             <div className="flex items-center gap-3 mb-3">
@@ -1217,17 +1226,11 @@ export default async function ListingDetail({
 
       {/* Mobile: thanh CTA dính đáy - khối liên hệ nằm cuối trang, khách phải cuộn 4-5 màn (UX audit).
           Bù padding-bottom cho body qua div dưới. Vùng chạm chuẩn ≥44px (48px) tối ưu ngón cái. */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] flex items-center gap-2.5">
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[var(--line)] bg-[var(--surface)] shadow-[0_-4px_16px_rgba(0,0,0,0.08)] px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] flex items-center gap-2.5">
         <div className="min-w-0 flex-1">
           <div className="text-brand font-extrabold leading-tight text-base sm:text-lg">{fmtPrice(x.price_vnd, x.deal)}</div>
-          <div className="text-[0.7rem] text-[var(--ink-soft)] flex items-center gap-1.5 truncate mt-0.5">
-            {roHang ? (
-              <NutChepMa
-                ma={maPhong(x.id)}
-                className="font-mono font-bold text-[0.65rem] bg-[var(--surface-2)] text-[var(--ink)] hover:text-brand px-1.5 py-0.5 rounded border border-[var(--line)] inline-flex items-center gap-1 shrink-0 active:scale-95 transition"
-              />
-            ) : null}
-            <span className="truncate">{[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}</span>
+          <div className="text-[0.7rem] text-[var(--ink-soft)] truncate mt-0.5">
+            {[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}
           </div>
         </div>
         {roHang ? (

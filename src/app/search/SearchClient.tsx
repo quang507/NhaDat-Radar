@@ -806,7 +806,7 @@ export default function SearchClient({
 
           {display.length ? (
             <>
-              {choThue && phanTrang("mb-3")}
+              <div className="hidden sm:block">{choThue && phanTrang("mb-3")}</div>
               <div className={choThue ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" : "flex flex-col gap-3"}>
                 {display.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}
               </div>

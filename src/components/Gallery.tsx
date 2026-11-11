@@ -270,7 +270,7 @@ export default function Gallery({
             e.stopPropagation();
             openAt(heroIdx);
           }}
-          className="absolute bottom-3 right-3 text-xs font-medium px-2.5 py-1 rounded-lg bg-black/60 hover:bg-black/85 backdrop-blur-sm text-white transition flex items-center gap-1.5 cursor-pointer z-10"
+          className="absolute bottom-3 left-3 sm:left-auto sm:right-3 text-xs font-medium px-2.5 py-1 rounded-lg bg-black/60 hover:bg-black/85 backdrop-blur-sm text-white transition flex items-center gap-1.5 cursor-pointer z-10"
         >
           <span>{heroIdx + 1}/{n}</span>
           <span className="text-white/40">·</span>
@@ -303,7 +303,7 @@ export default function Gallery({
           </>
         )}
         {n > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none">
+          <div className="absolute bottom-3 right-3 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 flex gap-1.5 pointer-events-none">
             {images.slice(0, 8).map((_, i) => (
               <span key={i} className={`w-1.5 h-1.5 rounded-full transition ${i === Math.min(heroIdx, 7) ? "bg-white" : "bg-white/40"}`} />
             ))}
