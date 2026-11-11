@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/ld";
 
 export const metadata: Metadata = {
   title: "Thống Kê Giá Nhà Đất & Biểu Đồ Biến Động Giá BĐS | NhaDat Radar",
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "Thống Kê Giá Nhà Đất & Biểu Đồ Biến Động Giá BĐS | NhaDat Radar",
     description: "Báo cáo thống kê giá bán và giá thuê nhà đất, căn hộ chi tiết theo từng quận.",
-    url: "https://nhadatradar.com/thong-ke",
+    url: `${SITE_URL}/thong-ke`,
   },
 };
 

@@ -58,13 +58,16 @@ html.dark {
   --accent: #f59e0b;
   --accent-rgb: 245 158 11;
 }
-html { color-scheme: light dark; }
+html { color-scheme: light dark; touch-action: manipulation; }
+button, a, input, select, textarea, summary, [role="button"], [role="tab"], [role="switch"], [role="checkbox"] {
+  touch-action: manipulation;
+}
 body {
   background-color: var(--bg);
   background-image:
     radial-gradient(ellipse 80% 50% at 15% -5%, rgba(var(--brand-rgb), 0.08), transparent 60%),
     radial-gradient(ellipse 60% 40% at 88% 8%, rgba(var(--accent-rgb), 0.06), transparent 55%);
-  background-attachment: fixed;
+  background-attachment: scroll;
   color: var(--ink);
   font-family: var(--font-inter), "Inter", system-ui, -apple-system, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -74,6 +77,9 @@ body {
      đã cộng inset dưới; đệm thêm ở body là cộng đôi khoảng trắng. Giữ trái/phải cho máy tai thỏ xoay ngang. */
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
+}
+@media (min-width: 768px) {
+  body { background-attachment: fixed; }
 }
 
 /* ZEN Kaiz Typography & Layout Rules */

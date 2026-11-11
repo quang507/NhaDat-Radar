@@ -11,13 +11,19 @@ export function useDongBangBack(mo: boolean, dong: () => void) {
 
   useEffect(() => {
     if (!mo) return;
-    window.history.pushState({ ...(window.history.state || {}), lopPhu: true }, "");
     let daBack = false;
+    let daPush = false;
     const onPop = () => { daBack = true; dongRef.current(); };
     window.addEventListener("popstate", onPop);
+    // Đẩy history sau frame vẽ đầu để wrapper history.pushState của Next Router không kéo dài INP cú chạm.
+    const t = window.setTimeout(() => {
+      window.history.pushState({ ...(window.history.state || {}), lopPhu: true }, "");
+      daPush = true;
+    }, 0);
     return () => {
+      window.clearTimeout(t);
       window.removeEventListener("popstate", onPop);
-      if (!daBack && window.history.state?.lopPhu) window.history.back();
+      if (daPush && !daBack && window.history.state?.lopPhu) window.history.back();
     };
   }, [mo]);
 }

@@ -4,6 +4,7 @@ export const revalidate = 43200;
 import { createAnonClient } from "@/lib/supabase/anon";
 import { median } from "@/lib/gemini";
 import { areaPath } from "@/lib/slug";
+import { SITE_URL } from "@/lib/ld";
 import Link from "next/link";
 import RentVsBuyCalc from "./RentVsBuyCalc";
 import { TrendingUp, ArrowUpRight } from "lucide-react";
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "Nên Thuê Hay Mua Nhà? Bảng Tỷ Suất Cho Thuê Theo Quận | NhaDat Radar",
     description: "Bảng tỷ suất sinh lời cho thuê theo từng quận huyện trên NhaDat Radar.",
-    url: "https://nhadatradar.com/thue-hay-mua",
+    url: `${SITE_URL}/thue-hay-mua`,
   },
 };
 

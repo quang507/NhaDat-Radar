@@ -146,14 +146,20 @@ export default function Gallery({
     }
   };
 
-  // Click trên Desktop: bấm ảnh thì chuyển ảnh tại chỗ, KHÔNG mở khung đen lightbox
+  // Bấm ảnh chính: 1 ảnh, màn hình cảm ứng/mobile hoặc vùng giữa -> mở khung phóng to (tránh dead click); rìa trái/phải desktop nhiều ảnh -> chuyển ảnh tại chỗ
   const handleDesktopImageClick = (e: React.MouseEvent<HTMLImageElement | HTMLDivElement>) => {
+    if (n <= 1 || window.matchMedia("(max-width: 767px), (pointer: coarse)").matches) {
+      openAt(heroIdx);
+      return;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    if (clickX < rect.width * 0.4) {
+    if (clickX < rect.width * 0.3) {
       hero.scrollTo((heroIdx - 1 + n) % n);
-    } else {
+    } else if (clickX > rect.width * 0.7) {
       hero.scrollTo((heroIdx + 1) % n);
+    } else {
+      openAt(heroIdx);
     }
   };
   const [video, setVideo] = useState<string | null>(null);

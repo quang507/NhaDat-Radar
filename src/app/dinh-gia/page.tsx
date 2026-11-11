@@ -1,6 +1,7 @@
 export const revalidate = 3600;
 
 import { getAreas } from "@/lib/geo";
+import { SITE_URL } from "@/lib/ld";
 import ValuationClient from "./ValuationClient";
 
 import type { Metadata } from "next";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "AI Định Giá Bất Động Sản - Tham Khảo Giá Thị Trường | NhaDat Radar",
     description: "Công cụ định giá nhà đất tham khảo ứng dụng AI: so sánh giá thị trường theo quận, diện tích, vị trí.",
-    url: "https://nhadatradar.com/dinh-gia",
+    url: `${SITE_URL}/dinh-gia`,
   },
 };
 

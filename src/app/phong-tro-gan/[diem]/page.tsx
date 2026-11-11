@@ -9,7 +9,7 @@ import { LISTING_CARD_COLS } from "@/lib/cols";
 import { fmtPrice } from "@/lib/format";
 import { median } from "@/lib/gemini";
 import { slugify } from "@/lib/slug";
-import { ldJson } from "@/lib/ld";
+import { ldJson, SITE_URL } from "@/lib/ld";
 import { cheSoTin } from "@/lib/doc-quyen";
 import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
@@ -164,7 +164,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `https://nhadatradar.com/phong-tro-gan/${d.slug}`,
+      url: `${SITE_URL}/phong-tro-gan/${d.slug}`,
       type: "website",
     },
   };
@@ -205,9 +205,9 @@ export default async function DiemNeoPage({
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Trang chủ", item: "https://nhadatradar.com" },
-      { "@type": "ListItem", position: 2, name: "Cho thuê nhà đất", item: "https://nhadatradar.com/nha-dat-cho-thue" },
-      { "@type": "ListItem", position: 3, name: `Phòng trọ gần ${d.ten}`, item: `https://nhadatradar.com/phong-tro-gan/${d.slug}` },
+      { "@type": "ListItem", position: 1, name: "Trang chủ", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Cho thuê nhà đất", item: `${SITE_URL}/nha-dat-cho-thue` },
+      { "@type": "ListItem", position: 3, name: `Phòng trọ gần ${d.ten}`, item: `${SITE_URL}/phong-tro-gan/${d.slug}` },
     ],
   };
 

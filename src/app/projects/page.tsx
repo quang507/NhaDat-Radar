@@ -6,6 +6,7 @@ import { unstable_cache } from "next/cache";
 import { fmtPrice } from "@/lib/format";
 import SafeImg from "@/components/SafeImg";
 import { tinhMoi } from "@/lib/sap-nhap";
+import { SITE_URL } from "@/lib/ld";
 import type { Project } from "@/lib/types";
 import { Building2, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "Danh mục 2.300+ Dự án Bất Động Sản Toàn Quốc | NhaDat Radar",
     description: "Tổng hợp thông tin, tiến độ, bảng giá và căn hộ bán & cho thuê tại hơn 2.300 dự án bất động sản trên toàn quốc.",
-    url: "https://nhadatradar.com/projects",
+    url: `${SITE_URL}/projects`,
   },
 };
 

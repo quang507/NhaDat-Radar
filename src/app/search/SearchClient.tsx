@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { memo, useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import ListingRow from "@/components/ListingRow";
@@ -86,6 +86,14 @@ const O_LOC = ["q", "deal", "kind", "province", "district", "ward", "priceMin", 
 type BoLoc = Record<(typeof O_LOC)[number], string>;
 const tuParams = (p: Record<string, string | undefined>): BoLoc =>
   Object.fromEntries(O_LOC.map((k) => [k, p[k] || ""])) as BoLoc;
+
+const DanhSachTin = memo(function DanhSachTin({ items, choThue }: { items: Listing[]; choThue: boolean }) {
+  return (
+    <div className={choThue ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" : "flex flex-col gap-3"}>
+      {items.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}
+    </div>
+  );
+});
 
 export default function SearchClient({
   listings, geo, params, newToday = 0, total, trang = 1, moiTrang = 20, dieuHuong = null, duAn = [],
@@ -175,14 +183,14 @@ export default function SearchClient({
     return pathname + (usp.size ? "?" + usp.toString() : "");
   };
 
-  // Popup bộ lọc mở -> khoá cuộn trang nền, Esc để đóng
+  // Popup bộ lọc mở -> khoá cuộn trang nền sau frame vẽ đầu (giảm INP trên mobile), Esc để đóng
   useEffect(() => {
     if (!showFilter) return;
     const cu = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const raf = requestAnimationFrame(() => { document.body.style.overflow = "hidden"; });
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setShowFilter(false); };
     document.addEventListener("keydown", esc);
-    return () => { document.body.style.overflow = cu; document.removeEventListener("keydown", esc); };
+    return () => { cancelAnimationFrame(raf); document.body.style.overflow = cu; document.removeEventListener("keydown", esc); };
   }, [showFilter]);
   // 2/11 (audit M4): nút Back Android đóng popup bộ lọc thay vì rời trang tìm kiếm
   useDongBangBack(showFilter, () => setShowFilter(false));
@@ -807,9 +815,7 @@ export default function SearchClient({
           {display.length ? (
             <>
               <div className="hidden sm:block">{choThue && phanTrang("mb-3")}</div>
-              <div className={choThue ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" : "flex flex-col gap-3"}>
-                {display.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}
-              </div>
+              <DanhSachTin items={display} choThue={choThue} />
               {phanTrang("mt-5")}
 
               {/* Phễu hứng lead nhận tin giá tốt qua Zalo */}

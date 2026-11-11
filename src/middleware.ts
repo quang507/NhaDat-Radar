@@ -5,7 +5,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 // (42 lượt vào trang chủ trong 90 ngày) -> Google thấy hai site trùng nhau. Chuyển vĩnh viễn về tên miền chính.
 // CHỈ đúng tên miền production này; bản xem trước theo từng commit (…-git-…vercel.app) giữ nguyên.
 const TEN_MIEN_VERCEL_CU = "nha-dat-radar-rkyn.vercel.app";
-const TEN_MIEN_CHINH = "https://nhadatradar.com";
+const TEN_MIEN_CHINH = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.nhadatradar.com").replace(/\/+$/, "");
 
 const HUYEN_HCM_SLUG = new Set(["binh-chanh", "nha-be", "hoc-mon", "cu-chi", "can-gio"]);
 function slugQuanHcm(raw: string): string {

@@ -150,3 +150,32 @@ test("trang điểm neo pSEO có đủ 16 điểm TP.HCM & trang đại học tr
   expect(uniPage).toContain("/nha-dat-cho-thue/ho-chi-minh/");
   expect(uniPage).toContain("/phong-tro/${b.slug}");
 });
+
+test("tối ưu mobile INP & chống dead click trên Gallery, ListingCard, SearchClient và globals.css", () => {
+  const css = doc("src/app/globals.css");
+  expect(css).toContain("touch-action: manipulation");
+  expect(css).toContain("background-attachment: scroll");
+
+  const gallery = doc("src/components/Gallery.tsx");
+  expect(gallery).toContain("n <= 1");
+  expect(gallery).toContain("pointer: coarse");
+
+  const card = doc("src/components/ListingCard.tsx");
+  const favIdx = card.indexOf("<FavButton");
+  const closeLinkIdx = card.indexOf("</Link>");
+  expect(closeLinkIdx).toBeGreaterThan(-1);
+  expect(favIdx).toBeGreaterThan(closeLinkIdx);
+
+  const searchClient = doc("src/app/search/SearchClient.tsx");
+  expect(searchClient).toContain("const DanhSachTin = memo(");
+});
+
+test("canonical, sitemap và robots.txt dùng đúng tên miền live https://www.nhadatradar.com", () => {
+  const ld = doc("src/lib/ld.ts");
+  expect(ld).toContain('"https://www.nhadatradar.com"');
+
+  for (const rel of ["src/lib/sitemap.ts", "src/app/robots.ts", "src/components/AreaLanding.tsx", "src/middleware.ts"]) {
+    const src = doc(rel);
+    expect(src, rel).not.toContain('"https://nhadatradar.com"');
+  }
+});

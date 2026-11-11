@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DANH_SACH_DAI_HOC } from "@/lib/dai-hoc";
-import { ldJson } from "@/lib/ld";
+import { ldJson, SITE_URL } from "@/lib/ld";
 import { GraduationCap, MapPin, DollarSign, ChevronRight, Compass, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Tìm Phòng Trọ Gần Trường Đại Học TP.HCM | Radar Nhà Đất",
     description: "Kho phòng trọ sinh viên gần 15+ trường Đại học lớn tại TP.HCM. Lọc giá nhanh, xem vị trí thực tế, liên hệ trực tiếp chủ nhà.",
-    url: "https://nhadatradar.com/phong-tro-gan-truong-dai-hoc",
+    url: `${SITE_URL}/phong-tro-gan-truong-dai-hoc`,
     type: "website",
   },
 };
@@ -27,13 +27,13 @@ export default function PhongTroDaiHocIndexPage() {
         "@type": "ListItem",
         position: 1,
         name: "Trang chủ",
-        item: "https://nhadatradar.com",
+        item: SITE_URL,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Phòng trọ gần trường đại học",
-        item: "https://nhadatradar.com/phong-tro-gan-truong-dai-hoc",
+        item: `${SITE_URL}/phong-tro-gan-truong-dai-hoc`,
       },
     ],
   };

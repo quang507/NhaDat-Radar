@@ -16,7 +16,7 @@ import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import PriceTrend from "@/components/PriceTrend";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { tronRoHang } from "@/lib/ro-hang";
-import { ldJson } from "@/lib/ld";
+import { ldJson, SITE_URL } from "@/lib/ld";
 import { NGUONG, robotsTheoSoTin, BO_LOC_SEO, boLocTuSlug, TIN_MOI_TRANG, TRANG_TINH_TOI_DA, type BoLocSlug } from "@/lib/seo-index";
 import { DIEM_NEO } from "@/lib/diem-neo";
 import { DANH_SACH_CHUYEN_DE } from "@/lib/chuyen-de";
@@ -24,7 +24,7 @@ import { BarChart3 } from "lucide-react";
 import SanPhongHoCTA from "@/components/SanPhongHoCTA";
 
 type Deal = "ban" | "cho_thue";
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
+const SITE = SITE_URL;
 
 /**
  * Tuần tự hoá JSON-LD an toàn để nhúng vào <script>.

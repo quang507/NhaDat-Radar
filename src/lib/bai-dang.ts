@@ -4,6 +4,7 @@
 import { fmtPrice, PROP } from "./format";
 import { HOTLINE } from "@/components/TuVanRadar";
 import { tagGiuPhong, maPhong } from "./ro-hang";
+import { SITE_URL } from "./ld";
 
 type Tin = {
   id: string; deal: string; kind: string; title: string; description: string | null;
@@ -11,7 +12,7 @@ type Tin = {
   address: string | null; specs: Record<string, string> | null; source?: string | null; source_site?: string | null;
 };
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";   // 2/10: trước là tên miền vercel cũ
+const SITE = SITE_URL;
 
 const boDau = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
 const hashtag = (s: string) => "#" + boDau(s).replace(/[^a-zA-Z0-9]/g, "").toLowerCase();

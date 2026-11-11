@@ -2,8 +2,9 @@
 // Trước đây app/sitemap.ts gom TẤT CẢ vào 1 file và cắt cứng ở limit(1000) -> chỉ 1.000/6.575 tin
 // được khai báo, 85% trang tin Google không biết tới. Giờ tách: khu vực 1 file, tin chia lô 5.000.
 import { createAnonClient } from "@/lib/supabase/anon";
+import { SITE_URL } from "@/lib/ld";
 
-export const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
+export const SITE = SITE_URL;
 export const MOI_LO = 5000;   // giới hạn chuẩn của sitemap là 50.000 URL / 50MB; 5.000 cho nhẹ
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

@@ -25,12 +25,12 @@ export default function ListingCard({ x }: { x: Listing }) {
   const location = [x.district, x.province].filter(Boolean).join(", ") || "-";
 
   return (
-    <Link
-      href={`/listings/${x.id}`}
-      className={`reveal group card rounded-lg overflow-hidden transition-all duration-200 flex flex-col w-full ${
+    <div
+      className={`relative reveal group card card-interactive [contain:layout_style] rounded-lg overflow-hidden transition-all duration-200 flex flex-col w-full ${
         xacThuc ? "border-t-2 border-t-brand" : ""
       }`}
     >
+      <Link href={`/listings/${x.id}`} className="flex flex-col flex-1 min-w-0">
       {/* Thumbnail */}
       <div
         className="aspect-[16/10] grid place-items-center text-white relative overflow-hidden"
@@ -62,9 +62,6 @@ export default function ListingCard({ x }: { x: Listing }) {
             </span>
           )}
         </div>
-
-        {/* Top-right FavButton */}
-        <FavButton id={x.id} className="absolute top-2 right-2" />
 
         {/* Bottom-right photo count */}
         {anh.so > 1 && (
@@ -140,6 +137,8 @@ export default function ListingCard({ x }: { x: Listing }) {
           )}
         </div>
       </div>
-    </Link>
+      </Link>
+      <FavButton id={x.id} className="absolute top-2 right-2 z-10" />
+    </div>
   );
 }

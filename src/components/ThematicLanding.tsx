@@ -7,7 +7,7 @@ import { LISTING_CARD_COLS } from "@/lib/cols";
 import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
 import SanPhongHoCTA from "@/components/SanPhongHoCTA";
-import { ldJson } from "@/lib/ld";
+import { ldJson, SITE_URL } from "@/lib/ld";
 import { slugify } from "@/lib/slug";
 import {
   Sparkles,
@@ -86,13 +86,13 @@ export default async function ThematicLanding({
         "@type": "ListItem",
         position: 1,
         name: "Trang chủ",
-        item: "https://nhadatradar.com",
+        item: SITE_URL,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: cd.title,
-        item: `https://nhadatradar.com/${cd.slug}`,
+        item: `${SITE_URL}/${cd.slug}`,
       },
     ],
   };

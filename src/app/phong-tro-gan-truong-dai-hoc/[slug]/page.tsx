@@ -10,7 +10,7 @@ import { slugify } from "@/lib/slug";
 import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
 import SanPhongHoCTA from "@/components/SanPhongHoCTA";
-import { ldJson } from "@/lib/ld";
+import { ldJson, SITE_URL } from "@/lib/ld";
 import {
   GraduationCap,
   MapPin,
@@ -51,7 +51,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `https://nhadatradar.com/phong-tro-gan-truong-dai-hoc/${slug}`,
+      url: `${SITE_URL}/phong-tro-gan-truong-dai-hoc/${slug}`,
       type: "website",
     },
   };
@@ -119,19 +119,19 @@ export default async function PhongTroDaiHocDetailPage({
         "@type": "ListItem",
         position: 1,
         name: "Trang chủ",
-        item: "https://nhadatradar.com",
+        item: SITE_URL,
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Phòng trọ gần trường đại học",
-        item: "https://nhadatradar.com/phong-tro-gan-truong-dai-hoc",
+        item: `${SITE_URL}/phong-tro-gan-truong-dai-hoc`,
       },
       {
         "@type": "ListItem",
         position: 3,
         name: u.tenVietTat,
-        item: `https://nhadatradar.com/phong-tro-gan-truong-dai-hoc/${u.slug}`,
+        item: `${SITE_URL}/phong-tro-gan-truong-dai-hoc/${u.slug}`,
       },
     ],
   };

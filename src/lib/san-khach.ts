@@ -3,6 +3,7 @@
 // Cách làm học từ môi giới chốt nhiều: thấy bài là bình luận + nhắn riêng NGAY, khách rep hay không cũng nhắn.
 import { fmtPrice } from "./format";
 import { HOTLINE } from "./hotline";
+import { SITE_URL } from "./ld";
 
 export type NhuCau = {
   quan?: string[]; gia_tu?: number | null; gia_den?: number | null;
@@ -10,7 +11,7 @@ export type NhuCau = {
 };
 export type PhongKhop = { id: string; title: string; price_vnd: number | null; deal?: string | null; district?: string | null };
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
+const SITE = SITE_URL;
 const LOAI: Record<string, string> = { phong_tro: "phòng trọ", can_ho: "căn hộ", nha: "nhà nguyên căn", mat_bang: "mặt bằng", o_ghep: "chỗ ở ghép" };
 const soDep = HOTLINE.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3");
 

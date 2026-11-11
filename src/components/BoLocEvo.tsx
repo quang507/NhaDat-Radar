@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TIEN_ICH } from "@/lib/tien-ich";
 import { toaDoTuLink } from "@/lib/maps-link";
 import { X, Check, MapPin } from "lucide-react";
@@ -9,6 +9,7 @@ import { X, Check, MapPin } from "lucide-react";
 // chip tỉnh + dải chip quận, ô khoảng cách theo link Google Maps. SearchClient ghép lại + giữ state.
 
 const tachTi = (s: string) => s.split(",").filter(Boolean);
+const boDau = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
 export const doiTi = (s: string, k: string) => {
   const a = tachTi(s);
   return (a.includes(k) ? a.filter((x) => x !== k) : [...a, k]).join(",");
@@ -52,8 +53,11 @@ export function ChonDuAn({ duAn, value, onChon }: { duAn: { id: string; name: st
     return () => document.removeEventListener("mousedown", dong);
   }, [mo]);
   const dangChon = duAn.find((d) => d.id === value);
-  const boDau = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase();
-  const loc = duAn.filter((d) => boDau(d.name).includes(boDau(go))).slice(0, 50);
+  const loc = useMemo(() => {
+    if (!mo || dangChon) return [];
+    const key = boDau(go);
+    return (key ? duAn.filter((d) => boDau(d.name).includes(key)) : duAn).slice(0, 50);
+  }, [mo, dangChon, duAn, go]);
   return (
     <div className="flex items-center gap-2 mb-3">
       <span className="text-xs font-semibold text-[var(--ink-soft)] shrink-0">Dự án:</span>

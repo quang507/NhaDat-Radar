@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/ld";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
+const SITE = SITE_URL;
 
 // 3/10 (egress Supabase gói Free): bot SEO/AI quét hết ~22.000 trang tin mà không đem khách về.
 // Chặn hẳn bot SEO-tool + bot lấy dữ liệu huấn luyện AI. Máy tìm kiếm (Google, Bing, Cốc Cốc) và bot tìm

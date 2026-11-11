@@ -14,4 +14,4 @@ export function ldJson(o: unknown): string {
     .replace(/&/g, "\\u0026");
 }
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.nhadatradar.com").replace(/\/+$/, "");
