@@ -36,39 +36,106 @@ export async function generateStaticParams() {
   return DIEM_NEO.map((d) => ({ diem: d.slug }));
 }
 
+type DiemNeoSummary = {
+  tongTin: number;
+  giaTrungVi: string;
+  cuLy500m: number;
+  cuLy1km: number;
+  cuLy2km: number;
+  listings: (Listing & { kc: number })[];
+};
+
+/** Thử lại tối đa 3 lần nếu DB chập chờn lúc build/ISR; ném lỗi thật để Next không cache nhầm "0 Phòng" */
+async function truyVanVoiRetry<T>(
+  fn: () => PromiseLike<{ data: T | null; error: { message: string } | null }>,
+  nhan: string
+): Promise<T> {
+  let loiCuoi = "unknown";
+  for (let lan = 1; lan <= 3; lan++) {
+    const res = await fn();
+    if (!res.error && res.data) return res.data;
+    loiCuoi = res.error?.message || "null data";
+    if (lan < 3) await new Promise((r) => setTimeout(r, 350 * lan + Math.floor(Math.random() * 200)));
+  }
+  throw new Error(`layPhongQuanhDiem(${nhan}): ${loiCuoi}`);
+}
+
 /**
- * Lấy danh sách phòng trọ trong bán kính quanh điểm neo, có cache 3 giờ
+ * Lấy danh sách phòng trọ trong bán kính quanh điểm neo, có cache 3 giờ.
+ * Tách 2 nhịp (đọc 4 cột nhẹ tính thống kê/cự ly -> tải thẻ cho 36 tin gần nhất) để giữ cache < 100KB và tránh timeout lúc build.
  */
 const layPhongQuanhDiem = (slug: string) =>
   unstable_cache(
-    async () => {
+    async (): Promise<DiemNeoSummary> => {
       const d = timDiemNeo(slug);
-      if (!d) return [];
+      if (!d) return { tongTin: 0, giaTrungVi: "-", cuLy500m: 0, cuLy1km: 0, cuLy2km: 0, listings: [] };
       const dLat = d.banKinhKm / 111;
       const dLng = d.banKinhKm / (111 * Math.cos((d.lat * Math.PI) / 180));
       const supabase = createAnonClient();
-      const { data } = await supabase
-        .from("listings")
-        .select(LISTING_CARD_COLS)
-        .eq("status", "published")
-        .eq("deal", "cho_thue")
-        .gte("lat", d.lat - dLat)
-        .lte("lat", d.lat + dLat)
-        .gte("lng", d.lng - dLng)
-        .lte("lng", d.lng + dLng)
-        .limit(1000);
 
-      const ds = (data ?? [])
+      const docTrangToaDo = (tu: number, den: number) =>
+        truyVanVoiRetry(
+          () =>
+            supabase
+              .from("listings")
+              .select("id, lat, lng, price_vnd")
+              .eq("status", "published")
+              .eq("deal", "cho_thue")
+              .gte("lat", d.lat - dLat)
+              .lte("lat", d.lat + dLat)
+              .gte("lng", d.lng - dLng)
+              .lte("lng", d.lng + dLng)
+              .order("lat", { ascending: true })
+              .range(tu, den),
+          `${slug}:coords:${tu}`
+        );
+
+      const batch1 = await docTrangToaDo(0, 999);
+      const rawRows = batch1.length === 1000 ? [...batch1, ...(await docTrangToaDo(1000, 1999))] : batch1;
+
+      const matched = rawRows
         .map((x) => ({
-          ...x,
-          kc: kmGiua(d.lat, d.lng, x.lat, x.lng),
+          id: x.id as string,
+          price_vnd: x.price_vnd as number | null,
+          kc: kmGiua(d.lat, d.lng, x.lat as number, x.lng as number),
         }))
         .filter((x) => x.kc <= d.banKinhKm)
         .sort((a, b) => a.kc - b.kc);
 
-      return ds;
+      const prices = matched.map((x) => x.price_vnd).filter((p): p is number => p != null && p > 0);
+      const giaTrungVi = prices.length ? fmtPrice(median(prices), "cho_thue") : "-";
+      const cuLy500m = matched.filter((x) => x.kc <= 0.5).length;
+      const cuLy1km = matched.filter((x) => x.kc > 0.5 && x.kc <= 1.0).length;
+      const cuLy2km = matched.filter((x) => x.kc > 1.0).length;
+
+      const top36 = matched.slice(0, 36);
+      const kcById = new Map(top36.map((x) => [x.id, x.kc]));
+      const cardsRaw = top36.length
+        ? await truyVanVoiRetry(
+            () =>
+              supabase
+                .from("listings")
+                .select(LISTING_CARD_COLS)
+                .eq("status", "published")
+                .in("id", top36.map((x) => x.id)),
+            `${slug}:cards`
+          )
+        : [];
+
+      const listings = (cardsRaw as unknown as Listing[])
+        .map((x) => ({ ...cheSoTin(x), kc: kcById.get(x.id) ?? 0 }))
+        .sort((a, b) => a.kc - b.kc);
+
+      return {
+        tongTin: matched.length,
+        giaTrungVi,
+        cuLy500m,
+        cuLy1km,
+        cuLy2km,
+        listings,
+      };
     },
-    ["diem-neo-ds-v1", slug],
+    ["diem-neo-ds-v2", slug],
     { revalidate: 10800, tags: ["listings", "ds-tin", "diem-neo"] }
   )();
 
@@ -81,10 +148,8 @@ export async function generateMetadata({
   const d = timDiemNeo(diem);
   if (!d) return {};
 
-  const dsPhong = await layPhongQuanhDiem(diem);
-  const n = dsPhong.length;
-  const prices = dsPhong.map((x) => x.price_vnd).filter((p): p is number => p != null && p > 0);
-  const giaTB = prices.length ? fmtPrice(median(prices), "cho_thue") : "giá tốt";
+  const { tongTin: n, giaTrungVi } = await layPhongQuanhDiem(diem);
+  const giaTB = giaTrungVi !== "-" ? giaTrungVi : "giá tốt";
 
   const title = `Phòng Trọ Gần ${d.ten}: ${n} Phòng Trong ${d.banKinhKm}km Giá Từ ${giaTB} | NhaDat Radar`;
   const description = `Danh sách ${n} phòng trọ, căn hộ mini, studio cho thuê gần ${d.ten} (${d.quanChinh}). Giá trung vị ${giaTB}, bán kính ${d.banKinhKm}km. 5 khoản phí minh bạch, ảnh thật, hẹn xem miễn phí qua Radar.`;
@@ -131,20 +196,7 @@ export default async function DiemNeoPage({
   const d = timDiemNeo(diem);
   if (!d) notFound();
 
-  const dsRaw = await layPhongQuanhDiem(diem);
-  const tongTin = dsRaw.length;
-  const listings = dsRaw.slice(0, 36).map((x) => ({
-    ...cheSoTin(x as unknown as Listing),
-    kc: x.kc,
-  }));
-
-  // Phân tích giá và cự ly
-  const prices = dsRaw.map((x) => x.price_vnd).filter((p): p is number => p != null && p > 0);
-  const giaTrungVi = prices.length ? fmtPrice(median(prices), "cho_thue") : "-";
-
-  const cuLy500m = dsRaw.filter((x) => x.kc <= 0.5).length;
-  const cuLy1km = dsRaw.filter((x) => x.kc > 0.5 && x.kc <= 1.0).length;
-  const cuLy2km = dsRaw.filter((x) => x.kc > 1.0).length;
+  const { tongTin, giaTrungVi, cuLy500m, cuLy1km, cuLy2km, listings } = await layPhongQuanhDiem(diem);
 
   const diemNeoKhac = DIEM_NEO.filter((x) => x.slug !== d.slug);
 

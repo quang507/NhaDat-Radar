@@ -142,6 +142,10 @@ test("trang điểm neo pSEO có đủ 16 điểm TP.HCM & trang đại học tr
   const slugMatches = diemNeoSrc.match(/slug:\s*"[a-z0-9-]+"/g) ?? [];
   expect(slugMatches.length).toBe(16);
 
+  const diemPage = doc("src/app/phong-tro-gan/[diem]/page.tsx");
+  expect(diemPage).toContain("truyVanVoiRetry");
+  expect(diemPage).toContain("throw new Error");
+
   const uniPage = doc("src/app/phong-tro-gan-truong-dai-hoc/[slug]/page.tsx");
   expect(uniPage).toContain("/nha-dat-cho-thue/ho-chi-minh/");
   expect(uniPage).toContain("/phong-tro/${b.slug}");
