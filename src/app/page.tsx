@@ -247,8 +247,8 @@ export default async function Home() {
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             {/* mobile: 1 dòng ngắn (câu dài cũ rớt 2 dòng, đẩy ô tìm kiếm xuống) */}
-            <span className="sm:hidden">{vn(soThue)} tin cho thuê đang rao</span>
-            <span className="hidden sm:inline">{vn(soThue)} tin cho thuê, cập nhật nhiều lần mỗi ngày</span>
+            <span className="sm:hidden">{vn(soThue)} tin cho thuê toàn quốc</span>
+            <span className="hidden sm:inline">{vn(soThue)} tin cho thuê toàn quốc, cập nhật nhiều lần mỗi ngày</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform opacity-70 group-hover:opacity-100" />
           </Link>
 

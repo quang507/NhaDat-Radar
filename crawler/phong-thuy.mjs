@@ -187,7 +187,13 @@ export function tinhQuaiSo(nam, gioiTinh = "nam") {
   return q;
 }
 
-/** Tra cứu chi tiết Bát Trạch */
+/**
+ * Tra cứu chi tiết Bát Trạch
+ * @param {number | string} namSinh
+ * @param {string} [gioiTinh]
+ * @param {string | null} [huongNha]
+ * @returns {{ nam_sinh: number, gioi_tinh: string, can_chi: string, quai_so: number, cung_phi: string, nhom_menh: string, huong_tot: { ma: string, ten: string, sao: string, y_nghia: string }[], huong_xau: { ma: string, ten: string, sao: string, y_nghia: string }[], danh_gia_huong?: { huong: string, hop_menh: boolean, sao: string, y_nghia: string } } | null}
+ */
 export function traCuuPhongThuy(namSinh, gioiTinh = "nam", huongNha = null) {
   const n = Number(namSinh);
   if (!n || isNaN(n)) return null;
@@ -206,6 +212,7 @@ export function traCuuPhongThuy(namSinh, gioiTinh = "nam", huongNha = null) {
     else huongXau.push(item);
   }
 
+  /** @type {{ nam_sinh: number, gioi_tinh: string, can_chi: string, quai_so: number, cung_phi: string, nhom_menh: string, huong_tot: { ma: string, ten: string, sao: string, y_nghia: string }[], huong_xau: { ma: string, ten: string, sao: string, y_nghia: string }[], danh_gia_huong?: { huong: string, hop_menh: boolean, sao: string, y_nghia: string } }} */
   const ketQua = {
     nam_sinh: n,
     gioi_tinh: ["nu", "nữ", "female"].includes(String(gioiTinh).toLowerCase()) ? "Nữ" : "Nam",
@@ -242,7 +249,12 @@ export function traCuuPhongThuy(namSinh, gioiTinh = "nam", huongNha = null) {
   return ketQua;
 }
 
-/** Định dạng văn bản phong thủy gửi khách tự nhiên, chuyên nghiệp */
+/**
+ * Định dạng văn bản phong thủy gửi khách tự nhiên, chuyên nghiệp
+ * @param {number | string} namSinh
+ * @param {string} [gioiTinh]
+ * @param {string | null} [huongNha]
+ */
 export function dinhDangPhongThuyChat(namSinh, gioiTinh = "nam", huongNha = null) {
   const pt = traCuuPhongThuy(namSinh, gioiTinh, huongNha);
   if (!pt) return "";

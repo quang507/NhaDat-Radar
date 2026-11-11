@@ -72,15 +72,19 @@ export function NutZalo({ listingId, tinNhan, children, ...a }: AnchorHTMLAttrib
       }}>{children}</a>
       {/* portal ra body: cha có transform/backdrop-filter thì fixed bị neo theo cha (cụm Speed Dial máy tính) */}
       {chep && createPortal(
-        <span role="status" className={`fixed left-1/2 -translate-x-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 max-w-[90vw] px-4 py-2.5 rounded-sm text-caption sm:text-body-sm font-semibold shadow-zen-4 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 ${chep === "ok" ? "btn-zalo" : "bg-[var(--ink)] text-[var(--bg)]"}`}>
+        <span
+          role="status"
+          onClick={() => setChep(null)}
+          className={`fixed left-1/2 -translate-x-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 max-w-[92vw] px-4 py-2.5 rounded-sm text-caption sm:text-body-sm font-semibold shadow-zen-4 flex items-center gap-2 cursor-pointer animate-in fade-in slide-in-from-bottom-2 duration-200 ${chep === "ok" ? "btn-zalo" : "bg-[var(--ink)] text-[var(--bg)]"}`}
+        >
           <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center shrink-0">
             {chep === "ok" ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <AlertCircle className="w-3.5 h-3.5" />}
           </span>
           {chep === "ok"
             ? <span>Đã chép nội dung{listingId ? <> &amp; mã phòng</> : null} - mở Zalo và chọn <b>Dán</b> để gửi</span>
             : listingId
-              ? <span>Chưa chép được - nhắn Zalo kèm mã <b className="font-mono">{maPhong(listingId)}</b></span>
-              : <span>Chưa chép được - mở Zalo và nhắn nhu cầu cho Radar</span>}
+              ? <span>Chưa chép được trên trình duyệt này - gửi mã <b className="font-mono">{maPhong(listingId)}</b> qua Zalo hoặc để lại SĐT ngay trên trang</span>
+              : <span>Chưa chép được trên trình duyệt này - mở Zalo nhắn nhu cầu hoặc để lại SĐT cho Radar nhé</span>}
         </span>
       , document.body)}
     </>

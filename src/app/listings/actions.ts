@@ -15,10 +15,10 @@ async function tooMany(bucket: string, max: number): Promise<boolean> {
   const ip = (h.get("x-forwarded-for") || h.get("x-real-ip") || "?").split(",")[0].trim();
   return !rateLimit(`${bucket}:${ip}`, max, 10 * 60 * 1000);
 }
-const PHONE_RE = /^(\+84|0)\d{8,10}$/;
+const PHONE_RE = /^0\d{8,10}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-// 2/11 (audit Q12): lưu SĐT một dạng duy nhất (bỏ cách/chấm/gạch) - admin tra trùng, bấm gọi/Zalo được ngay
-const chuanSdt = (s: string) => s.replace(/[\s.-]/g, "");
+// 2/11 (audit Q12) + 11/11 (UX 3.3): chuẩn hoá mọi biến thể +84 / 84 / (+84) / khoảng trắng về dạng 0xxxxxxxxx
+const chuanSdt = (s: string) => s.replace(/[\s.()-]/g, "").replace(/^(?:\+?84)0?/, "0");
 
 // v: giá trị khách đã gõ - React 19 reset form sau action, báo lỗi xong form phải tự điền lại (audit Q7)
 export type LeadState = { ok: boolean; error?: string; v?: Record<string, string> };

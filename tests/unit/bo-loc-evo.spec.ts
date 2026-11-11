@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { toaDoTuLink, laHostMaps } from "../../src/lib/maps-link";
-import { docTienIch, dieuKienTienIch, nhanTienIch } from "../../src/lib/tien-ich";
+import { docTienIch, dieuKienTienIch, nhanTienIch, tienIchCua } from "../../src/lib/tien-ich";
 import { linkGocEvohome } from "../../src/lib/ro-hang";
 
 // Bộ lọc kiểu EvoHome (1/10): đọc toạ độ từ link Google Maps, tiện ích, link gốc EvoHome cho admin.
@@ -31,6 +31,14 @@ test("tiện ích: đọc tham số ti + dựng điều kiện .or()", () => {
   // ký tự phá cú pháp .or() không được có trong cụm từ
   for (const t of docTienIch("dieu_hoa,nuoc_nong,tu_lanh,tivi,may_giat,tu_quan_ao,giuong,ban_cong,thang_may,de_xe,thu_cung,san_phoi,gieng_troi,xe_dien,an_ninh,chu_chung,gac_lung,bon_rua,cua_so,ke_bep"))
     for (const w of t.tu) expect(w, w).not.toMatch(/[,()%_*]/);
+});
+
+test("tiện ích video: lọc qua ?ti=video và tự nhận clip .mp4 trong images", () => {
+  const ds = docTienIch("video");
+  expect(ds.map((t) => t.k)).toEqual(["video"]);
+  expect(dieuKienTienIch(ds[0])).toContain("amenities.cs.{video}");
+  expect(tienIchCua({ title: "Studio Tân Bình", images: ["https://cdn.example.com/phong.jpg", "https://cdn.example.com/tour.mp4?t=1"] })).toContain("video");
+  expect(tienIchCua({ title: "Studio Tân Bình", images: ["https://cdn.example.com/phong.jpg"] })).not.toContain("video");
 });
 
 test("linkGocEvohome: mở bảng chi tiết phòng", () => {

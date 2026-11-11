@@ -109,7 +109,7 @@ export default function SaveSearchButton({ filters, compact = false }: { filters
   return (
     <>
       <button
-        className="btn text-sm cursor-pointer"
+        className={`btn text-sm cursor-pointer ${compact ? "min-h-11 !px-3 inline-flex items-center gap-1.5" : ""}`}
         onClick={() => state === "idle" && setState("open")}
         disabled={state === "done" || state === "busy"}
         type="button"
@@ -117,7 +117,17 @@ export default function SaveSearchButton({ filters, compact = false }: { filters
         title={compact ? "Nhận thông báo khi có tin mới khớp bộ lọc" : undefined}
       >
         {compact ? (
-          state === "done" ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Bell className="w-4 h-4" />
+          state === "done" ? (
+            <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-xs whitespace-nowrap">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <span>Đã lưu</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap">
+              <Bell className="w-3.5 h-3.5 shrink-0" />
+              <span>Nhận tin</span>
+            </span>
+          )
         ) : state === "done" ? (
           <span className="inline-flex items-center gap-1.5 text-emerald-600 font-semibold">
             <CheckCircle2 className="w-4 h-4 shrink-0" />

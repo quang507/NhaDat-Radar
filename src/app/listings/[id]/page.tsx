@@ -576,9 +576,17 @@ export default async function ListingDetail({
         {x.province && x.district ? <><span>/</span><Link href={areaPath(x.deal, x.province, x.district)} className="hover:text-brand">{x.district}</Link></> : null}
       </nav>
       {isGone && (
-        <div className="rounded-lg p-3 my-3 border border-amber-500/40 bg-amber-500/10 text-sm">
-          <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {roHang ? "rổ hàng" : x.source_site || "nguồn"} từ{" "}
-          {lastSeen != null ? fresh(lastSeen) : "một thời gian"}. Tin đã ẩn khỏi kết quả tìm kiếm; giữ lại để tham khảo giá.
+        <div className="rounded-lg p-3.5 my-3 border border-amber-500/40 bg-amber-500/10 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div>
+            <b>Tin có thể đã giao dịch hoặc bị gỡ.</b> Radar không còn thấy tin này trên {roHang ? "rổ hàng" : x.source_site || "nguồn"} từ{" "}
+            {lastSeen != null ? fresh(lastSeen) : "một thời gian"}. Tin đã ẩn khỏi kết quả tìm kiếm; giữ lại để tham khảo giá.
+          </div>
+          <Link
+            href={x.province ? areaPath(x.deal, x.province, x.district) : `/search?deal=${x.deal}`}
+            className="btn btn-primary whitespace-nowrap shrink-0 text-xs min-h-10"
+          >
+            Xem {x.deal === "ban" ? "nhà đất" : "phòng"} còn trống ở {x.district || x.province || "khu vực"} ›
+          </Link>
         </div>
       )}
       {/* 28/10: điện thoại - giá đứng cạnh tiêu đề (shrink-0) bóp cột tiêu đề còn ~190px, chữ 24px vỡ 6 dòng và đẩy
@@ -636,7 +644,6 @@ export default async function ListingDetail({
                 images={images}
                 title={x.title}
                 videos={layVideo(x.images)}
-                roomCode={roHang ? maPhong(x.id) : undefined}
                 nextListing={nextListingItem}
                 currentListingId={x.id}
               />
@@ -1162,9 +1169,12 @@ export default async function ListingDetail({
                 <ContactForm listingId={x.id} listingTitle={x.title} goiLaiNhanh />
               </div>
             ) : isCrawl ? (
-              <details className="mt-1">
-                <summary className="text-sm font-semibold cursor-pointer text-brand">Nhờ Radar hỗ trợ tìm/định giá tin tương tự</summary>
-                <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT - Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp trong khu vực.</p>
+              <details className="mt-2 rounded-lg border border-[var(--line)] bg-[var(--surface-2)]/50 p-3">
+                <summary className="text-sm font-semibold cursor-pointer text-brand list-none flex items-center justify-between gap-2">
+                  <span>Nhờ Radar tìm &amp; lọc căn tương tự miễn phí</span>
+                  <span className="text-xs font-bold shrink-0">Mở form ›</span>
+                </summary>
+                <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT - Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp đang còn trong khu vực.</p>
                 <ContactForm listingId={x.id} listingTitle={x.title} viaRadar />
               </details>
             ) : (

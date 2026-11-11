@@ -88,7 +88,7 @@ export default function ChatWidget() {
       {!anThanhDay && (
         <>
           <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
-          <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.625rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)]/95 backdrop-blur shadow-lg">
+          <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.625rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)] shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
             {/* 2/11 (audit Q6): thanh đáy là nguồn gọi/Zalo lớn nhất ngoài trang tin -> ghi ndr_goi / ndr_zalo */}
             <LinkTheoDoi loai="goi" href={`tel:${HOTLINE}`} aria-label={`Gọi Hotline ${HOTLINE}`} className="btn btn-primary min-h-12 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-xs">
               <PhoneCall className="w-4 h-4" />

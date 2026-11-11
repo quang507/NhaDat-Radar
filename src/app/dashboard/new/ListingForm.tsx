@@ -56,7 +56,7 @@ export default function ListingForm({ geo = {} }: { geo?: Record<string, string[
         <label className="block">
           <span className="block text-xs font-semibold text-[var(--ink-soft)] mb-1">Giá *</span>
           <input className="inp" name="price" placeholder={deal === "ban" ? "VD: 8,5 tỷ" : "VD: 12 triệu"} required value={priceRaw} onChange={(e) => setPriceRaw(e.target.value)} inputMode="decimal" />
-          <span className={`block text-xs mt-1 ${parsed ? "text-emerald-600" : "text-[var(--ink-faint)]"}`}>
+          <span key={parsed ? "ok" : priceRaw ? "err" : "hint"} translate="no" className={`block text-xs mt-1 ${parsed ? "text-emerald-600" : "text-[var(--ink-faint)]"}`}>
             {priceRaw ? (parsed ? `= ${fmtVndWords(parsed)}${deal === "cho_thue" ? "/tháng" : ""} (${parsed.toLocaleString("vi-VN")} đ)` : "Chưa đọc được - gõ kèm tỷ / triệu") : "Gõ như nói: 8,5 tỷ · 950 triệu · 12 triệu"}
           </span>
         </label>
@@ -103,8 +103,8 @@ export default function ListingForm({ geo = {} }: { geo?: Record<string, string[
         </label>
       ) : null}
       {state.error ? <div className="text-red-600 text-sm" role="alert">{state.error}</div> : null}
-      <button className="btn btn-primary" type="submit" disabled={pending}>
-        {pending ? "Đang đăng..." : "Đăng tin ›"}
+      <button className="btn btn-primary min-h-11" type="submit" disabled={pending} translate="no">
+        <span key={pending ? "busy" : "idle"}>{pending ? "Đang đăng..." : "Đăng tin ›"}</span>
       </button>
     </form>
   );

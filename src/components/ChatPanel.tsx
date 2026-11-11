@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { dongRoiDi } from "@/lib/dong-roi-di";
-import { HOTLINE, HOTLINE_DISPLAY } from "@/lib/hotline";
+import { HOTLINE, HOTLINE_DISPLAY, HOTLINE_ZALO } from "@/lib/hotline";
 import { baoGA } from "@/lib/su-kien-client";
-import { LinkTheoDoi } from "./TheoDoi";
-import { Bot, X, Send, PhoneCall, Home, RotateCcw } from "lucide-react";
+import { LinkTheoDoi, NutZalo } from "./TheoDoi";
+import { Bot, X, Send, PhoneCall, Home, RotateCcw, MessageCircle } from "lucide-react";
 
 // Khung chat trợ lý AI (2/11, audit P3): tách khỏi ChatWidget, tải bằng next/dynamic ssr:false chỉ khi khách
 // bấm mở lần đầu -> trang không phải tải/hydrate khung chat cho người không dùng.
@@ -194,6 +194,17 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
                   <RotateCcw className="w-4 h-4" />
                   Thử lại
                 </button>
+                <NutZalo
+                  listingId={dangXem}
+                  tinNhan={dangXem ? "Chào Radar, trợ lý AI đang bận, nhờ bạn tư vấn giúp mình phòng này nhé." : "Chào Radar, mình cần tư vấn tìm phòng phù hợp."}
+                  href={HOTLINE_ZALO}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn min-h-11 text-body-sm font-bold bg-[#0068ff] hover:bg-[#0057d6] text-white border-0"
+                >
+                  <MessageCircle className="w-4 h-4 fill-white" />
+                  Nhắn Zalo
+                </NutZalo>
                 <LinkTheoDoi loai="goi" listingId={dangXem} href={`tel:${HOTLINE}`} className="btn min-h-11 text-body-sm font-bold">
                   <PhoneCall className="w-4 h-4" />
                   Gọi {HOTLINE_DISPLAY}
@@ -277,7 +288,7 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
           className="inp !py-2 min-h-11 text-body-sm flex-1"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Nhắn yêu cầu: 'phòng Bình Thạnh dưới 4tr'…"
+          placeholder={dangXem ? "Hỏi về phòng này hoặc để lại SĐT/Zalo…" : "Nhắn yêu cầu: 'phòng Bình Thạnh dưới 4tr'…"}
           aria-label="Nhắn trợ lý AI"
         />
         <button className="btn btn-primary min-h-11 min-w-11 !px-3.5 flex items-center justify-center cursor-pointer" type="submit" disabled={busy || !input.trim()} aria-label="Gửi câu hỏi">
