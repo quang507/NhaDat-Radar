@@ -13,6 +13,7 @@ export async function GET() {
   }
   const urls = [
     `${SITE}/sitemap-khu-vuc.xml`,
+    `${SITE}/sitemap-du-an.xml`,
     ...thangs.map((thang) => `${SITE}/sitemap-tin/${thang}.xml`),
   ];
   return xmlResponse(xmlSitemapIndex(urls));

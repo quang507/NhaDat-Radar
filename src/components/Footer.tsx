@@ -14,11 +14,11 @@ export default function Footer() {
             NhaDat<span className="text-brand">Radar</span>
           </div>
           <p className="text-[var(--ink-soft)] leading-relaxed">
-            Sàn tổng hợp phòng trọ và nhà đất xác minh tại TP.HCM. Cập nhật phòng trống liên tục mỗi ngày, đúng giá chủ nhà và hỗ trợ dẫn xem phòng miễn phí.
+            Nền tảng tổng hợp phòng trọ và nhà đất tại TP.HCM, cập nhật tin trống hằng ngày và hỗ trợ dẫn xem phòng miễn phí.
           </p>
           <div className="mt-4 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
             <ShieldCheck className="w-4 h-4" />
-            <span>Dữ liệu xác minh &amp; cập nhật liên tục</span>
+            <span>Tổng hợp đa nguồn &amp; cập nhật hằng ngày</span>
           </div>
         </div>
 

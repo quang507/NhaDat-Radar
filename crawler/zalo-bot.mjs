@@ -207,10 +207,24 @@ async function guongAnhVeKho(tatCa = false) {
           if (!res.ok && urlChuan !== u) res = await fetch(u);
           if (!res.ok) throw new Error("HTTP " + res.status);
           const loai = res.headers.get("content-type") || "image/jpeg";
-          const buf = Buffer.from(await res.arrayBuffer());
+          let buf = Buffer.from(await res.arrayBuffer());
           if (buf.length < 1000 || buf.length > 8 * 1024 * 1024) throw new Error("cỡ lạ " + buf.length);
-          const duongDan = `${tin.id}/${i}.${loai.includes("png") ? "png" : "jpg"}`;
-          const { error } = await sb.storage.from(KHO_ANH).upload(duongDan, buf, { contentType: loai, upsert: true });
+          let laPng = loai.includes("png");
+          // Nén ảnh trước khi đưa vào bucket anh-zalo (giữ dưới 1 GB Free quota, tải nhanh trên mobile)
+          try {
+            const { default: sharp } = await import("sharp");
+            const nen = sharp(buf).rotate().resize(1280, 1280, { fit: "inside", withoutEnlargement: true });
+            const out = laPng
+              ? await nen.png({ compressionLevel: 9, palette: true, quality: 82 }).toBuffer()
+              : await nen.jpeg({ quality: 78, mozjpeg: true, progressive: true }).toBuffer();
+            if (out.length >= 2000 && out.length < buf.length) buf = out;
+          } catch { /* sharp lỗi ảnh dị -> giữ nguyên bản gốc */ }
+          const duongDan = `${tin.id}/${i}.${laPng ? "png" : "jpg"}`;
+          const { error } = await sb.storage.from(KHO_ANH).upload(duongDan, buf, {
+            contentType: laPng ? "image/png" : "image/jpeg",
+            cacheControl: "31536000",
+            upsert: true,
+          });
           if (error) throw error;
           moi.push(sb.storage.from(KHO_ANH).getPublicUrl(duongDan).data.publicUrl);
           doi = true;

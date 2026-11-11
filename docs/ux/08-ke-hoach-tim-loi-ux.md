@@ -85,9 +85,9 @@ flowchart TD
 
 **Mục tiêu:** Sửa dứt điểm các lỗi hiển thị/che khuất trên mọi khổ màn hình và xác nhận bằng người dùng thật sau khi hoàn tất Giai đoạn 0–3.
 
-- [ ] **4.1. Sửa các lỗi va chạm UI đã ghi nhận:**
+- [x] **4.1. Sửa các lỗi va chạm UI đã ghi nhận:**
   - Đã sửa `Gallery.tsx`, `listings/[id]/page.tsx` & `SaveSearchButton.tsx`: dời `1/6 · Phóng to` sang `bottom-3 left-3 sm:left-auto sm:right-3`, chấm slide mobile sang góc dưới phải, thanh đáy mobile đặc nền & bỏ lặp `NutChepMa` (cũng bỏ lặp trên ảnh `Gallery`), bỏ `lg:overflow-y-auto` ở cột phải desktop, thêm nhãn `"Nhận tin"` / `"Đã lưu"` rõ nghĩa cho `SaveSearchButton` bản gọn.
-  - Còn làm: phương án xử lý watermark ảnh HiFriendz sau kết luận phỏng vấn Giai đoạn 1.
+  - Phần che watermark ảnh HiFriendz: **bỏ qua** theo chốt ngày 11/11 của chủ dự án.
 - [x] **4.2. Kiểm tra đa khổ & đa giao diện:** Đã kiểm tra thực tế trên Chrome DevTools ở các khổ `375×812`, `390×844`, `768×1024`, `1440×900` ở cả Light mode lẫn Dark mode (`html.dark`).
-- [ ] **4.3. Chấm điểm PURE lại toàn bộ 5 Flow:** Xác nhận không còn bước nào mức điểm `3` (tắc/bỏ cuộc).
+- [x] **4.3. Chấm điểm PURE lại toàn bộ 5 Flow:** Đã kiểm chứng lại 5 luồng trên bản production build bằng Playwright (`375×812` & `1440×900`, `0` lỗi JS): sửa lỗi kẹt hover/click ở nút nổi Desktop `ChatWidget.tsx`, sửa fallback `layBiaMo` giúp tin `gone` chuyển thẳng về trang khu vực thay vì `404`, mở khung AI/Zalo/lọc tĩnh/trang 2 đều thông suốt không còn điểm `3` tắc/gãy.
 - [ ] **4.4. Usability Test (Assessment Test — 5 người dùng thật):** Chạy 3 task ngữ cảnh thực tế trên điện thoại cá nhân của người tham gia (Tìm & lọc -> Đọc tin & kiểm tra tổng chi phí -> Chốt liên hệ), chấm điểm dễ dùng **SEQ (1–5)** và đối chiếu **Clarity Dead Clicks + tỷ lệ `leads` / `xem` trong `su_kien`** sau 7 ngày.

@@ -83,7 +83,7 @@ export default function TimPhongNhanh() {
             </div>
             <div className="flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Đúng giá chủ nhà</span>
+              <span>Không phí dẫn xem</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-amber-400 shrink-0" />

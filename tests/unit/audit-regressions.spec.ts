@@ -66,6 +66,8 @@ test("trang SEO động có generateStaticParams + revalidate để giữ cache 
     "src/app/nha-dat-cho-thue/[province]/page.tsx",
     "src/app/nha-dat-cho-thue/[province]/[district]/page.tsx",
     "src/app/nha-dat-cho-thue/[province]/[district]/[kind]/page.tsx",
+    "src/app/nha-dat-cho-thue/[province]/[district]/[kind]/[bo-loc]/page.tsx",
+    "src/app/nha-dat-cho-thue/[province]/[district]/[kind]/trang/[n]/page.tsx",
     "src/app/phong-tro-gan/[diem]/page.tsx",
     "src/app/phong-tro-gan-truong-dai-hoc/[slug]/page.tsx",
     "src/app/tin-tuc/[slug]/page.tsx",
@@ -76,6 +78,48 @@ test("trang SEO động có generateStaticParams + revalidate để giữ cache 
     expect(s, f).toMatch(/export\s+async\s+function\s+generateStaticParams/);
     expect(s, f).not.toMatch(/export\s+const\s+dynamic\s*=\s*["']force-dynamic["']/);
   }
+});
+
+test("các trang SEO tĩnh (kể cả Hub /nha-dat-ban & /nha-dat-cho-thue) không đọc searchParams hay force-dynamic", () => {
+  const PHAI_TINH = [
+    "src/app/page.tsx",
+    "src/app/nha-dat-ban/page.tsx",
+    "src/app/nha-dat-cho-thue/page.tsx",
+    "src/app/dinh-gia/page.tsx",
+    "src/app/phong-tro-duoi-3-trieu/page.tsx",
+    "src/app/phong-tro-co-gac-lung/page.tsx",
+    "src/app/can-ho-mini-full-noi-that/page.tsx",
+    "src/app/tin-tuc/page.tsx",
+  ];
+  for (const f of PHAI_TINH) {
+    const s = doc(f);
+    expect(s, f).toMatch(/export\s+const\s+revalidate\s*=\s*\d+/);
+    expect(s, f).not.toMatch(/export\s+const\s+dynamic\s*=\s*["']force-dynamic["']/);
+    expect(s, f).not.toMatch(/\bsearchParams\b/);
+  }
+});
+
+test("kiểm chứng prerender-manifest sau build: trang SEO giữ chế độ Static/ISR", () => {
+  test.skip(!fs.existsSync(path.join(ROOT, ".next/prerender-manifest.json")), "chưa có bản build .next");
+  const m = JSON.parse(fs.readFileSync(path.join(ROOT, ".next/prerender-manifest.json"), "utf8"));
+  for (const r of ["/", "/nha-dat-ban", "/nha-dat-cho-thue", "/dinh-gia", "/phong-tro-duoi-3-trieu", "/phong-tro-co-gac-lung", "/can-ho-mini-full-noi-that", "/phong-tro-gan-truong-dai-hoc", "/tin-tuc"]) {
+    expect(m.routes[r], r).toBeTruthy();
+  }
+  for (const r of [
+    "/listings/[id]",
+    "/nha-dat-cho-thue/[province]/[district]",
+    "/nha-dat-cho-thue/[province]/[district]/[kind]/[bo-loc]",
+    "/nha-dat-cho-thue/[province]/[district]/[kind]/trang/[n]",
+    "/phong-tro-gan-truong-dai-hoc/[slug]",
+    "/tin-tuc/[slug]",
+  ]) {
+    expect(m.dynamicRoutes[r], r).toBeTruthy();
+  }
+});
+
+test("layBiaMo chỉ lấy đúng 4 cột khu vực với status='gone' khi dùng admin client (không lộ nội dung/SĐT tin ẩn)", () => {
+  const s = doc("src/app/listings/[id]/page.tsx");
+  expect(s).toMatch(/\.from\("listings"\)\s*\.select\("deal,kind,province,district"\)\.eq\("id",\s*id\)\.eq\("status",\s*"gone"\)/);
 });
 
 test("trang chủ và menu không dẫn danh mục chính vào /search?kind= hay /search?deal= (docs/AUDIT-SEO-2026-11.md §2.1)", () => {

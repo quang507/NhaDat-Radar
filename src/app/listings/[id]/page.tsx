@@ -14,6 +14,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { getAreas } from "@/lib/geo";
 import { createClient } from "@/lib/supabase/server";
 import { createAnonClient } from "@/lib/supabase/anon";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
 import { LISTING_PUBLIC_COLS, LISTING_THE_COLS } from "@/lib/cols";
 import { fmtPrice, fmtPpm2, fresh, PROP, AMEN, thumb, catChu, canonDistrict } from "@/lib/format";
@@ -193,17 +194,22 @@ const layTinCongKhai = (id: string) => unstable_cache(
 // (id + khu vực) lúc xoá -> 301 về trang khu vực như tin gone. Bảng lỗi (chưa chạy 036) thì NÉM để unstable_cache
 // không giữ kết quả rỗng 1 ngày; trang bắt lỗi và trả 404 như cũ.
 type BiaMo = Pick<Listing, "deal" | "kind" | "province" | "district">;
-const layBiaMo = unstable_cache(
-  async (id: string): Promise<BiaMo | null> => {
+const layBiaMo = (id: string) => unstable_cache(
+  async (): Promise<BiaMo | null> => {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
     const { data, error } = await createAnonClient().from("listing_tombstones")
       .select("deal,kind,province,district").eq("id", id).maybeSingle();
+    if (data) return data as BiaMo;
+    // Tin vừa chuyển status = 'gone' bị RLS anon ẩn trên listings -> chỉ lấy đúng 4 cột khu vực để 308 về trang khu vực thay vì 404
+    const { data: goneRow } = await createAdminClient().from("listings")
+      .select("deal,kind,province,district").eq("id", id).eq("status", "gone").maybeSingle();
+    if (goneRow) return goneRow as BiaMo;
     if (error) throw new Error(`tombstone ${id}: ${error.code} ${error.message}`);
-    return (data ?? null) as BiaMo | null;
+    return null;
   },
-  ["listing-tombstone-v1"],
-  { revalidate: 86400 },
-);
+  ["listing-tombstone-v2", id],
+  { revalidate: 86400, tags: ["listings", `tin:${id}`] },
+)();
 
 /** Trang khu vực sâu nhất CÒN TIN cho tin đã gỡ: tỉnh/quận/loại -> tỉnh/quận -> tỉnh -> trang mua/thuê */
 async function khuVucCuaTin(x: BiaMo): Promise<string> {

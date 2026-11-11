@@ -16,8 +16,8 @@ const BEN_NHAN: [string, string, string][] = [
   ["Supabase", "Cơ sở dữ liệu, đăng nhập (tài khoản, tin đăng, yêu cầu liên hệ)", "Theo vùng máy chủ của dự án"],
   ["Vercel", "Máy chủ web, xử lý biểu mẫu và trợ lý AI", "Nhật Bản (Tokyo)"],
   ["Google (Gemini)", "Xử lý tin nhắn trợ lý AI, công cụ định giá, chuẩn hoá tin đăng", "Hoa Kỳ / toàn cầu"],
-  ["Google (Analytics, AdSense)", "Đo lường truy cập, phân phát quảng cáo (chỉ cá nhân hoá khi bạn đồng ý)", "Hoa Kỳ / toàn cầu"],
-  ["Microsoft (Clarity)", "Bản đồ nhiệt, ghi lại phiên duyệt web (chỉ khi bạn đồng ý)", "Hoa Kỳ / toàn cầu"],
+  ["Google (Analytics, AdSense)", "Đo lường truy cập, phân phát quảng cáo (tắt cá nhân hoá tại mục 5)", "Hoa Kỳ / toàn cầu"],
+  ["Microsoft (Clarity)", "Bản đồ nhiệt, ghi lại phiên duyệt web nhằm cải thiện giao diện", "Hoa Kỳ / toàn cầu"],
   ["Cloudflare (Turnstile)", "Chống bot ở biểu mẫu đăng nhập/đăng ký", "Toàn cầu"],
   ["Telegram, Resend (email)", "Thông báo nội bộ cho nhân viên Radar khi có yêu cầu liên hệ mới", "Toàn cầu / Hoa Kỳ"],
   ["Zalo", "Nhắn tin tư vấn khi bạn chủ động liên hệ qua Zalo", "Việt Nam"],
@@ -70,7 +70,7 @@ export default function ChinhSachBaoMatPage() {
             <li><strong>Thông tin liên hệ tự nguyện:</strong> Họ tên, số điện thoại và lời nhắn khi bạn gửi yêu cầu tư vấn, hẹn lịch xem nhà, đăng ký dịch vụ lấp phòng, liên hệ người đăng tin hoặc gửi SĐT trong khung trợ lý AI.</li>
             <li><strong>Nội dung trò chuyện với trợ lý AI:</strong> Câu hỏi bạn gõ vào khung chat (để trả lời và cải thiện kết quả tìm kiếm).</li>
             <li><strong>Tin đăng của bạn:</strong> Nội dung, hình ảnh, địa chỉ và SĐT liên hệ bạn đăng lên (SĐT chỉ hiện khi bạn tích đồng ý).</li>
-            <li><strong>Dữ liệu duyệt web &amp; thiết bị:</strong> Địa chỉ IP, loại trình duyệt, hệ điều hành, thời gian truy cập, tin đã xem, tin đã lưu và một mã nhận diện trình duyệt ngẫu nhiên. Đây là dữ liệu theo dõi hành vi trực tuyến; phần dùng cho đo lường và quảng cáo của bên thứ ba chỉ được thu khi bạn đồng ý (mục 5).</li>
+            <li><strong>Dữ liệu duyệt web &amp; thiết bị:</strong> Địa chỉ IP, loại trình duyệt, hệ điều hành, thời gian truy cập, tin đã xem, tin đã lưu và một mã nhận diện trình duyệt ngẫu nhiên (chặn/tắt theo hướng dẫn tại mục 5).</li>
           </ul>
           <p className="mt-3">
             <strong>Về số điện thoại trên tin đăng:</strong> Số điện thoại nằm trong tiêu đề và mô tả tin được tự động che trên mọi trang công khai.

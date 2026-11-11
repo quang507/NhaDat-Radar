@@ -298,8 +298,8 @@ export default async function Home() {
                 <Store className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-[var(--ink)] group-hover:text-amber-600 dark:group-hover:text-amber-400 text-xs sm:text-sm leading-tight transition-colors">Đúng giá chủ nhà</div>
-                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Không chênh giá môi giới</div>
+                <div className="font-bold text-[var(--ink)] group-hover:text-amber-600 dark:group-hover:text-amber-400 text-xs sm:text-sm leading-tight transition-colors">Công khai chi phí</div>
+                <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Không thu phí dẫn xem từ khách</div>
               </div>
             </Link>
             <a
@@ -432,7 +432,7 @@ export default async function Home() {
             <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
               <div>
                 <h2 className="heading-2 border-l-4 border-brand pl-3.5 text-[var(--ink)]">Công cụ phân tích &amp; Định giá BĐS</h2>
-                <p className="text-xs sm:text-sm text-[var(--ink-soft)] pl-4 mt-1">Dữ liệu thực tế hỗ trợ ra quyết định thuê, mua và tính dòng tiền chuẩn xác</p>
+                <p className="text-xs sm:text-sm text-[var(--ink-soft)] pl-4 mt-1">Dữ liệu thực tế hỗ trợ tham khảo giá thị trường và tính bài toán dòng tiền</p>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -480,7 +480,7 @@ export default async function Home() {
             <div className="flex-1 text-center sm:text-left">
               <h3 className="heading-3 text-[var(--ink)]">Nhận danh sách căn giá tốt nhất qua Zalo</h3>
               <p className="text-xs sm:text-sm text-[var(--ink-soft)] mt-1 leading-relaxed">
-                Chuyên viên Radar lọc sẵn 3–5 căn sát nhu cầu, đúng giá chủ nhà và gửi kèm ảnh/sổ hồng trực tiếp qua Zalo trong 15 phút.
+                Chuyên viên Radar lọc sẵn 3–5 căn sát nhu cầu và tầm giá bạn chọn, gửi kèm ảnh/thông tin qua Zalo trong 15 phút.
               </p>
             </div>
             <NutZalo

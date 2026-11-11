@@ -7,10 +7,26 @@ import { updateSession } from "@/lib/supabase/middleware";
 const TEN_MIEN_VERCEL_CU = "nha-dat-radar-rkyn.vercel.app";
 const TEN_MIEN_CHINH = "https://nhadatradar.com";
 
+const HUYEN_HCM_SLUG = new Set(["binh-chanh", "nha-be", "hoc-mon", "cu-chi", "can-gio"]);
+function slugQuanHcm(raw: string): string {
+  const s = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[đĐ]/g, "d")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  if (!s) return "";
+  if (/^(quan|huyen|tp)-/.test(s)) return s;
+  if (s === "thu-duc" || s === "tp-thu-duc") return "tp-thu-duc";
+  return HUYEN_HCM_SLUG.has(s) ? `huyen-${s}` : `quan-${s}`;
+}
+
 export async function middleware(request: NextRequest) {
   // đọc header Host (Vercel luôn đặt đúng tên miền khách gõ); bỏ cổng nếu có
   if ((request.headers.get("host") ?? "").split(":")[0].toLowerCase() === TEN_MIEN_VERCEL_CU) {
     return NextResponse.redirect(`${TEN_MIEN_CHINH}${request.nextUrl.pathname}${request.nextUrl.search}`, 308);
+  }
+  // SEO Audit §4.5: biến thể ?quan= của chuyên đề dưới 3 triệu -> đường dẫn tĩnh để không trùng nội dung / giữ ISR
+  if (request.nextUrl.pathname === "/phong-tro-duoi-3-trieu" && request.nextUrl.searchParams.has("quan")) {
+    const qSlug = slugQuanHcm(request.nextUrl.searchParams.get("quan") || "");
+    const dest = qSlug ? `/nha-dat-cho-thue/ho-chi-minh/${qSlug}/phong-tro/duoi-3-trieu` : "/phong-tro-duoi-3-trieu";
+    return NextResponse.redirect(new URL(dest, request.url), 301);
   }
   return await updateSession(request);
 }

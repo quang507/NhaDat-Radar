@@ -1,14 +1,11 @@
-// Nhánh riêng "Nhà đất bán" (kiểu batdongsan.com.vn/nha-dat-ban):
-// dùng chung engine /search nhưng khoá deal=ban + metadata riêng.
-import SearchPage from "../search/page";
+import { HubGiaoDich, hubMeta } from "@/components/AreaLanding";
 
-export const metadata = { title: "Mua bán nhà đất toàn quốc - NhaDat Radar", alternates: { canonical: "/nha-dat-ban" } };
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
-export default function NhaDatBan({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
-  return SearchPage({ searchParams: searchParams.then((sp) => ({ ...sp, deal: "ban" })) });
+export async function generateMetadata() {
+  return hubMeta("ban");
+}
+
+export default function NhaDatBanPage() {
+  return <HubGiaoDich deal="ban" />;
 }

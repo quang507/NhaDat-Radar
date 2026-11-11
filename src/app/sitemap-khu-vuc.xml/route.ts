@@ -1,6 +1,4 @@
-// Sitemap khu vực: trang tĩnh + trang tỉnh/quận/loại BĐS + dự án. Đây là nhóm URL ỔN ĐỊNH (không
-// chết sau vài tuần như trang tin) nên là tài sản SEO chính.
-import { createAnonClient } from "@/lib/supabase/anon";
+// Sitemap khu vực: trang tĩnh + trang tỉnh/quận/loại BĐS + tin tức + điểm neo (dự án tách sang /sitemap-du-an.xml).
 import { areaPath, KIND_SLUG } from "@/lib/slug";
 import { getAreas } from "@/lib/geo";
 import { SITE, xmlSitemap, xmlResponse, type MucSitemap } from "@/lib/sitemap";
@@ -44,13 +42,6 @@ export async function GET() {
     for (const cd of ["phong-tro-duoi-3-trieu", "phong-tro-co-gac-lung", "can-ho-mini-full-noi-that"]) muc.push({ url: `${SITE}/${cd}`, changefreq: "daily", priority: 0.85 });
     // Diem neo pSEO chien luoc (Metro, San bay, Benh vien, KCN)
     for (const d of DIEM_NEO) muc.push({ url: `${SITE}/phong-tro-gan/${d.slug}`, changefreq: "daily", priority: 0.85 });
-    // Chỉ đưa vào sitemap những dự án có mô tả thực chất (>= 200 ký tự), loại bỏ 649 trang rỗng làm loãng crawl budget
-    const { data: ps } = await createAnonClient().from("projects").select("id, description").eq("status", "published").limit(1000);
-    for (const p of ps ?? []) {
-      if ((p.description || "").length >= 200) {
-        muc.push({ url: `${SITE}/projects/${p.id}`, priority: 0.5 });
-      }
-    }
   } catch { /* DB lỗi -> ít nhất vẫn có trang tĩnh */ }
 
   return xmlResponse(xmlSitemap(muc));

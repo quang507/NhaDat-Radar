@@ -933,7 +933,7 @@ export const BAI_VIET: BaiViet[] = [
         ],
         lienKet: [
           { nhan: "Quy trình công chứng sang tên sổ hồng", href: "/tin-tuc/quy-trinh-cong-chung-sang-ten-so-hong-a-z" },
-          { nhan: "Công cụ định giá nhà đất chuẩn xác", href: "/dinh-gia" },
+          { nhan: "Công cụ tham khảo giá nhà đất AI", href: "/dinh-gia" },
         ],
       },
     ],

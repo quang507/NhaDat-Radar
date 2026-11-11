@@ -27,9 +27,11 @@ export default function ChatWidget() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverOpenAtRef = useRef(0);
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (!menuOpen) hoverOpenAtRef.current = Date.now();
     setMenuOpen(true);
   };
 
@@ -115,10 +117,11 @@ export default function ChatWidget() {
       >
         {/* Menu mở rộng dạng Speed Dial với animation trượt mượt */}
         <div
+          aria-hidden={!menuOpen}
           className={`flex flex-col items-end gap-2.5 mb-3 transition-all duration-300 ease-out origin-bottom-right ${
             menuOpen
-              ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
-              : "opacity-0 translate-y-3 scale-95 pointer-events-none"
+              ? "opacity-100 translate-y-0 scale-100 pointer-events-auto visible"
+              : "opacity-0 translate-y-3 scale-95 pointer-events-none invisible"
           }`}
         >
           {/* 1. Gọi Hotline - 2/11 (audit Q6): ghi ndr_goi */}
@@ -146,15 +149,15 @@ export default function ChatWidget() {
             href={HOTLINE_ZALO}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Nhắn Zalo tư vấn 24/7"
-            title="Nhắn Zalo tư vấn 24/7"
+            aria-label="Nhắn Zalo tư vấn (8:00 - 21:00)"
+            title="Nhắn Zalo tư vấn (8:00 - 21:00)"
             onClick={() => setMenuOpen(false)}
             className={`flex items-center gap-2 group transition-all duration-300 ease-out transform ${
               menuOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
             } hover:scale-105 active:scale-95`}
           >
             <span className="px-3 py-1.5 rounded-lg bg-[var(--surface)] text-[var(--ink)] text-xs font-bold shadow-md border border-[var(--line)] group-hover:border-blue-500 group-hover:text-blue-600 transition-colors">
-              Nhắn Zalo tư vấn 24/7
+              Nhắn Zalo tư vấn (8:00 - 21:00)
             </span>
             <div className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md border border-blue-500 transition-colors">
               <IconZalo className="w-6 h-6" />
@@ -192,6 +195,8 @@ export default function ChatWidget() {
           onClick={() => {
             if (open) {
               setOpen(false);
+            } else if (Date.now() - hoverOpenAtRef.current < 400) {
+              setMenuOpen(true);
             } else {
               setMenuOpen((v) => !v);
             }

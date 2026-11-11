@@ -69,7 +69,7 @@ const layPhongQuanhDiem = (slug: string) =>
       return ds;
     },
     ["diem-neo-ds-v1", slug],
-    { revalidate: 10800, tags: ["listings", "diem-neo"] }
+    { revalidate: 10800, tags: ["listings", "ds-tin", "diem-neo"] }
   )();
 
 export async function generateMetadata({

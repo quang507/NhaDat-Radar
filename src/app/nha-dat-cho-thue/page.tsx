@@ -1,14 +1,11 @@
-// Nhánh riêng "Nhà đất bán" (kiểu batdongsan.com.vn/nha-dat-cho-thue):
-// dùng chung engine /search nhưng khoá deal=cho_thue + metadata riêng.
-import SearchPage from "../search/page";
+import { HubGiaoDich, hubMeta } from "@/components/AreaLanding";
 
-export const metadata = { title: "Cho thuê nhà đất toàn quốc - NhaDat Radar", alternates: { canonical: "/nha-dat-cho-thue" } };
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
-export default function NhaDatChoThue({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
-  return SearchPage({ searchParams: searchParams.then((sp) => ({ ...sp, deal: "cho_thue" })) });
+export async function generateMetadata() {
+  return hubMeta("cho_thue");
+}
+
+export default function NhaDatChoThuePage() {
+  return <HubGiaoDich deal="cho_thue" />;
 }

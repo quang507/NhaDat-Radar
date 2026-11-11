@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 import { getAreas } from "@/lib/geo";
 import ValuationClient from "./ValuationClient";
@@ -6,13 +6,13 @@ import ValuationClient from "./ValuationClient";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AI Định Giá Bất Động Sản - Ước Tính Giá Nhà Đất Chuẩn Xác | NhaDat Radar",
-  description: "Công cụ định giá nhà đất thông minh ứng dụng AI: so sánh tức thì với giá thị trường theo quận, diện tích, mặt tiền, số tầng và vị trí tại Hà Nội & TP.HCM.",
+  title: "AI Định Giá Bất Động Sản - Tham Khảo Giá Thị Trường | NhaDat Radar",
+  description: "Công cụ định giá nhà đất tham khảo ứng dụng AI: so sánh tức thì với dữ liệu thị trường theo quận, diện tích, mặt tiền, số tầng và vị trí tại Hà Nội & TP.HCM.",
   alternates: { canonical: "/dinh-gia" },
   openGraph: {
     type: "website",
-    title: "AI Định Giá Bất Động Sản - Ước Tính Giá Nhà Đất Chuẩn Xác | NhaDat Radar",
-    description: "Công cụ định giá nhà đất thông minh ứng dụng AI: so sánh giá thị trường theo quận, diện tích, vị trí.",
+    title: "AI Định Giá Bất Động Sản - Tham Khảo Giá Thị Trường | NhaDat Radar",
+    description: "Công cụ định giá nhà đất tham khảo ứng dụng AI: so sánh giá thị trường theo quận, diện tích, vị trí.",
     url: "https://nhadatradar.com/dinh-gia",
   },
 };

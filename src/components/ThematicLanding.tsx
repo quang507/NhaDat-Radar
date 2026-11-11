@@ -177,7 +177,14 @@ export default async function ThematicLanding({
               </span>
               {cd.khuVucNhieuTin.map((kv, idx) => {
                 const slugQuan = slugify(quanDB(kv));
-                const linkQuan = `/nha-dat-cho-thue/ho-chi-minh/${slugQuan}/phong-tro`;
+                const boLoc = cd.slug === "phong-tro-duoi-3-trieu"
+                  ? "/duoi-3-trieu"
+                  : cd.slug === "phong-tro-co-gac-lung"
+                    ? "/gac-lung"
+                    : cd.slug === "can-ho-mini-full-noi-that"
+                      ? "/full-noi-that"
+                      : "";
+                const linkQuan = `/nha-dat-cho-thue/ho-chi-minh/${slugQuan}/phong-tro${boLoc}`;
                 return (
                   <Link
                     key={idx}

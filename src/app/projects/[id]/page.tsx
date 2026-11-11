@@ -21,6 +21,7 @@ import type { Project, Listing } from "@/lib/types";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { docToaDoWkb, khoangCachKm } from "@/lib/du-an";
 import { ldJson, SITE_URL } from "@/lib/ld";
+import { NGUONG } from "@/lib/seo-index";
 import { catChu } from "@/lib/format";
 import { ChevronLeft, Building2, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -32,7 +33,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const supabase = createAnonClient();
-  const { data: proj } = await supabase.from("projects").select("id,name,investor,province,district,address,description,images").eq("id", id).maybeSingle();
+  const [{ data: proj }, { count: soTinDuAn }] = await Promise.all([
+    supabase.from("projects").select("id,name,investor,province,district,address,description,images").eq("id", id).maybeSingle(),
+    supabase.from("listings").select("id", { count: "exact", head: true }).eq("project_id", id).eq("status", "published"),
+  ]);
   if (!proj) {
     return {
       title: "Dự án không tồn tại | NhaDat Radar",
@@ -40,6 +44,7 @@ export async function generateMetadata({
     };
   }
   const p = proj as { id: string; name: string; investor?: string; province?: string; district?: string; address?: string; description?: string; images?: string[] };
+  const laMong = (p.description || "").trim().length < 200 && (soTinDuAn ?? 0) < NGUONG.duAn;
   const where = [p.district, p.province].filter(Boolean).join(", ");
   // 30/10: giữ đuôi " | NhaDat Radar", cắt phần tên dự án ở ranh giới từ để tổng <= 60 ký tự (Google cắt ~60).
   const duoi = " | NhaDat Radar";
@@ -57,6 +62,7 @@ export async function generateMetadata({
     title,
     description: desc,
     alternates: { canonical: `/projects/${p.id}` },
+    ...(laMong ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       type: "website",
       title,
