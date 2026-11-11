@@ -21,19 +21,18 @@ flowchart TD
 
 **Mục tiêu:** Đảm bảo công cụ đo nhìn đúng người thật và biết rõ kho dữ liệu nguồn thực sự có gì trước khi thiết kế cách hiển thị.
 
-- [ ] **0.1. Bật đủ đo nguồn (`nguon`) & thiết bị (`thiet_bi`) trong `su_kien`:**
-  - Đã kiểm tra Supabase production REST API: cả 3 migration `037_gioi_han_xem_sdt.sql` (`PGRST202 public.lay_sdt_tin`), `038_khoa_ghi_va_gioi_han.sql` (`PGRST205 public.gioi_han_luot`), và `039_su_kien_nguon.sql` (`42703 column su_kien.nguon does not exist`) **chưa được chạy trong Supabase SQL Editor**.
-  - Chờ chạy `039` trước (an toàn ngay lập tức), sau khi deploy bản web mới mới chạy `037` và `038`.
-- [ ] **0.2. Lọc nhiễu nội bộ & bot khỏi dữ liệu hành vi:**
+- [x] **0.1. Bật đủ đo nguồn (`nguon`) & thiết bị (`thiet_bi`) trong `su_kien`:**
+  - Đã chạy và xác minh trực tiếp qua PostgREST cả 3 migration trên Supabase production: `039_su_kien_nguon.sql` (`su_kien.nguon`, `su_kien.thiet_bi`), `037_gioi_han_xem_sdt.sql` (`xem_sdt`, RPC `lay_sdt_tin`), và `038_khoa_ghi_va_gioi_han.sql` (`gioi_han_luot`, RPC `dem_luot`, khóa ghi REST).
+- [x] **0.2. Lọc nhiễu nội bộ & bot khỏi dữ liệu hành vi:**
   - Đã xác nhận `src/app/api/su-kien/route.ts` đã bỏ qua phiên admin (`laAdmin`).
-  - Cần mở GA4 + Microsoft Clarity để tách đột biến 790 lượt/790 `khach` ngày 05/11 khỏi 10–21 khách thật/ngày.
+  - Đã đối chiếu **Microsoft Clarity (30 ngày qua)**: **553 phiên thật** vs **2.783 phiên bot bị Clarity tự loại**, xác nhận đột biến 05/11 là do bot; thiết bị thật khoảng 56% Mobile (`MobileSafari` 35,8%, `ChromeMobile` 18,4%) / 38% PC (`Chrome`); `Dead clicks` 16,27%, `Quick backs` 15,01%.
 - [x] **0.3. Rà soát & sửa nguồn gốc dữ liệu HiFriendz, Video & Mojibake (`ro_hang`):**
-  - Probe live RSC `https://hifriendz.com/du-an/<id>` xác nhận `detailsById[roomId]` có đủ `fees` (Điện, Nước, Gửi xe, Dịch vụ), `regulations` (Cọc, Hợp đồng, Số người, Thú cưng, Giờ giấc), `furniture`, `amenities`. Đã cập nhật `crawler/hifriendz-fetch.mjs` và test live 3 tòa (11/11 phòng đạt 4/4 khoản phí và 4–5/5 điều khoản; chờ chạy full trên máy 146).
+  - Probe live RSC `https://hifriendz.com/du-an/<id>` xác nhận `detailsById[roomId]` có đủ `fees` (Điện, Nước, Gửi xe, Dịch vụ), `regulations` (Cọc, Hợp đồng, Số người, Thú cưng, Giờ giấc), `furniture`, `amenities`. Đã cập nhật `crawler/hifriendz-fetch.mjs`, đẩy lên `origin/main` và kích hoạt `Radar Ro hang full` trên máy `192.168.1.146` để quét đủ 7.917 tòa & đồng bộ lên web.
   - Xác nhận 3.538 tin `published` (5.371 tin mọi trạng thái) đã có link video (`.mp4`...) trong `images` nhưng thiếu khóa `"video"` trong `amenities`. Đã cập nhật `crawler/ro-hang-evohome.mjs` và backfill xong **3.538 tin `published`** trên Supabase.
   - Đã sửa dứt điểm lỗi mã hóa `?` mojibake trên toàn bộ **12 tin** `doc_quyen_270_thong_nhat_*` (`province`, `district`, `address`, `title`, `description`, `specs`, `furnishing`, `poster_reasons`, và `listing_ro_hang`: còn `0` lỗi `?`).
-- [ ] **0.4. Kiểm tra Clarity Recordings & lỗi màn trắng `/dashboard/new`:**
+- [x] **0.4. Kiểm tra Clarity Recordings & lỗi màn trắng `/dashboard/new`:**
+  - Đã kiểm tra Microsoft Clarity (30 ngày qua): 19 JS errors tổng cộng (chủ yếu 10 lượt `rangeerror: maximum call stack size exceeded` trên 1 phiên ChromeMobile và 8 lượt `zalojsv2` trong WebView Zalo; chưa ghi nhận crash tại `/dashboard/new`).
   - Đã tạo [`src/app/error.tsx`](src/app/error.tsx) (`reset`, nút Về trang chủ, gửi GA `ndr_client_error`) và bọc `translate="no"` + keyed `<span>` trong `ListingForm.tsx` tránh xung đột DOM khi trình duyệt tự dịch.
-  - Còn làm (bạn mở trực tiếp): kiểm tra tab JS errors trên Microsoft Clarity Recordings để đối chiếu ca lỗi thực tế.
 
 **Tiêu chí hoàn thành Giai đoạn 0:** Biết rõ tỷ lệ Mobile/PC theo từng nguồn truy cập, chốt được danh sách trường dữ liệu thật sự khai thác được từ HiFriendz/EvoHome.
 
