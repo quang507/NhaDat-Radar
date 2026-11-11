@@ -16,8 +16,9 @@ export const metadata: Metadata = {
 
 
 import Link from "next/link";
-import { createAnonClient } from "@/lib/supabase/anon";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { unstable_cache } from "next/cache";
+import { truyVanVoiRetry } from "@/lib/cols";
 import ThongKeView from "./ThongKeView";
 import type { MapPoint } from "@/components/PriceMap";
 import type { Listing } from "@/lib/types";
@@ -160,16 +161,19 @@ async function PriceHistoryChart({ city, deal }: { city: string; deal: string })
 // trước đây mỗi lượt xem kéo tới 1.000 tin + 2.000 dòng lịch sử giá.
 const tinThongKe = unstable_cache(
   async (city: string, deal: string) => {
-    const { data, error } = await createAnonClient()
-      .from("listings")
-      .select("id,title,price_vnd,area_m2,price_per_m2,district,lat,lng,kind,deal")
-      .eq("status", "published")
-      .eq("deal", deal)
-      .eq("province", city)
-      .not("lat", "is", null)
-      .not("price_vnd", "is", null)
-      .limit(1000);
-    if (error) throw new Error("thong-ke: " + error.message); // lỗi thì KHÔNG cache, đừng để lỗi DB đội lốt "chưa có dữ liệu"
+    const { data } = await truyVanVoiRetry(
+      () =>
+        createAdminClient()
+          .from("listings")
+          .select("id,title,price_vnd,area_m2,price_per_m2,district,lat,lng,kind,deal")
+          .eq("status", "published")
+          .eq("deal", deal)
+          .eq("province", city)
+          .not("lat", "is", null)
+          .not("price_vnd", "is", null)
+          .limit(1000),
+      `thong-ke:${city}:${deal}`,
+    );
     return (data ?? []) as Listing[];
   },
   ["thong-ke-tin"],
@@ -178,7 +182,7 @@ const tinThongKe = unstable_cache(
 
 const chuoiGia = unstable_cache(
   async (city: string, deal: string) => {
-    const supabase = createAnonClient();
+    const supabase = createAdminClient();
     const { data } = await supabase
       .from("price_history")
       .select("day,median_ppm2,n")

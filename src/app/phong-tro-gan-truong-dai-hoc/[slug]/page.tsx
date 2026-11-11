@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DANH_SACH_DAI_HOC, getDaiHocBySlug } from "@/lib/dai-hoc";
-import { createAnonClient } from "@/lib/supabase/anon";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { quanDB } from "@/lib/chuyen-de";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { LISTING_CARD_COLS, truyVanVoiRetry } from "@/lib/cols";
@@ -70,7 +70,7 @@ export default async function PhongTroDaiHocDetailPage({
   }
 
   // Truy vấn tin đăng phòng trọ / căn hộ cho thuê thực tế gần trường
-  const supabase = createAnonClient();
+  const supabase = createAdminClient();
   const { data: rawListings, count } = await truyVanVoiRetry(
     () =>
       supabase

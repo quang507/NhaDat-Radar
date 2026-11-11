@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
+import { createAdminClient } from "@/lib/supabase/admin";   // chỉ đọc published trong cache chung -> tránh timeout 3s anon lúc cold burst (23/9, 11/11)
 import { unstable_cache } from "next/cache";
 import { fmtPrice, fmtPpm2, PROP, startOfDayVN, tenKhuVucGon } from "@/lib/format";
 import { median, percentile } from "@/lib/gemini";
@@ -156,7 +156,7 @@ const COLS = "id,source,source_site,source_url,deal,kind,title,description,price
  */
 const layTinKhuVuc = unstable_cache(
   async (deal: Deal, province: string, district: string | null, kind: string | null) => {
-    const supabase = createAnonClient();
+    const supabase = createAdminClient();
     // builder bị mutate khi gọi filter -> dựng mới cho từng truy vấn
     const taoQ = () => {
       let q = supabase.from("listings").select(COLS).eq("status", "published").eq("deal", deal).eq("province", province);
@@ -208,7 +208,7 @@ const layTinKhuVuc = unstable_cache(
 const layTinBoLoc = unstable_cache(
   async (deal: Deal, province: string, district: string, kind: string, boLocSlug: string) => {
     const cfg = boLocTuSlug(boLocSlug);
-    const supabase = createAnonClient();
+    const supabase = createAdminClient();
     const apLoc = <T extends { lte: (c: string, v: number) => T; or: (f: string) => T }>(q: T): T => {
       if (!cfg) return q;
       if ("priceMax" in cfg) return q.lte("price_vnd", cfg.priceMax);
@@ -242,7 +242,7 @@ const layTinBoLoc = unstable_cache(
 
 const layTrangTinKhuVuc = unstable_cache(
   async (deal: Deal, province: string, district: string, kind: string, trang: number) => {
-    const supabase = createAnonClient();
+    const supabase = createAdminClient();
     const from = (trang - 1) * TIN_MOI_TRANG;
     const to = trang * TIN_MOI_TRANG - 1;
     const { data } = await truyVanVoiRetry(
@@ -614,16 +614,23 @@ export default async function AreaLanding({
 
 const layTinHub = unstable_cache(
   async (deal: Deal) => {
-    const supabase = createAnonClient();
+    const supabase = createAdminClient();
     const taoQ = () => supabase.from("listings").select(COLS).eq("status", "published").eq("deal", deal);
     const moi = { ascending: false } as const;
-    const [{ data: rh }, { data }, { count: newToday }] = await Promise.all([
-      taoQ().eq("source", "ro_hang").order("first_seen_at", moi).limit(20),
-      taoQ().neq("source", "ro_hang").order("first_seen_at", moi).limit(30),
-      supabase.from("listings").select("id", { count: "exact", head: true })
-        .eq("status", "published").eq("deal", deal).gte("first_seen_at", startOfDayVN()),
+    const [rhRes, tinRes, newRes] = await Promise.all([
+      truyVanVoiRetry(() => taoQ().eq("source", "ro_hang").order("first_seen_at", moi).limit(20), `hub:${deal}:rh`),
+      truyVanVoiRetry(() => taoQ().neq("source", "ro_hang").order("first_seen_at", moi).limit(30), `hub:${deal}:tin`),
+      truyVanVoiRetry(
+        () =>
+          supabase.from("listings").select("id", { count: "exact", head: true })
+            .eq("status", "published").eq("deal", deal).gte("first_seen_at", startOfDayVN()),
+        `hub:${deal}:new`,
+      ),
     ]);
-    return { hien: tronRoHang((rh ?? []) as { id: string }[], (data ?? []) as { id: string }[]).slice(0, 30), newToday: newToday ?? 0 };
+    return {
+      hien: tronRoHang((rhRes.data ?? []) as { id: string }[], (tinRes.data ?? []) as { id: string }[]).slice(0, 30),
+      newToday: newRes.count ?? 0,
+    };
   },
   ["hub-listings-v1"],
   { revalidate: 21600, tags: ["listings", "ds-tin"] },

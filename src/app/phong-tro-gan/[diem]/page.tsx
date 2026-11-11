@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { unstable_cache } from "next/cache";
-import { createAnonClient } from "@/lib/supabase/anon";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { DIEM_NEO, timDiemNeo, kmGiua, type DiemNeo } from "@/lib/diem-neo";
 import { NGUONG, robotsTheoSoTin } from "@/lib/seo-index";
 import { LISTING_CARD_COLS, truyVanVoiRetry } from "@/lib/cols";
@@ -56,7 +56,7 @@ const layPhongQuanhDiem = (slug: string) =>
       if (!d) return { tongTin: 0, giaTrungVi: "-", cuLy500m: 0, cuLy1km: 0, cuLy2km: 0, listings: [] };
       const dLat = d.banKinhKm / 111;
       const dLng = d.banKinhKm / (111 * Math.cos((d.lat * Math.PI) / 180));
-      const supabase = createAnonClient();
+      const supabase = createAdminClient();
 
       const docTrangToaDo = async (tu: number, den: number) =>
         (
