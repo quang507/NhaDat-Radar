@@ -13,7 +13,7 @@ const layChuoiGia = unstable_cache(
     return (data ?? []) as { day: string; median_ppm2: number; n: number }[];
   },
   ["price-trend-v1"],
-  { revalidate: 3600, tags: ["price-history"] },
+  { revalidate: 86400, tags: ["price-history"] },
 );
 import { canonDistrict, fmtPpm2 } from "@/lib/format";
 import { TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";

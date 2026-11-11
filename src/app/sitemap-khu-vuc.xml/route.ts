@@ -8,7 +8,7 @@ import { DANH_SACH_DAI_HOC } from "@/lib/dai-hoc";
 import { DIEM_NEO } from "@/lib/diem-neo";
 import { NGUONG } from "@/lib/seo-index";
 
-export const revalidate = 3600;
+export const revalidate = 43200;
 
 export async function GET() {
   const muc: MucSitemap[] = [

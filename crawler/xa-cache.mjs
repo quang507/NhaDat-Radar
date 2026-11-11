@@ -2,7 +2,7 @@
 // (danh sách ở trang khu vực). Không xả thì phòng vừa cho thuê vẫn hiện "còn trống" tới 12 giờ (cache dữ liệu trang tin).
 // Cần REVALIDATE_SECRET (cùng giá trị với biến trên Vercel) trong .env.local của máy chạy crawler; thiếu thì bỏ qua êm.
 // Lỗi mạng / web lỗi không làm hỏng lượt nhập - cache vẫn tự hết hạn như cũ.
-const WEB = process.env.NEXT_PUBLIC_SITE_URL || "https://nhadatradar.com";
+const WEB = process.env.NEXT_PUBLIC_SITE_URL || "https://www.nhadatradar.com";
 const LO = 500;
 
 export async function xaCacheTin(ids) {

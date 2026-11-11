@@ -11,7 +11,7 @@ export async function generateStaticParams() {
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { getAreas } from "@/lib/geo";
+import { getAreasDaily } from "@/lib/geo";
 import { createClient } from "@/lib/supabase/server";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -95,7 +95,7 @@ const lienQuanNhom = unstable_cache(
       .order("ai_score", { ascending: false, nullsFirst: false }).limit(7);
     return (data ?? []) as unknown as Listing[];
   },
-  ["lien-quan-nhom-v2"], { revalidate: 43200, tags: ["listings"] },
+  ["lien-quan-nhom-v2"], { revalidate: 86400, tags: ["listings"] },
 );
 const cungNguoiDang = unstable_cache(
   async (posterKey: string) => {
@@ -104,7 +104,7 @@ const cungNguoiDang = unstable_cache(
       .order("first_seen_at", { ascending: false }).limit(7);
     return { rows: (data ?? []) as unknown as Listing[], count: count ?? 0 };
   },
-  ["cung-nguoi-dang-v2"], { revalidate: 43200, tags: ["listings"] },
+  ["cung-nguoi-dang-v2"], { revalidate: 86400, tags: ["listings"] },
 );
 const cungToaNha = unstable_cache(
   async (district: string, address: string, lat: number | null, lng: number | null) => {
@@ -134,7 +134,7 @@ const cungToaNha = unstable_cache(
       specs?: Record<string, string> | null;
     }[];
   },
-  ["cung-toa-nha-v1"], { revalidate: 43200, tags: ["listings"] },
+  ["cung-toa-nha-v1"], { revalidate: 86400, tags: ["listings"] },
 );
 
 async function phuTroTin(sb: Sb, x: Listing & { has_contact_phone?: boolean }) {
@@ -187,7 +187,7 @@ const layTinCongKhai = (id: string) => unstable_cache(
     return phuTroTin(sb, data as unknown as Listing);
   },
   ["listing-detail-v5", id],
-  { revalidate: 43200, tags: ["listings", `tin:${id}`] },   // 12 giờ (3/10, egress): ~22.000 trang tin bị bot quét; admin gỡ tin vẫn revalidateTag ngay
+  { revalidate: 86400, tags: ["listings", `tin:${id}`] },   // 24 giờ (khớp ISR route; tin rổ hàng đổi giá/trạng thái được xaCacheTin xả qua tin:<id>)
 )();
 
 // 26/10: tin đã XOÁ hẳn (daily.mjs) trước đây ra 404 - Search Console báo 4.247 URL. Migration 036 ghi "bia mộ"
@@ -216,7 +216,7 @@ async function khuVucCuaTin(x: BiaMo): Promise<string> {
   const deal = x.deal === "cho_thue" ? "cho_thue" : "ban";
   const goc = deal === "ban" ? "/nha-dat-ban" : "/nha-dat-cho-thue";
   if (!x.province) return goc;
-  const { counts } = await getAreas();
+  const { counts } = await getAreasDaily();
   const tinh = counts[x.province];
   if (!tinh || !tinh[deal]) return goc;
   const d = x.district ? canonDistrict(x.district) : "";
@@ -234,7 +234,7 @@ async function linkKhuVuc(x: { deal: string; province?: string | null; district?
   const links: { href: string; nhan: string }[] = [];
   if (!x.province) return links;
   const deal = x.deal === "cho_thue" ? "cho_thue" : "ban";
-  const { counts } = await getAreas();
+  const { counts } = await getAreasDaily();
   const tinh = counts[x.province];
   if (!tinh) return links;
   const d = x.district ? canonDistrict(x.district) : "";

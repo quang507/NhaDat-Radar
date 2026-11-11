@@ -10,6 +10,7 @@ import { fmtPrice, fmtPpm2, PROP, startOfDayVN, tenKhuVucGon } from "@/lib/forma
 import { median, percentile } from "@/lib/gemini";
 import { slugify, areaPath, DEAL_WORD, KIND_SLUG, kindFromSlug } from "@/lib/slug";
 import { getAreas } from "@/lib/geo";
+import { truyVanVoiRetry } from "@/lib/cols";
 import type { Listing } from "@/lib/types";
 import ListingRow from "@/components/ListingRow";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
@@ -185,23 +186,23 @@ const layTinKhuVuc = unstable_cache(
     // bot quét ~7.400 trang khu vực là vài GB. Giờ tách: 40 tin đầy đủ để HIỂN THỊ + 420 tin chỉ cột số liệu
     // (giá, loại, quận, nguồn) để tính thống kê + đếm tin có ảnh bằng count (không tải ảnh).
     const moi = { ascending: false } as const;
-    const [{ data: rh }, { data }, { data: rhTk }, { data: tkData }, { count }, { count: coAnh }] = await Promise.all([
-      taoQ().eq("source", "ro_hang").order("first_seen_at", moi).limit(30),
-      taoQ().neq("source", "ro_hang").order("first_seen_at", moi).limit(40),
-      taoTk().eq("source", "ro_hang").order("first_seen_at", moi).limit(120),
-      taoTk().neq("source", "ro_hang").order("first_seen_at", moi).limit(300),
-      c,
-      taoDem().neq("images", "{}"),
+    const [rhRes, tinRes, rhTkRes, tkRes, newRes, anhRes] = await Promise.all([
+      truyVanVoiRetry(() => taoQ().eq("source", "ro_hang").order("first_seen_at", moi).limit(30), `area:${deal}:${province}:rh`),
+      truyVanVoiRetry(() => taoQ().neq("source", "ro_hang").order("first_seen_at", moi).limit(40), `area:${deal}:${province}:tin`),
+      truyVanVoiRetry(() => taoTk().eq("source", "ro_hang").order("first_seen_at", moi).limit(120), `area:${deal}:${province}:rhtk`),
+      truyVanVoiRetry(() => taoTk().neq("source", "ro_hang").order("first_seen_at", moi).limit(300), `area:${deal}:${province}:tk`),
+      truyVanVoiRetry(() => c, `area:${deal}:${province}:new`),
+      truyVanVoiRetry(() => taoDem().neq("images", "{}"), `area:${deal}:${province}:img`),
     ]);
     return {
-      hien: tronRoHang((rh ?? []) as { id: string }[], (data ?? []) as { id: string }[]).slice(0, 40),
-      data: tronRoHang((rhTk ?? []) as { id: string }[], (tkData ?? []) as { id: string }[]).slice(0, 300),
-      newToday: count ?? 0,
-      coAnh: coAnh ?? 0,
+      hien: tronRoHang((rhRes.data ?? []) as { id: string }[], (tinRes.data ?? []) as { id: string }[]).slice(0, 40),
+      data: tronRoHang((rhTkRes.data ?? []) as { id: string }[], (tkRes.data ?? []) as { id: string }[]).slice(0, 300),
+      newToday: newRes.count ?? 0,
+      coAnh: anhRes.count ?? 0,
     };
   },
-  ["area-listings-v4"],
-  { revalidate: 10800, tags: ["listings", "ds-tin"] },   // 3 giờ: dữ liệu chỉ đổi mỗi lượt crawl (4 tiếng); "ds-tin": lượt nhập rổ hàng xả ngay (3/11)
+  ["area-listings-v5"],
+  { revalidate: 21600, tags: ["listings", "ds-tin"] },
 );
 
 const layTinBoLoc = unstable_cache(
@@ -219,24 +220,24 @@ const layTinBoLoc = unstable_cache(
     const taoTk = () => apLoc(supabase.from("listings").select(COT_TK).eq("status", "published").eq("deal", deal).eq("province", province).eq("district", district).eq("kind", kind));
     const taoDem = () => apLoc(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published").eq("deal", deal).eq("province", province).eq("district", district).eq("kind", kind));
     const moi = { ascending: false } as const;
-    const [{ data: rh }, { data }, { data: tkData }, { count: total }, { count: newToday }, { count: coAnh }] = await Promise.all([
-      taoQ().eq("source", "ro_hang").order("first_seen_at", moi).limit(20),
-      taoQ().neq("source", "ro_hang").order("first_seen_at", moi).limit(30),
-      taoTk().order("first_seen_at", moi).limit(300),
-      taoDem(),
-      taoDem().gte("first_seen_at", startOfDayVN()),
-      taoDem().neq("images", "{}"),
+    const [rhRes, tinRes, tkRes, totRes, newRes, anhRes] = await Promise.all([
+      truyVanVoiRetry(() => taoQ().eq("source", "ro_hang").order("first_seen_at", moi).limit(20), `boloc:${boLocSlug}:rh`),
+      truyVanVoiRetry(() => taoQ().neq("source", "ro_hang").order("first_seen_at", moi).limit(30), `boloc:${boLocSlug}:tin`),
+      truyVanVoiRetry(() => taoTk().order("first_seen_at", moi).limit(300), `boloc:${boLocSlug}:tk`),
+      truyVanVoiRetry(() => taoDem(), `boloc:${boLocSlug}:tot`),
+      truyVanVoiRetry(() => taoDem().gte("first_seen_at", startOfDayVN()), `boloc:${boLocSlug}:new`),
+      truyVanVoiRetry(() => taoDem().neq("images", "{}"), `boloc:${boLocSlug}:img`),
     ]);
     return {
-      hien: tronRoHang((rh ?? []) as { id: string }[], (data ?? []) as { id: string }[]).slice(0, 40),
-      data: (tkData ?? []) as { id: string }[],
-      total: total ?? 0,
-      newToday: newToday ?? 0,
-      coAnh: coAnh ?? 0,
+      hien: tronRoHang((rhRes.data ?? []) as { id: string }[], (tinRes.data ?? []) as { id: string }[]).slice(0, 40),
+      data: (tkRes.data ?? []) as { id: string }[],
+      total: totRes.count ?? 0,
+      newToday: newRes.count ?? 0,
+      coAnh: anhRes.count ?? 0,
     };
   },
-  ["area-filter-v1"],
-  { revalidate: 10800, tags: ["listings", "ds-tin"] },
+  ["area-filter-v2"],
+  { revalidate: 43200, tags: ["listings"] },
 );
 
 const layTrangTinKhuVuc = unstable_cache(
@@ -244,21 +245,25 @@ const layTrangTinKhuVuc = unstable_cache(
     const supabase = createAnonClient();
     const from = (trang - 1) * TIN_MOI_TRANG;
     const to = trang * TIN_MOI_TRANG - 1;
-    const { data } = await supabase
-      .from("listings")
-      .select(COLS)
-      .eq("status", "published")
-      .eq("deal", deal)
-      .eq("province", province)
-      .eq("district", district)
-      .eq("kind", kind)
-      .order("first_seen_at", { ascending: false, nullsFirst: false })
-      .order("id")
-      .range(from, to);
+    const { data } = await truyVanVoiRetry(
+      () =>
+        supabase
+          .from("listings")
+          .select(COLS)
+          .eq("status", "published")
+          .eq("deal", deal)
+          .eq("province", province)
+          .eq("district", district)
+          .eq("kind", kind)
+          .order("first_seen_at", { ascending: false, nullsFirst: false })
+          .order("id")
+          .range(from, to),
+      `slice:${district}:${trang}`,
+    );
     return (data ?? []) as { id: string }[];
   },
-  ["area-page-slice-v1"],
-  { revalidate: 10800, tags: ["listings", "ds-tin"] },
+  ["area-page-slice-v2"],
+  { revalidate: 43200, tags: ["listings"] },
 );
 
 /** Trang cha gần nhất CÒN TIN: quận (cho trang loại BĐS) -> tỉnh -> trang mua/thuê toàn quốc */
@@ -621,7 +626,7 @@ const layTinHub = unstable_cache(
     return { hien: tronRoHang((rh ?? []) as { id: string }[], (data ?? []) as { id: string }[]).slice(0, 30), newToday: newToday ?? 0 };
   },
   ["hub-listings-v1"],
-  { revalidate: 3600, tags: ["listings", "ds-tin"] },
+  { revalidate: 21600, tags: ["listings", "ds-tin"] },
 );
 
 export async function hubMeta(deal: Deal) {

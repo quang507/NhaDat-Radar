@@ -173,7 +173,7 @@ const tinThongKe = unstable_cache(
     return (data ?? []) as Listing[];
   },
   ["thong-ke-tin"],
-  { revalidate: 1800 },
+  { revalidate: 21600 },
 );
 
 const chuoiGia = unstable_cache(
@@ -202,5 +202,5 @@ const chuoiGia = unstable_cache(
     return series;
   },
   ["thong-ke-lich-su"],
-  { revalidate: 1800 },
+  { revalidate: 86400 },
 );

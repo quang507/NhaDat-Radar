@@ -52,33 +52,40 @@ function dungCay(nhom: Nhom[], phuong: PhuongRow[], srcs: Iterable<string>, tota
   return { geo, counts, total, sources: new Set(srcs).size, districtCount };
 }
 
-export const getAreas = unstable_cache(
-  async (): Promise<AreaTree> => {
-    const sb = createAdminClient(); // chỉ đọc published, không phụ thuộc user -> cache chung an toàn
-    // 3/10 (egress): đếm sẵn ở DB bằng rpc cay_khu_vuc (migration 033) - ~12KB gzip thay vì ~22 trang x 1000 dòng
-    const { data: cay, error } = await sb.rpc("cay_khu_vuc");
-    if (!error && cay && Array.isArray(cay.c)) {
-      const c = cay as { c: [string, string, string, string, number][]; w: [string, string, string][]; s: string[]; t: number };
-      return dungCay(
-        c.c.map(([province, district, deal, kind, n]) => ({ province, district, deal, kind, n })),
-        c.w.map(([province, district, ward]) => ({ province, district, ward })),
-        c.s, Number(c.t) || 0,
-      );
-    }
-    // Dự phòng (rpc chưa có / lỗi): quét phân trang như cũ
-    const rows: { province: string | null; district: string | null; ward: string | null; deal: string; kind: string | null; source: string; source_site: string | null }[] = [];
-    for (let from = 0; ; from += 1000) {
-      const { data, error: loi } = await sb.from("listings").select("province,district,ward,deal,kind,source,source_site").eq("status", "published").order("id").range(from, from + 999);
-      // DB lỗi -> ném, không để unstable_cache giữ cây rỗng/thiếu 30 phút (trang ISR giữ bản cũ, search quy quận sai)
-      if (loi) { console.warn("getAreas: loi DB, dung lai tranh sap build:", loi.message || loi); break; }
-      rows.push(...(data ?? []));
-      if (!data || data.length < 1000) break;
-    }
+async function fetchAreas(): Promise<AreaTree> {
+  const sb = createAdminClient(); // chỉ đọc published, không phụ thuộc user -> cache chung an toàn
+  // 3/10 (egress): đếm sẵn ở DB bằng rpc cay_khu_vuc (migration 033) - ~12KB gzip thay vì ~22 trang x 1000 dòng
+  const { data: cay, error } = await sb.rpc("cay_khu_vuc");
+  if (!error && cay && Array.isArray(cay.c)) {
+    const c = cay as { c: [string, string, string, string, number][]; w: [string, string, string][]; s: string[]; t: number };
     return dungCay(
-      rows.map((r) => ({ ...r, n: 1 })), rows,
-      rows.map((r) => (r.source === "crawl" ? (r.source_site || "crawl") : r.source)), rows.length,
+      c.c.map(([province, district, deal, kind, n]) => ({ province, district, deal, kind, n })),
+      c.w.map(([province, district, ward]) => ({ province, district, ward })),
+      c.s, Number(c.t) || 0,
     );
-  },
-  ["areas-v5"],   // v5: làm mới sau khi nạp rổ hàng EvoHome
-  { revalidate: 1800, tags: ["areas"] },
+  }
+  // Dự phòng (rpc chưa có / lỗi): quét phân trang như cũ
+  const rows: { province: string | null; district: string | null; ward: string | null; deal: string; kind: string | null; source: string; source_site: string | null }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error: loi } = await sb.from("listings").select("province,district,ward,deal,kind,source,source_site").eq("status", "published").order("id").range(from, from + 999);
+    if (loi) { console.warn("getAreas: loi DB, dung lai tranh sap build:", loi.message || loi); break; }
+    rows.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  return dungCay(
+    rows.map((r) => ({ ...r, n: 1 })), rows,
+    rows.map((r) => (r.source === "crawl" ? (r.source_site || "crawl") : r.source)), rows.length,
+  );
+}
+
+export const getAreas = unstable_cache(
+  fetchAreas,
+  ["areas-v6"],   // v6: nâng lên 6h để không ép các trang khu vực tái tạo mỗi 30 phút
+  { revalidate: 21600, tags: ["areas"] },
+);
+
+export const getAreasDaily = unstable_cache(
+  fetchAreas,
+  ["areas-daily-v1"],   // 24h cho trang chi tiết tin (/listings/[id]) để giữ đúng revalidate = 86400
+  { revalidate: 86400, tags: ["areas"] },
 );

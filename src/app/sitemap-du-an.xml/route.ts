@@ -4,7 +4,7 @@ import { createAnonClient } from "@/lib/supabase/anon";
 import { SITE, xmlSitemap, xmlResponse, loiTamThoi, type MucSitemap } from "@/lib/sitemap";
 import { NGUONG } from "@/lib/seo-index";
 
-export const revalidate = 3600;
+export const revalidate = 43200;
 
 export async function GET() {
   try {

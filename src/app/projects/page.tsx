@@ -48,7 +48,7 @@ const layDuAn = unstable_cache(
     return { data, count, provRows };
   },
   ["projects-list-v2"],
-  { revalidate: 600 },
+  { revalidate: 3600 },
 );
 
 export default async function ProjectsPage({

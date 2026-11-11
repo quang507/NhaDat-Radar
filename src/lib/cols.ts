@@ -30,3 +30,24 @@ export const LISTING_CARD_COLS = "id,source,source_site,source_url,deal,kind,tit
 export const LISTING_THE_COLS = "id,source,source_site,deal,kind,title,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,province,district,ward,lat,lng,images,ai_score,poster_role_guess,price_flag,status,first_seen_at";
 // + amenities: riêng trang tìm kiếm cần để nhận ra tiện ích cho thẻ phòng cho thuê (1/10) - server dùng xong bỏ, không gửi xuống trình duyệt
 export const LISTING_SEARCH_COLS = "id,source,source_site,source_url,deal,kind,title,description,amenities,price_vnd,area_m2,price_per_m2,bedrooms,bathrooms,province,district,ward,lat,lng,images,ai_score,trust_score,poster_role_guess,price_flag,status,posted_at,first_seen_at,last_seen_at,created_at";
+
+/**
+ * Thử lại truy vấn Supabase tối đa 4 lần (backoff ngẫu nhiên) để tránh build/ISR song song
+ * cache nhầm mảng rỗng "0 tin" khi DB bận thoáng qua; lỗi thật sẽ ném Error để Next giữ bản cache cũ.
+ */
+export async function truyVanVoiRetry<T>(
+  fn: () => PromiseLike<{ data: T | null; count?: number | null; error: { message: string } | null }>,
+  nhan: string,
+  soLan = 4,
+): Promise<{ data: T; count: number | null }> {
+  let loiCuoi = "unknown";
+  for (let lan = 1; lan <= soLan; lan++) {
+    const res = await fn();
+    if (!res.error && (res.data !== null || res.count !== null)) {
+      return { data: res.data as T, count: res.count ?? null };
+    }
+    loiCuoi = res.error?.message || "null data";
+    if (lan < soLan) await new Promise((r) => setTimeout(r, 350 * lan + Math.floor(Math.random() * 450)));
+  }
+  throw new Error(`truyVanVoiRetry(${nhan}): ${loiCuoi}`);
+}

@@ -142,9 +142,20 @@ test("trang điểm neo pSEO có đủ 16 điểm TP.HCM & trang đại học tr
   const slugMatches = diemNeoSrc.match(/slug:\s*"[a-z0-9-]+"/g) ?? [];
   expect(slugMatches.length).toBe(16);
 
-  const diemPage = doc("src/app/phong-tro-gan/[diem]/page.tsx");
-  expect(diemPage).toContain("truyVanVoiRetry");
-  expect(diemPage).toContain("throw new Error");
+  const colsSrc = doc("src/lib/cols.ts");
+  expect(colsSrc).toContain("export async function truyVanVoiRetry");
+  expect(colsSrc).toContain("throw new Error");
+
+  for (const rel of [
+    "src/app/page.tsx",
+    "src/components/ThematicLanding.tsx",
+    "src/components/AreaLanding.tsx",
+    "src/app/phong-tro-gan/[diem]/page.tsx",
+    "src/app/phong-tro-gan-truong-dai-hoc/[slug]/page.tsx",
+  ]) {
+    expect(doc(rel), rel).toContain("truyVanVoiRetry");
+  }
+  expect(doc("src/app/page.tsx")).not.toContain("seed.mjs");
 
   const uniPage = doc("src/app/phong-tro-gan-truong-dai-hoc/[slug]/page.tsx");
   expect(uniPage).toContain("/nha-dat-cho-thue/ho-chi-minh/");
@@ -178,4 +189,20 @@ test("canonical, sitemap và robots.txt dùng đúng tên miền live https://ww
     const src = doc(rel);
     expect(src, rel).not.toContain('"https://nhadatradar.com"');
   }
+});
+
+test("giữ TTL ISR dài (>= 6h-24h) để tránh nổ ISR Writes trên /listings/[id] và trang khu vực", () => {
+  const geo = doc("src/lib/geo.ts");
+  expect(geo).toContain("getAreasDaily");
+  expect(geo).not.toContain("revalidate: 1800");
+
+  const detail = doc("src/app/listings/[id]/page.tsx");
+  expect(detail).toContain("getAreasDaily()");
+  expect(detail).not.toContain("await getAreas()");
+
+  const priceTrend = doc("src/components/PriceTrend.tsx");
+  expect(priceTrend).toContain("revalidate: 86400");
+
+  const home = doc("src/app/page.tsx");
+  expect(home).not.toContain("revalidate: 1800");
 });

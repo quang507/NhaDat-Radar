@@ -3,8 +3,8 @@ export const revalidate = 21600; // Cache ISR 6 giờ trên CDN Vercel - bot cà
 import fs from "node:fs";
 import path from "node:path";
 import Link from "next/link";
-import { createAnonClient } from "@/lib/supabase/anon";   // KHÔNG cookie -> trang cache được (23/9)
-import { LISTING_THE_COLS } from "@/lib/cols";
+import { createAdminClient } from "@/lib/supabase/admin";   // chỉ đọc status=published + LISTING_THE_COLS trong cache chung, tránh timeout 3s anon lúc build song song
+import { LISTING_THE_COLS, truyVanVoiRetry } from "@/lib/cols";
 import ListingCard from "@/components/ListingCard";
 import DaiDocQuyen, { locDocQuyen } from "@/components/DaiDocQuyen";
 import { boTinTrung } from "@/lib/tin-trung";
@@ -44,7 +44,7 @@ import { unstable_cache } from "next/cache";
 // vấn Supabase. Cache 5 phút theo BỘ LỌC trên URL (dữ liệu chỉ đổi mỗi lượt crawl 4 tiếng) - 23/9.
 const layTinTrangChu = unstable_cache(
   async (deal?: string, kind?: string, province?: string, bedrooms?: string, priceMax?: string, q?: string) => {
-    const supabase = createAnonClient();
+    const supabase = createAdminClient();
     // builder của supabase-js bị MUTATE khi gọi filter -> mỗi truy vấn phải dựng mới từ hàm này
     const taoQuery = () => {
       let query = supabase.from("listings").select(LISTING_THE_COLS).eq("status", "published");
@@ -58,17 +58,31 @@ const layTinTrangChu = unstable_cache(
     };
     // 28/9: rổ hàng Radar truy vấn riêng rồi trộn 2:1 với tin còn lại (lib/ro-hang) - không thì
     // 1.400 phòng EvoHome nhập cùng lúc chiếm trọn 150 chỗ "mới nhất", hoặc ngược lại bị crawl đè.
-    const [{ data: rhData }, { data }, { data: projData, count: projectCount }] = await Promise.all([
-      taoQuery().eq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(100),
-      taoQuery().neq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150),
-      // 2/11 (audit D3): chỉ lấy cột thẻ dự án dùng, không select("*") (mô tả, specs... nặng)
-      supabase.from("projects").select("id,name,images,price_min,price_max,district,province", { count: "exact" }).eq("status", "published").not("images", "eq", "{}")   // 25/10: bỏ dự án không ảnh
-        .order("priority", { ascending: false }).order("name").limit(6),
+    const [rhRes, tinRes, projRes] = await Promise.all([
+      truyVanVoiRetry(
+        () => taoQuery().eq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(100),
+        "home:ro_hang",
+      ),
+      truyVanVoiRetry(
+        () => taoQuery().neq("source", "ro_hang").order("first_seen_at", { ascending: false, nullsFirst: false }).limit(150),
+        "home:other",
+      ),
+      truyVanVoiRetry(
+        () =>
+          supabase.from("projects").select("id,name,images,price_min,price_max,district,province", { count: "exact" })
+            .eq("status", "published").not("images", "eq", "{}")
+            .order("priority", { ascending: false }).order("name").limit(6),
+        "home:projects",
+      ),
     ]);
-    return { data: tronRoHang((rhData ?? []) as { id: string }[], (data ?? []) as { id: string }[]), projData: projData ?? [], projectCount: projectCount ?? 0 };
+    return {
+      data: tronRoHang(rhRes.data as unknown as { id: string }[], tinRes.data as unknown as { id: string }[]),
+      projData: projRes.data ?? [],
+      projectCount: projRes.count ?? 0,
+    };
   },
-  ["home-listings-v8"],
-  { revalidate: 1800, tags: ["listings"] },   // 30 phút (2/10, egress): mỗi lần làm mới kéo 250 tin
+  ["home-listings-v9"],
+  { revalidate: 21600, tags: ["listings"] },   // 6 giờ (khớp revalidate trang chủ, tránh nổ ISR Writes)
 );
 
 // Title/description có SỐ THẬT (số tin, số tỉnh) thay vì câu quảng cáo chung chung - dữ liệu lấy từ
@@ -634,9 +648,13 @@ export default async function Home() {
       )}
 
       {!listings.length && !hasFilter && (
-        <p className="text-[var(--ink-soft)] py-10 text-center">
-          Chưa có dữ liệu. Chạy <code>node supabase/seed.mjs</code> để nạp tin.
-        </p>
+        <div className="py-10 text-center space-y-3">
+          <p className="text-[var(--ink-soft)]">Đang làm mới danh sách tin nổi bật, bạn có thể tra cứu trực tiếp toàn bộ kho tin bên dưới.</p>
+          <Link href="/search?deal=cho_thue" className="btn btn-primary inline-flex items-center gap-1.5 text-sm">
+            <span>Xem toàn bộ phòng &amp; nhà đất</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       )}
     </div>
   );

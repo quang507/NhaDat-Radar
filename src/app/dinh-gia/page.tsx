@@ -1,4 +1,4 @@
-export const revalidate = 3600;
+export const revalidate = 21600;
 
 import { getAreas } from "@/lib/geo";
 import { SITE_URL } from "@/lib/ld";

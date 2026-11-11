@@ -5,7 +5,7 @@ import { unstable_cache } from "next/cache";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { DIEM_NEO, timDiemNeo, kmGiua, type DiemNeo } from "@/lib/diem-neo";
 import { NGUONG, robotsTheoSoTin } from "@/lib/seo-index";
-import { LISTING_CARD_COLS } from "@/lib/cols";
+import { LISTING_CARD_COLS, truyVanVoiRetry } from "@/lib/cols";
 import { fmtPrice } from "@/lib/format";
 import { median } from "@/lib/gemini";
 import { slugify } from "@/lib/slug";
@@ -45,21 +45,6 @@ type DiemNeoSummary = {
   listings: (Listing & { kc: number })[];
 };
 
-/** Thử lại tối đa 3 lần nếu DB chập chờn lúc build/ISR; ném lỗi thật để Next không cache nhầm "0 Phòng" */
-async function truyVanVoiRetry<T>(
-  fn: () => PromiseLike<{ data: T | null; error: { message: string } | null }>,
-  nhan: string
-): Promise<T> {
-  let loiCuoi = "unknown";
-  for (let lan = 1; lan <= 3; lan++) {
-    const res = await fn();
-    if (!res.error && res.data) return res.data;
-    loiCuoi = res.error?.message || "null data";
-    if (lan < 3) await new Promise((r) => setTimeout(r, 350 * lan + Math.floor(Math.random() * 200)));
-  }
-  throw new Error(`layPhongQuanhDiem(${nhan}): ${loiCuoi}`);
-}
-
 /**
  * Lấy danh sách phòng trọ trong bán kính quanh điểm neo, có cache 3 giờ.
  * Tách 2 nhịp (đọc 4 cột nhẹ tính thống kê/cự ly -> tải thẻ cho 36 tin gần nhất) để giữ cache < 100KB và tránh timeout lúc build.
@@ -73,22 +58,24 @@ const layPhongQuanhDiem = (slug: string) =>
       const dLng = d.banKinhKm / (111 * Math.cos((d.lat * Math.PI) / 180));
       const supabase = createAnonClient();
 
-      const docTrangToaDo = (tu: number, den: number) =>
-        truyVanVoiRetry(
-          () =>
-            supabase
-              .from("listings")
-              .select("id, lat, lng, price_vnd")
-              .eq("status", "published")
-              .eq("deal", "cho_thue")
-              .gte("lat", d.lat - dLat)
-              .lte("lat", d.lat + dLat)
-              .gte("lng", d.lng - dLng)
-              .lte("lng", d.lng + dLng)
-              .order("lat", { ascending: true })
-              .range(tu, den),
-          `${slug}:coords:${tu}`
-        );
+      const docTrangToaDo = async (tu: number, den: number) =>
+        (
+          await truyVanVoiRetry(
+            () =>
+              supabase
+                .from("listings")
+                .select("id, lat, lng, price_vnd")
+                .eq("status", "published")
+                .eq("deal", "cho_thue")
+                .gte("lat", d.lat - dLat)
+                .lte("lat", d.lat + dLat)
+                .gte("lng", d.lng - dLng)
+                .lte("lng", d.lng + dLng)
+                .order("lat", { ascending: true })
+                .range(tu, den),
+            `${slug}:coords:${tu}`,
+          )
+        ).data;
 
       const batch1 = await docTrangToaDo(0, 999);
       const rawRows = batch1.length === 1000 ? [...batch1, ...(await docTrangToaDo(1000, 1999))] : batch1;
@@ -111,15 +98,17 @@ const layPhongQuanhDiem = (slug: string) =>
       const top36 = matched.slice(0, 36);
       const kcById = new Map(top36.map((x) => [x.id, x.kc]));
       const cardsRaw = top36.length
-        ? await truyVanVoiRetry(
-            () =>
-              supabase
-                .from("listings")
-                .select(LISTING_CARD_COLS)
-                .eq("status", "published")
-                .in("id", top36.map((x) => x.id)),
-            `${slug}:cards`
-          )
+        ? (
+            await truyVanVoiRetry(
+              () =>
+                supabase
+                  .from("listings")
+                  .select(LISTING_CARD_COLS)
+                  .eq("status", "published")
+                  .in("id", top36.map((x) => x.id)),
+              `${slug}:cards`,
+            )
+          ).data
         : [];
 
       const listings = (cardsRaw as unknown as Listing[])
@@ -136,7 +125,7 @@ const layPhongQuanhDiem = (slug: string) =>
       };
     },
     ["diem-neo-ds-v2", slug],
-    { revalidate: 10800, tags: ["listings", "ds-tin", "diem-neo"] }
+    { revalidate: 21600, tags: ["listings", "diem-neo"] }
   )();
 
 export async function generateMetadata({

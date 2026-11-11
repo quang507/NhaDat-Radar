@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { DANH_SACH_CHUYEN_DE, quanDB } from "@/lib/chuyen-de";
 import { cheSoTin } from "@/lib/doc-quyen";
-import { createAnonClient } from "@/lib/supabase/anon";
-import { LISTING_CARD_COLS } from "@/lib/cols";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { LISTING_CARD_COLS, truyVanVoiRetry } from "@/lib/cols";
 import type { Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
 import SanPhongHoCTA from "@/components/SanPhongHoCTA";
@@ -22,6 +23,46 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
+const layTinChuyenDe = (slug: string, quan?: string) =>
+  unstable_cache(
+    async () => {
+      const cd = DANH_SACH_CHUYEN_DE[slug];
+      if (!cd) return { listings: [] as Listing[], tongTin: 0 };
+      const supabase = createAdminClient();
+      let query = supabase
+        .from("listings")
+        .select(LISTING_CARD_COLS, { count: "exact" })
+        .eq("status", "published")
+        .eq("deal", cd.deal)
+        .eq("province", "Hồ Chí Minh");
+
+      if (cd.filterType === "price_lte" && cd.priceMax) {
+        query = query.lte("price_vnd", cd.priceMax);
+      } else if (cd.filterType === "price_range" && cd.priceMin && cd.priceMax) {
+        query = query.gte("price_vnd", cd.priceMin).lte("price_vnd", cd.priceMax);
+      } else if (cd.filterType === "keyword" && cd.keywords?.length) {
+        const kwFilter = cd.keywords.map((kw) => `title.ilike.%${kw}%,description.ilike.%${kw}%`).join(",");
+        query = query.or(kwFilter);
+      } else if (cd.filterType === "kind_or_keyword" && cd.keywords?.length) {
+        const kwFilter = cd.keywords.map((kw) => `title.ilike.%${kw}%,description.ilike.%${kw}%`).join(",");
+        query = query.or(`kind.eq.can_ho,${kwFilter}`);
+      }
+
+      if (quan) {
+        query = query.eq("district", quanDB(quan));
+      }
+
+      const { data: rawListings, count } = await truyVanVoiRetry(
+        () => query.order("first_seen_at", { ascending: false, nullsFirst: false }).limit(30),
+        `thematic:${slug}:${quan || "all"}`,
+      );
+      const listings = ((rawListings || []) as unknown as Listing[]).map(cheSoTin);
+      return { listings, tongTin: count ?? listings.length };
+    },
+    ["thematic-v2", slug, quan || "all"],
+    { revalidate: 21600, tags: ["listings"] },
+  )();
+
 export default async function ThematicLanding({
   slug,
   searchParams,
@@ -39,43 +80,7 @@ export default async function ThematicLanding({
   const quanGo = sp.quan;
   const quan = quanGo && cd.khuVucNhieuTin.includes(quanGo) ? quanGo : undefined;
 
-  // Truy vấn tin theo chủ đề (count exact -> hiện tổng tin thật, không phải số thẻ đang hiện)
-  const supabase = createAnonClient();
-  let query = supabase
-    .from("listings")
-    .select(LISTING_CARD_COLS, { count: "exact" })
-    .eq("status", "published")
-    .eq("deal", cd.deal)
-    .ilike("province", "%Hồ Chí Minh%");
-
-  // Áp dụng bộ lọc chuyên đề
-  if (cd.filterType === "price_lte" && cd.priceMax) {
-    query = query.lte("price_vnd", cd.priceMax);
-  } else if (cd.filterType === "price_range" && cd.priceMin && cd.priceMax) {
-    query = query.gte("price_vnd", cd.priceMin).lte("price_vnd", cd.priceMax);
-  } else if (cd.filterType === "keyword" && cd.keywords?.length) {
-    // Tìm kiếm trong tiêu đề hoặc mô tả
-    const kwFilter = cd.keywords.map((kw) => `title.ilike.%${kw}%,description.ilike.%${kw}%`).join(",");
-    query = query.or(kwFilter);
-  } else if (cd.filterType === "kind_or_keyword" && cd.keywords?.length) {
-    const kwFilter = cd.keywords.map((kw) => `title.ilike.%${kw}%,description.ilike.%${kw}%`).join(",");
-    query = query.or(`kind.eq.can_ho,${kwFilter}`);
-  }
-
-  // Lọc thêm theo quận nếu người dùng bấm chọn quận
-  // 2/11 (audit 🔴7, Q1): so khớp đúng tên quận trong DB - ilike "%Quận 1%" ăn cả Quận 10/11/12,
-  // tên trần "Gò Vấp" phải đổi thành "Quận Gò Vấp"
-  if (quan) {
-    query = query.eq("district", quanDB(quan));
-  }
-
-  const { data: rawListings, count } = await query
-    .order("first_seen_at", { ascending: false, nullsFirst: false })
-    .limit(30);
-
-  // 2/11 (audit P4): che SĐT trong tiêu đề/mô tả như mọi trang công khai khác
-  const listings = ((rawListings || []) as Listing[]).map(cheSoTin);
-  const tongTin = count ?? listings.length;
+  const { listings, tongTin } = await layTinChuyenDe(slug, quan);
 
   // JSON-LD Schemas
   const breadcrumbLd = {
