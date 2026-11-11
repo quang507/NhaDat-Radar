@@ -692,6 +692,12 @@ export default async function ListingDetail({
 
           <MobileSectionJumper />
 
+          {(roHang || docQuyen) && (
+            <div className="lg:hidden">
+              <ContactForm listingId={x.id} listingTitle={x.title} goiLaiNhanh />
+            </div>
+          )}
+
           <div id="tong-quan" className="card rounded-lg p-5 scroll-mt-28">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
               <h3 className="font-bold">Thông tin chính</h3>
@@ -1068,42 +1074,29 @@ export default async function ListingDetail({
                 duy nhất (Cầu Nối), đây là nhóm tin thu phí được. Nguồn web thì giữ luật cũ:
                 SĐT hiện sau đăng nhập (mô hình Homigo), hotline Radar không chặn ai. */}
             {roHang ? (
-              <div className="mb-3 flex flex-col gap-2">
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-[var(--ink-soft)]">
-                  <div className="font-bold text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 mb-1">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>{x.deal === "ban" ? "Rổ hàng Radar" : "Tin phòng đã xác minh"}</span>
-                  </div>
-                  {/* 3/11 (UX audit #14): bản cũ in câu chốt sale ("Tối nay tầm 18h30...") như bong bóng chat đã gửi -> khách
-                      tưởng Radar đã nhắn. Giờ là 3 bước + đúng tin nhắn NutZalo sẽ chép vào bộ nhớ tạm. */}
-                  <ol className="list-decimal pl-4 space-y-0.5">
-                    <li>Bấm <b className="text-[var(--ink)]">Nhắn Zalo</b> bên dưới, tin nhắn kèm mã được chép sẵn</li>
-                    <li>Trong khung chat Zalo, bấm giữ ô nhập và chọn <b className="text-[var(--ink)]">Dán</b></li>
-                    <li>Gửi. Radar trả lời trong 15 phút và hẹn giờ dẫn xem miễn phí</li>
-                  </ol>
-                  <div className="mt-2 rounded-sm border border-[var(--line)] bg-[var(--surface)] p-2">
-                    <div className="text-overline font-semibold uppercase tracking-wide text-[var(--ink-faint)] mb-0.5">Tin nhắn sẽ gửi</div>
-                    <div className="text-[var(--ink)] break-words">{tinNhanZalo}</div>
-                  </div>
+              <div className="mb-3 flex flex-col gap-2.5">
+                <ContactForm listingId={x.id} listingTitle={x.title} goiLaiNhanh />
+                <div className="flex items-center gap-2 text-[11px] text-[var(--ink-faint)] my-0.5">
+                  <span className="h-px flex-1 bg-[var(--line)]" />
+                  <span>hoặc liên hệ trực tiếp</span>
+                  <span className="h-px flex-1 bg-[var(--line)]" />
                 </div>
-                {/* mã phòng / mã căn: Clarity dead click fix - bấm toàn bộ hộp để chép mã ngay */}
-                <NutChepMa
-                  ma={maPhong(x.id)}
-                  loai={x.deal === "ban" ? "căn" : "phòng"}
-                  dang="box"
-                />
-                <HienSoRadar listingId={x.id} />
                 <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center bg-[#0068ff] hover:bg-[#0057d6] text-white font-bold min-h-12 border-0 shadow-xs flex items-center justify-center gap-2 rounded-lg">
                   <MessageCircle className="w-4 h-4 fill-white shrink-0" />
                   <span>{x.deal === "ban" ? "Nhắn Zalo hẹn xem nhà" : "Nhắn Zalo hẹn xem phòng"}</span>
                 </NutZalo>
+                <HienSoRadar listingId={x.id} />
+                <p className="text-[11px] text-[var(--ink-soft)] leading-relaxed">
+                  Mã {x.deal === "ban" ? "căn" : "phòng"} tự động chép khi bấm Zalo (chỉ cần chọn Dán):{" "}
+                  <NutChepMa ma={maPhong(x.id)} loai={x.deal === "ban" ? "căn" : "phòng"} className="font-mono font-bold text-[var(--ink)] underline cursor-pointer inline-flex items-center gap-1" />
+                </p>
                 {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
                 <div className="hidden lg:flex items-center gap-3 rounded-lg border border-[var(--line)] p-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/zalo-qr.svg" alt={`QR Zalo ${HOTLINE}`} width={96} height={96} className="rounded bg-white p-1 shrink-0" />
+                  <img src="/zalo-qr.svg" alt={`QR Zalo ${HOTLINE}`} width={88} height={88} className="rounded bg-white p-1 shrink-0" />
                   <div className="text-xs text-[var(--ink-soft)]">
-                    <div className="font-bold text-sm text-[var(--ink)] mb-1">Quét để nhắn Zalo</div>
-                    Mở camera điện thoại quét mã, gửi <b className="font-mono text-[var(--ink)]">{maPhong(x.id)}</b> để được tư vấn &amp; hẹn xem {x.deal === "ban" ? "nhà" : "phòng"}.
+                    <div className="font-bold text-sm text-[var(--ink)] mb-0.5">Quét để nhắn Zalo</div>
+                    Mở camera quét mã, gửi <b className="font-mono text-[var(--ink)]">{maPhong(x.id)}</b> để hẹn xem miễn phí.
                   </div>
                 </div>
               </div>
@@ -1155,7 +1148,11 @@ export default async function ListingDetail({
               </Link>
             )}
             {/* 2/10: rổ hàng bỏ form đặt lịch nhiều ô (tên/ngày/buổi) - thay bằng "Bấm để hiện số" ở trên */}
-            {roHang ? null : isCrawl ? (
+            {roHang ? null : docQuyen ? (
+              <div className="mt-3">
+                <ContactForm listingId={x.id} listingTitle={x.title} goiLaiNhanh />
+              </div>
+            ) : isCrawl ? (
               <details className="mt-1">
                 <summary className="text-sm font-semibold cursor-pointer text-brand">Nhờ Radar hỗ trợ tìm/định giá tin tương tự</summary>
                 <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT - Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp trong khu vực.</p>

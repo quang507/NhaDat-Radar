@@ -16,7 +16,7 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 import { canonProvince, quanTheoDB } from "./chung.mjs";
-import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH, soanTinSanKhach, timPhongPhuHop, TIEN_ICH } from "./zalo-tu-van-lead.mjs";
+import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH, soanTinSanKhach, timPhongPhuHop, TIEN_ICH, maPhong } from "./zalo-tu-van-lead.mjs";
 import { taoKhoHoiThoai } from "./zalo-hoi-thoai.mjs";
 import { taoCongGui, trongGioIm } from "./zalo-gui.mjs";
 import { laBaiTimPhong, SYS_TIM, SCHEMA_TIM, chuanHoaNhuCau } from "./khach-tim.mjs";
@@ -638,8 +638,67 @@ function startListener() {
   child.on("exit", (code) => { console.error("zalo-agent listen thoát, code", code, "- thử chạy lại sau 5s"); setTimeout(startListener, 5000); });
 }
 
+// ---- BÁO LEAD MỚI TỪ WEB VỀ ZALO CHÍNH CỦA ADMIN ----
+const KEY_LEAD_TS = "zalo_last_lead_ts";
+let dangKiemLead = false;
+const dinhGiaGon = (v, deal) => (!v ? "Thoả thuận" : v >= 1e9 ? `${(v / 1e9).toFixed(2).replace(/\.?0+$/, "")} tỷ` : `${(v / 1e6).toFixed(1).replace(/\.0$/, "")} tr${deal === "cho_thue" ? "/th" : ""}`);
+
+async function kiemTraLeadMoi() {
+  if (dangKiemLead) return;
+  dangKiemLead = true;
+  try {
+    const { data: cfg } = await sb.from("app_config").select("value").eq("key", KEY_LEAD_TS).maybeSingle();
+    let lastTs = cfg?.value?.ts;
+    if (!lastTs) {
+      lastTs = new Date(Date.now() - 5 * 60_000).toISOString();
+      await sb.from("app_config").upsert({ key: KEY_LEAD_TS, value: { ts: lastTs }, updated_at: new Date().toISOString() });
+    }
+    const { data: leads, error } = await sb
+      .from("leads")
+      .select("id, listing_id, name, phone, message, created_at")
+      .gt("created_at", lastTs)
+      .order("created_at", { ascending: true })
+      .limit(10);
+    if (error || !leads?.length) return;
+
+    for (const lead of leads) {
+      let tin = null, rieng = null;
+      if (lead.listing_id) {
+        const [{ data: t }, { data: r }] = await Promise.all([
+          sb.from("listings").select("id, title, price_vnd, deal, district, source").eq("id", lead.listing_id).maybeSingle(),
+          sb.from("listing_ro_hang").select("exact_address, unit_code, commission").eq("listing_id", lead.listing_id).maybeSingle(),
+        ]);
+        tin = t; rieng = r;
+      }
+      const sdt = String(lead.phone || "").replace(/[\s.-]/g, "");
+      const dong = [
+        `📞 KHÁCH ĐỂ LẠI SĐT TỪ WEB!`,
+        `• SĐT/Zalo: ${sdt}${lead.name && lead.name !== "Khách bấm hiện số" ? ` (${lead.name})` : ""}`,
+        tin ? `• Tin: ${tin.title} · ${dinhGiaGon(tin.price_vnd, tin.deal)}${tin.source === "ro_hang" ? ` [${maPhong(tin.id)}]` : ""}` : null,
+        rieng?.exact_address ? `• 🔒 Đ/c thật: ${rieng.exact_address}${rieng.unit_code ? ` · Mã căn: ${rieng.unit_code}` : ""}${rieng.commission ? ` · HH: ${rieng.commission}` : ""}` : null,
+        lead.message && !lead.message.includes("Bấm 'hiện số'") ? `• Ghi chú: ${String(lead.message).slice(0, 140)}` : null,
+        tin ? `• Link: https://nhadatradar.com/listings/${tin.id}` : null,
+      ].filter(Boolean).join("\n");
+
+      const res = await congGui.gui(ADMIN_ZALO_UID, dong, { loai: "admin" });
+      if (res?.ok) {
+        console.log(`✓ Đã báo lead ${sdt} về Zalo chính`);
+        await sb.from("app_config").upsert({ key: KEY_LEAD_TS, value: { ts: lead.created_at }, updated_at: new Date().toISOString() });
+      } else {
+        console.warn(`⚠ Không gửi được lead ${sdt} về Zalo:`, res?.lyDo || "lỗi cli");
+        break;
+      }
+    }
+  } catch (e) {
+    console.error("kiemTraLeadMoi lỗi:", e.message);
+  } finally {
+    dangKiemLead = false;
+  }
+}
+
 // Đăng tin lên nhóm đã chuyển sang crawler/zalo-dang-nhom.mjs (29/10: theo khu vực, 1 tin/nhóm/ngày, chỉ rổ hàng).
 if (process.argv[2] === "post") { console.error("Chế độ post đã bỏ - dùng: node --env-file=.env.local crawler/zalo-dang-nhom.mjs"); process.exit(1); }
 await khoHoiThoai.napTatCa(); // hội thoại đang dở (người đang chat, khách đang chờ) sống qua restart
 setInterval(() => tuVan.nhacViec().catch((e) => console.error("nhắc việc lỗi:", e.message)), 60_000);
+setInterval(() => kiemTraLeadMoi().catch((e) => console.error("kiểm lead lỗi:", e.message)), 20_000);
 startListener();

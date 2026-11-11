@@ -413,10 +413,15 @@ export async function POST(req: NextRequest) {
 
   const convo = (dangXem ? dangXem + "\n" : "") + messages.map((m) => `${m.role === "user" ? "Người dùng" : "Trợ lý"}: ${m.text}`).join("\n");
 
-  let parsed: Parsed | null = null;
-  const raw = await gemini(`${PARSE_PROMPT}\n\n--- HỘI THOẠI ---\n${convo}`);
-  if (raw) { try { parsed = JSON.parse(raw) as Parsed; } catch { /* fallback */ } }
-  parsed ??= fallbackParse(last);
+  const fastParsed = fallbackParse(last);
+  const boLocNhanh = !dangXem && fastParsed.mode === "search" && Boolean(fastParsed.district || ((fastParsed.price_max || fastParsed.price_min || fastParsed.bedrooms) && fastParsed.kind));
+
+  let parsed: Parsed | null = boLocNhanh ? fastParsed : null;
+  if (!parsed) {
+    const raw = await gemini(`${PARSE_PROMPT}\n\n--- HỘI THOẠI ---\n${convo}`);
+    if (raw) { try { parsed = JSON.parse(raw) as Parsed; } catch { /* fallback */ } }
+    parsed ??= fastParsed;
+  }
 
   // Kế thừa parser tiếng Việt: bổ sung nếu Gemini bỏ sót giá hoặc quận/loại hình
   const tuLuat = bocTruyVanBDS(last);
@@ -531,8 +536,9 @@ Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (kh
       .join("\n");
     // 30/9: nói RÕ cho AI kết quả khớp đúng hay là tin gần đúng (đã nới lọc) - bản cũ để AI tự đoán nên
     // có lúc đưa 5 phòng đúng đường mà vẫn trả lời "chưa có phòng trên đường này"
-    reply = await gemini(
-      `Bạn là Trợ lý Tư vấn Tìm phòng & Chốt lịch xem nhà của Radar Nhà Đất. Người dùng hỏi: "${last}".
+    if (!boLocNhanh) {
+      reply = await gemini(
+        `Bạn là Trợ lý Tư vấn Tìm phòng & Chốt lịch xem nhà của Radar Nhà Đất. Người dùng hỏi: "${last}".
 Kết quả rổ hàng tìm được:
 ${summary}
 
@@ -544,11 +550,12 @@ QUY TẮC PHẢN HỒI (CHỐNG MÙI ROBOT):
 - Tóm tắt nhanh rổ hàng tìm được, nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
 - Chốt lịch xem và xin Zalo: "Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em báo bạn mở cửa sẵn đón mình qua xem thực tế ạ? Anh/chị cho em xin Zalo để em gửi định vị Maps và video phòng trước nha!"
 - KHÔNG liệt kê lại danh sách tên nhà hay giá (vì các thẻ bên dưới đã hiển thị sẵn).`,
-      { json: false },
-    );
+        { json: false },
+      );
+    }
     reply ||= ghiChuNoi
-      ? `Dạ em gửi anh/chị một số căn gần đúng tiêu chí ở bên dưới nhé. Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em đón mình qua xem thực tế ạ? Anh/chị cho em xin Zalo để em gửi định vị Maps và video phòng trước nha!`
-      : `Dạ em tìm được các căn trống đẹp đúng ý anh/chị ở bên dưới nhé! Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào. Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em đón mình qua xem thực tế ạ? Anh/chị cho em xin Zalo để em gửi định vị Maps và video phòng trước nha!`;
+      ? `Dạ em gửi anh/chị ${found.length} căn gần đúng tiêu chí (${ghiChuNoi}) ở bên dưới nhé. Radar dẫn xem miễn phí 100%, không thu phí môi giới. Anh/chị muốn xem căn nào cứ để lại SĐT/Zalo ngay tại đây để em gửi video thực tế & vị trí Maps liền ạ!`
+      : `Dạ em vừa lọc được ${found.length} căn trống khớp yêu cầu của mình ở bên dưới! Radar dẫn xem miễn phí 100%, không thu phí môi giới. Anh/chị thích căn nào cứ bấm xem chi tiết hoặc nhắn lại SĐT/Zalo để em gửi video thực tế và hẹn lịch xem nhé!`;
     if (parsed?.district) {
       suggestions.push(`Căn rẻ hơn ở ${parsed.district}`);
       suggestions.push(`Hẻm xe hơi ở ${parsed.district}`);

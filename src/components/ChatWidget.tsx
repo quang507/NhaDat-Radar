@@ -75,6 +75,16 @@ export default function ChatWidget() {
       {/* MOBILE (25/10, ZEN thumb zone): thanh 3 nút dính đáy thay cho cụm nút nổi - cụm cũ đè lên thẻ tin/
           ô tìm kiếm ở 375-414px. Trang tin đã có thanh Gọi/Zalo riêng (kèm giá + mã phòng) -> ẩn ở đó. */}
       {/* /lap-phong có thanh "Đăng ký lấp phòng" riêng -> không chồng 2 thanh dính đáy */}
+      {dangXem && (
+        <button
+          type="button"
+          aria-label={open ? "Đóng trợ lý AI" : "Hỏi nhanh AI về phòng này"}
+          onClick={() => setOpen((v) => !v)}
+          className="lg:hidden fixed right-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 min-h-11 px-3 rounded-full bg-[var(--ink)] text-[var(--bg)] shadow-lg border border-white/15 flex items-center gap-1.5 text-xs font-bold active:scale-95 transition cursor-pointer"
+        >
+          {open ? <X className="w-4 h-4" /> : <><Sparkles className="w-3.5 h-3.5 text-amber-400" /><span>Hỏi AI</span></>}
+        </button>
+      )}
       {!anThanhDay && (
         <>
           <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
