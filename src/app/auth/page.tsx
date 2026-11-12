@@ -17,7 +17,7 @@ export default async function AuthPage({
   const mode = sp.mode === "register" ? "register" : sp.mode === "forgot" ? "forgot" : sp.mode === "email" ? "email" : "login";
   const next = sp.next && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "";
   return (
-    <div className="max-w-md mx-auto mt-8">
+    <div className="max-w-md mx-auto mt-2 sm:mt-4">
       <AuthForm initialMode={mode} error={sp.error} message={sp.message} next={next} />
     </div>
   );

@@ -40,22 +40,22 @@ export default function AuthForm({
   }
 
   return (
-    <div className="card rounded-lg p-6 sm:p-7 shadow-sm">
-      <h1 className="prata text-2xl text-center mb-5">Đăng nhập NhaDat Radar</h1>
+    <div className="card rounded-lg p-5 sm:p-6 shadow-sm">
+      <h1 className="prata text-xl sm:text-2xl text-center mb-3.5">Đăng nhập NhaDat Radar</h1>
 
       {mode !== "forgot" && (
-        <div className="flex rounded-lg border border-[var(--line)] overflow-hidden mb-4 text-sm font-semibold">
+        <div className="flex rounded-lg border border-[var(--line)] overflow-hidden mb-3 text-sm font-semibold">
           <button
             type="button"
             onClick={() => setMode("login")}
-            className={`flex-1 py-2.5 min-h-11 cursor-pointer transition ${isLoginTab ? "bg-brand text-white" : "text-[var(--ink-soft)] hover:bg-[var(--surface-2)]"}`}
+            className={`flex-1 py-2 min-h-10 cursor-pointer transition ${isLoginTab ? "bg-brand text-white" : "text-[var(--ink-soft)] hover:bg-[var(--surface-2)]"}`}
           >
             Đăng Nhập
           </button>
           <button
             type="button"
             onClick={() => setMode("register")}
-            className={`flex-1 py-2.5 min-h-11 cursor-pointer transition ${mode === "register" ? "bg-brand text-white" : "text-[var(--ink-soft)] hover:bg-[var(--surface-2)]"}`}
+            className={`flex-1 py-2 min-h-10 cursor-pointer transition ${mode === "register" ? "bg-brand text-white" : "text-[var(--ink-soft)] hover:bg-[var(--surface-2)]"}`}
           >
             Đăng Ký
           </button>
@@ -63,11 +63,11 @@ export default function AuthForm({
       )}
 
       {isLoginTab && (
-        <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-[var(--surface-2)] mb-4">
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-[var(--surface-2)] mb-3">
           <button
             type="button"
             onClick={() => setMode("login")}
-            className={`py-2 px-3 rounded-md text-xs font-semibold transition cursor-pointer ${
+            className={`py-1.5 px-3 rounded-md text-xs font-semibold transition cursor-pointer ${
               mode === "login"
                 ? "bg-[var(--surface)] text-[var(--ink)] shadow-2xs"
                 : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
@@ -78,7 +78,7 @@ export default function AuthForm({
           <button
             type="button"
             onClick={() => setMode("email")}
-            className={`py-2 px-3 rounded-md text-xs font-semibold transition cursor-pointer ${
+            className={`py-1.5 px-3 rounded-md text-xs font-semibold transition cursor-pointer ${
               mode === "email"
                 ? "bg-[var(--surface)] text-[var(--ink)] shadow-2xs"
                 : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
@@ -89,21 +89,17 @@ export default function AuthForm({
         </div>
       )}
 
-      {error ? <div className="text-sm text-red-600 mb-3 text-center">{error}</div> : null}
-      {message ? <div className="text-sm text-emerald-600 mb-3 text-center">{message}</div> : null}
+      {error ? <div className="text-sm text-red-600 mb-2.5 text-center">{error}</div> : null}
+      {message ? <div className="text-sm text-emerald-600 mb-2.5 text-center">{message}</div> : null}
 
       {mode === "login" && (
-        <form action={signInWithPhone} className="flex flex-col gap-3">
+        <form action={signInWithPhone} className="flex flex-col gap-2.5">
           {next && <input type="hidden" name="next" value={next} />}
           <Field label="Số điện thoại" name="phone" type="tel" placeholder="0912 345 678" />
           <Turnstile />
-          <button className="btn btn-primary w-full min-h-12 mt-1 font-bold" type="submit">
+          <button className="btn btn-primary w-full min-h-11 mt-0.5 font-bold" type="submit">
             Đăng nhập
           </button>
-          <p className="text-xs text-[var(--ink-soft)] leading-relaxed text-center">
-            Dùng SĐT bạn từng để lại khi xem tin để vào lại tài khoản (không cần OTP).
-          </p>
-          <GhiChuDuLieu mucDich="đăng nhập nhanh bằng SĐT và đồng bộ tin yêu thích của bạn" />
         </form>
       )}
 
@@ -152,7 +148,7 @@ export default function AuthForm({
 
       {mode !== "forgot" && (
         <>
-          <div className="flex items-center gap-3 my-4 text-xs text-[var(--ink-soft)]">
+          <div className="flex items-center gap-3 my-3 text-xs text-[var(--ink-soft)]">
             <span className="h-px flex-1 bg-[var(--line)]" />
             <span>Hoặc</span>
             <span className="h-px flex-1 bg-[var(--line)]" />
@@ -172,6 +168,14 @@ export default function AuthForm({
             <span>{dangGoogle ? "Đang chuyển sang Google..." : "Tiếp tục với Google"}</span>
           </button>
           {loiGoogle ? <div className="text-xs text-red-600 mt-2 text-center">{loiGoogle}</div> : null}
+          {mode === "login" && (
+            <div className="mt-3 space-y-1 text-center">
+              <p className="text-[11px] text-[var(--ink-soft)] leading-relaxed">
+                Dùng SĐT từng để lại khi xem tin để vào tài khoản (không cần OTP).
+              </p>
+              <GhiChuDuLieu mucDich="đăng nhập nhanh bằng SĐT và đồng bộ tin yêu thích của bạn" />
+            </div>
+          )}
         </>
       )}
     </div>
