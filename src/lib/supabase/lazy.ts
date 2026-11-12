@@ -33,6 +33,22 @@ export function baoDoiPhien() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("ndr-phien-doi"));
 }
 
+/**
+ * Khởi tạo Google OAuth trực tiếp trên trình duyệt để ghi PKCE code-verifier đồng bộ
+ * vào document.cookie trước khi chuyển trang (tránh lỗi race `invalid flow state` từ Server Action).
+ */
+export async function dangNhapGoogle(next = ""): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "";
+  const redirectTo = `${window.location.origin}/auth/callback${safeNext ? `?next=${encodeURIComponent(safeNext)}` : ""}`;
+  const sb = await layClient();
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo },
+  });
+  return error ? error.message : null;
+}
+
 // Trạng thái đăng nhập cho UI (nav, menu). Quyền thật do server kiểm.
 // Đăng nhập/đăng xuất là server action + redirect (điều hướng mềm, layout không mount lại) ->
 // soi lại cookie mỗi lần đổi trang. Có cookie thì nghe onAuthStateChange (tab khác đăng xuất, token làm mới).

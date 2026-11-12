@@ -31,6 +31,7 @@ function viErr(msg: string): string {
   if (m.includes("captcha")) return "Xác minh captcha thất bại - tải lại trang và thử lại.";
   if (m.includes("rate limit") || m.includes("too many")) return "Thao tác quá nhanh, vui lòng thử lại sau ít phút.";
   if (m.includes("invalid email") || m.includes("validate email")) return "Địa chỉ email không hợp lệ.";
+  if (m.includes("flow state") || m.includes("code verifier")) return "Phiên đăng nhập Google đã hết hạn hoặc bị gián đoạn, vui lòng bấm Đăng nhập bằng Google lại.";
   return msg;
 }
 
