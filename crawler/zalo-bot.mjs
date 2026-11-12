@@ -209,19 +209,26 @@ async function guongAnhVeKho(tatCa = false) {
           const loai = res.headers.get("content-type") || "image/jpeg";
           let buf = Buffer.from(await res.arrayBuffer());
           if (buf.length < 1000 || buf.length > 8 * 1024 * 1024) throw new Error("cỡ lạ " + buf.length);
-          let laPng = loai.includes("png");
-          // Nén ảnh trước khi đưa vào bucket anh-zalo (giữ dưới 1 GB Free quota, tải nhanh trên mobile)
+          const extGoc = loai.includes("png") ? "png" : "jpg";
+          let ext = extGoc;
+          let mime = loai.includes("png") ? "image/png" : "image/jpeg";
+          // Nén sang WebP 960px trước khi đưa vào bucket anh-zalo (giảm ~40-60% Storage + Egress gói Free)
           try {
             const { default: sharp } = await import("sharp");
-            const nen = sharp(buf).rotate().resize(1280, 1280, { fit: "inside", withoutEnlargement: true });
-            const out = laPng
-              ? await nen.png({ compressionLevel: 9, palette: true, quality: 82 }).toBuffer()
-              : await nen.jpeg({ quality: 78, mozjpeg: true, progressive: true }).toBuffer();
-            if (out.length >= 2000 && out.length < buf.length) buf = out;
+            const out = await sharp(buf)
+              .rotate()
+              .resize(960, 960, { fit: "inside", withoutEnlargement: true })
+              .webp({ quality: 74, effort: 5 })
+              .toBuffer();
+            if (out.length >= 1500 && out.length < buf.length) {
+              buf = out;
+              ext = "webp";
+              mime = "image/webp";
+            }
           } catch { /* sharp lỗi ảnh dị -> giữ nguyên bản gốc */ }
-          const duongDan = `${tin.id}/${i}.${laPng ? "png" : "jpg"}`;
+          const duongDan = `${tin.id}/${i}.${ext}`;
           const { error } = await sb.storage.from(KHO_ANH).upload(duongDan, buf, {
-            contentType: laPng ? "image/png" : "image/jpeg",
+            contentType: mime,
             cacheControl: "31536000",
             upsert: true,
           });
