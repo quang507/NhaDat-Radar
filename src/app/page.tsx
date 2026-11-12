@@ -171,15 +171,10 @@ export default async function Home() {
   const hero = HERO;
   return (
     <div>
-      {/* 3/11 (UX audit): banner + hero trong 1 cột flex để ĐỔI THỨ TỰ theo khổ: điện thoại banner xuống DƯỚI hero
-          (bản cũ banner cao ~490px đẩy ô tìm kiếm xuống y=708/812, bị banner cookie che - khách từ Google vào để tìm);
-          md+ banner gọn ~210px nên giữ trên đầu như anh Quang chọn 27/10. */}
+      {/* Đưa Hero + Ô tìm kiếm lên đầu ở cả điện thoại lẫn máy tính để vào thẳng mục tiêu tìm nhà; banner Tiêu điểm đặt ngay bên dưới */}
       <div className="flex flex-col">
-      {/* ===== BANNER TIÊU ĐIỂM: NHÀ COMPOUND BÌNH PHÚ Q.6 (26/10) =====
-          27/10 (anh Quang): đưa lên đầu trang, trên ô tìm kiếm. Máy tính: ảnh phủ tuyệt đối theo chiều cao phần chữ
-          (~210px) - bản cũ ảnh tự cao ~430px, đặt ở đầu thì đẩy ô tìm kiếm xuống quá xa. */}
       {!hasFilter && (
-        <section className="band-zalo mt-1 sm:mt-3 mb-4 order-2 md:order-1">
+        <section className="band-zalo mt-1 mb-5 order-2">
           <Link
             href="/listings/df3a7f4f-048a-4cce-a271-bc9c19ad32f5"
             className="group flex flex-col md:flex-row items-stretch overflow-hidden transition"
@@ -192,6 +187,7 @@ export default async function Home() {
                 fetchPriority="high"
                 className="w-full h-full md:absolute md:inset-0 object-cover group-hover:scale-105 transition duration-500"
               />
+              <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/45 to-transparent pointer-events-none" />
               <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-sm bg-amber-500 text-emerald-950 font-extrabold text-overline tracking-wide uppercase shadow-xs">
                 ★ Tiêu điểm nổi bật
               </span>
@@ -238,7 +234,7 @@ export default async function Home() {
       )}
 
       {/* ===== HERO: Sàn thực tế ===== */}
-      <section className="hero-radar-bg px-3.5 pt-2.5 pb-4 sm:p-6 mb-4 order-1 md:order-2">
+      <section className="hero-radar-bg px-3.5 pt-2.5 pb-4 sm:p-6 mt-1 mb-4 order-1">
         {/* Vòng sóng Radar trang trí góc phải (chỉ hiện trên sm+, aria-hidden để bỏ qua kiểm tra chồng lấp) */}
         <svg
           aria-hidden="true"

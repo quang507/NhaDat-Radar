@@ -24,7 +24,7 @@ export default function NavAuth() {
     return (
       <>
         <Link href="/auth" className="btn whitespace-nowrap">Đăng nhập</Link>
-        <Link href="/dashboard/new" aria-label="Đăng tin" className="btn btn-primary whitespace-nowrap">
+        <Link href="/dashboard/new" aria-label="Đăng tin" className="btn border border-brand text-brand hover:bg-brand hover:text-white transition-colors font-semibold whitespace-nowrap">
           +<span className="hidden sm:inline">&nbsp;Đăng tin</span>
         </Link>
       </>
@@ -35,7 +35,7 @@ export default function NavAuth() {
     return (
       <>
         <Link href="/auth" className="btn whitespace-nowrap">Đăng nhập</Link>
-        <Link href="/dashboard/new" aria-label="Đăng tin" className="btn btn-primary whitespace-nowrap">
+        <Link href="/dashboard/new" aria-label="Đăng tin" className="btn border border-brand text-brand hover:bg-brand hover:text-white transition-colors font-semibold whitespace-nowrap">
           +<span className="hidden sm:inline">&nbsp;Đăng tin</span>
         </Link>
       </>
@@ -60,7 +60,7 @@ export default function NavAuth() {
         </span>
       </Link>
       {/* mobile: chỉ dấu "+" - đủ chữ thì cụm nút tràn mép phải ở 360-390px */}
-      <Link href="/dashboard/new" aria-label="Đăng tin" className="btn btn-primary whitespace-nowrap">
+      <Link href="/dashboard/new" aria-label="Đăng tin" className="btn border border-brand text-brand hover:bg-brand hover:text-white transition-colors font-semibold whitespace-nowrap">
         +<span className="hidden sm:inline">&nbsp;Đăng tin</span>
       </Link>
       {/* mobile: Đăng xuất nằm trong menu ☰ / trang tài khoản, tránh tràn thanh nav */}

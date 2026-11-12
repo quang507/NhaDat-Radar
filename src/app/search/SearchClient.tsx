@@ -24,7 +24,7 @@ import { HOTLINE_ZALO } from "@/lib/hotline";
 import { NutZalo } from "@/components/TheoDoi";
 import { useDongBangBack } from "@/lib/dong-bang-back";
 import { dongRoiDi } from "@/lib/dong-roi-di";
-import { Search, SearchX, Check, MapPin, Map, LayoutList, X, ChevronLeft, ChevronRight, ShieldCheck, MessageCircle } from "lucide-react";
+import { Search, SearchX, Check, MapPin, Map, X, ChevronLeft, ChevronRight, ShieldCheck, MessageCircle } from "lucide-react";
 
 const TIEU_DE = "text-xs font-bold tracking-wide text-[var(--ink)] mb-2.5";
 
@@ -456,26 +456,10 @@ export default function SearchClient({
         <>
           {dauTrang}
           {thanhTim}
-      {/* "Chế độ xem: [Danh sách] [Bản đồ]" như EvoHome - bản đồ chỉ có ở màn lg+ (xem MapResults) */}
-      {choThue && (
-        <div className="hidden lg:flex items-center gap-3 mb-3 text-sm">
-          <span className="text-xs font-semibold text-[var(--ink-soft)]">Chế độ xem</span>
-          <div className="flex rounded-lg border border-[var(--line-strong)] overflow-hidden">
-            {([[false, "Danh sách", LayoutList], [true, "Bản đồ", Map]] as const).map(([v, l, Icon]) => (
-              <button key={l} type="button" aria-pressed={showMap === v} onClick={() => setShowMap(v)}
-                className={`h-9 px-3.5 font-semibold text-xs transition inline-flex items-center gap-1.5 ${showMap === v ? "bg-brand text-white" : "bg-[var(--surface)] hover:bg-[var(--surface-2)]"}`}>
-                <Icon className="w-3.5 h-3.5" />
-                <span>{l}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       {/* ===== BỘ LỌC KIỂU EVOHOME (1/10) =====
           Hàng 1: chip xổ xuống Mua/thuê · Loại · Diện tích · Giá (+ nhãn khoảng ✕) · Sắp xếp · Bộ lọc (n)
-          Hàng 2: tick tiện ích · Hàng 3: dự án · Hàng 4: tỉnh + công tắc · dải quận · Hàng 5: tên đường
-          Mọi chip xuất phát từ goc (bộ ĐÃ ÁP theo URL), không phải f (lựa chọn dở trong popup). */}
-      <div className="flex flex-wrap items-center gap-2 mb-3 text-sm">
+          Hàng 2: tick tiện ích (1 hàng gọn) · Hàng 3: tỉnh + công tắc · dải quận · Hàng 4: Dự án + Tên đường cạnh nhau */}
+      <div className="flex flex-wrap items-center gap-2 mb-2.5 text-sm">
         <div className="hidden sm:contents">
           <ChipLoc label="Mua & thuê" options={DEAL_OPTS} value={goc.deal}
             onChange={(v) => push({ ...goc, deal: v, priceMin: "", priceMax: "" })} />
@@ -517,9 +501,6 @@ export default function SearchClient({
       </div>
 
       <HangTienIch ti={goc.ti} onDoi={(k) => push({ ...goc, ti: doiTi(goc.ti, k) })} />
-      {/* 25/10 mobile gọn: Dự án + Tên đường đã có trong popup "Bộ lọc" -> ngoài trang chỉ hiện từ sm (trước đây
-          khách phải cuộn ~1 màn hình bộ lọc mới tới tin đầu tiên ở 375px). 28/10: nâng lên lg - tablet 768px cũng vậy */}
-      {duAn.length > 0 && <div className="hidden lg:block"><ChonDuAn duAn={duAn} value={goc.project} onChon={(id) => push({ ...goc, project: id })} /></div>}
 
       <RecentSearches />
 
@@ -556,16 +537,19 @@ export default function SearchClient({
         </>}
       />
 
-      {/* TÊN ĐƯỜNG: lọc theo địa chỉ (Enter để áp) */}
-      <form className="hidden lg:flex flex-wrap items-center gap-2 sm:gap-4 mb-5" onSubmit={(e) => { e.preventDefault(); push({ ...goc, street: f.street.trim() }); }}>
-        <span className="text-xs font-bold tracking-wide text-[var(--ink-soft)]">TÊN ĐƯỜNG</span>
-        <label className="h-10 w-full sm:w-[28rem] px-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] flex items-center gap-2 text-sm">
-          <svg className="w-4 h-4 text-[var(--ink-soft)] shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="9" cy="9" r="5.5" /><path d="M13.5 13.5L17 17" strokeLinecap="round" /></svg>
-          <input className="flex-1 min-w-0 bg-transparent outline-none" value={f.street} onChange={set("street")}
-            placeholder="Chọn hoặc gõ tên đường / khu vực..." />
-          {goc.street && <button type="button" aria-label="Bỏ lọc tên đường" className="text-[var(--ink-soft)] hover:text-red-500 transition" onClick={() => push({ ...goc, street: "" })}><X className="w-4 h-4" /></button>}
-        </label>
-      </form>
+      {/* Dự án + TÊN ĐƯỜNG đặt chung 1 hàng gọn trên desktop để chừa chỗ cho kết quả lên màn đầu */}
+      <div className="hidden lg:flex flex-wrap items-center gap-4 mb-3">
+        {duAn.length > 0 && <ChonDuAn duAn={duAn} value={goc.project} onChon={(id) => push({ ...goc, project: id })} className="flex items-center gap-2 mb-0" />}
+        <form className="flex items-center gap-2 flex-1 min-w-[260px]" onSubmit={(e) => { e.preventDefault(); push({ ...goc, street: f.street.trim() }); }}>
+          <span className="text-xs font-semibold tracking-wide text-[var(--ink-soft)] shrink-0">Đường:</span>
+          <label className="h-10 w-full max-w-sm px-3 rounded-lg bg-[var(--surface)] border border-[var(--line)] flex items-center gap-2 text-sm">
+            <svg className="w-4 h-4 text-[var(--ink-soft)] shrink-0" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="9" cy="9" r="5.5" /><path d="M13.5 13.5L17 17" strokeLinecap="round" /></svg>
+            <input className="flex-1 min-w-0 bg-transparent outline-none" value={f.street} onChange={set("street")}
+              placeholder="Chọn hoặc gõ tên đường / khu vực..." />
+            {goc.street && <button type="button" aria-label="Bỏ lọc tên đường" className="text-[var(--ink-soft)] hover:text-red-500 transition" onClick={() => push({ ...goc, street: "" })}><X className="w-4 h-4" /></button>}
+          </label>
+        </form>
+      </div>
 
         </>
       )}
@@ -814,7 +798,6 @@ export default function SearchClient({
 
           {display.length ? (
             <>
-              <div className="hidden sm:block">{choThue && phanTrang("mb-3")}</div>
               <DanhSachTin items={display} choThue={choThue} />
               {phanTrang("mt-5")}
 

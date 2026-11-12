@@ -233,6 +233,8 @@ test("luồng Hiện số + Chat qua Zalo + đăng nhập SĐT không OTP kiểu
   expect(popup).toContain("PopupSdtBatdongsan");
   expect(popup).toContain("GhiChuDuLieu");
   expect(popup).toContain("Bảo đảm riêng tư");
+  expect(popup).toContain("Đăng nhập bằng Google");
+  expect(popup).not.toContain("Đã dùng tài khoản Google / Email?");
 
   const phoneReveal = doc("src/components/PhoneReveal.tsx");
   expect(phoneReveal).toContain("Chat qua Zalo");

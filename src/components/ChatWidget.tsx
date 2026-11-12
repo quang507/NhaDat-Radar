@@ -16,7 +16,9 @@ export default function ChatWidget() {
   const pathname = usePathname();
   // đang ở trang chi tiết tin -> gửi kèm id để bot hiểu
   const dangXem = pathname?.match(/^\/listings\/([0-9a-f-]{36})/i)?.[1] || null;
-  const anThanhDay = !!dangXem || pathname === "/lap-phong" || pathname?.startsWith("/admin") || pathname?.startsWith("/dashboard");
+  // Chỉ giữ thanh Gọi/Zalo đáy trên trang chi tiết tin (do PhoneReveal render riêng);
+  // các trang tìm kiếm/trang chủ/nội dung dùng nút nổi gọn "Hỏi AI" góc phải để khỏi choán 64px chiều cao màn đầu.
+  const anNutNoi = pathname === "/lap-phong" || pathname === "/auth" || pathname?.startsWith("/admin") || pathname?.startsWith("/dashboard");
 
   const [open, setOpen] = useState(false);
   // đã mở lần nào chưa: mở rồi thì giữ ChatPanel trong cây (ẩn khi đóng) để không mất lịch sử
@@ -74,37 +76,20 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* MOBILE (25/10, ZEN thumb zone): thanh 3 nút dính đáy thay cho cụm nút nổi - cụm cũ đè lên thẻ tin/
-          ô tìm kiếm ở 375-414px. Trang tin đã có thanh Gọi/Zalo riêng (kèm giá + mã phòng) -> ẩn ở đó. */}
-      {/* /lap-phong có thanh "Đăng ký lấp phòng" riêng -> không chồng 2 thanh dính đáy */}
-      {dangXem && (
+      {/* MOBILE: chỉ hiện nút nổi "Hỏi AI" gọn gàng ở góc phải; trên trang chi tiết tin thì nhường chỗ phía trên thanh Gọi/Zalo */}
+      {!anNutNoi && (
         <button
           type="button"
-          aria-label={open ? "Đóng trợ lý AI" : "Hỏi nhanh AI về phòng này"}
+          aria-label={open ? "Đóng trợ lý AI" : dangXem ? "Hỏi nhanh AI về phòng này" : "Mở trợ lý AI tìm phòng"}
           onClick={() => setOpen((v) => !v)}
-          className="lg:hidden fixed right-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 min-h-11 px-3 rounded-full bg-[var(--ink)] text-[var(--bg)] shadow-lg border border-white/15 flex items-center gap-1.5 text-xs font-bold active:scale-95 transition cursor-pointer"
+          className={`lg:hidden fixed right-3 z-30 min-h-11 px-3.5 rounded-full bg-[var(--ink)] text-[var(--bg)] shadow-lg border border-white/15 flex items-center gap-1.5 text-xs font-bold active:scale-95 transition cursor-pointer ${
+            dangXem
+              ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))]"
+              : "bottom-[calc(1rem+env(safe-area-inset-bottom))]"
+          }`}
         >
           {open ? <X className="w-4 h-4" /> : <><Sparkles className="w-3.5 h-3.5 text-amber-400" /><span>Hỏi AI</span></>}
         </button>
-      )}
-      {!anThanhDay && (
-        <>
-          <div className="lg:hidden h-[calc(4.5rem+env(safe-area-inset-bottom))]" aria-hidden />
-          <nav aria-label="Liên hệ nhanh" className="lg:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-[1fr_1fr_auto] gap-2 px-4 pt-2 pb-[max(0.625rem,env(safe-area-inset-bottom))] border-t border-[var(--line)] bg-[var(--surface)] shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
-            {/* 2/11 (audit Q6): thanh đáy là nguồn gọi/Zalo lớn nhất ngoài trang tin -> ghi ndr_goi / ndr_zalo */}
-            <LinkTheoDoi loai="goi" href={`tel:${HOTLINE}`} aria-label={`Gọi Hotline ${HOTLINE}`} className="btn btn-primary min-h-12 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-xs">
-              <PhoneCall className="w-4 h-4" />
-              <span>Gọi ngay</span>
-            </LinkTheoDoi>
-            <NutZalo tinNhan="Chào Radar, mình cần tư vấn tìm phòng" href={HOTLINE_ZALO} target="_blank" rel="noopener noreferrer" aria-label="Nhắn Zalo tư vấn phòng" className="btn min-h-12 rounded-xl font-bold bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 shadow-xs flex items-center justify-center gap-1.5">
-              <IconZalo className="w-4 h-4 shrink-0" />
-              <span>Zalo</span>
-            </NutZalo>
-            <button type="button" aria-label={open ? "Đóng trợ lý AI" : "Mở trợ lý AI"} onClick={() => setOpen((v) => !v)} className="btn min-h-12 min-w-12 rounded-xl !px-3 bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line)] hover:border-brand">
-              {open ? <X className="w-4 h-4" /> : <><Sparkles className="w-4 h-4 text-amber-500" /><span className="font-bold">AI</span></>}
-            </button>
-          </nav>
-        </>
       )}
 
       {/* Máy tính: Gộp 3 nút thành 1 nút nổi duy nhất (Speed Dial) ở góc phải.

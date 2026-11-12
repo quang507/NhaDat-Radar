@@ -15,34 +15,54 @@ export const doiTi = (s: string, k: string) => {
   return (a.includes(k) ? a.filter((x) => x !== k) : [...a, k]).join(",");
 };
 
-/** "Tiện ích: [☐ Điều hòa] [☐ Nước nóng] ..." - tick là lọc ngay.
- *  28/10: dưới lg (điện thoại + tablet) ẩn hàng này - đã có trong popup "Bộ lọc", tiện ích đang tick vẫn hiện ở
- *  "Bộ lọc đang áp". Ở 768px hàng tự xuống 3 dòng (~190px) đẩy tin đầu tiên khỏi màn đầu. */
+/** "Tiện ích: [☐ Điều hòa] [☐ Nước nóng] ..." - mặc định gọn 1 hàng (top 7 + mục đang chọn), bấm "+ N khác" để mở đủ. */
 export function HangTienIch({ ti, onDoi }: { ti: string; onDoi: (k: string) => void }) {
   const chon = tachTi(ti);
+  const [mo, setMo] = useState(false);
+  const hienThi = useMemo(() => (mo ? TIEN_ICH : TIEN_ICH.filter((t, i) => i < 7 || chon.includes(t.k))), [mo, chon]);
+  const anBot = TIEN_ICH.length - hienThi.length;
   return (
-    <div className="hidden lg:flex items-start gap-2 mb-3">
-      <span className="hidden sm:block text-xs font-semibold text-[var(--ink-soft)] pt-2 shrink-0">Tiện ích:</span>
-      <div className="cuon-ngang flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 [scrollbar-width:none]">
-        {TIEN_ICH.map((t) => {
+    <div className="hidden lg:flex items-start gap-2 mb-2.5">
+      <span className="hidden sm:block text-xs font-semibold text-[var(--ink-soft)] pt-1.5 shrink-0">Tiện ích:</span>
+      <div className="cuon-ngang flex flex-wrap gap-1.5 items-center">
+        {hienThi.map((t) => {
           const on = chon.includes(t.k);
           return (
             <button key={t.k} type="button" role="checkbox" aria-checked={on} onClick={() => onDoi(t.k)}
-              className={`shrink-0 flex items-center gap-2 h-11 sm:h-9 pl-2.5 pr-4 rounded border text-sm whitespace-nowrap transition
+              className={`shrink-0 flex items-center gap-1.5 h-8 pl-2 pr-3 rounded border text-xs whitespace-nowrap transition cursor-pointer
                 ${on ? "border-brand bg-brand/5 text-brand font-semibold" : "border-[var(--line)] bg-[var(--surface)] hover:border-brand"}`}>
-              <span className={`grid place-items-center w-4 h-4 rounded border text-[0.65rem] leading-none
-                ${on ? "bg-brand border-brand text-white" : "border-[var(--line-strong)]"}`}>{on ? <Check className="w-3 h-3 text-white" /> : ""}</span>
+              <span className={`grid place-items-center w-3.5 h-3.5 rounded border text-[0.65rem] leading-none
+                ${on ? "bg-brand border-brand text-white" : "border-[var(--line-strong)]"}`}>{on ? <Check className="w-2.5 h-2.5 text-white" /> : ""}</span>
               {t.ten}
             </button>
           );
         })}
+        {(anBot > 0 || mo) && (
+          <button
+            type="button"
+            onClick={() => setMo((v) => !v)}
+            className="shrink-0 h-8 px-2.5 rounded border border-dashed border-[var(--line-strong)] text-xs font-semibold text-[var(--ink-soft)] hover:border-brand hover:text-brand transition cursor-pointer whitespace-nowrap"
+          >
+            {mo ? "Thu gọn ▴" : `+ ${anBot} tiện ích ▾`}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
 /** "Dự án: [🔍 Chọn dự án...]" - gõ để lọc danh sách, chọn là áp ngay */
-export function ChonDuAn({ duAn, value, onChon }: { duAn: { id: string; name: string }[]; value: string; onChon: (id: string) => void }) {
+export function ChonDuAn({
+  duAn,
+  value,
+  onChon,
+  className = "flex items-center gap-2 mb-3",
+}: {
+  duAn: { id: string; name: string }[];
+  value: string;
+  onChon: (id: string) => void;
+  className?: string;
+}) {
   const [mo, setMo] = useState(false);
   const [go, setGo] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -59,9 +79,9 @@ export function ChonDuAn({ duAn, value, onChon }: { duAn: { id: string; name: st
     return (key ? duAn.filter((d) => boDau(d.name).includes(key)) : duAn).slice(0, 50);
   }, [mo, dangChon, duAn, go]);
   return (
-    <div className="flex items-center gap-2 mb-3">
+    <div className={className}>
       <span className="text-xs font-semibold text-[var(--ink-soft)] shrink-0">Dự án:</span>
-      <div className="relative w-full sm:w-72" ref={ref}>
+      <div className="relative w-full sm:w-64" ref={ref}>
         {dangChon ? (
           <button type="button" onClick={() => onChon("")} title="Bỏ chọn dự án"
             className="h-10 w-full px-3 rounded-lg border border-brand bg-brand/5 text-brand text-sm font-semibold flex items-center gap-2">
@@ -99,8 +119,8 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
   const pill = (on: boolean) => `shrink-0 h-11 sm:h-9 px-3.5 rounded text-sm font-semibold whitespace-nowrap flex items-center gap-2 transition
     ${on ? "bg-brand text-white" : "bg-[var(--surface)] border border-[var(--line)] hover:border-brand"}`;
   return (
-    <div className="mb-3">
-      <div className="flex flex-wrap items-center gap-2 mb-2">
+    <div className="mb-2.5">
+      <div className="flex flex-wrap items-center gap-2 mb-1.5">
         {/* mobile: dải tỉnh cuộn ngang 1 hàng (trước rớt 2 hàng), máy tính: xuống dòng như cũ.
             28/10: đã chọn tỉnh thì dưới lg ẩn chip "Tỉnh ✕" - trùng chip ở "Bộ lọc đang áp" ngay bên dưới */}
         <div className={`cuon-ngang ${province ? "hidden lg:flex" : "flex"} gap-2 w-full sm:w-auto overflow-x-auto sm:overflow-visible sm:flex-wrap [scrollbar-width:none] -mx-4 px-4 sm:mx-0 sm:px-0`}>
@@ -113,8 +133,8 @@ export function KhuVucChip({ tinhs, province, districts, district, onTinh, onQua
         {phai && <span className="sm:ml-auto flex flex-wrap items-center gap-4">{phai}</span>}
       </div>
       {province && districts.length > 0 && (
-        <div className="card rounded-xl p-2 flex items-start gap-2">
-          <div className={`flex gap-2 flex-1 min-w-0 ${du ? "flex-wrap" : "cuon-ngang overflow-x-auto [scrollbar-width:thin] pb-1"}`}>
+        <div className="card rounded-lg p-1.5 flex items-center gap-2">
+          <div className={`flex gap-1.5 flex-1 min-w-0 pr-1 ${du ? "flex-wrap" : "cuon-ngang overflow-x-auto [scrollbar-width:none]"}`}>
             {districts.map((d) => (
               <button key={d} type="button" onClick={() => onQuan(d === district ? "" : d)}
                 className={`shrink-0 h-11 sm:h-8 px-3.5 rounded text-sm whitespace-nowrap transition

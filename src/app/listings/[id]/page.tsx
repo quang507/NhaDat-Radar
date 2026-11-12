@@ -600,16 +600,14 @@ export default async function ListingDetail({
           ảnh xuống cuối màn đầu. Dưới sm: tiêu đề full ngang cỡ h3, giá xuống ngay dưới tiêu đề; từ sm giữ 2 cột. */}
       <div className="flex flex-wrap justify-between gap-4 items-start mt-2">
         <div className="min-w-0 flex-1 basis-full sm:basis-0">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            {roHang && (
-              <NutChepMa ma={maPhong(x.id)} className="font-mono text-xs font-black bg-[var(--ink)] text-[var(--bg)] px-2.5 py-1 rounded-md shadow-xs inline-flex items-center gap-1.5 cursor-pointer hover:opacity-90 active:scale-95 transition" />
-            )}
-            {roHang && (
-              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-xs border border-emerald-200">
-                ✓ Không thu phí dẫn xem · Không phí môi giới
-              </span>
-            )}
-          </div>
+          {(roHang || giuPhong) && (
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              {roHang && (
+                <NutChepMa ma={maPhong(x.id)} className="font-mono text-xs font-semibold bg-[var(--surface-2)] text-[var(--ink)] border border-[var(--line-strong)] px-2.5 py-0.5 rounded inline-flex items-center gap-1.5 cursor-pointer hover:border-brand active:scale-95 transition" />
+              )}
+              {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded text-xs">{giuPhong}</span>}
+            </div>
+          )}
           {/* audit 25/10: text-slate-900 gán cứng -> tiêu đề TÀNG HÌNH ở dark mode (chữ tối trên nền tối). Dùng token theme. */}
           <h1 className="heading-1 max-sm:!text-h3 text-[var(--ink)] leading-snug">{x.title}</h1>
           <div className="sm:hidden mt-1.5 flex items-baseline gap-2">
@@ -620,14 +618,15 @@ export default async function ListingDetail({
             <MapPin className="w-4 h-4 text-[var(--ink-faint)] shrink-0" />
             <span>{diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}</span>
           </div>
-          {/* ISO 9241-110: nguồn + thời điểm đăng + link gốc thấy ngay dưới tiêu đề (không phải kéo xuống "Độ mới của tin") */}
+          {/* Gộp 1 dòng xác minh + cam kết phí bên dưới địa chỉ để không đè nhiều tầng badge lên ảnh */}
           {roHang ? (
-            <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs">
-              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-flex items-center gap-1.5 border border-emerald-200">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                {x.deal === "ban" ? "Rổ hàng Radar · đơn vị quản lý xác nhận còn bán" : "Tin đã xác minh · đơn vị quản lý xác nhận còn trống"}
+            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
+              <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded inline-flex items-center gap-1.5 border border-emerald-200">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                {x.deal === "ban"
+                  ? "Rổ hàng Radar · Không thu phí dẫn xem"
+                  : "Tin đã xác minh · Còn trống · Không phí dẫn xem"}
               </span>
-              {giuPhong && <span className="font-bold text-white bg-red-600 px-2 py-0.5 rounded">{giuPhong}</span>}
             </div>
           ) : (
             <SourceBadge source={x.source} sourceSite={x.source_site} sourceUrl={x.source_url} postedAt={x.posted_at} firstSeenAt={x.first_seen_at} contactName={x.contact_name} />
@@ -1033,23 +1032,9 @@ export default async function ListingDetail({
             )}
           </div>
 
-          {/* Bất động sản / Phòng tương tự theo thuật toán FR-31 - giảm Quick Backs (23% Clarity) */}
+          {/* Bất động sản / Phòng tương tự theo thuật toán FR-31 - tránh lặp 2 dải thẻ gần nhau */}
           {tinTuongTu && tinTuongTu.length > 0 ? (
-            <SimilarListings items={tinTuongTu} loaiBDS={x.kind} />
-          ) : related.length > 0 ? (
-            <section id="tin-tuong-tu" className="mt-8 scroll-mt-28">
-              <div className="flex items-center justify-between mb-3.5">
-                <div>
-                  <h3 className="font-bold text-base sm:text-lg text-[var(--ink)]">
-                    {PROP[x.kind] || "Phòng"} cùng khu vực {x.district || x.province}
-                  </h3>
-                  <p className="text-xs text-[var(--ink-soft)] mt-0.5">
-                    Các lựa chọn khác đang có sẵn để bạn tham khảo thêm
-                  </p>
-                </div>
-              </div>
-              <HangVuot motHang items={related.map((r) => ({ key: r.id, node: <ListingCard x={r} /> }))} />
-            </section>
+            <SimilarListings id="tin-lien-quan" items={tinTuongTu} loaiBDS={x.kind} />
           ) : null}
 
           {/* Khối giữ chân khách vãng lai: Chưa ưng căn này? Nhắn Zalo Radar */}
@@ -1261,8 +1246,8 @@ export default async function ListingDetail({
       {/* Vị trí quảng cáo AdSense tài trợ (tự ẩn nếu chưa có client ID / slot) */}
       <AdSenseBanner />
 
-      {/* Tin liên quan */}
-      {related.length > 0 && (
+      {/* Tin liên quan (chỉ hiện nếu khối Tin tương tự ở trên chưa có dữ liệu) */}
+      {(!tinTuongTu || tinTuongTu.length === 0) && related.length > 0 && (
         <section id="tin-lien-quan" className="mt-12 scroll-mt-28">
           <h2 className="prata text-xl mb-4">
             {PROP[x.kind]} liên quan tại {x.district || x.province}

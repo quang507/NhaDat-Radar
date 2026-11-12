@@ -15,17 +15,19 @@ export default function SimilarListings({
   items,
   loaiBDS,
   className = "mt-8 scroll-mt-28",
+  id = "tin-tuong-tu",
 }: {
   items: ListingTuongTu[];
   loaiBDS?: string;
   className?: string;
+  id?: string;
 }) {
   if (!items || items.length === 0) return null;
 
   const tenLoai = loaiBDS ? (PROP as Record<string, string>)[loaiBDS] || loaiBDS : "Phòng";
 
   return (
-    <section id="tin-tuong-tu" className={className}>
+    <section id={id} className={className}>
       <div className="mb-3.5">
         <h3 className="font-bold text-base sm:text-lg text-[var(--ink)]">
           {tenLoai} tương tự quanh đây
