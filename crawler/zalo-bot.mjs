@@ -11,7 +11,8 @@
 //  ⚠ Dùng tài khoản Zalo CLONE - API không chính thức có thể bị Zalo khoá.
 // ============================================================================
 import { spawn, execFile } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import fsp from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
@@ -178,13 +179,15 @@ function ghepAnhMuon(khoaAnh, url) {
   return true;
 }
 
-// ---- GƯƠNG ẢNH VỀ KHO (21/8) ----
+// ---- GƯƠNG ẢNH VỀ KHO (21/8; 12/11 dời sang máy 146 để tránh trần Storage/Egress Supabase Free) ----
 // Ảnh tin Zalo đang trỏ thẳng link CDN Zalo (photo.talk.zdn.vn) - link đó CÓ HẠN, Zalo thu
-// hồi là tin trắng ảnh hàng loạt. Quét định kỳ: tin zalo nào còn ảnh CDN thì tải về bucket
-// công khai `anh-zalo` trên Supabase Storage rồi thay link trong DB. Chạy NGOÀI luồng trả
-// lời (không bắt khách chờ tải 12 tấm ảnh), lỗi tấm nào giữ link CDN tấm đó chờ lượt sau.
+// hồi là tin trắng ảnh hàng loạt. Quét định kỳ: tin zalo nào còn ảnh CDN thì tải về thư mục
+// công khai `anh-zalo` trên máy 146 (Tailscale Funnel :8443) rồi thay link trong DB; nếu chạy
+// ở máy không có thư mục media cục bộ thì dự phòng đẩy lên bucket `anh-zalo` Supabase.
 const KHO_ANH = "anh-zalo";
-const laAnhCDN = (u) => /^https?:\/\//.test(u) && !u.includes("/storage/v1/object/public/");
+const MEDIA_DIR = process.env.RADAR_MEDIA_DIR || "C:\\radar\\media";
+const MEDIA_BASE_URL = (process.env.RADAR_MEDIA_BASE_URL || "https://nuc.tail19b567.ts.net:8443").replace(/\/+$/, "");
+const laAnhCDN = (u) => /^https?:\/\//.test(u) && !u.includes("/storage/v1/object/public/") && !u.startsWith(`${MEDIA_BASE_URL}/`);
 let dangGuong = false;
 async function guongAnhVeKho(tatCa = false) {
   if (dangGuong) return; // lượt trước còn chạy thì thôi, đừng chồng
@@ -227,13 +230,20 @@ async function guongAnhVeKho(tatCa = false) {
             }
           } catch { /* sharp lỗi ảnh dị -> giữ nguyên bản gốc */ }
           const duongDan = `${tin.id}/${i}.${ext}`;
-          const { error } = await sb.storage.from(KHO_ANH).upload(duongDan, buf, {
-            contentType: mime,
-            cacheControl: "31536000",
-            upsert: true,
-          });
-          if (error) throw error;
-          moi.push(sb.storage.from(KHO_ANH).getPublicUrl(duongDan).data.publicUrl);
+          if (existsSync(MEDIA_DIR)) {
+            const dest = path.join(MEDIA_DIR, KHO_ANH, tin.id, `${i}.${ext}`);
+            await fsp.mkdir(path.dirname(dest), { recursive: true });
+            await fsp.writeFile(dest, buf);
+            moi.push(`${MEDIA_BASE_URL}/${KHO_ANH}/${duongDan}`);
+          } else {
+            const { error } = await sb.storage.from(KHO_ANH).upload(duongDan, buf, {
+              contentType: mime,
+              cacheControl: "31536000",
+              upsert: true,
+            });
+            if (error) throw error;
+            moi.push(sb.storage.from(KHO_ANH).getPublicUrl(duongDan).data.publicUrl);
+          }
           doi = true;
         } catch (e) {
           moi.push(u.replace(/(zdn\.vn)\/jpg\//, "$1/")); // gỡ /jpg/ để web load được ngay
