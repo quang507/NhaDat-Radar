@@ -9,9 +9,10 @@
 // Đánh đổi: người ĐÃ đăng nhập thấy nút "Đăng nhập" trong khoảng vài trăm ms đầu rồi mới đổi thành
 // avatar. Khách vãng lai và Google thì thấy đúng ngay từ HTML đầu tiên.
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { usePhien } from "@/lib/supabase/lazy";
 import { signOut } from "@/app/auth/actions";
+import { PHONE_QUICK_DOMAIN, tenHienThiTaiKhoan } from "@/lib/hotline";
 import NavMsg from "./NavMsg";
 
 export default function NavAuth() {
@@ -41,18 +42,21 @@ export default function NavAuth() {
     );
   }
 
+  const nhanHienThi = tenHienThiTaiKhoan(email);
+  const laTaiKhoanSdt = email.toLowerCase().endsWith(`@${PHONE_QUICK_DOMAIN}`);
+
   return (
     <>
       {uid && <NavMsg uid={uid} />}
       {/* 2/11 (audit M1): vùng chạm 44px, vòng avatar vẫn 36px */}
       <Link
         href="/account"
-        title={email}
+        title={nhanHienThi}
         aria-label="Tài khoản của tôi"
         className="w-11 h-11 grid place-items-center shrink-0"
       >
         <span className="w-9 h-9 rounded-full grid place-items-center text-white text-sm font-bold bg-brand">
-          {email.charAt(0).toUpperCase()}
+          {laTaiKhoanSdt ? <User className="w-4 h-4" /> : nhanHienThi.charAt(0).toUpperCase()}
         </span>
       </Link>
       {/* mobile: chỉ dấu "+" - đủ chữ thì cụm nút tràn mép phải ở 360-390px */}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { coCookiePhien, layClient } from "@/lib/supabase/lazy";
 import GhiChuDuLieu from "@/components/GhiChuDuLieu";
 import { guiLeadNhanh } from "@/app/listings/actions";
+import { tenHienThiTaiKhoan } from "@/lib/hotline";
 
 // Mời người dùng ĐÃ đăng nhập để lại SĐT - mức NHẸ theo quyết định 20/8: không OTP,
 // bỏ qua được, điền láo thì chịu. Mục tiêu là có số để gọi lại lead, không phải chặn cổng
@@ -80,7 +81,7 @@ export default function MoiDienSdt() {
     // đổ vào bảng leads để bot Zalo báo admin gọi lại ngay (fire-and-forget, lỗi cũng kệ -
     // SĐT đã nằm an toàn trong profiles rồi)
     // 3/11 (audit S3): leads chỉ ghi qua server action (migration 038 thu quyền insert của client)
-    void guiLeadNhanh({ name: user.email || "Người dùng web", phone: so, message: "Để lại SĐT qua popup sau đăng nhập - gọi tư vấn nhu cầu" }).catch(() => {});
+    void guiLeadNhanh({ name: tenHienThiTaiKhoan(user.email) || "Người dùng web", phone: so, message: "Để lại SĐT qua popup sau đăng nhập - gọi tư vấn nhu cầu" }).catch(() => {});
     setHien(false);
     ghiKho(KHOA_NHAC, String(Date.now()));
   };

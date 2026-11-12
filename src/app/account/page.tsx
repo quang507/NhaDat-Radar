@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import ImageUpload from "@/components/ImageUpload";
 import { updateProfile } from "./actions";
 import XoaTaiKhoan from "./XoaTaiKhoan";
+import { tenHienThiTaiKhoan } from "@/lib/hotline";
 import { User, Briefcase } from "lucide-react";
 
 export const metadata = { title: "Tài khoản của tôi - NhaDat Radar" };
@@ -34,7 +35,7 @@ export default async function AccountPage({
           <h1 className="prata text-2xl">Tài khoản của tôi</h1>
           <p className="text-[var(--ink-soft)] text-sm flex items-center gap-1.5 mt-0.5">
             <User className="w-4 h-4 text-slate-400 shrink-0" />
-            <span>{user.email}</span>
+            <span>{tenHienThiTaiKhoan(user.email)}</span>
           </p>
         </div>
         <Link href="/dashboard" className="btn">Kênh người bán ›</Link>

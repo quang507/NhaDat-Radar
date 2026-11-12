@@ -11,13 +11,14 @@ export const metadata: Metadata = {
 export default async function AuthPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; error?: string; message?: string }>;
+  searchParams: Promise<{ mode?: string; error?: string; message?: string; next?: string }>;
 }) {
   const sp = await searchParams;
-  const mode = sp.mode === "register" ? "register" : sp.mode === "forgot" ? "forgot" : "login";
+  const mode = sp.mode === "register" ? "register" : sp.mode === "forgot" ? "forgot" : sp.mode === "email" ? "email" : "login";
+  const next = sp.next && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "";
   return (
     <div className="max-w-md mx-auto mt-8">
-      <AuthForm initialMode={mode} error={sp.error} message={sp.message} />
+      <AuthForm initialMode={mode} error={sp.error} message={sp.message} next={next} />
     </div>
   );
 }

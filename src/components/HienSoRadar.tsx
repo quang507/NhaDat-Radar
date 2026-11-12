@@ -1,11 +1,10 @@
 "use client";
 
 import { LinkTheoDoi } from "./TheoDoi";
-import { HOTLINE } from "@/lib/hotline";
+import { HOTLINE, HOTLINE_DISPLAY } from "@/lib/hotline";
 import { Phone } from "lucide-react";
 
-const dep = (s: string) => s.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3");
-const SO_DEP = dep(HOTLINE);
+const SO_DEP = HOTLINE_DISPLAY;
 
 export default function HienSoRadar({
   listingId,

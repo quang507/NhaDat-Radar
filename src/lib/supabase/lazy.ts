@@ -29,6 +29,10 @@ export function layClient(): Promise<Client> {
 export type Phien = { xong: boolean; uid: string | null; email: string | null };
 const tuPhien = (s: Session | null): Phien => ({ xong: true, uid: s?.user?.id ?? null, email: s?.user?.email ?? null });
 
+export function baoDoiPhien() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("ndr-phien-doi"));
+}
+
 // Trạng thái đăng nhập cho UI (nav, menu). Quyền thật do server kiểm.
 // Đăng nhập/đăng xuất là server action + redirect (điều hướng mềm, layout không mount lại) ->
 // soi lại cookie mỗi lần đổi trang. Có cookie thì nghe onAuthStateChange (tab khác đăng xuất, token làm mới).
@@ -38,17 +42,28 @@ export function usePhien(): Phien {
 
   useEffect(() => {
     const dat = (moi: Phien) => setP((cu) => (cu.xong === moi.xong && cu.uid === moi.uid && cu.email === moi.email ? cu : moi));
-    if (!coCookiePhien()) { dat({ xong: true, uid: null, email: null }); return; }
     let huy = false;
     let bo: (() => void) | undefined;
-    layClient().then((sb) => {
-      if (huy) return;
-      // getSession: đọc cookie tại chỗ, không gọi mạng (1/10)
-      sb.auth.getSession().then(({ data }) => { if (!huy) dat(tuPhien(data.session)); });
-      const { data: sub } = sb.auth.onAuthStateChange((_e, s) => { if (!huy) dat(tuPhien(s)); });
-      bo = () => sub.subscription.unsubscribe();
-    }).catch(() => { if (!huy) dat({ xong: true, uid: null, email: null }); });
-    return () => { huy = true; bo?.(); };
+
+    const dongBo = () => {
+      if (!coCookiePhien()) { dat({ xong: true, uid: null, email: null }); return; }
+      layClient().then((sb) => {
+        if (huy) return;
+        sb.auth.getSession().then(({ data }) => { if (!huy) dat(tuPhien(data.session)); });
+        if (!bo) {
+          const { data: sub } = sb.auth.onAuthStateChange((_e, s) => { if (!huy) dat(tuPhien(s)); });
+          bo = () => sub.subscription.unsubscribe();
+        }
+      }).catch(() => { if (!huy) dat({ xong: true, uid: null, email: null }); });
+    };
+
+    dongBo();
+    window.addEventListener("ndr-phien-doi", dongBo);
+    return () => {
+      huy = true;
+      window.removeEventListener("ndr-phien-doi", dongBo);
+      bo?.();
+    };
   }, [path]);
 
   return p;

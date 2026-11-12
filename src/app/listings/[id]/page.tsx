@@ -46,7 +46,6 @@ import Gallery from "@/components/Gallery";
 import PhoneReveal from "@/components/PhoneReveal";
 import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
-import HienSoRadar from "@/components/HienSoRadar";
 import RichText from "@/components/RichText";
 import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheSoTin } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon, tenTrang, tagGiuPhong, maPhong } from "@/lib/ro-hang";
@@ -381,6 +380,8 @@ export default async function ListingDetail({
   const isCrawl = x.source === "crawl";
   // RỔ HÀNG RADAR (28/9): hàng mình nắm - không link gốc, không tên đối tác, CTA chỉ về Radar (lib/ro-hang)
   const roHang = laRoHang(x);
+  const laCuaMinh = roHang || docQuyen;
+  const coSoDeMo = laCuaMinh || coSdt || !!x.phone_masked;
   const lienHeRadar = docQuyen; // rổ hàng + tin nhóm Zalo/FB: khách hỏi phí qua Radar; tin web thì hỏi người đăng
   // tin nhắn Zalo chép sẵn (2/10) - khách khỏi gõ, Radar biết ngay khách hỏi phòng/tin nào.
   // Audit 25/10: tin web cũng gắn mã (maPhong tra được cho MỌI tin qua /rh/[mã]) - trước đây chỉ có tiêu đề
@@ -1081,35 +1082,41 @@ export default async function ListingDetail({
         <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
           <div className="card rounded-lg p-5" id="lien-he">
             <h3 className="font-bold mb-3">{roHang ? (x.deal === "ban" ? "Liên hệ xem nhà" : "Liên hệ xem phòng") : isCrawl ? "Liên hệ" : "Liên hệ người bán"}</h3>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#0f172a] text-xs">
-                {x.source === "agent" ? "BÁN" : "TIN"}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-lg grid place-items-center text-white font-bold bg-[#0f172a] text-xs shrink-0">
+                {roHang ? "RADAR" : x.source === "agent" ? "BÁN" : "TIN"}
               </div>
-              <div>
-                <div className="font-bold text-sm">{x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${tenTrang(x.source_site)}`)}</div>
+              <div className="min-w-0">
+                <div className="font-bold text-sm truncate">
+                  {roHang ? (x.contact_name || "Phụ trách rổ hàng Radar") : (x.contact_name || (x.source === "agent" ? "Người bán tự đăng" : `Người đăng trên ${tenTrang(x.source_site)}`))}
+                </div>
                 <div className="text-xs text-[var(--ink-soft)]">
-                  {roHang ? "Tin đã xác minh - liên hệ qua Radar" : docQuyen ? "Tin độc quyền - liên hệ qua Radar" : (coSdt || x.phone_masked) ? "Đăng nhập hoặc liên hệ để xem SĐT" : "SĐT ẩn theo NĐ13 - xem bài gốc"}
+                  {roHang
+                    ? "Đã xác minh · Dẫn xem miễn phí"
+                    : docQuyen
+                      ? "Tin độc quyền · Liên hệ qua Radar"
+                      : coSoDeMo
+                        ? "Bấm Chat Zalo hoặc Hiện số để liên hệ"
+                        : "Xem bài gốc để liên hệ người đăng"}
                 </div>
               </div>
             </div>
-            {/* TIN ĐỘC QUYỀN (FB + Zalo): không hiện SĐT cho bất kỳ ai - Radar là đường liên hệ
-                duy nhất (Cầu Nối), đây là nhóm tin thu phí được. Nguồn web thì giữ luật cũ:
-                SĐT hiện sau đăng nhập (mô hình Homigo), hotline Radar không chặn ai. */}
-            {roHang ? (
+
+            <div className="mb-3">
+              <PhoneReveal
+                phoneMasked={x.phone_masked}
+                listingId={x.id}
+                listingTitle={x.title}
+                hasPhone={coSoDeMo}
+                isRadar={laCuaMinh}
+                sourceUrl={x.source_url}
+              />
+            </div>
+
+            {roHang && (
               <div className="mb-3 flex flex-col gap-2.5">
-                <ContactForm listingId={x.id} listingTitle={x.title} goiLaiNhanh />
-                <div className="flex items-center gap-2 text-[11px] text-[var(--ink-faint)] my-0.5">
-                  <span className="h-px flex-1 bg-[var(--line)]" />
-                  <span>hoặc liên hệ trực tiếp</span>
-                  <span className="h-px flex-1 bg-[var(--line)]" />
-                </div>
-                <NutZalo listingId={x.id} tinNhan={tinNhanZalo} href={HOTLINE_ZALO} target="_blank" rel="noopener" className="btn w-full text-center bg-[#0068ff] hover:bg-[#0057d6] text-white font-bold min-h-12 border-0 shadow-xs flex items-center justify-center gap-2 rounded-lg">
-                  <MessageCircle className="w-4 h-4 fill-white shrink-0" />
-                  <span>{x.deal === "ban" ? "Nhắn Zalo hẹn xem nhà" : "Nhắn Zalo hẹn xem phòng"}</span>
-                </NutZalo>
-                <HienSoRadar listingId={x.id} />
                 <p className="text-[11px] text-[var(--ink-soft)] leading-relaxed">
-                  Mã {x.deal === "ban" ? "căn" : "phòng"} tự động chép khi bấm Zalo (chỉ cần chọn Dán):{" "}
+                  Mã {x.deal === "ban" ? "căn" : "phòng"} (tự chép khi bấm Zalo):{" "}
                   <NutChepMa ma={maPhong(x.id)} loai={x.deal === "ban" ? "căn" : "phòng"} className="font-mono font-bold text-[var(--ink)] underline cursor-pointer inline-flex items-center gap-1" />
                 </p>
                 {/* QR chỉ có ích trên máy tính: quét bằng điện thoại là mở chat Zalo, khỏi gõ số */}
@@ -1122,45 +1129,32 @@ export default async function ListingDetail({
                   </div>
                 </div>
               </div>
-            ) : docQuyen ? (
-              <div className="mb-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm">
-                <div className="font-bold mb-1 text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Liên hệ qua Radar</span>
-                </div>
-                {/* 3/11 (UX audit): tin nhóm Zalo/FB - Radar chưa kiểm thực tế/pháp lý, bản cũ ghi "đã xác minh thực tế và pháp lý" */}
-                <p className="text-xs text-[var(--ink-soft)]">
-                  Tin đăng trong nhóm Zalo/Facebook, Radar giữ kín SĐT người đăng. Radar hỗ trợ kết nối và đi xem cùng bạn:
-                  gọi hotline bên dưới, hoặc hỏi chi tiết và hẹn xem nhà - hoàn toàn miễn phí.
-                </p>
-              </div>
-            ) : (
-              <>
-                {(coSdt || x.phone_masked) && (
-                  <div className="mb-3">
-                    <PhoneReveal
-                      phoneMasked={x.phone_masked}
-                      listingId={x.id}
-                      listingTitle={x.title}
-                    />
-                  </div>
-                )}
-              </>
             )}
-            {/* Tin cào nguồn web: hành động CHÍNH là sang bài gốc để liên hệ người đăng. Tin độc
-                quyền thì bài gốc hạ xuống dòng chữ nhỏ cuối khối (vẫn giữ ghi nguồn). */}
+
+            {docQuyen && !roHang && (
+              <div className="mb-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 text-xs text-[var(--ink-soft)]">
+                <div className="font-bold mb-1 text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 text-sm">
+                  <ShieldCheck className="w-4 h-4 shrink-0" />
+                  <span>Hỗ trợ kết nối qua Radar</span>
+                </div>
+                Tin trong nhóm Zalo/Facebook được Radar giữ kín SĐT gốc và hỗ trợ đi xem cùng bạn miễn phí.
+              </div>
+            )}
+
+            {/* Tin crawl web: link "Xem bài gốc" để sẵn bên dưới 2 nút Chat Zalo & Hiện số */}
             {isCrawl && !docQuyen && x.source_url && x.source_url !== "#" ? (
-              <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn btn-primary w-full text-center block mb-3 !whitespace-normal">
-                Xem bài gốc & liên hệ trên {x.source_site || "nguồn"} ›
+              <a href={x.source_url} target="_blank" rel="noopener nofollow" className="btn w-full text-center block mb-3 !whitespace-normal">
+                Xem bài gốc &amp; liên hệ trên {tenTrang(x.source_site)} ›
               </a>
             ) : null}
-            {!roHang && <TuVanRadar listingId={x.id} />}
-            {/* độc quyền: vẫn ghi nguồn nhưng chỉ là chữ nhỏ, không phải CTA. Rổ hàng: không bao giờ */}
+
+            {/* Độc quyền (không phải rổ hàng): giữ ghi nguồn nhỏ gọn */}
             {docQuyen && !roHang && x.source_url && x.source_url !== "#" && (
               <p className="text-[0.68rem] text-[var(--ink-faint)] mb-3">
                 Nguồn tin: <a href={x.source_url} target="_blank" rel="noopener nofollow" className="underline">{x.source_site || "bài gốc"}</a>
               </p>
             )}
+
             {x.agent_id && (
               <Link
                 href={`/tin-nhan?listing=${x.id}&agent=${x.agent_id}`}
@@ -1169,12 +1163,8 @@ export default async function ListingDetail({
                 Nhắn tin với người bán
               </Link>
             )}
-            {/* 2/10: rổ hàng bỏ form đặt lịch nhiều ô (tên/ngày/buổi) - thay bằng "Bấm để hiện số" ở trên */}
-            {roHang ? null : docQuyen ? (
-              <div className="mt-3">
-                <ContactForm listingId={x.id} listingTitle={x.title} goiLaiNhanh />
-              </div>
-            ) : isCrawl ? (
+
+            {isCrawl && !docQuyen ? (
               <details className="mt-2 rounded-lg border border-[var(--line)] bg-[var(--surface-2)]/50 p-3">
                 <summary className="text-sm font-semibold cursor-pointer text-brand list-none flex items-center justify-between gap-2">
                   <span>Nhờ Radar tìm &amp; lọc căn tương tự miễn phí</span>
@@ -1183,9 +1173,9 @@ export default async function ListingDetail({
                 <p className="text-xs text-[var(--ink-soft)] my-2">Để lại SĐT - Radar (không phải người đăng tin này) sẽ liên hệ tư vấn các tin phù hợp đang còn trong khu vực.</p>
                 <ContactForm listingId={x.id} listingTitle={x.title} viaRadar />
               </details>
-            ) : (
+            ) : !laCuaMinh ? (
               <ContactForm listingId={x.id} listingTitle={x.title} />
-            )}
+            ) : null}
             {x.agent_id && (
               <div className="mt-4 pt-4 border-t border-[var(--line)]">
                 <AppointmentForm listingId={x.id} agentId={x.agent_id} />
@@ -1249,39 +1239,15 @@ export default async function ListingDetail({
             {[x.area_m2 ? `${x.area_m2} m²` : null, x.district].filter(Boolean).join(" · ")}
           </div>
         </div>
-        {roHang ? (
-          <span className="ml-auto flex items-center gap-2 shrink-0">
-            <HienSoRadar listingId={x.id} nho />
-            <NutZalo
-              listingId={x.id}
-              tinNhan={tinNhanZalo}
-              href={HOTLINE_ZALO}
-              target="_blank"
-              rel="noopener"
-              className="btn whitespace-nowrap min-h-12 !px-3.5 bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 font-bold inline-flex items-center gap-1.5 rounded-lg shadow-xs active:scale-95 transition"
-            >
-              <MessageCircle className="w-4 h-4 fill-white shrink-0" />
-              <span>Nhắn Zalo</span>
-            </NutZalo>
-          </span>
-        ) : isCrawl || docQuyen ? (
-          <span className="ml-auto flex items-center gap-2 shrink-0">
-            <HienSoRadar listingId={x.id} nho />
-            <NutZalo
-              listingId={x.id}
-              tinNhan={tinNhanZalo}
-              href={HOTLINE_ZALO}
-              target="_blank"
-              rel="noopener"
-              className="btn whitespace-nowrap min-h-12 !px-3.5 bg-[#0068ff] hover:bg-[#0057d6] text-white border-0 font-bold inline-flex items-center gap-1.5 rounded-lg shadow-xs active:scale-95 transition"
-            >
-              <MessageCircle className="w-4 h-4 fill-white shrink-0" />
-              <span>Nhắn Zalo</span>
-            </NutZalo>
-          </span>
-        ) : (
-          <a href="#lien-he" className="btn btn-primary ml-auto whitespace-nowrap min-h-12 px-5">Liên hệ</a>
-        )}
+        <PhoneReveal
+          phoneMasked={x.phone_masked}
+          listingId={x.id}
+          listingTitle={x.title}
+          hasPhone={coSoDeMo}
+          isRadar={laCuaMinh}
+          sourceUrl={x.source_url}
+          cheDo="mobile"
+        />
       </div>
       {/* Tin khác của cùng người đăng (kiểu hồ sơ môi giới batdongsan "đang có N tin") */}
       {posterOthers.length > 0 && (

@@ -15,7 +15,7 @@ test("trang chủ -> chi tiết tin: đủ gallery, form liên hệ", async ({ p
   await expect(page.locator("h1").first()).toBeVisible();
   await expect(page.locator('h3:has-text("Liên hệ")').first(), "phải có khối Liên hệ").toBeVisible();
   await expect(
-    page.locator('form:visible, a:has-text("Xem bài gốc"), button:has-text("Bấm để hiện số"), a[href^="tel:"]').first(),
+    page.locator('form:visible, a:has-text("Xem bài gốc"), button:has-text("Hiện số"), button:has-text("Bấm để hiện số"), a[href^="tel:"]').first(),
     "phải có cách liên hệ: form lead, link bài gốc, nút hiện số hoặc link gọi"
   ).toBeVisible();
 });

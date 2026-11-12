@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { escHtml } from "../../src/lib/format";
 import { LISTING_PUBLIC_COLS, LISTING_CARD_COLS } from "../../src/lib/cols";
+import { chuanHoaSdt, dinhDangSdt, cheSdtDuoi, tenHienThiTaiKhoan, HOTLINE_MASKED } from "../../src/lib/hotline";
 
 // Chốt các lỗi tìm thấy ở đợt audit 22/9/2026 để không tái phát. Chạy không cần mạng.
 
@@ -205,4 +206,36 @@ test("giữ TTL ISR dài (>= 6h-24h) để tránh nổ ISR Writes trên /listing
 
   const home = doc("src/app/page.tsx");
   expect(home).not.toContain("revalidate: 1800");
+});
+
+test("luồng Hiện số + Chat qua Zalo + đăng nhập SĐT không OTP kiểu Batdongsan an toàn", () => {
+  expect(chuanHoaSdt("+84 909.123.456")).toBe("0909123456");
+  expect(dinhDangSdt("0387365020")).toBe("0387 365 020");
+  expect(cheSdtDuoi("0387365020")).toBe("0387 365 ***");
+  expect(cheSdtDuoi("0866688***")).toBe("0866 688 ***");
+  expect(HOTLINE_MASKED).toBe("0387 365 ***");
+  expect(tenHienThiTaiKhoan("0909123456@sdt.nhadatradar.local")).toBe("0909 123 456");
+  expect(tenHienThiTaiKhoan("user@gmail.com")).toBe("user@gmail.com");
+
+  const authActions = doc("src/app/auth/actions.ts");
+  expect(authActions).toContain("xuLyPhienSdt");
+  expect(authActions).toContain("signInWithPhone");
+  expect(authActions).toContain('p.role === "admin" || p.role === "agent"');
+  expect(authActions).toContain("prof.role !== \"user\"");
+  expect(authActions).toContain("rateLimitChung");
+
+  const listActions = doc("src/app/listings/actions.ts");
+  expect(listActions).toContain("moKhoaLienHeSdt");
+  expect(listActions).toContain("laRoHang(tin) || laTinDocQuyen(tin)");
+  expect(listActions).toContain('rpc("lay_sdt_tin"');
+
+  const popup = doc("src/components/DangNhapDeXem.tsx");
+  expect(popup).toContain("PopupSdtBatdongsan");
+  expect(popup).toContain("GhiChuDuLieu");
+  expect(popup).toContain("Bảo đảm riêng tư");
+
+  const phoneReveal = doc("src/components/PhoneReveal.tsx");
+  expect(phoneReveal).toContain("Chat qua Zalo");
+  expect(phoneReveal).toContain("Hiện số");
+  expect(phoneReveal).toContain("Gọi · Hiện số");
 });

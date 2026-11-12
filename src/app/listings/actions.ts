@@ -2,12 +2,17 @@
 
 import { headers } from "next/headers";
 import { after } from "next/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { baoLeadMoi } from "@/lib/bao-lead";
 import { ghiSuKien } from "@/lib/su-kien";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { rateLimit } from "@/lib/supabase/anon";
 import { REPORT_REASONS } from "@/lib/reports";
+import { xuLyPhienSdt } from "@/app/auth/actions";
+import { chuanHoaSdt, HOTLINE, SDT_RE } from "@/lib/hotline";
+import { laRoHang } from "@/lib/ro-hang";
+import { laTinDocQuyen } from "@/lib/doc-quyen";
 
 // audit 16/8: 2 form công khai (anon insert) chưa có giới hạn -> 1 IP có thể spam bảng leads/listing_reports
 async function tooMany(bucket: string, max: number): Promise<boolean> {
@@ -15,10 +20,7 @@ async function tooMany(bucket: string, max: number): Promise<boolean> {
   const ip = (h.get("x-forwarded-for") || h.get("x-real-ip") || "?").split(",")[0].trim();
   return !rateLimit(`${bucket}:${ip}`, max, 10 * 60 * 1000);
 }
-const PHONE_RE = /^0\d{8,10}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-// 2/11 (audit Q12) + 11/11 (UX 3.3): chuẩn hoá mọi biến thể +84 / 84 / (+84) / khoảng trắng về dạng 0xxxxxxxxx
-const chuanSdt = (s: string) => s.replace(/[\s.()-]/g, "").replace(/^(?:\+?84)0?/, "0");
 
 // v: giá trị khách đã gõ - React 19 reset form sau action, báo lỗi xong form phải tự điền lại (audit Q7)
 export type LeadState = { ok: boolean; error?: string; v?: Record<string, string> };
@@ -33,7 +35,7 @@ export async function createLead(
   const project_id = String(formData.get("project_id") || "");
   const name = String(formData.get("name") || "").trim();
   const phoneGo = String(formData.get("phone") || "").trim();
-  const phone = chuanSdt(phoneGo);
+  const phone = chuanHoaSdt(phoneGo);
   const loiNhan = String(formData.get("message") || "").trim();
   let message = loiNhan;
   // form "Đặt lịch xem phòng" (rổ hàng Radar): bảng leads không có cột lịch -> ghép vào đầu lời nhắn
@@ -44,7 +46,7 @@ export async function createLead(
   // id rác -> lỗi Postgres 22P02 lúc insert (khách chỉ thấy "không gửi được"); chặn sớm, báo rõ
   if ((listing_id && !UUID_RE.test(listing_id)) || (project_id && !UUID_RE.test(project_id))) return { ok: false, error: "Tin đăng không hợp lệ.", v };
   if (name.length > 120 || message.length > 2000) return { ok: false, error: "Tên tối đa 120 ký tự, lời nhắn tối đa 2000 ký tự.", v };
-  if (!PHONE_RE.test(phone)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678).", v };
+  if (!SDT_RE.test(phone)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678).", v };
   if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút.", v };
 
   // Chỉ thêm project_id khi có (tránh lỗi nếu migration 004 chưa chạy trên DB).
@@ -62,13 +64,106 @@ export async function createLead(
   return { ok: true };
 }
 
+export type MoKhoaSdtState = {
+  ok: boolean;
+  error?: string;
+  phone?: string | null;
+  zaloPhone?: string | null;
+  isRadar?: boolean;
+  overLimit?: boolean;
+};
+
+/**
+ * Popup "Để lại SĐT" (kiểu Batdongsan, không OTP):
+ * - Khách chưa đăng nhập nhập SĐT -> lưu leads, tạo/đăng nhập tài khoản khách (`@sdt.nhadatradar.local`)
+ * - Tin của Radar (rổ hàng + FB/Zalo độc quyền) -> trả hotline Radar (0387365020)
+ * - Tin crawl web / tự đăng -> mở SĐT người đăng gốc qua RPC lay_sdt_tin (giới hạn 30 tin/ngày)
+ */
+export async function moKhoaLienHeSdt(input: {
+  listingId: string;
+  phone?: string;
+  intent: "phone" | "zalo";
+}): Promise<MoKhoaSdtState> {
+  const listingId = String(input?.listingId || "");
+  if (!UUID_RE.test(listingId)) return { ok: false, error: "Tin đăng không hợp lệ." };
+  if (await tooMany("lead", 12)) return { ok: false, error: "Bạn thao tác hơi nhanh - thử lại sau ít phút." };
+
+  const admin = createAdminClient();
+  const { data: tin } = await admin
+    .from("listings")
+    .select("id, source, source_site, contact_phone, status")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (!tin || tin.status !== "published") {
+    return { ok: false, error: "Tin đăng không còn khả dụng." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user: curUser } } = await supabase.auth.getUser();
+  let accessToken: string | null = null;
+  let leadPhone: string | null = null;
+
+  if (!curUser) {
+    const kq = await xuLyPhienSdt(String(input?.phone || ""));
+    if (!kq.ok) return { ok: false, error: kq.error };
+    accessToken = kq.accessToken;
+    leadPhone = kq.sdt;
+  } else if (input?.phone) {
+    const clean = chuanHoaSdt(input.phone);
+    if (SDT_RE.test(clean)) leadPhone = clean;
+  }
+
+  const isRadar = laRoHang(tin) || laTinDocQuyen(tin);
+
+  if (leadPhone) {
+    const intentLabel = input.intent === "zalo" ? "Chat qua Zalo" : "Hiện số";
+    const msg = isRadar
+      ? `Khách bấm '${intentLabel}' tin Radar & để lại SĐT - gọi lại tư vấn/hẹn xem`
+      : `Khách bấm '${intentLabel}' tin ${tin.source_site || "web"} & để lại SĐT xem số gốc`;
+    const row = { listing_id: listingId, name: "Khách xem số / Zalo", phone: leadPhone, message: msg };
+    const { error: lErr } = await admin.from("leads").insert(row);
+    if (!lErr) {
+      after(() => baoLeadMoi({ listing_id: listingId, name: row.name, phone: leadPhone!, message: msg }));
+    }
+    after(() => ghiSuKien({ loai: input.intent === "zalo" ? "zalo" : "dat_lich", listingId }));
+  }
+
+  if (isRadar) {
+    return { ok: true, phone: HOTLINE, zaloPhone: HOTLINE, isRadar: true };
+  }
+
+  if (!tin.contact_phone) {
+    return { ok: true, phone: null, zaloPhone: null, isRadar: false };
+  }
+
+  const authedClient = accessToken
+    ? createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    : supabase;
+
+  const rpc = await authedClient.rpc("lay_sdt_tin", { p_listing: listingId });
+  if (rpc.error?.message?.includes("qua_gioi_han_xem_sdt")) {
+    return { ok: true, phone: null, zaloPhone: null, overLimit: true, isRadar: false };
+  }
+  const phone = !rpc.error ? ((rpc.data as string | null) ?? null) : null;
+  const cleanPhone = chuanHoaSdt(phone);
+  return {
+    ok: true,
+    phone,
+    zaloPhone: SDT_RE.test(cleanPhone) ? cleanPhone : null,
+    isRadar: false,
+  };
+}
+
 /**
  * "Bấm để hiện số" (2/10): khách chưa đăng nhập nhập SĐT để xem hotline Radar -> 1 lead (không cần tên).
  * Thay form đặt lịch nhiều ô (tên, ngày, buổi...) - ít ô hơn = nhiều khách để lại số hơn.
  */
 export async function deLaiSdt(listingId: string | null, phone: string): Promise<LeadState> {
-  const sdt = chuanSdt(String(phone || ""));
-  if (!PHONE_RE.test(sdt)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
+  const sdt = chuanHoaSdt(String(phone || ""));
+  if (!SDT_RE.test(sdt)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
   const lid = listingId && UUID_RE.test(listingId) ? listingId : null;
   if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút." };
   const row = { listing_id: lid, name: "Khách bấm hiện số", phone: sdt, message: "Bấm 'hiện số' hotline Radar - gọi lại tư vấn/hẹn xem" };
@@ -84,8 +179,8 @@ export async function deLaiSdt(listingId: string | null, phone: string): Promise
  * trước đó chúng insert thẳng bảng leads bằng supabase client, sau 038 sẽ bị RLS chặn.
  */
 export async function guiLeadNhanh(input: { name?: string; phone: string; message?: string }): Promise<LeadState> {
-  const sdt = chuanSdt(String(input?.phone || ""));
-  if (!PHONE_RE.test(sdt)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
+  const sdt = chuanHoaSdt(String(input?.phone || ""));
+  if (!SDT_RE.test(sdt)) return { ok: false, error: "Số điện thoại chưa đúng (VD: 0912 345 678)." };
   const name = String(input?.name || "").trim().slice(0, 120) || "Khách để lại SĐT";
   const message = String(input?.message || "").trim().slice(0, 1000);
   if (await tooMany("lead", 8)) return { ok: false, error: "Bạn gửi hơi nhanh - thử lại sau ít phút." };
