@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { phaiChan } from "@/lib/bot";
 
 // 29/10 (Clarity + Search Console): tên miền Vercel tự cấp vẫn mở ra bản sao của cả site và có khách vào
 // (42 lượt vào trang chủ trong 90 ngày) -> Google thấy hai site trùng nhau. Chuyển vĩnh viễn về tên miền chính.
@@ -18,6 +19,13 @@ function slugQuanHcm(raw: string): string {
 }
 
 export async function middleware(request: NextRequest) {
+  if (phaiChan(request.headers.get("user-agent"), request.nextUrl.pathname)) {
+    return new NextResponse("403: trang nay khong danh cho bot. Xem /robots.txt", {
+      status: 403,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex", "Cache-Control": "public, max-age=3600" },
+    });
+  }
+
   // đọc header Host (Vercel luôn đặt đúng tên miền khách gõ); bỏ cổng nếu có
   if ((request.headers.get("host") ?? "").split(":")[0].toLowerCase() === TEN_MIEN_VERCEL_CU) {
     return NextResponse.redirect(`${TEN_MIEN_CHINH}${request.nextUrl.pathname}${request.nextUrl.search}`, 308);
