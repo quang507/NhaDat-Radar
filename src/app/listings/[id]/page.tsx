@@ -332,10 +332,9 @@ export default async function ListingDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  let pub: TinCongKhai | null = null;
-  try { pub = await layTinCongKhai(id); } catch (e) { console.error(String(e)); }
+  const pub = await layTinCongKhai(id);
   if (!pub) {
-    const biaMo = await layBiaMo(id).catch(() => null);
+    const biaMo = await layBiaMo(id);
     if (biaMo) permanentRedirect(await khuVucCuaTin(biaMo));
     notFound();
   }

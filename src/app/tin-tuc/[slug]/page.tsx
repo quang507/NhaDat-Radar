@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { thang, nam } = thangNay();
   const q = await timQuan(slug).catch(() => null);
   if (q) {
-    const bc = await layBaoCao(q.quan).catch(() => null);
+    const bc = await layBaoCao(q.quan);
     const ten = tenKhuVucGon(q.quan);
     return {
       title: `Giá thuê phòng trọ ${ten} tháng ${thang}/${nam}${bc ? `: phổ biến quanh ${trieu(bc.trungVi)}` : ""} | NhaDat Radar`,
@@ -82,7 +82,7 @@ export default async function BaiPage({ params }: { params: Promise<{ slug: stri
   const { slug } = await params;
   const q = await timQuan(slug).catch(() => null);
   if (q) {
-    const bc = await layBaoCao(q.quan).catch(() => null);
+    const bc = await layBaoCao(q.quan);
     if (!bc) notFound();
     const khac = (await dsQuanBaoCao()).filter((x) => x.slug !== q.slug).slice(0, 12);
     // Kéo 6 phòng trọ thực tế mới nhất của quận để chuyển đổi traffic bài viết sang khách thuê

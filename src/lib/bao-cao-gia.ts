@@ -43,10 +43,11 @@ export type BaoCao = {
 export const layBaoCao = unstable_cache(
   async (quan: string): Promise<BaoCao | null> => {
     const sb = createAnonClient();
-    const { data } = await sb.from("listings").select("price_vnd,area_m2,ward,kind")
+    const { data, error } = await sb.from("listings").select("price_vnd,area_m2,ward,kind")
       .eq("status", "published").eq("deal", "cho_thue").eq("province", TINH_BAO_CAO).eq("district", quan)
       .in("kind", ["phong_tro", "can_ho"]).gt("price_vnd", 500_000).lt("price_vnd", 100_000_000)
       .order("first_seen_at", { ascending: false }).limit(1000);
+    if (error) throw new Error(`bao-cao-gia ${quan}: ${error.message}`);
     const rows = (data ?? []) as { price_vnd: number; area_m2: number | null; ward: string | null; kind: string }[];
     const tro = rows.filter((r) => r.kind === "phong_tro");
     if (tro.length < NGUONG_TIN) return null;
@@ -65,9 +66,10 @@ export const layBaoCao = unstable_cache(
     const ch = rows.filter((r) => r.kind === "can_ho").map((r) => r.price_vnd);
 
     // xu hướng 30 ngày từ price_history (giá/m² trung vị phòng trọ của quận, crawler/price-history.mjs ghi mỗi ngày)
-    const { data: ls } = await sb.from("price_history").select("day,median_ppm2,n")
+    const { data: ls, error: loiLs } = await sb.from("price_history").select("day,median_ppm2,n")
       .eq("province", TINH_BAO_CAO).eq("district", quan).eq("kind", "phong_tro").eq("deal", "cho_thue")
       .order("day", { ascending: true }).limit(120);
+    if (loiLs) throw new Error(`bao-cao-gia ${quan}: ${loiLs.message}`);
     const ds = (ls ?? []) as { day: string; median_ppm2: number; n: number }[];
     let xuHuong: BaoCao["xuHuong"] = null;
     if (ds.length >= 2) {

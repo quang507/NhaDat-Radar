@@ -56,3 +56,17 @@ test("sitemap khu vực: lỗi database trả 503, không trả sitemap rút g�
   expect(s).toContain("loiTamThoi()");
   expect(s).not.toContain("ít nhất vẫn có trang tĩnh");
 });
+
+test("trang tin: truy vấn lỗi thì ném; chỉ notFound khi tin thật sự không có; không chuyển hướng mù", () => {
+  const s = doc("src/app/listings/[id]/page.tsx");
+  expect(s).toMatch(/const pub = await layTinCongKhai\(id\);/);
+  expect(s).not.toMatch(/try \{ pub = await layTinCongKhai\(id\); \} catch/);
+  expect(s).not.toContain('permanentRedirect("/nha-dat-cho-thue/ho-chi-minh")');
+  expect(s).toMatch(/if \(biaMo\) permanentRedirect\(await khuVucCuaTin\(biaMo\)\);\s*notFound\(\);/);
+});
+
+test("báo cáo giá: lỗi database thì ném, không trả null để ra 404", () => {
+  const s = doc("src/lib/bao-cao-gia.ts");
+  expect((s.match(/throw new Error\(`bao-cao-gia/g) || []).length).toBe(2);
+  expect(doc("src/app/tin-tuc/[slug]/page.tsx")).not.toMatch(/layBaoCao\(q\.quan\)\.catch/);
+});
