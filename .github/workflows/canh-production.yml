@@ -1,0 +1,54 @@
+name: Canh production
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  canh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Kiểm tra production
+        run: node scripts/canh-production.mjs
+      - name: Báo động qua Telegram
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "::warning::chưa có secret Telegram"
+            exit 0
+          fi
+
+          RUNS_JSON=$(gh run list --workflow canh-production.yml --status completed --limit 30 --json conclusion)
+          N=$(node -e '
+            const runs = JSON.parse(process.argv[1] || "[]");
+            let count = 0;
+            for (const r of runs) {
+              if (r.conclusion === "failure") count++;
+              else break;
+            }
+            console.log(count);
+          ' "$RUNS_JSON")
+          N=${N:-0}
+          TONG=$((N + 1))
+
+          if [ "$N" -eq 1 ] || [ $((TONG % 24)) -eq 0 ]; then
+            MSG="Radar production hỏng ${TONG} lượt liên tiếp: $RUN_URL"
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              --data-urlencode "text=${MSG}" > /dev/null
+          fi
