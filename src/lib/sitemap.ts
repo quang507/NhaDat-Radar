@@ -1,11 +1,8 @@
-// Hàm dựng XML cho sitemap index + các sitemap con (23/9).
-// Trước đây app/sitemap.ts gom TẤT CẢ vào 1 file và cắt cứng ở limit(1000) -> chỉ 1.000/6.575 tin
-// được khai báo, 85% trang tin Google không biết tới. Giờ tách: khu vực 1 file, tin chia lô 5.000.
-import { createAnonClient } from "@/lib/supabase/anon";
+// Hàm dựng XML cho sitemap index + các sitemap con (23/9, cập nhật 14/11 - Hướng B).
+// Bỏ sitemap trang tin, chỉ giữ sitemap khu vực và dự án.
 import { SITE_URL } from "@/lib/ld";
 
 export const SITE = SITE_URL;
-export const MOI_LO = 5000;   // giới hạn chuẩn của sitemap là 50.000 URL / 50MB; 5.000 cho nhẹ
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -30,80 +27,5 @@ export function xmlSitemapIndex(urls: string[]): string {
 export const xmlResponse = (xml: string) =>
   new Response(xml, { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=0, s-maxage=3600" } });
 
-/** Số tin published (để biết cần bao nhiêu lô sitemap) */
-export async function demTin(): Promise<number> {
-  const { count, error } = await createAnonClient().from("listings").select("id", { count: "exact", head: true }).eq("status", "published");
-  // 3/10: lỗi DB tạm thời từng bị coi là "0 tin" -> index chỉ khai 1 lô (Google mất ~17.000 tin). Ném lỗi để route trả 503.
-  if (error || count == null) throw new Error("demTin: " + (error?.message || "count null"));
-  return count;
-}
-
 /** DB lỗi tạm thời -> 503 KHÔNG cache (Google tự thử lại), thay vì cache 1 giờ một sitemap rỗng/thiếu */
 export const loiTamThoi = () => new Response("Tạm thời không lấy được dữ liệu", { status: 503, headers: { "Retry-After": "600", "Cache-Control": "no-store" } });
-
-/** Các tháng có tin published (YYYY-MM), mới nhất trước */
-export async function thangCoTin(): Promise<string[]> {
-  const sb = createAnonClient();
-  const { data: cu, error } = await sb
-    .from("listings")
-    .select("first_seen_at")
-    .eq("status", "published")
-    .not("first_seen_at", "is", null)
-    .order("first_seen_at")
-    .limit(1);
-  if (error) throw new Error("thangCoTin: " + error.message);
-  const dau = cu?.[0]?.first_seen_at ? new Date(cu[0].first_seen_at) : new Date();
-  const ra: string[] = [];
-  for (
-    let d = new Date(Date.UTC(dau.getUTCFullYear(), dau.getUTCMonth(), 1));
-    d <= new Date();
-    d.setUTCMonth(d.getUTCMonth() + 1)
-  ) {
-    ra.push(d.toISOString().slice(0, 7));
-  }
-  return ra.reverse();
-}
-
-/** Tin của một tháng - lô KHÔNG đổi khi có tin mới ở tháng khác */
-export async function tinTheoThang(
-  thang: string
-): Promise<{ id: string; updated_at: string | null; created_at: string | null }[]> {
-  const tu = `${thang}-01T00:00:00Z`;
-  const d = new Date(tu);
-  d.setUTCMonth(d.getUTCMonth() + 1);
-  const sb = createAnonClient();
-  const ra: { id: string; updated_at: string | null; created_at: string | null }[] = [];
-  for (let off = 0; ; off += 1000) {
-    const { data, error } = await sb
-      .from("listings")
-      .select("id, updated_at, created_at")
-      .eq("status", "published")
-      .gte("first_seen_at", tu)
-      .lt("first_seen_at", d.toISOString())
-      .order("id")
-      .range(off, off + 999);
-    if (error) throw new Error("tinTheoThang: " + error.message);
-    ra.push(...(data ?? []));
-    if (!data || data.length < 1000 || ra.length >= 45000) break; // trần 45.000 URL/file
-  }
-  return ra;
-}
-
-/**
- * Một lô tin (mới nhất trước). PostgREST trả TỐI ĐA 1.000 dòng mỗi lượt (đo 23/9: xin range 5.000
- * vẫn chỉ nhận 1.000) -> phải lặp từng trang 1.000 cho đủ MOI_LO.
- */
-export async function loTin(trang: number): Promise<{ id: string; created_at: string | null }[]> {
-  const sb = createAnonClient();
-  const batDau = trang * MOI_LO;
-  const ra: { id: string; created_at: string | null }[] = [];
-  for (let off = 0; off < MOI_LO; off += 1000) {
-    const { data, error } = await sb.from("listings").select("id,created_at").eq("status", "published")
-      .order("first_seen_at", { ascending: false, nullsFirst: false }).order("id")   // khoá phụ: thứ tự ổn định giữa các trang
-      .range(batDau + off, batDau + off + 999);
-    if (error) throw new Error("loTin: " + error.message);   // 3/10: lỗi từng bị nuốt -> lô 0 rỗng 0 URL
-    ra.push(...(data ?? []));
-    if (!data || data.length < 1000) break;
-  }
-  return ra;
-}

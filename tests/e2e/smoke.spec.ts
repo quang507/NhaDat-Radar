@@ -45,17 +45,12 @@ test("SEO: sitemap index + các sitemap con + robots.txt", async ({ request }) =
   if (xml.includes("<sitemapindex")) {
     expect(loc.length).toBeGreaterThanOrEqual(2);          // index chỉ liệt kê các file con
     expect(loc.some((u) => u.includes("sitemap-khu-vuc"))).toBe(true);
-    expect(loc.some((u) => u.includes("sitemap-tin/"))).toBe(true);
-    for (const u of [loc.find((x) => x.includes("sitemap-khu-vuc"))!, loc.find((x) => x.includes("sitemap-tin/"))!]) {
-      const r = await request.get(new URL(u).pathname);
-      expect(r.status(), u).toBe(200);
-      const t = await r.text();
-      expect(t, u).toContain("<urlset");
-      expect((t.match(/<loc>/g) || []).length, u).toBeGreaterThan(50);
-    }
-  } else {
-    expect(xml).toContain("<urlset");
-    expect(loc.length).toBeGreaterThan(10);
+    expect(loc.some((u) => u.includes("sitemap-du-an"))).toBe(true);
+    expect(loc.some((u) => u.includes("sitemap-tin"))).toBe(false);
+    const kv = await request.get("/sitemap-khu-vuc.xml");
+    expect(kv.status()).toBe(200);
+    expect(((await kv.text()).match(/<loc>/g) || []).length).toBeGreaterThan(50);
+    expect((await request.get("/sitemap-tin/2026-11.xml")).status()).toBe(410);
   }
 
   const rb = await request.get("/robots.txt");

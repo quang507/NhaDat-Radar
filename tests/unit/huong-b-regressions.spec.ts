@@ -27,3 +27,17 @@ test("trang tin mang header X-Robots-Tag: noindex", () => {
   const s = doc("next.config.mjs");
   expect(s).toMatch(/source: "\/listings\/:path\*"[\s\S]{0,120}X-Robots-Tag[\s\S]{0,40}noindex/);
 });
+
+test("sitemap index chỉ còn khu vực và dự án, không đọc database", () => {
+  const s = doc("src/app/sitemap.xml/route.ts");
+  expect(s).toContain("sitemap-khu-vuc.xml");
+  expect(s).toContain("sitemap-du-an.xml");
+  expect(s).not.toContain("sitemap-tin");
+  expect(s).not.toContain("thangCoTin");
+});
+
+test("sitemap-tin trả 410 và không đọc database", () => {
+  const s = doc("src/app/sitemap-tin/[lo]/route.ts");
+  expect(s).toMatch(/status: 410/);
+  expect(s).not.toMatch(/tinTheoThang|loTin/);
+});
