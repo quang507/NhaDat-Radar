@@ -41,3 +41,18 @@ test("sitemap-tin trả 410 và không đọc database", () => {
   expect(s).toMatch(/status: 410/);
   expect(s).not.toMatch(/tinTheoThang|loTin/);
 });
+
+test("fetchAreas: lỗi database thì ném, không còn đường trả cây rỗng", () => {
+  const s = doc("src/lib/geo.ts");
+  expect(s).toContain("kiemCayRpc(");
+  expect(s).toMatch(/truyVanVoiRetry\(\(\) => sb\.rpc\("cay_khu_vuc"\)/);
+  expect(s).not.toContain("dung lai tranh sap build");
+  expect(s).toContain('"areas-v7"');
+  expect(s).toContain('"areas-daily-v2"');
+});
+
+test("sitemap khu vực: lỗi database trả 503, không trả sitemap rút gọn", () => {
+  const s = doc("src/app/sitemap-khu-vuc.xml/route.ts");
+  expect(s).toContain("loiTamThoi()");
+  expect(s).not.toContain("ít nhất vẫn có trang tĩnh");
+});

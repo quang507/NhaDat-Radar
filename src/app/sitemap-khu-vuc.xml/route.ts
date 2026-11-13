@@ -1,7 +1,7 @@
 // Sitemap khu vực: trang tĩnh + trang tỉnh/quận/loại BĐS + tin tức + điểm neo (dự án tách sang /sitemap-du-an.xml).
 import { areaPath, KIND_SLUG } from "@/lib/slug";
 import { getAreas } from "@/lib/geo";
-import { SITE, xmlSitemap, xmlResponse, type MucSitemap } from "@/lib/sitemap";
+import { SITE, xmlSitemap, xmlResponse, loiTamThoi, type MucSitemap } from "@/lib/sitemap";
 import { dsQuanBaoCao } from "@/lib/bao-cao-gia";
 import { BAI_VIET } from "@/lib/bai-viet";
 import { DANH_SACH_DAI_HOC } from "@/lib/dai-hoc";
@@ -42,7 +42,10 @@ export async function GET() {
     for (const cd of ["phong-tro-duoi-3-trieu", "phong-tro-co-gac-lung", "can-ho-mini-full-noi-that"]) muc.push({ url: `${SITE}/${cd}`, changefreq: "daily", priority: 0.85 });
     // Diem neo pSEO chien luoc (Metro, San bay, Benh vien, KCN)
     for (const d of DIEM_NEO) muc.push({ url: `${SITE}/phong-tro-gan/${d.slug}`, changefreq: "daily", priority: 0.85 });
-  } catch { /* DB lỗi -> ít nhất vẫn có trang tĩnh */ }
+  } catch (e) {
+    console.error(String(e));
+    return loiTamThoi();
+  }
 
   return xmlResponse(xmlSitemap(muc));
 }

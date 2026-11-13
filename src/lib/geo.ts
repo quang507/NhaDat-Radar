@@ -5,6 +5,8 @@ import "server-only"; // 2/11 (audit): chặn lỡ import vào client component
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canonDistrict } from "@/lib/format";
+import { truyVanVoiRetry } from "@/lib/cols";
+import { kiemCayRpc } from "@/lib/cay-khu-vuc";
 
 export type Deal = "ban" | "cho_thue";
 /** kind -> { ban, cho_thue } (trang /nha-dat-ban/[tinh]/[quan]/[loai] + sitemap) */
@@ -54,38 +56,25 @@ function dungCay(nhom: Nhom[], phuong: PhuongRow[], srcs: Iterable<string>, tota
 
 async function fetchAreas(): Promise<AreaTree> {
   const sb = createAdminClient(); // chỉ đọc published, không phụ thuộc user -> cache chung an toàn
-  // 3/10 (egress): đếm sẵn ở DB bằng rpc cay_khu_vuc (migration 033) - ~12KB gzip thay vì ~22 trang x 1000 dòng
-  const { data: cay, error } = await sb.rpc("cay_khu_vuc");
-  if (!error && cay && Array.isArray(cay.c)) {
-    const c = cay as { c: [string, string, string, string, number][]; w: [string, string, string][]; s: string[]; t: number };
-    return dungCay(
-      c.c.map(([province, district, deal, kind, n]) => ({ province, district, deal, kind, n })),
-      c.w.map(([province, district, ward]) => ({ province, district, ward })),
-      c.s, Number(c.t) || 0,
-    );
-  }
-  // Dự phòng (rpc chưa có / lỗi): quét phân trang như cũ
-  const rows: { province: string | null; district: string | null; ward: string | null; deal: string; kind: string | null; source: string; source_site: string | null }[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error: loi } = await sb.from("listings").select("province,district,ward,deal,kind,source,source_site").eq("status", "published").order("id").range(from, from + 999);
-    if (loi) { console.warn("getAreas: loi DB, dung lai tranh sap build:", loi.message || loi); break; }
-    rows.push(...(data ?? []));
-    if (!data || data.length < 1000) break;
-  }
+  // 3/10 (egress) & 14/11 (Hướng B): đếm sẵn ở DB bằng rpc cay_khu_vuc (migration 033). Lỗi DB thì ném lỗi, không cache cây rỗng.
+  const { data } = await truyVanVoiRetry(() => sb.rpc("cay_khu_vuc"), "areas:rpc");
+  const c = kiemCayRpc(data);
   return dungCay(
-    rows.map((r) => ({ ...r, n: 1 })), rows,
-    rows.map((r) => (r.source === "crawl" ? (r.source_site || "crawl") : r.source)), rows.length,
+    c.c.map(([province, district, deal, kind, n]) => ({ province, district, deal, kind, n })),
+    c.w.map(([province, district, ward]) => ({ province, district, ward })),
+    c.s,
+    Number(c.t) || 0,
   );
 }
 
 export const getAreas = unstable_cache(
   fetchAreas,
-  ["areas-v6"],   // v6: nâng lên 6h để không ép các trang khu vực tái tạo mỗi 30 phút
+  ["areas-v7"],
   { revalidate: 21600, tags: ["areas"] },
 );
 
 export const getAreasDaily = unstable_cache(
   fetchAreas,
-  ["areas-daily-v1"],   // 24h cho trang chi tiết tin (/listings/[id]) để giữ đúng revalidate = 86400
+  ["areas-daily-v2"],
   { revalidate: 86400, tags: ["areas"] },
 );
