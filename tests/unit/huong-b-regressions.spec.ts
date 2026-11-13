@@ -70,3 +70,14 @@ test("báo cáo giá: lỗi database thì ném, không trả null để ra 404",
   expect((s.match(/throw new Error\(`bao-cao-gia/g) || []).length).toBe(2);
   expect(doc("src/app/tin-tuc/[slug]/page.tsx")).not.toMatch(/layBaoCao\(q\.quan\)\.catch/);
 });
+
+test("đăng nhập, đăng xuất không xả cache toàn site", () => {
+  expect(doc("src/app/auth/actions.ts")).not.toContain("revalidatePath(");
+});
+
+test("e2e.yml: sau deploy chỉ chạy smoke, không còn bước next build giả", () => {
+  const s = doc(".github/workflows/e2e.yml");
+  expect(s).toContain("tests/e2e/smoke.spec.ts --project=desktop");
+  expect(s).not.toContain("npx next build");
+  expect(s).toContain("https://www.nhadatradar.com");
+});

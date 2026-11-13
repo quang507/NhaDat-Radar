@@ -2,7 +2,6 @@
 
 import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -140,7 +139,6 @@ export async function signInWithPhone(formData: FormData) {
   if (!kq.ok) {
     redirect(`/auth?mode=phone&error=${encodeURIComponent(kq.error)}${next ? `&next=${encodeURIComponent(next)}` : ""}`);
   }
-  revalidatePath("/", "layout");
   redirect(next || "/dashboard");
 }
 
@@ -153,7 +151,6 @@ export async function signIn(formData: FormData) {
     options: { captchaToken: captchaOf(formData) },
   });
   if (error) redirect(`/auth?error=${encodeURIComponent(viErr(error.message))}${next ? `&next=${encodeURIComponent(next)}` : ""}`);
-  revalidatePath("/", "layout");
   redirect(next || "/dashboard");
 }
 
@@ -184,7 +181,6 @@ export async function signUp(formData: FormData) {
     redirect("/auth?error=" + encodeURIComponent("Email này đã được đăng ký. Hãy đăng nhập (hoặc dùng Quên mật khẩu)."));
   }
 
-  revalidatePath("/", "layout");
   // Nếu tắt "Confirm email" -> có session ngay, vào thẳng dashboard
   if (data.session) redirect("/dashboard");
   redirect(
@@ -224,13 +220,11 @@ export async function updatePassword(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) redirect("/auth/doi-mat-khau?error=" + encodeURIComponent(viErr(error.message)));
-  revalidatePath("/", "layout");
   redirect("/dashboard");
 }
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  revalidatePath("/", "layout");
   redirect("/");
 }

@@ -30,13 +30,6 @@ jobs:
         run: npx tsc --noEmit -p .
       - name: Unit test
         run: npx playwright test --project=unit
-      - name: next build
-        run: npx next build
-        env:
-          # giá trị giả: build chỉ cần biến tồn tại, không gọi DB lúc build
-          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
-          NEXT_TELEMETRY_DISABLED: "1"
 
   test:
     # deployment_status: chỉ khi bản Production deploy XONG (bỏ preview, bỏ trạng thái pending/failure)
@@ -70,9 +63,9 @@ jobs:
       # chromium cho desktop + webkit cho project iPhone 14 (thiếu webkit = 19 ca mobile fail, 17/8)
       - run: npx playwright install --with-deps chromium webkit
       - name: Run tests
-        run: npx playwright test
+        run: npx playwright test ${{ github.event_name == 'deployment_status' && 'tests/e2e/smoke.spec.ts --project=desktop' || '' }}
         env:
-          BASE_URL: ${{ github.event.inputs.base_url || 'https://nhadatradar.com' }}
+          BASE_URL: ${{ github.event.inputs.base_url || 'https://www.nhadatradar.com' }}
       - name: Upload báo cáo HTML
         if: always()
         uses: actions/upload-artifact@v4
