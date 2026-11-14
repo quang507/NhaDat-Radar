@@ -1,8 +1,8 @@
 name: Canh production
 
+# 14/11: bỏ lịch 30 phút. Lịch GitHub trên repo này trễ hàng giờ và bỏ lượt (không chạy lượt nào trong 7 giờ).
+# Chuông chạy ở máy 146: deploy/may-146/radar_canh.cmd + scripts/canh-production-bao.mjs. Ở đây chỉ còn bấm tay.
 on:
-  schedule:
-    - cron: "*/30 * * * *"
   workflow_dispatch:
 
 permissions:
