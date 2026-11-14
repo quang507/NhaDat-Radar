@@ -4,6 +4,15 @@ export const HOTLINE_DISPLAY = "0387 365 020";
 export const HOTLINE_NAME = "Lê Quang";
 export const HOTLINE_ZALO = `https://zalo.me/${HOTLINE}`;
 
+/**
+ * Số Zalo mà nút "Chat qua Zalo" mở thẳng; null = phải qua popup để lại SĐT.
+ * 14/11: tin của Radar mở thẳng Zalo Radar (số công khai, popup gần như không thu được SĐT nào);
+ * tin cào chỉ mở thẳng sau khi đã mở khoá số người đăng gốc.
+ */
+export function soZaloMoThang(isRadar: boolean, zaloDaMoKhoa: string | null | undefined): string | null {
+  return isRadar ? HOTLINE : zaloDaMoKhoa ?? null;
+}
+
 export const PHONE_QUICK_DOMAIN = "sdt.nhadatradar.local";
 export const SDT_RE = /^0\d{8,10}$/;
 

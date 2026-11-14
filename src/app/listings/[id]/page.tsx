@@ -1041,22 +1041,22 @@ export default async function ListingDetail({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <h4 className="text-base font-bold text-[var(--ink)]">
-                  Chưa chọn được căn ưng ý ở {x.district || "khu vực này"}?
+                  Chưa ưng căn này?
                 </h4>
                 <p className="text-xs sm:text-sm text-[var(--ink-soft)] max-w-xl leading-relaxed">
-                  Nhắn qua Zalo mức giá bạn cần và khu vực muốn ở, tụi mình lọc nhanh 3 căn đang trống {x.district ? `tại ${x.district} ` : ""}gửi bạn xem trong 15 phút.
+                  Nhắn Zalo cho Radar tầm giá bạn muốn, bên mình gửi thêm {x.deal === "ban" ? "căn đang bán" : "phòng còn trống"} {x.district ? `ở ${x.district}` : "quanh đây"}.
                 </p>
               </div>
               <NutZalo
                 listingId={x.id}
-                tinNhan={`Chào Radar, mình đang xem tin Mã: ${ma} tại ${x.district || ""} nhưng muốn tìm thêm các căn tương tự tầm giá ${fmtPrice(x.price_vnd, x.deal)}, tư vấn giúp mình nhé!`}
+                tinNhan={`Chào Radar, mình đang xem căn mã ${ma}${x.district ? ` ở ${x.district}` : ""}. Còn căn nào tầm giá ${fmtPrice(x.price_vnd, x.deal)} không ạ?`}
                 href={HOTLINE_ZALO}
                 target="_blank"
                 rel="noopener"
                 className="btn btn-primary whitespace-nowrap px-5 py-2.5 rounded-lg font-bold flex items-center justify-center gap-2 shadow-sm shrink-0"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>Nhận rổ hàng tương tự qua Zalo</span>
+                <span>Nhắn Zalo cho Radar</span>
               </NutZalo>
             </div>
           </div>

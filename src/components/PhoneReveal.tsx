@@ -6,7 +6,7 @@ import { coCookiePhien, layClient } from "@/lib/supabase/lazy";
 import { PopupSdtBatdongsan, type IntentLienHe } from "@/components/DangNhapDeXem";
 import { chepVanBan, NutZalo } from "@/components/TheoDoi";
 import { moKhoaLienHeSdt, type MoKhoaSdtState } from "@/app/listings/actions";
-import { cheSdtDuoi, chuanHoaSdt, dinhDangSdt, HOTLINE, HOTLINE_MASKED, HOTLINE_ZALO, SDT_RE } from "@/lib/hotline";
+import { cheSdtDuoi, chuanHoaSdt, dinhDangSdt, HOTLINE, HOTLINE_MASKED, HOTLINE_ZALO, SDT_RE, soZaloMoThang } from "@/lib/hotline";
 import { maPhong } from "@/lib/ro-hang";
 import { baoSuKien } from "@/lib/su-kien-client";
 
@@ -85,7 +85,7 @@ export default function PhoneReveal({
 
   const ma = maPhong(listingId);
   const loiChaoZalo = isRadar
-    ? `Chào Radar, mình muốn xem căn "${listingTitle || "này"}" (Mã: ${ma}). Hỗ trợ giúp mình nhé!`
+    ? `Chào Radar, mình muốn xem căn mã ${ma}. Căn này còn trống không ạ?`
     : `Chào anh/chị, mình xem tin "${listingTitle || "này"}" trên NhaDat Radar, cho mình hỏi căn này còn không ạ?`;
 
   const soChe = isRadar ? HOTLINE_MASKED : cheSdtDuoi(phoneMasked);
@@ -216,7 +216,7 @@ export default function PhoneReveal({
   }
 
   const phone = unlocked?.phone ?? null;
-  const zaloTarget = unlocked?.zaloPhone ?? (phien === "dang_nhap" && isRadar ? HOTLINE : null);
+  const zaloTarget = soZaloMoThang(isRadar, unlocked?.zaloPhone);
 
   if (cheDo === "mobile") {
     return (
