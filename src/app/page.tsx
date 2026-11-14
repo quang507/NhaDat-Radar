@@ -323,7 +323,7 @@ export default async function Home() {
                 <Clock className="w-4 h-4 stroke-[2.2]" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Phản hồi 15 phút</div>
+                <div className="font-bold text-[var(--ink)] group-hover:text-blue-600 dark:group-hover:text-blue-400 text-xs sm:text-sm leading-tight transition-colors">Trả lời 8h - 21h</div>
                 <div className="hidden sm:block text-overline text-[var(--ink-faint)] font-normal normal-case tracking-normal truncate">Hotline: 0387 365 020</div>
               </div>
             </a>
@@ -355,7 +355,7 @@ export default async function Home() {
                     Khu vực này hiện đang hiếm phòng trống
                   </h3>
                   <p className="text-[var(--ink-soft)] text-xs sm:text-sm mb-4 leading-relaxed max-w-md mx-auto">
-                    Các phòng phù hợp có thể vừa được thuê hoặc tiêu chí đang lọc quá hẹp. Nhắn Zalo để chuyên viên Radar tìm căn mới và giữ chỗ ngay cho bạn trong 15 phút:
+                    Phòng hợp ý có thể vừa có người thuê, hoặc bộ lọc đang hẹp quá. Nhắn Zalo cho Radar, bên mình tìm phòng khác giúp bạn:
                   </p>
                   <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
                     <NutZalo
@@ -366,7 +366,7 @@ export default async function Home() {
                       className="w-full sm:w-auto btn btn-primary px-4 py-2 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 shadow-xs"
                     >
                       <MessageCircle className="w-4 h-4 fill-current shrink-0" />
-                      <span>Nhắn Zalo nhờ Radar giữ chỗ phòng mới (15 phút)</span>
+                      <span>Nhắn Zalo nhờ Radar tìm phòng</span>
                     </NutZalo>
                     <Link
                       href="/"
@@ -490,7 +490,7 @@ export default async function Home() {
             <div className="flex-1 text-center sm:text-left">
               <h3 className="heading-3 text-[var(--ink)]">Nhận danh sách căn giá tốt nhất qua Zalo</h3>
               <p className="text-xs sm:text-sm text-[var(--ink-soft)] mt-1 leading-relaxed">
-                Chuyên viên Radar lọc sẵn 3–5 căn sát nhu cầu và tầm giá bạn chọn, gửi kèm ảnh/thông tin qua Zalo trong 15 phút.
+                Nhắn Radar nhu cầu và tầm giá, bên mình gửi vài căn hợp ý qua Zalo, có ảnh thật.
               </p>
             </div>
             <NutZalo

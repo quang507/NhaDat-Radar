@@ -582,7 +582,7 @@ export default async function AreaLanding({
       {/* Khối kích hoạt Lead: Săn nhà / phòng hộ qua Zalo */}
       <SanPhongHoCTA
         tieuDe={`Cần tìm nhanh ${kindWord ? kindWord.toLowerCase() : "nhà đất"} ${dealWord.toLowerCase()} tại ${where}?`}
-        moTa={`Nhắn tiêu chí (tài chính, khu vực, tiện ích mong muốn) cho Radar qua Zalo. Đội ngũ Radar sẽ lọc rổ hàng đã xác minh tại ${where} và gửi bạn 3 căn phù hợp nhất trong 15 phút.`}
+        moTa={`Nhắn Radar tầm giá và nhu cầu qua Zalo, bên mình gửi vài căn còn trống ở ${where}.`}
         tinNhanZalo={`Chào Radar, mình đang cần tìm ${kindWord ? kindWord.toLowerCase() : "nhà đất"} ${dealWord.toLowerCase()} tại ${where}, tư vấn giúp mình nhé!`}
       />
 
@@ -817,7 +817,7 @@ export async function HubGiaoDich({ deal }: { deal: Deal }) {
 
       <SanPhongHoCTA
         tieuDe={`Cần tìm nhanh nhà đất ${deal === "ban" ? "bán" : "cho thuê"} đúng tầm giá?`}
-        moTa="Nhắn khu vực, ngân sách và nhu cầu qua Zalo. Radar lọc sẵn các căn phù hợp từ rổ hàng đang trống và hỗ trợ dẫn xem miễn phí."
+        moTa="Nhắn khu vực và tầm giá qua Zalo. Radar gửi các căn còn trống và dẫn xem miễn phí."
         tinNhanZalo={`Chào Radar, mình cần tìm ${deal === "ban" ? "nhà đất mua" : "phòng trọ / căn hộ thuê"}, nhờ tư vấn giúp mình nhé!`}
       />
     </div>

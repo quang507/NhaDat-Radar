@@ -197,7 +197,7 @@ export default function SaveSearchButton({ filters, compact = false }: { filters
                 {kenh === "zalo" ? (
                   <form onSubmit={dangKyZalo} className="space-y-3">
                     <p className="text-xs text-[var(--ink-soft)] leading-relaxed">
-                      Chuyên viên Radar sẽ lưu tiêu chí và nhắn tin gửi 3 căn giá chuẩn nhất ngay khi có chủ nhà gửi phòng:
+                      Radar lưu tiêu chí này và nhắn bạn khi có phòng mới hợp ý:
                     </p>
                     <div>
                       <input

@@ -820,7 +820,7 @@ export default function SearchClient({
                 </h3>
                 <p className="text-[var(--ink-soft)] text-xs sm:text-sm mb-4 leading-relaxed max-w-md mx-auto">
                   {choThue
-                    ? "Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể nới lỏng nhanh tiêu chí hoặc nhắn Zalo để chuyên viên Radar tìm phòng và giữ chỗ ngay cho bạn trong 15 phút:"
+                    ? "Bộ lọc đang hơi hẹp. Bạn nới bớt điều kiện, hoặc nhắn Zalo để Radar tìm phòng giúp:"
                     : "Các tiêu chí hiện tại có thể đang giới hạn quá hẹp. Bạn có thể nới lỏng nhanh tiêu chí hoặc nhắn Zalo để chuyên viên Radar lọc giúp 3-5 căn phù hợp trong khu vực:"}
                 </p>
 
@@ -883,7 +883,7 @@ export default function SearchClient({
                         className="w-full sm:w-auto btn btn-primary px-4 py-2 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         <MessageCircle className="w-4 h-4 fill-current shrink-0" />
-                        <span>{choThue ? "Nhắn Zalo nhờ Radar giữ chỗ phòng mới (15 phút)" : "Nhắn Zalo nhờ Radar tìm căn phù hợp"}</span>
+                        <span>{choThue ? "Nhắn Zalo nhờ Radar tìm phòng" : "Nhắn Zalo nhờ Radar tìm căn phù hợp"}</span>
                       </NutZalo>
                       <button
                         type="button"

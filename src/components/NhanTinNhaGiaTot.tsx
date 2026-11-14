@@ -57,7 +57,7 @@ export default function NhanTinNhaGiaTot({ khuVuc = "khu vực bạn tìm", loai
           Đã nhận yêu cầu thành công!
         </h3>
         <p className="text-xs text-emerald-800 dark:text-emerald-300 max-w-md mx-auto">
-          Chuyên viên Radar sẽ chọn lọc 3 căn giá thật tốt nhất tại <strong>{khuVuc}</strong> và gửi qua Zalo số <strong>{phone}</strong> trong ít phút.
+          Radar sẽ gửi vài căn giá tốt ở <strong>{khuVuc}</strong> qua Zalo số <strong>{phone}</strong>.
         </p>
       </div>
     );
@@ -74,7 +74,7 @@ export default function NhanTinNhaGiaTot({ khuVuc = "khu vực bạn tìm", loai
         Nhận danh sách bất động sản giá tốt tại {khuVuc} qua Zalo
       </h3>
       <p className="text-xs text-[var(--ink-soft)] mt-1 mb-3.5 leading-relaxed max-w-xl">
-        Radar tổng hợp từ hàng ngàn nguồn và loại bỏ tin ảo. Để lại số điện thoại, chuyên viên sẽ gửi 3 căn giá chuẩn mặt bằng, kiểm tra pháp lý trước khi dẫn xem.
+        Radar gom tin từ nhiều nguồn và bỏ tin ảo. Để lại số điện thoại, bên mình gửi vài căn đúng giá thị trường qua Zalo.
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">

@@ -12,7 +12,7 @@ interface SanPhongHoCTAProps {
 
 export default function SanPhongHoCTA({
   tieuDe = "Chưa tìm được phòng trọ ưng ý?",
-  moTa = "Nhắn tiêu chí (tài chính, khu vực, tiện ích mong muốn), trợ lý Radar sẽ lọc rổ hàng phòng trống của Radar và gửi bạn 3 lựa chọn tốt nhất trong 15 phút.",
+  moTa = "Nhắn Radar tầm giá và khu vực bạn muốn, bên mình gửi vài phòng còn trống qua Zalo.",
   tinNhanZalo,
 }: SanPhongHoCTAProps) {
   return (
@@ -40,7 +40,7 @@ export default function SanPhongHoCTA({
             </span>
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4 text-brand shrink-0" />
-              Phản hồi trong 15 phút
+              Trả lời 8h - 21h
             </span>
           </div>
         </div>

@@ -19,7 +19,7 @@ type Msg = { role: "user" | "bot"; text: string; listings?: MiniListing[]; sugge
 
 const GREET_DEFAULT: Msg = {
   role: "bot",
-  text: "Dạ em là trợ lý AI của Radar! Anh/chị đang tìm phòng khu vực nào, ngân sách tầm bao nhiêu để em lọc rổ hàng 1.400+ căn trống hôm nay gửi liền cho mình tham khảo ạ?",
+  text: "Chào anh/chị, em là trợ lý AI của Radar. Anh/chị tìm phòng ở khu nào, tầm giá bao nhiêu ạ?",
   suggestions: ["Phòng trọ Bình Thạnh dưới 4tr", "Studio Quận 7 có ban công", "Phòng Tân Bình nuôi pet"],
 };
 

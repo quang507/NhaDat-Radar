@@ -19,6 +19,20 @@ console.log(`Hiện trạng trước dọn: Tổng ${totalBefore} tin (Published
 //    5 ngày (web) / 10 ngày (nguồn máy nhà) của daily.mjs -> tin FB/batdongsan còn sống bị hạ sớm.
 //    Chia batch 100 để né URL length limit.
 const HOME_ONLY = ["facebook.com", "facebook", "batdongsan.com.vn"];
+// 14/11: tin chưa có last_seen_at thì .lt("last_seen_at") không bao giờ khớp -> sống mãi. 276 tin cào chèn
+// một lượt ngày 8/10 không có mốc này, Chợ Tốt xoá tin rồi mà web vẫn hiện, ảnh chết. Bù mốc như crawler/daily.mjs
+// (lúc cào / thấy lần đầu / lúc tạo) trước khi lọc.
+{
+  const nulls = [];
+  for (let from = 0; ; from += 1000) { // PostgREST cắt 1000/lần
+    const { data, error } = await sb.from("listings").select("id,crawled_at,first_seen_at,created_at").eq("source", "crawl").is("last_seen_at", null).order("id").range(from, from + 999);
+    if (error) { console.error("Lỗi đọc tin thiếu last_seen_at:", error.message); break; }
+    nulls.push(...(data || [])); if (!data || data.length < 1000) break;
+  }
+  for (let i = 0; i < nulls.length; i += 20)
+    await Promise.all(nulls.slice(i, i + 20).map((r) => sb.from("listings").update({ last_seen_at: r.crawled_at || r.first_seen_at || r.created_at }).eq("id", r.id)));
+  if (nulls.length) console.log(`(bù last_seen_at cho ${nulls.length} tin thiếu mốc)`);
+}
 const goneCutoff = new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString();
 const goneCutoffHome = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString();
 const nhomGone = [

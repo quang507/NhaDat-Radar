@@ -73,7 +73,7 @@ export default function TimPhongNhanh() {
             Quá bận để tự lọc hàng ngàn tin?
           </h2>
           <p className="text-sm text-emerald-50/85 mt-1.5 leading-relaxed">
-            Chọn nhanh nhu cầu bên cạnh, chuyên viên Radar sẽ lọc sẵn <b className="text-amber-300">3 - 5 căn phòng phù hợp</b> đang còn trống và gửi video thực tế qua Zalo cho bạn trong <b className="text-emerald-300">15 phút</b>.
+            Chọn nhu cầu bên cạnh, Radar gửi <b className="text-amber-300">vài phòng còn trống</b> kèm video thật qua Zalo cho bạn.
           </p>
 
           <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/15 text-xs text-white/90 font-medium">

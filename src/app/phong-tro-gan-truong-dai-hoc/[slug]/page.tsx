@@ -300,7 +300,7 @@ export default async function PhongTroDaiHocDetailPage({
         {/* Săn phòng hộ CTA */}
         <SanPhongHoCTA
           tieuDe={`Chưa tìm được phòng trọ ưng ý gần ĐH ${u.tenVietTat}?`}
-          moTa={`Nhắn tiêu chí (tài chính, khu vực, tiện ích mong muốn), trợ lý Radar sẽ lọc rổ hàng quanh ${u.quan.join(", ")} và gửi bạn 3 lựa chọn tốt nhất trong 15 phút.`}
+          moTa={`Nhắn Radar tầm giá và khu vực bạn muốn, bên mình gửi vài phòng còn trống quanh ${u.quan.join(", ")}.`}
           tinNhanZalo={`Chào Radar, mình đang cần tìm phòng trọ gần ĐH ${u.tenVietTat} (${u.ten}), tư vấn phòng trống giúp mình nhé!`}
         />
 

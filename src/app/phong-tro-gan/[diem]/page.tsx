@@ -348,7 +348,7 @@ export default async function DiemNeoPage({
         <div className="mt-12">
           <SanPhongHoCTA
             tieuDe={`Cần tìm gấp phòng trọ gần ${d.ten}?`}
-            moTa={`Nhắn mức giá và khu vực mong muốn, trợ lý Radar sẽ đối chiếu rổ hàng phòng trống xác minh và gửi bạn 3 lựa chọn gần ${d.ten} phù hợp nhất trong 15 phút.`}
+            moTa={`Nhắn Radar tầm giá bạn muốn, bên mình gửi vài phòng còn trống gần ${d.ten}.`}
             tinNhanZalo={`Chào Radar, mình đang cần tìm phòng trọ gần ${d.ten} (${d.quanChinh}), nhờ Radar gửi mình danh sách phòng trống tốt nhất nhé!`}
           />
         </div>
