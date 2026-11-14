@@ -39,6 +39,7 @@ export default function SimilarListings({
 
       <HangVuot
         motHang
+        hep
         items={items.map((x) => {
           const img = cleanImages(x.images || [])[0] || null;
           const xacThuc = laRoHang(x);

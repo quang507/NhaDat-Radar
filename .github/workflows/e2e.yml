@@ -5,6 +5,9 @@ on:
   # 28/10: code push thẳng lên main (không qua PR) -> trước đây không có gì kiểm sau deploy. Vercel báo GitHub
   # "deployment_status" khi build xong: Production thành công thì chạy toàn bộ e2e + bộ giao diện tests/ui.
   deployment_status: {}
+  # 14/11: project Vercel hiện tại (qle888149-3009) KHÔNG gửi deployment_status (sự kiện cuối 3/11, tài khoản cũ).
+  # Nó chỉ ghi commit status context "Vercel" -> nghe status, lọc success + nhánh main ở job test.
+  status: {}
   workflow_dispatch:
     inputs:
       base_url:
@@ -17,7 +20,7 @@ jobs:
   # Build bản của PR: job "test" bên dưới chỉ gọi web production nên KHÔNG bắt được lỗi build
   # (22/9: HEAD 846ff3b vỡ type-check ở admin/page.tsx mà CI vẫn xanh).
   build:
-    if: github.event_name != 'deployment_status'   # Vercel đã build rồi
+    if: github.event_name != 'deployment_status' && github.event_name != 'status'   # Vercel đã build rồi
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -34,7 +37,8 @@ jobs:
   test:
     # deployment_status: chỉ khi bản Production deploy XONG (bỏ preview, bỏ trạng thái pending/failure)
     if: >-
-      github.event_name != 'deployment_status' ||
+      (github.event_name != 'deployment_status' && github.event_name != 'status') ||
+      (github.event_name == 'status' && github.event.context == 'Vercel' && github.event.state == 'success' && contains(github.event.branches.*.name, 'main')) ||
       (github.event.deployment_status.state == 'success' && contains(github.event.deployment.environment, 'Production'))
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -63,7 +67,7 @@ jobs:
       # chromium cho desktop + webkit cho project iPhone 14 (thiếu webkit = 19 ca mobile fail, 17/8)
       - run: npx playwright install --with-deps chromium webkit
       - name: Run tests
-        run: npx playwright test ${{ github.event_name == 'deployment_status' && 'tests/e2e/smoke.spec.ts --project=desktop' || '' }}
+        run: npx playwright test ${{ (github.event_name == 'deployment_status' || github.event_name == 'status') && 'tests/e2e/smoke.spec.ts --project=desktop' || '' }}
         env:
           BASE_URL: ${{ github.event.inputs.base_url || 'https://www.nhadatradar.com' }}
       - name: Upload báo cáo HTML

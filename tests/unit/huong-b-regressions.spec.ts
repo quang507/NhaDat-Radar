@@ -81,3 +81,15 @@ test("e2e.yml: sau deploy chỉ chạy smoke, không còn bước next build gi�
   expect(s).not.toContain("npx next build");
   expect(s).toContain("https://www.nhadatradar.com");
 });
+
+test("e2e.yml: smoke sau deploy chạy theo trạng thái commit của Vercel (project mới không gửi deployment_status)", () => {
+  const s = doc(".github/workflows/e2e.yml").replace(/\r/g, "");
+  // Vercel project hiện tại chỉ ghi commit status context "Vercel"; sự kiện deployment cuối cùng là 3/11 (tài khoản cũ)
+  expect(s).toMatch(/^\s{2}status: \{\}/m);
+  expect(s).toMatch(/github\.event\.context == 'Vercel'/);
+  expect(s).toMatch(/github\.event\.state == 'success'/);
+  expect(s).toMatch(/github\.event\.branches\.\*\.name, 'main'/);
+  // build job không chạy khi sự kiện là trạng thái deploy (Vercel đã build), smoke dùng cùng lệnh rút gọn
+  expect(s).toMatch(/if: github\.event_name != 'deployment_status' && github\.event_name != 'status'/);
+  expect(s).toMatch(/\(github\.event_name == 'deployment_status' \|\| github\.event_name == 'status'\) && 'tests\/e2e\/smoke\.spec\.ts --project=desktop'/);
+});
