@@ -30,7 +30,8 @@ test("logo SVG cỡ lớn", async ({ page }) => {
 
 test("ô tìm kiếm trang chủ", async ({ page }) => {
   await mo(page, "/");
-  const o = page.locator('.card:has(input[name="q"])').first();
+  // 14/11: khung ô tìm kiếm (HeroTimKiem) giờ là .search-box-elevated, không còn .card
+  const o = page.locator('.search-box-elevated:has(input[name="q"])').first();
   await expect(o).toHaveScreenshot("o-tim-kiem.png", { ...SO, mask: [o.locator(".cuon-ngang")] });
 });
 
