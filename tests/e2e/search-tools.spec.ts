@@ -33,5 +33,6 @@ test("nav mobile: menu ☰ mở được các trang chính", async ({ page, isMo
   const burger = page.locator('button[aria-label="Mở menu"]').first();
   await expect(burger).toBeVisible({ timeout: 15_000 });
   await burger.click();
-  await expect(page.locator('a[href="/search"]').first()).toBeVisible();
+  // e042d23: menu dùng link trang khu vực tĩnh (/nha-dat-cho-thue...), không còn /search động
+  await expect(page.locator('a[href="/nha-dat-cho-thue"]:visible').first()).toBeVisible();
 });
