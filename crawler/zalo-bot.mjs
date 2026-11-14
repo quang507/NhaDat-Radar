@@ -18,7 +18,8 @@ import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 import { canonProvince, quanTheoDB } from "./chung.mjs";
 import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH, soanTinSanKhach, timPhongPhuHop, TIEN_ICH, maPhong } from "./zalo-tu-van-lead.mjs";
-import { taoKhoHoiThoai } from "./zalo-hoi-thoai.mjs";
+import { taoKhoHoiThoai, maThe } from "./zalo-hoi-thoai.mjs";
+import { laBaiMoiGioiTimHang, SYS_MG, timCanChoMoiGioi, soanTinHopTac, soanTheMoiGioi, khoaTrung } from "./san-moi-gioi.mjs";
 import { taoCongGui, trongGioIm } from "./zalo-gui.mjs";
 import { laBaiTimPhong, SYS_TIM, SCHEMA_TIM, chuanHoaNhuCau } from "./khach-tim.mjs";
 
@@ -405,8 +406,55 @@ try {
   }
 } catch { /* không bắt buộc nếu chưa có file */ }
 
+// ---- KHÁCH CỦA MÔI GIỚI (14/11): "Khách em cần 1PN Q2 10tr" -> khớp rổ hàng -> thẻ admin, KHÔNG tự nhắn ----
+const daBaoMoiGioi = new Map(); // khoaTrung -> ms
+const lichSuTheMG = [];         // [ms]
+const MAX_THE_MG_NGAY = Number(process.env.ZALO_MAX_THE_MG_NGAY || 25);
+
+async function sanKhachMoiGioi({ groupId, senderId, senderName, text }) {
+  const nowMs = Date.now();
+  const khoa = khoaTrung(senderId, text);
+  if (daBaoMoiGioi.has(khoa) && nowMs - daBaoMoiGioi.get(khoa) < 24 * 3600_000) return; // cùng bài dán nhiều nhóm
+  if (daBaoMoiGioi.size > 3000) for (const [k, t] of daBaoMoiGioi) if (nowMs - t > 24 * 3600_000) daBaoMoiGioi.delete(k);
+  while (lichSuTheMG.length && nowMs - lichSuTheMG[0] > 24 * 3600_000) lichSuTheMG.shift();
+  if (lichSuTheMG.length >= MAX_THE_MG_NGAY) return;
+  daBaoMoiGioi.set(khoa, nowMs);
+
+  console.log(`🤝 [Săn MG] ${senderName} (${senderId}): "${text.slice(0, 60)}"`);
+  const nhomInfo = thongTinNhom.get(String(groupId));
+  const khuVucNhom = (nhomInfo?.khu_vuc || []).filter((k) => !/^(Hồ Chí Minh|TP\.?\s*HCM|Bình Dương)$/i.test(k));
+  const boiCanh = nhomInfo ? `\n\n--- BỐI CẢNH NHÓM ZALO ---\nTên nhóm: ${nhomInfo.ten || ""}${khuVucNhom.length ? `\nKhu vực mặc định của nhóm: ${khuVucNhom.join(", ")}` : ""}` : "";
+  const nhuCau = chuanHoaNhuCau(await goiGeminiJSON(`${SYS_MG}\n${SCHEMA_TIM}\n\n--- TIN TRONG NHÓM ZALO ---\n${text}${boiCanh}`));
+  if (!nhuCau || nhuCau.deal !== "thue") { console.log("  - bỏ (không phải tìm thuê cho khách)"); return; }
+  if (!nhuCau.quan.length && khuVucNhom.length) nhuCau.quan = [...khuVucNhom];
+
+  let canKhop = [];
+  try { canKhop = await timCanChoMoiGioi({ sb, nhuCau }); }
+  catch (e) { console.error("  (tra rổ hàng lỗi:", e.message, ")"); return; }
+  if (!canKhop.length) {
+    console.log(`  - không có căn khớp (quận: ${nhuCau.quan.join(", ") || "?"}, giá: ${nhuCau.gia_tu || "?"}-${nhuCau.gia_den || "?"})`);
+    return;
+  }
+
+  // Ghi hội thoại để admin gõ "K1234 1" là bot gửi câu mời hợp tác (gợi ý 1) cho môi giới qua acc Radar
+  const h = await khoHoiThoai.lay(senderId);
+  if (senderName) h.ten = senderName;
+  h.goi_y = [soanTinHopTac({ senderName, canKhop })];
+  await khoHoiThoai.luu(h);
+
+  const r = await congGui.gui(ADMIN_ZALO_UID, soanTheMoiGioi({ senderName, tenNhom: nhomInfo?.ten, text, nhuCau, canKhop, ma: maThe(senderId) }), { loai: "admin" });
+  if (r?.ok === false) console.error(`  (thẻ admin không gửi được: ${r.lyDo})`);
+  else { lichSuTheMG.push(nowMs); console.log(`  ✓ báo admin ${canKhop.length} căn khớp (${lichSuTheMG.length}/${MAX_THE_MG_NGAY} thẻ hôm nay)`); }
+}
+
 async function sanKhachGroup({ msgId, cliMsgId, groupId, senderId, senderName, text }) {
   if (!text || text.length < 10) return;
+  // Môi giới tìm hàng hộ khách đi nhánh riêng (chỉ báo admin), không qua thả tim/rep/nhắn riêng tự động
+  if (laBaiMoiGioiTimHang(text)) {
+    try { await sanKhachMoiGioi({ groupId, senderId, senderName, text }); }
+    catch (e) { console.error("[Săn MG] lỗi:", e.message); }
+    return;
+  }
   // Lớp 1: Lọc thô regex chống tốn quota + chặn cứng tin rao bán/cho thuê/môi giới
   if (!laBaiTimPhong(text)) return;
 
