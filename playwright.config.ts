@@ -9,11 +9,12 @@ const BASE_URL = process.env.BASE_URL || (LOCAL ? "http://localhost:3001" : "htt
 
 // Bộ giao diện tests/ui: 4 khổ - điện thoại 375, tablet 768, ngưỡng lg 1024 (bản đồ + bộ lọc đủ hiện), máy tính 1440.
 // Đều chạy Chromium (cần quyền clipboard cho luồng nút Zalo).
+// 14/11: khổ nào cũng phải đặt userAgent; để mặc định Playwright gửi "HeadlessChrome" và bị cổng chặn bot (src/lib/bot.ts) trả 403.
 const KHO_UI = [
   { name: "ui-dt", use: { viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2, userAgent: devices["Pixel 7"].userAgent } },
-  { name: "ui-tablet", use: { viewport: { width: 768, height: 1024 }, hasTouch: true } },
-  { name: "ui-lg", use: { viewport: { width: 1024, height: 768 } } },
-  { name: "ui-pc", use: { viewport: { width: 1440, height: 900 } } },
+  { name: "ui-tablet", use: { viewport: { width: 768, height: 1024 }, hasTouch: true, userAgent: devices["Desktop Chrome"].userAgent } },
+  { name: "ui-lg", use: { viewport: { width: 1024, height: 768 }, userAgent: devices["Desktop Chrome"].userAgent } },
+  { name: "ui-pc", use: { viewport: { width: 1440, height: 900 }, userAgent: devices["Desktop Chrome"].userAgent } },
 ];
 
 export default defineConfig({

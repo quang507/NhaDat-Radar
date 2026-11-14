@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
   if (phaiChan(request.headers.get("user-agent"), request.nextUrl.pathname)) {
     return new NextResponse("403: trang nay khong danh cho bot. Xem /robots.txt", {
       status: 403,
-      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex", "Cache-Control": "public, max-age=3600" },
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex", "Cache-Control": "private, no-store" },
     });
   }
 
