@@ -74,7 +74,7 @@ Phân tích TIN NHẮN CUỐI của người dùng (kèm ngữ cảnh hội tho�
  "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời tự nhiên, ngắn gọn, xưng em - anh/chị (vẫn là trợ lý AI, không tự nhận là người). Nếu khách hỏi phòng đang xem/mã phòng thì giải đáp thông tin bóc tách đủ 5 khoản phí minh bạch, nhấn mạnh "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào", chốt xem tối nay 18h30 hoặc chiều mai, và xin Zalo/SĐT để gửi vị trí Maps cùng video phòng thực tế (Hotline/Zalo: ${HOTLINE_DISPLAY} - ${HOTLINE_NAME}).
 }
 Không bịa. Giá quy về VND.
-Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" hoặc "NGƯỜI DÙNG ĐANG HỎI MÃ PHÒNG" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu", "phí sao") -> mode "chat", small_talk_reply trả lời đúng thông tin tin đó, bóc tách đủ 5 khoản phí minh bạch (tiền phòng, điện, nước, gửi xe, dịch vụ), nhấn mạnh dẫn xem miễn phí 100% không thu phí cò, chốt xem tối nay 18h30 hoặc chiều mai, và mời để lại Zalo/SĐT hoặc nhắn Zalo ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) để gửi Maps và video phòng thực tế.`;
+Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" hoặc "NGƯỜI DÙNG ĐANG HỎI MÃ PHÒNG" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu", "phí sao", "có gần ... không", "cách ... bao xa", "đi qua ... mấy phút") -> mode "chat", small_talk_reply trả lời thẳng vào câu hỏi của khách (nếu hỏi vị trí/khoảng cách tới địa danh, đường, trường học, dự án thì dựa vào địa chỉ khu vực/tọa độ của tin để ước lượng khoảng cách & thời gian di chuyển thực tế), kèm thông tin giá/phí ngắn gọn, nhấn mạnh dẫn xem miễn phí 100% không thu phí cò, và mời để lại Zalo/SĐT hoặc nhắn Zalo ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) để gửi vị trí Maps cùng video phòng thực tế.`;
 
 type TinDangXem = {
   id: string;
@@ -92,14 +92,18 @@ type TinDangXem = {
   source_site: string | null;
   specs: Record<string, string> | null;
   amenities: string[] | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 /** 11/11 (UX 3.4): Trả lời tức thì (<0.3s, không tốn lượt Gemini) khi khách đang xem 1 tin và hỏi trực tiếp về chính tin đó */
 function traLoiNhanhTinDangXem(t: TinDangXem, cauHoi: string): { reply: string; suggestions: string[] } | null {
-  if (/(tìm|kiếm|căn khác|phòng khác|tương tự|giá mềm|rẻ hơn|rẻ nhất|quận \d|bình thạnh|tân bình|gò vấp|quận 7|thủ đức)/i.test(cauHoi)) {
+  // Bỏ qua câu hỏi trắng chữ URL để tránh khớp nhầm chuỗi trong đường dẫn
+  const cauSach = cauHoi.replace(/https?:\/\/\S+/gi, " ").trim();
+  if (/(tìm|kiếm|căn khác|phòng khác|tương tự|giá mềm|rẻ hơn|rẻ nhất|quận \d|bình thạnh|tân bình|gò vấp|quận 7|thủ đức|gần|cách|bao xa|mấy km|mấy phút|đi học|đi làm|trường|đại học|làng đại học|bệnh viện|chợ|siêu thị|metro|sân bay|bến xe|khu |đường )/i.test(cauSach)) {
     return null;
   }
-  const hoiTinNay = /(còn (trống|không|k|ko)|phòng này|căn này|tiền phòng|chi phí|điện|nước|gửi xe|xe|dịch vụ|quản lý|phí|bao nhiêu|giá|cọc|hợp đồng|thú cưng|nuôi|giờ|tư vấn|hẹn xem|xem (nhà|phòng)|ở đâu|địa chỉ|diện tích|nội thất|tiện ích|có gì)/i.test(cauHoi);
+  const hoiTinNay = /(còn (trống|không|k|ko)|phòng này|căn này|tiền phòng|chi phí|điện|nước|gửi xe|xe|dịch vụ|quản lý|phí|bao nhiêu|giá|cọc|hợp đồng|thú cưng|nuôi|giờ|tư vấn|hẹn xem|xem (nhà|phòng)|ở đâu|địa chỉ|diện tích|nội thất|tiện ích|có gì)/i.test(cauSach);
   if (!hoiTinNay) return null;
 
   const rh = laRoHang(t);
@@ -323,17 +327,19 @@ export async function POST(req: NextRequest) {
     }, { status: 429 });
   }
 
-  // Tin khách đang xem (widget gửi kèm khi ở trang /listings/[id]) -> ngữ cảnh cho câu "phòng này còn không"
+  // Tin khách đang xem (widget gửi kèm khi ở trang /listings/[id] hoặc khách dán trực tiếp link /listings/<uuid> vào khung chat)
   let dangXem = "";
   let tinDangXemData: TinDangXem | null = null;
-  if (typeof body.dangXem === "string" && /^[0-9a-f-]{36}$/i.test(body.dangXem)) {
+  const linkListingMatch = last.match(/\/listings\/([0-9a-f-]{36})/i);
+  const idDangXem = linkListingMatch ? linkListingMatch[1] : (typeof body.dangXem === "string" && /^[0-9a-f-]{36}$/i.test(body.dangXem) ? body.dangXem : null);
+  if (idDangXem) {
     const { data } = await createAnonClient().from("listings")
-      .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site,specs,amenities").eq("id", body.dangXem).eq("status", "published").maybeSingle();
+      .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site,specs,amenities,lat,lng").eq("id", idDangXem).eq("status", "published").maybeSingle();
     if (data) {
       tinDangXemData = data as TinDangXem;
       const rh = laRoHang(data);
       // địa chỉ công khai (rổ hàng/độc quyền đã che số nhà) - không bao giờ đưa địa chỉ thật cho AI
-      dangXem = `NGƯỜI DÙNG ĐANG XEM TIN: "${cheSoVanBan(data.title)}" - ${fmtPrice(data.price_vnd, data.deal)}${data.area_m2 ? `, ${data.area_m2}m²` : ""}, ${cheSoVanBan([data.address, data.district, data.province].filter(Boolean).join(", "))}${rh ? `. Đây là phòng trống rổ hàng Radar, mã phòng ${maPhong(data.id)}, bảng phí: ${JSON.stringify(data.specs || {})}, hotline/Zalo duy nhất ${HOTLINE_DISPLAY} (${HOTLINE_NAME})` : ""}.`;
+      dangXem = `NGƯỜI DÙNG ĐANG XEM TIN: "${cheSoVanBan(data.title)}" - ${fmtPrice(data.price_vnd, data.deal)}${data.area_m2 ? `, ${data.area_m2}m²` : ""}, ${cheSoVanBan([data.address, data.ward, data.district, data.province].filter(Boolean).join(", "))}${rh ? `. Đây là phòng trống rổ hàng Radar, mã phòng ${maPhong(data.id)}, bảng phí: ${JSON.stringify(data.specs || {})}, hotline/Zalo duy nhất ${HOTLINE_DISPLAY} (${HOTLINE_NAME})` : ""}.`;
     }
   }
 
@@ -346,7 +352,7 @@ export async function POST(req: NextRequest) {
     if (khoang) {
       const { data: listingRh } = await createAnonClient()
         .from("listings")
-        .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site,specs,amenities")
+        .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site,specs,amenities,lat,lng")
         .gte("id", khoang[0])
         .lte("id", khoang[1])
         .eq("status", "published")
@@ -355,7 +361,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
       if (listingRh) {
         tinDangXemData = listingRh as TinDangXem;
-        dangXem = `NGƯỜI DÙNG ĐANG HỎI MÃ PHÒNG ${maChuan}: "${cheSoVanBan(listingRh.title)}" - ${fmtPrice(listingRh.price_vnd, listingRh.deal)}${listingRh.area_m2 ? `, ${listingRh.area_m2}m²` : ""}, ${cheSoVanBan([listingRh.address, listingRh.district, listingRh.province].filter(Boolean).join(", "))}. Bảng phí chi tiết (bóc tách 5 khoản minh bạch, nói không với chi phí ẩn): ${JSON.stringify(listingRh.specs || {})}. Hotline/Zalo tư vấn duy nhất của Radar: ${HOTLINE_DISPLAY} (${HOTLINE_NAME}).`;
+        dangXem = `NGƯỜI DÙNG ĐANG HỎI MÃ PHÒNG ${maChuan}: "${cheSoVanBan(listingRh.title)}" - ${fmtPrice(listingRh.price_vnd, listingRh.deal)}${listingRh.area_m2 ? `, ${listingRh.area_m2}m²` : ""}, ${cheSoVanBan([listingRh.address, listingRh.ward, listingRh.district, listingRh.province].filter(Boolean).join(", "))}. Bảng phí chi tiết (bóc tách 5 khoản minh bạch, nói không với chi phí ẩn): ${JSON.stringify(listingRh.specs || {})}. Hotline/Zalo tư vấn duy nhất của Radar: ${HOTLINE_DISPLAY} (${HOTLINE_NAME}).`;
       }
     }
   }
@@ -426,7 +432,12 @@ export async function POST(req: NextRequest) {
     }
   }
   const da = daTim;
-  if (da) {
+  const hoiChinhTinDangXem = Boolean(tinDangXemData && (linkListingMatch || /(phòng này|căn này|tin này|nhà này)/i.test(last)));
+  if (da && hoiChinhTinDangXem && tinDangXemData?.lat && tinDangXemData?.lng && da.lat && da.lng) {
+    const kmDa = khoangCachKm(da, { lat: Number(tinDangXemData.lat), lng: Number(tinDangXemData.lng) });
+    dangXem += ` Khoảng cách từ phòng đang xem tới dự án ${da.name} (${[da.district, da.province].filter(Boolean).join(", ")}) là khoảng ${kmDa < 1 ? Math.round(kmDa * 1000) + " m" : kmDa.toFixed(1) + " km"}.`;
+  }
+  if (da && !hoiChinhTinDangXem) {
     const cn = ` ${chuanTen(last)} `;
     const hoiQuanh = /\s(gan|quanh|canh|sat|ke ben|xung quanh|lan can|loanh quanh)\s/.test(cn);
     const hoiThongTin = /\s(o dau|cho nao|vi tri|dia chi|chu dau tu|cdt|ban giao|tien ich|thong tin|review|co gi|phap ly|nam o)\s/.test(cn);
@@ -540,7 +551,7 @@ export async function POST(req: NextRequest) {
     if (tuLuat.loc.price_min && !parsed.price_min) parsed.price_min = tuLuat.loc.price_min;
     if (tuLuat.loc.bedrooms && !parsed.bedrooms) parsed.bedrooms = tuLuat.loc.bedrooms;
     if (tuLuat.loc.keyword && !parsed.keyword) parsed.keyword = tuLuat.loc.keyword;
-    if (parsed.mode === "chat" && (tuLuat.loc.price_max || tuLuat.loc.district || tuLuat.loc.kind)) {
+    if (parsed.mode === "chat" && !hoiChinhTinDangXem && (tuLuat.loc.price_max || tuLuat.loc.district || tuLuat.loc.kind)) {
       parsed.mode = "search";
     }
   }

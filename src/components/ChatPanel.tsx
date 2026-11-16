@@ -49,8 +49,11 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [dangGo, setDangGo] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
+  // Khi khách đã gửi tin nhắn hoặc đang gõ phím -> thu gọn banner pháp lý & ẩn thanh chip đáy để mở rộng vùng đọc
+  const thuGon = msgs.length > 1 || dangGo || input.trim().length > 0;
   const chips = dangXem ? CHIPS_DANG_XEM : CHIPS_DEFAULT;
   const router = useRouter();
 
@@ -144,7 +147,9 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
             <span>Trợ lý AI Radar</span>
             <span className="text-overline border border-current px-1.5 py-0.5 rounded-sm">AI</span>
           </div>
-          <div className="text-caption text-white/80">Tự động lọc phòng trống &amp; nhà đất theo yêu cầu</div>
+          {!thuGon && (
+            <div className="text-caption text-white/80">Tự động lọc phòng trống &amp; nhà đất theo yêu cầu</div>
+          )}
         </div>
         <button
           type="button"
@@ -157,31 +162,51 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
       </div>
 
       {/* Sub-bar: thông báo AI + dữ liệu (NĐ 142/2026 Điều 18: báo trước khi người dùng nhập) + Hotline gặp người thật.
-          Trước 2/11 ghi "Chuyên viên trực tuyến" + chấm xanh nhấp nháy -> khách tưởng đang chat với người. */}
-      <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] text-caption text-[var(--ink-soft)] leading-relaxed">
-        Bạn đang trò chuyện với trợ lý AI (Google Gemini), không phải nhân viên. Nếu bạn gửi SĐT, Radar sẽ lưu để liên hệ
-        tư vấn.{" "}
-        <a href="/chinh-sach-bao-mat#ai" className="underline hover:text-brand">Chính sách</a>
-      </div>
-      <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-caption">
-        <span className="text-[var(--ink-soft)] font-semibold">Cần gặp người thật?</span>
-        {/* 2/11 (audit Q6): gọi từ khung chat cũng ghi ndr_goi; min-h-11 + -my-2 nới vùng chạm mà không cao thanh */}
-        <LinkTheoDoi
-          loai="goi"
-          listingId={dangXem}
-          href={`tel:${HOTLINE}`}
-          className="min-h-11 -my-2 font-semibold text-brand hover:underline flex items-center gap-1"
-        >
-          <PhoneCall className="w-3 h-3" />
-          <span>Hotline: {HOTLINE_DISPLAY}</span>
-        </LinkTheoDoi>
-      </div>
+          Khi đang nhắn / đã có tin nhắn qua lại -> tự thu gọn thành 1 dòng mảnh để nhường diện tích cho khung chat. */}
+      {thuGon ? (
+        <div className="px-3 py-1 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-overline text-[var(--ink-soft)]">
+          <span>
+            Trợ lý AI (Gemini) ·{" "}
+            <a href="/chinh-sach-bao-mat#ai" className="underline hover:text-brand">Chính sách</a>
+          </span>
+          <LinkTheoDoi
+            loai="goi"
+            listingId={dangXem}
+            href={`tel:${HOTLINE}`}
+            className="font-semibold text-brand hover:underline flex items-center gap-1 py-0.5"
+          >
+            <PhoneCall className="w-3 h-3" />
+            <span>{HOTLINE_DISPLAY}</span>
+          </LinkTheoDoi>
+        </div>
+      ) : (
+        <>
+          <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] text-caption text-[var(--ink-soft)] leading-snug">
+            Bạn đang trò chuyện với trợ lý AI (Google Gemini), không phải nhân viên. Nếu bạn gửi SĐT, Radar sẽ lưu để liên hệ
+            tư vấn.{" "}
+            <a href="/chinh-sach-bao-mat#ai" className="underline hover:text-brand">Chính sách</a>
+          </div>
+          <div className="px-3 py-1 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-caption">
+            <span className="text-[var(--ink-soft)] font-semibold">Cần gặp người thật?</span>
+            {/* 2/11 (audit Q6): gọi từ khung chat cũng ghi ndr_goi; min-h-11 + -my-2 nới vùng chạm mà không cao thanh */}
+            <LinkTheoDoi
+              loai="goi"
+              listingId={dangXem}
+              href={`tel:${HOTLINE}`}
+              className="min-h-11 -my-2 font-semibold text-brand hover:underline flex items-center gap-1"
+            >
+              <PhoneCall className="w-3 h-3" />
+              <span>Hotline: {HOTLINE_DISPLAY}</span>
+            </LinkTheoDoi>
+          </div>
+        </>
+      )}
 
       {/* Body chat */}
-      <div ref={bodyRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      <div ref={bodyRef} className="flex-1 overflow-y-auto px-3 py-2.5 space-y-2.5">
         {msgs.map((m, i) => (
           <div key={i}>
-            <div className={`max-w-[85%] rounded-md px-3 py-2 text-body-sm whitespace-pre-wrap leading-relaxed ${
+            <div className={`max-w-[88%] rounded-md px-3 py-2 text-body-sm whitespace-pre-wrap leading-relaxed break-words ${
               m.role === "user"
                 ? "ml-auto bg-brand text-white shadow-zen-1"
                 : "bg-[var(--surface-2)] border border-[var(--line)]"
@@ -212,7 +237,7 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
               </div>
             )}
             {m.listings && m.listings.length > 0 && (
-              <div className="mt-2.5 space-y-2">
+              <div className="mt-2 space-y-1.5">
                 {m.listings.map((l) => (
                   <Link
                     key={l.id}
@@ -220,12 +245,12 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
                     className="flex gap-2.5 card rounded-md p-2 hover:shadow-zen-2 transition border border-[var(--line)]"
                     onClick={(e) => moLink(e, `/listings/${l.id}`)}
                   >
-                    <div className="w-16 h-16 rounded-sm overflow-hidden bg-[var(--surface-2)] shrink-0 grid place-items-center">
+                    <div className="w-14 h-14 rounded-sm overflow-hidden bg-[var(--surface-2)] shrink-0 grid place-items-center">
                       {l.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={l.image} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <Home className="w-6 h-6 text-[var(--ink-faint)]" />
+                        <Home className="w-5 h-5 text-[var(--ink-faint)]" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -243,41 +268,28 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
                 {m.link.label} ›
               </Link>
             )}
-            {m.suggestions && m.suggestions.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {m.suggestions.map((sug, sIdx) => (
-                  <button
-                    key={sIdx}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => handleSendText(sug)}
-                    className="min-h-11 text-caption font-medium px-2.5 py-1 rounded-sm bg-brand/10 text-brand hover:bg-brand hover:text-white transition-all border border-brand/20 active:scale-95 text-left inline-flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>💡</span>
-                    <span>{sug}</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         ))}
         {busy && <div className="text-caption text-[var(--ink-faint)] px-2 animate-pulse">Đang tìm kiếm căn phù hợp…</div>}
       </div>
 
-      {/* Quick chips gợi ý */}
-      <div className="cuon-ngang px-3 py-1 bg-[var(--surface)] border-t border-[var(--line)] overflow-x-auto flex gap-1.5 [scrollbar-width:none]">
-        {chips.map((chip, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => handleSendText(chip)}
-            disabled={busy}
-            className="min-h-11 text-caption whitespace-nowrap px-2.5 rounded-sm bg-[var(--surface-2)] hover:bg-brand/10 hover:text-brand border border-[var(--line)] transition cursor-pointer"
-          >
-            {chip}
-          </button>
-        ))}
-      </div>
+      {/* Quick chips gợi ý: gộp gợi ý của tin nhắn cuối & chip mặc định thành 1 dải gọn duy nhất, tự ẩn khi khách đang gõ */}
+      {!input.trim() && (
+        <div className="cuon-ngang px-2.5 py-1.5 bg-[var(--surface)] border-t border-[var(--line)] overflow-x-auto flex gap-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {(msgs[msgs.length - 1]?.suggestions?.length ? msgs[msgs.length - 1].suggestions! : chips).map((chip, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => handleSendText(chip)}
+              disabled={busy}
+              className="py-1 px-2.5 text-caption whitespace-nowrap rounded-sm bg-[var(--surface-2)] hover:bg-brand/10 hover:text-brand border border-[var(--line)] transition cursor-pointer shrink-0"
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Input form */}
       <form
@@ -287,6 +299,8 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
         <input
           className="inp !py-2 min-h-11 text-body-sm flex-1"
           value={input}
+          onFocus={() => setDangGo(true)}
+          onBlur={() => setDangGo(false)}
           onChange={(e) => setInput(e.target.value)}
           placeholder={dangXem ? "Hỏi về phòng này hoặc để lại SĐT/Zalo…" : "Nhắn yêu cầu: 'phòng Bình Thạnh dưới 4tr'…"}
           aria-label="Nhắn trợ lý AI"
