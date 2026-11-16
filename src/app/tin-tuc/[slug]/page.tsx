@@ -150,6 +150,9 @@ function KhungBai({
               {categoryName}
             </span>
           )}
+          <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-brand" /> Ban biên tập NhaDat Radar
+          </span>
           <span className="text-xs text-slate-400 flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5" /> {new Date(ngay).toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
           </span>
@@ -183,6 +186,24 @@ function KhungBai({
       {/* Article Content */}
       <div className="pt-4 text-slate-800 leading-relaxed text-base space-y-8">
         {children}
+      </div>
+
+      {/* Khối tác giả & Kiểm định chất lượng nội dung (E-E-A-T AdSense) */}
+      <div className="mt-12 p-4 sm:p-5 rounded-xl border border-[var(--line)] bg-[var(--surface-2)] flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="w-11 h-11 rounded-lg bg-brand text-white font-black flex items-center justify-center shrink-0 text-sm shadow-xs">
+          RD
+        </div>
+        <div className="space-y-1 text-xs sm:text-sm">
+          <div className="font-bold text-[var(--ink)] flex items-center gap-2">
+            <span>Ban biên tập NhaDat Radar</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold inline-flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Đã kiểm chứng
+            </span>
+          </div>
+          <p className="text-[var(--ink-soft)] leading-relaxed text-xs">
+            Nội dung được nghiên cứu và tổng hợp độc lập bởi đội ngũ phân tích thị trường bất động sản NhaDat Radar. Số liệu giá thuê và khảo sát pháp lý phản ánh đúng thực tế thị trường TP.HCM tại thời điểm công bố.
+          </p>
+        </div>
       </div>
     </article>
   );

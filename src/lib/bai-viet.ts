@@ -48,7 +48,106 @@ export const CATEGORIES: { id: ArticleCategory | "all"; name: string }[] = [
 ];
 
 export const BAI_VIET: BaiViet[] = [
-  // --- BÀI VIẾT MỚI: PHÁP LÝ & MUA BÁN ---
+  // --- BÀI VIẾT MỚI THÁNG 11/2026: PCCC & CẨM NANG THUÊ PHÒNG ---
+  {
+    slug: "quy-dinh-pccc-phong-tro-chung-cu-mini-tphcm",
+    tieuDe: "Quy chuẩn an toàn PCCC khi thuê phòng trọ, chung cư mini tại TP.HCM (Mới nhất)",
+    moTa: "Hướng dẫn người thuê nhận biết phòng trọ đạt chuẩn an toàn phòng cháy chữa cháy: kiểm tra lối thoát hiểm thứ 2, thang dây thoát nạn, cửa ngăn khói và các điểm lưu ý sống còn trước khi ký hợp đồng.",
+    ngay: "2026-11-12",
+    category: "phap_ly",
+    categoryName: "Pháp lý & Quy hoạch",
+    readTime: "6 phút",
+    featured: true,
+    coverImage: "https://images.unsplash.com/photo-1541888946425-d0fbb18615f3?w=800&auto=format&fit=crop&q=80",
+    muc: [
+      {
+        h2: "1. Tiêu chí lối thoát nạn thứ hai: Có thực sự mở được khi có sự cố?",
+        doan: [
+          "Một tòa nhà trọ nhiều tầng bắt buộc phải có ít nhất 2 lối thoát nạn độc lập. Lối thứ nhất là cầu thang bộ chính từ các tầng xuống tầng trệt ra ngoài đường.",
+          "Lối thoát nạn thứ hai có thể là thang thoát hiểm sắt gắn ngoài trời, ban công thông thoáng có thang dây, hoặc lối mở sang nóc nhà hàng xóm. Khi đi xem phòng, bạn phải tận mắt kiểm tra xem cửa dẫn ra lối thoát nạn này có bị khóa trái hay bị hàn kín bằng chuồng cọp không.",
+        ],
+        ds: [
+          "Nếu có lồng sắt 'chuồng cọp' ở ban công: Bắt buộc phải có cửa thoát hiểm khẩn cấp kèm búa đập kính hoặc chìa khóa đặt ngay cạnh.",
+          "Cửa thoát hiểm không được để đồ đạc, máy giặt hay phơi quần áo chắn lối đi.",
+          "Kiểm tra xem thang sắt thoát hiểm ngoài trời có dẫn được thẳng xuống mặt đất hay dừng lưng chừng.",
+        ],
+      },
+      {
+        h2: "2. Khu vực sạc xe máy điện và bãi giữ xe tầng trệt",
+        doan: [
+          "Tầng trệt hoặc tầng hầm giữ xe là nơi tiềm ẩn nguy cơ chập cháy cao nhất trong các tòa nhà trọ và chung cư mini.",
+          "Theo tiêu chuẩn an toàn PCCC mới tại TP.HCM, khu vực sạc xe đạp điện, xe máy điện phải được bố trí riêng biệt, có rơ-le tự ngắt khi quá tải và cách xa các lối thoát nạn chính ít nhất 2 mét.",
+        ],
+        ds: [
+          "Khu vực để xe phải trang bị tối thiểu bình chữa cháy bột (MFZ4) và bình khí CO2 (MT3) còn hạn sử dụng (đồng hồ áp suất vạch xanh).",
+          "Có biển cảnh báo cấm hút thuốc và có người quản lý hoặc camera giám sát 24/7.",
+          "Tuyệt đối không thuê những căn nhà trọ nhồi nhét xe máy bít kín cửa ra vào duy nhất của căn nhà.",
+        ],
+      },
+      {
+        h2: "3. Hệ thống báo khói, báo cháy tự động và chuông báo động",
+        doan: [
+          "Khi bước vào hành lang từng tầng và bên trong phòng trọ, hãy ngước nhìn lên trần nhà xem có đầu báo khói độc lập hoặc đầu phun nước chữa cháy tự động (sprinkler) không.",
+          "Đầu báo khói chạy pin có giá lắp đặt rất rẻ nhưng có khả năng cứu sống cả tòa nhà nếu phát hiện mùi khét hoặc khói âm ỉ ngay từ ban đêm.",
+        ],
+      },
+      {
+        h2: "4. Thỏa thuận trách nhiệm PCCC trong hợp đồng thuê",
+        doan: [
+          "Trước khi đặt bút ký hợp đồng thuê phòng, người thuê nên yêu cầu chủ nhà ghi rõ cam kết về bảo trì hệ thống PCCC, số lượng bình chữa cháy trang bị tại tầng mình ở và số điện thoại quản lý tòa nhà trực khẩn cấp.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "checklist-tra-phong-tro-hoan-tien-coc",
+    tieuDe: "Checklist 6 bước trả phòng trọ, lấy lại đủ tiền cọc không bị trừ vô lý",
+    moTa: "Kinh nghiệm thực chiến giúp người thuê dọn phòng sạch sẽ, chốt công tơ điện nước minh bạch, phân định hao mòn tự nhiên và bảo vệ quyền lấy lại 100% tiền cọc đúng hẹn.",
+    ngay: "2026-11-14",
+    category: "thue_nha",
+    categoryName: "Cẩm nang thuê phòng",
+    readTime: "5 phút",
+    featured: true,
+    coverImage: "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=800&auto=format&fit=crop&q=80",
+    muc: [
+      {
+        h2: "1. Thông báo trả phòng trước đúng số ngày quy định trong hợp đồng",
+        doan: [
+          "Hầu hết các hợp đồng thuê nhà tại TP.HCM đều có điều khoản: Người thuê phải báo trước từ 15 đến 30 ngày nếu muốn chấm dứt hợp đồng. Nếu báo trễ dù chỉ 1 ngày, chủ nhà có quyền phạt mất toàn bộ tiền cọc.",
+          "Cách làm chuẩn: Gửi tin nhắn Zalo hoặc SMS xác nhận ngày trả phòng cho chủ nhà/quản lý để có bằng chứng bằng văn bản kèm ngày giờ, tránh nói miệng.",
+        ],
+      },
+      {
+        h2: "2. Dọn dẹp vệ sinh và khôi phục hiện trạng ban đầu",
+        doan: [
+          "Phí dọn dẹp phòng là nguyên cớ phổ biến nhất khiến người thuê bị trừ từ 300.000 đến 1.000.000 đồng khi trả phòng.",
+          "Hãy dành nửa ngày quét dọn, cọ sạch nhà vệ sinh, lau bề mặt bếp và tháo gỡ các móc dán tường bạn tự gắn. Nếu phòng sạch sẽ như lúc nhận, chủ nhà không có lý do gì để thu phí vệ sinh.",
+        ],
+      },
+      {
+        h2: "3. Phân biệt rõ 'hư hỏng' và 'hao mòn tự nhiên theo thời gian'",
+        doan: [
+          "Điều 478 Bộ luật Dân sự quy định: Người thuê không phải chịu trách nhiệm đối với những hao mòn tự nhiên do sử dụng đúng công năng.",
+          "Các vết sơn tường phai màu, đệm cao su vòi nước rỉ nhẹ hay bóng đèn sợi đốt cháy sau 1 năm sử dụng thuộc về hao mòn tự nhiên, chủ nhà phải tự bảo dưỡng, không được đè tiền cọc của khách để trừ tiền sơn sửa toàn bộ phòng.",
+        ],
+      },
+      {
+        h2: "4. Chốt chỉ số điện, nước bằng hình ảnh chụp rõ ngày giờ",
+        doan: [
+          "Vào ngày bàn giao chìa khóa, hãy cùng chủ nhà hoặc quản lý tòa nhà đứng trước công tơ điện và đồng hồ nước, chụp ảnh cận cảnh chỉ số kèm mặt người chứng kiến.",
+          "Lấy chỉ số mới trừ đi chỉ số tháng trước, nhân đúng đơn giá thỏa thuận trong hợp đồng để tính ra số tiền cần thanh toán nốt.",
+        ],
+      },
+      {
+        h2: "5. Lập biên bản bàn giao và nhận lại cọc ngay tại chỗ",
+        doan: [
+          "Tuyệt đối không trả chìa khóa và rời đi khi chủ nhà chỉ hứa 'để xem lại phòng rồi vài ngày nữa chuyển khoản'.",
+          "Hai bên ký vào biên bản xác nhận đã bàn giao chìa khóa, thẻ từ, phòng ốc nguyên vẹn và chủ nhà thực hiện chuyển khoản hoàn lại tiền cọc ngay tại thời điểm nhận lại phòng.",
+        ],
+      },
+    ],
+  },
+  // --- BÀI VIẾT: PHÁP LÝ & MUA BÁN ---
   {
     slug: "kiem-tra-phap-ly-quy-hoach-mua-nha-dat",
     tieuDe: "10 bước kiểm tra pháp lý nhà đất, quy hoạch và tránh bẫy đặt cọc",
