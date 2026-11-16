@@ -139,68 +139,38 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
                  card rounded-md shadow-zen-4 flex-col overflow-hidden border border-[var(--line)] ${open ? "flex" : "hidden"}`}
     >
       {/* Header */}
-      <div className="pl-4 pr-2 py-1.5 bg-brand text-white flex items-center justify-between">
-        <div>
+      <div className="pl-3.5 pr-1.5 py-1.5 bg-brand text-white flex items-center justify-between gap-2">
+        <div className="min-w-0">
           <div className="font-bold flex items-center gap-1.5 text-body-sm">
-            <Bot className="w-4 h-4" />
-            {/* 2/11 (Luật AI 134/2025 Điều 11 khoản 1): người dùng phải biết đang nói chuyện với AI */}
-            <span>Trợ lý AI Radar</span>
-            <span className="text-overline border border-current px-1.5 py-0.5 rounded-sm">AI</span>
+            <Bot className="w-4 h-4 shrink-0" />
+            <span className="truncate">Trợ lý AI Radar</span>
+            <span className="text-overline border border-current px-1.5 py-0.5 rounded-sm shrink-0">AI</span>
           </div>
           {!thuGon && (
-            <div className="text-caption text-white/80">Tự động lọc phòng trống &amp; nhà đất theo yêu cầu</div>
+            <div className="text-caption text-white/80 truncate">Tự động lọc phòng trống &amp; nhà đất theo yêu cầu</div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="min-h-11 min-w-11 grid place-items-center text-white/80 hover:text-white rounded-sm hover:bg-black/10 transition"
-          aria-label="Đóng chat"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Sub-bar: thông báo AI + dữ liệu (NĐ 142/2026 Điều 18: báo trước khi người dùng nhập) + Hotline gặp người thật.
-          Khi đang nhắn / đã có tin nhắn qua lại -> tự thu gọn thành 1 dòng mảnh để nhường diện tích cho khung chat. */}
-      {thuGon ? (
-        <div className="px-3 py-1 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-overline text-[var(--ink-soft)]">
-          <span>
-            Trợ lý AI (Gemini) ·{" "}
-            <a href="/chinh-sach-bao-mat#ai" className="underline hover:text-brand">Chính sách</a>
-          </span>
+        <div className="flex items-center gap-1 shrink-0">
           <LinkTheoDoi
             loai="goi"
             listingId={dangXem}
             href={`tel:${HOTLINE}`}
-            className="font-semibold text-brand hover:underline flex items-center gap-1 py-0.5"
+            className="min-h-11 px-2 text-caption font-semibold text-white/95 hover:text-white rounded-sm hover:bg-black/10 transition flex items-center gap-1"
+            aria-label={`Gọi Hotline ${HOTLINE_DISPLAY}`}
           >
-            <PhoneCall className="w-3 h-3" />
-            <span>{HOTLINE_DISPLAY}</span>
+            <PhoneCall className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{HOTLINE_DISPLAY}</span>
           </LinkTheoDoi>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-11 min-w-11 grid place-items-center text-white/80 hover:text-white rounded-sm hover:bg-black/10 transition"
+            aria-label="Đóng chat"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-      ) : (
-        <>
-          <div className="px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--line)] text-caption text-[var(--ink-soft)] leading-snug">
-            Bạn đang trò chuyện với trợ lý AI (Google Gemini), không phải nhân viên. Nếu bạn gửi SĐT, Radar sẽ lưu để liên hệ
-            tư vấn.{" "}
-            <a href="/chinh-sach-bao-mat#ai" className="underline hover:text-brand">Chính sách</a>
-          </div>
-          <div className="px-3 py-1 bg-[var(--surface-2)] border-b border-[var(--line)] flex items-center justify-between text-caption">
-            <span className="text-[var(--ink-soft)] font-semibold">Cần gặp người thật?</span>
-            {/* 2/11 (audit Q6): gọi từ khung chat cũng ghi ndr_goi; min-h-11 + -my-2 nới vùng chạm mà không cao thanh */}
-            <LinkTheoDoi
-              loai="goi"
-              listingId={dangXem}
-              href={`tel:${HOTLINE}`}
-              className="min-h-11 -my-2 font-semibold text-brand hover:underline flex items-center gap-1"
-            >
-              <PhoneCall className="w-3 h-3" />
-              <span>Hotline: {HOTLINE_DISPLAY}</span>
-            </LinkTheoDoi>
-          </div>
-        </>
-      )}
+      </div>
 
       {/* Body chat */}
       <div ref={bodyRef} className="flex-1 overflow-y-auto px-3 py-2.5 space-y-2.5">
