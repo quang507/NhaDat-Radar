@@ -12,7 +12,7 @@ import { tinhCuGopVao, TINH_MAC_DINH, MOI_TINH } from "@/lib/sap-nhap";
 import SearchClient, { type DieuHuong } from "./SearchClient";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { oTronRoHang, xepTheoThuTu, khoangIdTuMa } from "@/lib/ro-hang";
-import { khoaLocTienIch, tienIchCua } from "@/lib/tien-ich";
+import { khoaLocTienIch } from "@/lib/tien-ich";
 import { bocTruyVanBDS } from "@/lib/boc-truy-van";
 
 // /search là công cụ lọc tương tác: luôn noindex (trang khu vực & hub /nha-dat-ban, /nha-dat-cho-thue là bản để Google index).
@@ -233,8 +233,9 @@ const timKiemCoCache = unstable_cache(
   const totalQuery = applyFilters(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published"));
   const trang = soTrang(sp.page);
   const tu = (trang - 1) * MOI_TRANG;
-  // tiện ích (ti) tính trên mô tả đầy đủ TRƯỚC khi gonChoDanhSach cắt - thẻ phòng cho thuê hiện icon tiện ích
-  const gon = (ds: Listing[]) => ds.map((x) => (x.deal === "cho_thue" ? { ...x, ti: tienIchCua(x) } : x)).map(cheSoTin).map(gonChoDanhSach).map(chiTruongThe);
+  // tiện ích (ti) trên thẻ phòng cho thuê: lấy cột tien_ich_tim DB đã tính trên mô tả ĐẦY ĐỦ (migration 045) -
+  // 17/11: truy vấn danh sách không còn kéo mô tả/ảnh/amenities đầy đủ về chỉ để tính lại ở đây (egress)
+  const gon = (ds: Listing[]) => ds.map((x) => (x.deal === "cho_thue" ? { ...x, ti: x.tien_ich_tim ?? [] } : x)).map(cheSoTin).map(gonChoDanhSach).map(chiTruongThe);
 
   // Lọc theo khoảng cách: DB chỉ lọc được khung vuông -> vẫn tải tối đa 200 tin trong khung, cắt đúng
   // bán kính + xếp gần trước ở đây, rồi mới chia trang (tổng = số tin thật sự trong bán kính).

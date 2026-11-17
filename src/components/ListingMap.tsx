@@ -95,7 +95,7 @@ export default function ListingMap({
           const sb = await layClient(); // 2/11 (audit P1): supabase-js chỉ tải khi thật sự tìm lân cận
           let q = sb
             .from("listings")
-            .select("id,source,source_site,title,price_vnd,deal,kind,lat,lng,images,area_m2")
+            .select("id,source,source_site,title,price_vnd,deal,kind,lat,lng,images:anh_bia,area_m2")   // popup chỉ dùng ảnh đầu (egress, migration 046)
             .eq("status", "published")
             .eq("deal", targetDeal)
             .gte("lat", sw.lat)
