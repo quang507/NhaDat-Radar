@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { toaDoTuLink, laHostMaps } from "../../src/lib/maps-link";
-import { docTienIch, dieuKienTienIch, nhanTienIch, tienIchCua } from "../../src/lib/tien-ich";
+import { docTienIch, khoaLocTienIch, nhanTienIch, tienIchCua } from "../../src/lib/tien-ich";
 import { linkGocEvohome } from "../../src/lib/ro-hang";
 
 // Bộ lọc kiểu EvoHome (1/10): đọc toạ độ từ link Google Maps, tiện ích, link gốc EvoHome cho admin.
@@ -20,23 +20,26 @@ test("laHostMaps: chỉ cho host Google (chặn SSRF)", () => {
   for (const h of ["evil.com", "google.com.evil.com", "169.254.169.254", "localhost"]) expect(laHostMaps(h), h).toBe(false);
 });
 
-test("tiện ích: đọc tham số ti + dựng điều kiện .or()", () => {
+test("tiện ích: đọc tham số ti -> khoá lọc trên cột tien_ich_tim", () => {
   expect(docTienIch("dieu_hoa,la_lung,tu_lanh,dieu_hoa").map((t) => t.k)).toEqual(["dieu_hoa", "tu_lanh"]);
-  const dk = dieuKienTienIch(docTienIch("dieu_hoa")[0]);
-  expect(dk).toContain("amenities.cs.{ac}");
-  expect(dk).toContain("description.ilike.%máy lạnh%");
-  expect(dk).toContain("amenities.cs.{dieu_hoa}");   // khoá rổ hàng lưu thẳng
+  // 17/11: bộ lọc tra cột listings.tien_ich_tim (DB tự tính, migration 045), không còn quét chữ trong mô tả
+  expect(khoaLocTienIch("dieu_hoa,la_lung,tu_lanh,dieu_hoa")).toEqual(["dieu_hoa", "tu_lanh"]);
+  expect(khoaLocTienIch("")).toEqual([]);
+  expect(khoaLocTienIch(undefined)).toEqual([]);
+  // nguồn cũ ghi khoá "ac" trong amenities -> tin đó vẫn được nhận là có điều hoà
+  expect(tienIchCua({ title: "Phòng Q7", amenities: ["ac"] })).toContain("dieu_hoa");
+  expect(tienIchCua({ title: "Phòng Q7", description: "Có MÁY LẠNH, wc riêng" })).toContain("dieu_hoa");
   expect(nhanTienIch("dieu_hoa")).toBe("❄ Điều hòa");
   expect(nhanTienIch("la")).toBeNull();
-  // ký tự phá cú pháp .or() không được có trong cụm từ
+  // cụm từ nằm trong chuỗi SQL của migration 045: không được có ký tự phá cú pháp
   for (const t of docTienIch("dieu_hoa,nuoc_nong,tu_lanh,tivi,may_giat,tu_quan_ao,giuong,ban_cong,thang_may,de_xe,thu_cung,san_phoi,gieng_troi,xe_dien,an_ninh,chu_chung,gac_lung,bon_rua,cua_so,ke_bep"))
-    for (const w of t.tu) expect(w, w).not.toMatch(/[,()%_*]/);
+    for (const w of t.tu) expect(w, w).not.toMatch(/[,()%_*'\\]/);
 });
 
 test("tiện ích video: lọc qua ?ti=video và tự nhận clip .mp4 trong images", () => {
   const ds = docTienIch("video");
   expect(ds.map((t) => t.k)).toEqual(["video"]);
-  expect(dieuKienTienIch(ds[0])).toContain("amenities.cs.{video}");
+  expect(khoaLocTienIch("video")).toEqual(["video"]);
   expect(tienIchCua({ title: "Studio Tân Bình", images: ["https://cdn.example.com/phong.jpg", "https://cdn.example.com/tour.mp4?t=1"] })).toContain("video");
   expect(tienIchCua({ title: "Studio Tân Bình", images: ["https://cdn.example.com/phong.jpg"] })).not.toContain("video");
 });

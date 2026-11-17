@@ -2,7 +2,8 @@
 // Nguồn ghi tiện ích không đồng nhất: Chợ Tốt có mảng amenities (khoá ac/parking/...), rổ hàng EvoHome
 // ghi trong mô tả ("• Máy lạnh", "• Máy giặt"...), tin FB/web khác chỉ có chữ trong mô tả.
 // -> mỗi tiện ích khớp khi amenities chứa khoá cũ HOẶC mô tả/tiêu đề có một trong các cụm từ.
-// Khớp chữ nên có thể lọt "không có thang máy" - chấp nhận, đổi lại không cần cột mới / migration.
+// Khớp chữ nên có thể lọt "không có thang máy" - chấp nhận. Vì thế khoá suy từ chữ KHÔNG được ghi vào cột
+// amenities (trang tin dùng amenities để khẳng định "Thú cưng: được nuôi"...) mà nằm ở cột tien_ich_tim.
 // ngan: chữ trên thẻ phòng hẹp (~165px); không có thì dùng ten
 export type TienIch = { k: string; ten: string; ngan?: string; icon: string; am?: string; tu: string[] };
 
@@ -37,13 +38,14 @@ export function docTienIch(s: string | null | undefined): TienIch[] {
   return [...new Set(String(s || "").split(","))].map((k) => THEO_KHOA.get(k.trim())).filter((t): t is TienIch => !!t);
 }
 
-/** chuỗi điều kiện .or() PostgREST cho 1 tiện ích (các cụm từ không chứa ký tự đặc biệt của .or) */
-export function dieuKienTienIch(t: TienIch) {
-  const dk = t.tu.flatMap((w) => [`description.ilike.%${w}%`, `title.ilike.%${w}%`]);
-  dk.unshift(`amenities.cs.{${t.k}}`);   // rổ hàng lưu thẳng khoá này (evohome-fetch.mjs)
-  if (t.am) dk.unshift(`amenities.cs.{${t.am}}`);
-  return dk.join(",");
-}
+/**
+ * "dieu_hoa,tu_lanh" -> khoá để lọc `listings.tien_ich_tim @> {…}` (tin phải có ĐỦ các tiện ích đã chọn).
+ * 17/11: trước đây mỗi tiện ích là 8 điều kiện ilike trên mô tả/tiêu đề, chạy 5 lần mỗi lượt tìm -> quét mô tả
+ * của cả bảng, 4-5 giây và hay vượt hạn 3s của role anon. Giờ DB tự tính cột tien_ich_tim khi ghi tin
+ * (migration 045, hàm tinh_tien_ich: cùng luật với tienIchCua bên dưới).
+ * ĐỔI TIEN_ICH phải kèm migration cập nhật hàm SQL đó (tests/unit/tien-ich-db.spec.ts bắt lệch).
+ */
+export const khoaLocTienIch = (s: string | null | undefined): string[] => docTienIch(s).map((t) => t.k);
 
 /** nhãn hiển thị cho khoá tiện ích kiểu mới ("dieu_hoa" -> "❄ Điều hòa"); khoá lạ -> null */
 export const nhanTienIch = (k: string) => { const t = THEO_KHOA.get(k); return t ? `${t.icon} ${t.ten}` : null; };

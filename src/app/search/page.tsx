@@ -12,7 +12,7 @@ import { tinhCuGopVao, TINH_MAC_DINH, MOI_TINH } from "@/lib/sap-nhap";
 import SearchClient, { type DieuHuong } from "./SearchClient";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { oTronRoHang, xepTheoThuTu, khoangIdTuMa } from "@/lib/ro-hang";
-import { docTienIch, dieuKienTienIch, tienIchCua } from "@/lib/tien-ich";
+import { khoaLocTienIch, tienIchCua } from "@/lib/tien-ich";
 import { bocTruyVanBDS } from "@/lib/boc-truy-van";
 
 // /search là công cụ lọc tương tác: luôn noindex (trang khu vực & hub /nha-dat-ban, /nha-dat-cho-thue là bản để Google index).
@@ -145,7 +145,7 @@ const timKiemCoCache = unstable_cache(
   })();
   // Bộ lọc dùng chung cho danh sách + đếm (cùng điều kiện)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any; in: any }>(query: T): T => {
+  const applyFilters = <T extends { eq: any; neq: any; ilike: any; gte: any; lte: any; or: any; in: any; contains: any }>(query: T): T => {
     if (deal === "ban" || deal === "cho_thue") query = query.eq("deal", deal);
     if (own === "1") query = query.in("source", ["ro_hang", "agent"]); // chỉ tin đã xác minh (hoặc tự đăng trên sàn)
     // ?agent=<uuid> từ nút "Xem tin đăng" trang /agents - trước đây link đó truyền ?q=<tên
@@ -161,7 +161,11 @@ const timKiemCoCache = unstable_cache(
     if (province) {
       const cu = newAddr === "1" ? tinhCuGopVao(province) : [];
       const ds = [...new Set([province, ...cu].flatMap(khopTinh))];
-      if (ds.length) query = query.in("province", ds);
+      // 17/11: đúng 1 tên tỉnh (trường hợp thường gặp: DB chỉ có "Hồ Chí Minh") thì phải là "=": với in() dù chỉ
+      // 1 phần tử Postgres không đi index theo thứ tự first_seen_at -> đọc hết ~16.800 tin rồi mới sort lấy 14-20
+      // tin (đo: 15.788 trang, có lúc 6,7s > hạn 3s của anon). Với "=" chỉ đọc 16 trang (index migration 045).
+      if (ds.length === 1) query = query.eq("province", ds[0]);
+      else if (ds.length) query = query.in("province", ds);
       else if (cu.length) query = query.or([province, ...cu].map((p) => `province.ilike.%${clean(p)}%`).join(","));
       else query = query.ilike("province", `%${clean(province)}%`);
     }
@@ -175,9 +179,11 @@ const timKiemCoCache = unstable_cache(
     if (areaMax && !Number.isNaN(Number(areaMax))) query = query.lte("area_m2", Number(areaMax));
     if (bedrooms && !Number.isNaN(Number(bedrooms))) query = query.gte("bedrooms", Number(bedrooms));
     if (bathrooms && !Number.isNaN(Number(bathrooms))) query = query.gte("bathrooms", Number(bathrooms));
-    // 1/10 bộ lọc kiểu EvoHome: tiện ích (mỗi cái 1 nhóm OR, các nhóm AND với nhau - lib/tien-ich),
+    // 1/10 bộ lọc kiểu EvoHome: tiện ích (tin phải có đủ các tiện ích đã chọn - lib/tien-ich),
     // dự án, tên đường, có/không ảnh, bán kính quanh 1 điểm (link Google Maps)
-    for (const t of docTienIch(ti)) query = query.or(dieuKienTienIch(t));
+    // 17/11: tra cột tien_ich_tim do DB tự tính (migration 045) thay cho 8 ilike trên mô tả mỗi tiện ích
+    const khoaTi = khoaLocTienIch(ti);
+    if (khoaTi.length) query = query.contains("tien_ich_tim", khoaTi);
     if (project && /^[0-9a-f-]{36}$/i.test(project)) query = query.eq("project_id", project);
     if (street && clean(street)) query = query.ilike("address", `%${clean(street)}%`);
     if (anh === "co") query = query.neq("images", "{}");
@@ -267,7 +273,7 @@ const timKiemCoCache = unstable_cache(
   const listings = gon(xepTheoThuTu(o.thuTu, (rh ?? []) as Listing[], (khac ?? []) as Listing[]));
   return { listings, newToday: newToday ?? 0, total: total ?? listings.length, trang };
   },
-  ["search-v11"],   // v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10); v9: tin da xac minh; v10: quận khớp mọi biến thể tên (29/10); v11: ảnh rổ hàng qua /m (3/11)
+  ["search-v12"],   // v12: lọc tiện ích theo cột tien_ich_tim (17/11); v2: chỉ trường thẻ + mô tả 160 ký tự (30/9); v6: phân trang thật 20 tin/trang + khoá phụ id + tiện ích thẻ thuê (1/10); v7: cắt mô tả không chẻ emoji (2/10); v9: tin da xac minh; v10: quận khớp mọi biến thể tên (29/10); v11: ảnh rổ hàng qua /m (3/11)
   { revalidate: 900, tags: ["listings"] },   // 15 phút (2/10, egress)
 );
 
