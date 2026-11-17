@@ -5,8 +5,12 @@ on:
   # ở nhà bật. Facebook và Zalo vẫn phải chạy ở máy (IP dân cư + phiên đăng nhập), đó là
   # việc của CHAY.bat.
   schedule:
-    # 4 tiếng/lần. Giờ UTC -> VN cộng 7: 01,05,09,13,17,21 UTC = 08,12,16,20,00,04 giờ VN.
-    - cron: "0 1,5,9,13,17,21 * * *"
+    # 17/11: 1 lượt/ngày lúc 04:00 giờ VN (21:00 UTC), trước đó 6 lượt/ngày (4 tiếng/lần).
+    # Lý do: egress Supabase gói Free 5 GB/kỳ đã dùng 3,975 GB sau 10 ngày, hết ân hạn -> vượt là request trả 402.
+    # Mỗi lượt đọc lại tin cũ để so (~26 MB/ngày với 6 lượt) và ghi đè mọi tin thấy lại (làm bẩn bảng listings,
+    # phép đếm của /search chậm - migration 044). Tin cào web trễ tối đa 24 giờ; rổ hàng chạy lịch riêng trên máy 146.
+    # Luật hạ 'gone' của daily.mjs là 5 ngày không thấy lại -> 1 lượt/ngày vẫn chịu được 4 lượt hỏng liên tiếp.
+    - cron: "0 21 * * *"
   workflow_dispatch: {}      # bấm chạy tay ở tab Actions
 
 # Hai lượt chồng nhau (cron trễ + bấm tay) cùng seed -> đụng unique index uq_listings_source_post.
