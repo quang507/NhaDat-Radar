@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { unstable_cache } from "next/cache";
-import { fmtPrice } from "@/lib/format";
+import { giaDuAn, tenChuDauTu } from "@/lib/du-an-hien-thi";
 import SafeImg from "@/components/SafeImg";
 import { tinhMoi } from "@/lib/sap-nhap";
 import { SITE_URL } from "@/lib/ld";
@@ -47,7 +47,7 @@ const layDuAn = unstable_cache(
     ]);
     return { data, count, provRows };
   },
-  ["projects-list-v2"],
+  ["projects-list-v3"],   // v3 (17/11): bỏ 10 bản trùng tên + quận đã ẩn ngay, không đợi hết cache 1 giờ của v2
   { revalidate: 3600 },
 );
 
@@ -134,12 +134,12 @@ export default async function ProjectsPage({
                 <div className="p-4 flex flex-col flex-1">
                   <h3 className="font-bold leading-snug group-hover:text-brand transition-colors line-clamp-2">{p.name}</h3>
                   <div className="text-xs text-[var(--ink-soft)] mt-1 flex-1 line-clamp-2">
-                    {p.investor ? `CĐT: ${p.investor}` : ""}
-                    {p.investor && (p.district || p.province) ? " · " : ""}
+                    {tenChuDauTu(p.investor) ? `CĐT: ${tenChuDauTu(p.investor)}` : ""}
+                    {tenChuDauTu(p.investor) && (p.district || p.province) ? " · " : ""}
                     {[p.district, p.province].filter(Boolean).join(", ")}
                   </div>
                   <div className="text-brand font-bold text-sm mt-2">
-                    {p.price_min || p.price_max ? `${fmtPrice(p.price_min, "ban")} - ${fmtPrice(p.price_max, "ban")}` : "Giá thoả thuận"}
+                    {giaDuAn(p.price_min, p.price_max)}
                   </div>
                 </div>
               </Link>

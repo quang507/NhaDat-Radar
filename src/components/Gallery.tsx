@@ -67,6 +67,7 @@ export default function Gallery({
   nextListing,
   prevListing,
   currentListingId,
+  anhThap = false,
 }: {
   images: string[];
   title: string;
@@ -75,6 +76,8 @@ export default function Gallery({
   nextListing?: NavItem | null;
   prevListing?: NavItem | null;
   currentListingId?: string;
+  /** nguồn ảnh nhỏ (dự án mogi: tối đa 672px, nhiều ảnh là dải 2.2:1) - hiện ở cỡ gốc tối đa trên nền mờ, không phóng to + cắt */
+  anhThap?: boolean;
 }) {
   const router = useRouter();
   const [transitionMsg, setTransitionMsg] = useState<string | null>(null);
@@ -232,7 +235,27 @@ export default function Gallery({
           onScroll={hero.onScroll}
           className="flex h-full w-full overflow-x-auto snap-x snap-mandatory scrollbar-none overscroll-x-contain"
         >
-          {images.map((img, i) => (
+          {images.map((img, i) => anhThap ? (
+            // 17/11: ảnh dự án mogi chỉ 672px (nhiều tấm 672x297). object-cover trong khung 16:9 rộng 850px phóng 1,6 lần rồi
+            // cắt hai bên (mờ, mất nửa ảnh + dính chữ "mua bán" của nguồn). Ở đây: ảnh đặt giữa, KHÔNG vượt cỡ gốc/khung,
+            // phần thừa lấp bằng chính tấm ảnh làm mờ (cùng URL nên trình duyệt chỉ tải một lần).
+            <div
+              key={i}
+              onClick={handleDesktopImageClick}
+              className="relative w-full h-full shrink-0 snap-center overflow-hidden flex items-center justify-center cursor-pointer"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={hiRes(img)} alt="" aria-hidden draggable={false} loading={Math.abs(i - heroIdx) <= 1 ? "eager" : "lazy"}
+                className="pointer-events-none absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60" />
+              <Img
+                src={img}
+                alt={i === 0 ? title : `${title} - ảnh ${i + 1}`}
+                eager={Math.abs(i - heroIdx) <= 1}
+                uuTien={i === 0}
+                className="relative max-w-full max-h-full object-contain"
+              />
+            </div>
+          ) : (
             <Img
               key={i}
               src={img}

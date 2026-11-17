@@ -8,10 +8,11 @@ export async function generateStaticParams() {
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { LISTING_THE_COLS } from "@/lib/cols";
-import { fmtPrice, AMEN } from "@/lib/format";
+import { AMEN } from "@/lib/format";
+import { giaDuAn, hangThongSo, tenChuDauTu } from "@/lib/du-an-hien-thi";
 import { cleanImages } from "@/lib/img";
 import ListingCard from "@/components/ListingCard";
 import Gallery from "@/components/Gallery";
@@ -20,6 +21,7 @@ import RichText from "@/components/RichText";
 import type { Project, Listing } from "@/lib/types";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { docToaDoWkb, khoangCachKm } from "@/lib/du-an";
+import { DU_AN_DA_GOP } from "@/lib/du-an-da-gop";
 import { ldJson, SITE_URL } from "@/lib/ld";
 import { NGUONG } from "@/lib/seo-index";
 import { catChu } from "@/lib/format";
@@ -34,7 +36,7 @@ export async function generateMetadata({
   const { id } = await params;
   const supabase = createAnonClient();
   const [{ data: proj }, { count: soTinDuAn }] = await Promise.all([
-    supabase.from("projects").select("id,name,investor,province,district,address,description,images").eq("id", id).maybeSingle(),
+    supabase.from("projects").select("id,name,investor,province,district,address,description,images,status").eq("id", id).maybeSingle(),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("project_id", id).eq("status", "published"),
   ]);
   if (!proj) {
@@ -43,8 +45,9 @@ export async function generateMetadata({
       robots: { index: false, follow: true },
     };
   }
-  const p = proj as { id: string; name: string; investor?: string; province?: string; district?: string; address?: string; description?: string; images?: string[] };
-  const laMong = (p.description || "").trim().length < 200 && (soTinDuAn ?? 0) < NGUONG.duAn;
+  const p = proj as { id: string; name: string; investor?: string; province?: string; district?: string; address?: string; description?: string; images?: string[]; status?: string };
+  // bản trùng đã ẩn (cùng tên + quận với một dự án khác, 17/11) vẫn mở được qua link cũ nhưng không để Google lập chỉ mục
+  const laMong = p.status !== "published" || ((p.description || "").trim().length < 200 && (soTinDuAn ?? 0) < NGUONG.duAn);
   const where = [p.district, p.province].filter(Boolean).join(", ");
   // 30/10: giữ đuôi " | NhaDat Radar", cắt phần tên dự án ở ranh giới từ để tổng <= 60 ký tự (Google cắt ~60).
   const duoi = " | NhaDat Radar";
@@ -87,6 +90,7 @@ export default async function ProjectDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (DU_AN_DA_GOP[id]) permanentRedirect(`/projects/${DU_AN_DA_GOP[id]}`);   // bản trùng đã xoá -> dự án giữ lại (lib/du-an-da-gop)
   const supabase = createAnonClient();
   // 2/11 (audit D3): chỉ cột trang dùng - select("*") kéo cả embedding vector(768) ~15KB/dự án
   const { data: proj } = await supabase.from("projects")
@@ -185,7 +189,7 @@ export default async function ProjectDetail({
         {(() => {
           const imgs = cleanImages(p.images || []);
           return imgs.length ? (
-            <Gallery images={imgs} title={p.name} />
+            <Gallery images={imgs} title={p.name} anhThap />
           ) : (
             <div className="rounded-lg overflow-hidden aspect-[21/9] max-h-[420px] grid place-items-center text-white bg-gradient-to-br from-brand to-brand-2">
               <Building2 className="w-16 h-16 text-white/50" />
@@ -197,7 +201,7 @@ export default async function ProjectDetail({
       <div className="grid lg:grid-cols-[1fr_340px] gap-6">
         <div>
           <h1 className="prata text-3xl">{p.name}</h1>
-          <div className="text-brand font-semibold">{p.investor}</div>
+          <div className="text-brand font-semibold">{tenChuDauTu(p.investor)}</div>
           {/* address của nguồn thường ĐÃ chứa quận/tỉnh -> chỉ nối thêm phần chưa có, không thì ra
               "Lê Cơ, Phường An Lạc, Quận Bình Tân, TPHCM, Quận Bình Tân, Hồ Chí Minh" (17/8) */}
           <div className="text-sm text-[var(--ink-soft)] mt-1 flex items-start gap-1.5">
@@ -210,17 +214,16 @@ export default async function ProjectDetail({
           </div>
           {td && (
             <div className="flex flex-wrap gap-2 mt-4">
-              <Link href={quanh("cho_thue")!} className="btn btn-primary min-h-11 font-bold"><MapPin className="w-4 h-4" /> Tìm phòng trọ quanh dự án</Link>
-              <Link href={quanh("ban")!} className="btn min-h-11 font-bold">Nhà đất bán quanh đây</Link>
+              <Link href={quanh("cho_thue")!} className="btn btn-primary min-h-11 font-bold"><MapPin className="w-4 h-4" /> Tin cho thuê quanh dự án</Link>
+              <Link href={quanh("ban")!} className="btn btn-primary min-h-11 font-bold"><MapPin className="w-4 h-4" /> Tin bán quanh dự án</Link>
             </div>
           )}
 
           {/* Bảng thông số (migration 013): tổng DT, DT xây dựng, DT căn từ-đến, ngày khởi công/hoàn
               thành, pháp lý - thông tin người mua tìm đầu tiên, phải nằm TRÊN phần mô tả dài. */}
           {(() => {
-            const specs = (p.specs ?? {}) as Record<string, string>;
-            const rows = Object.entries(specs).filter(([, v]) => v);
-            if (p.handover) rows.push(["Bàn giao", p.handover]);
+            // khoá thô của kho cũ (tong_dien_tich…) -> nhãn tiếng Việt, một dòng "Bàn giao" duy nhất (lib/du-an-hien-thi)
+            const rows = hangThongSo(p.specs, { handover: p.handover, coGia: !!p.price_min });
             if (!rows.length) return null;
             return (
               <dl className="card rounded-lg p-5 mt-5 grid gap-x-6 gap-y-3 sm:grid-cols-2">
@@ -329,16 +332,14 @@ export default async function ProjectDetail({
             {/* Không có giá nào -> "Giá thoả thuận" (17/8: trước hiện "Thoả thuận - Thoả thuận") */}
             <div className="text-xs text-[var(--ink-soft)] uppercase">{p.price_min ? "Mức giá từ" : "Mức giá"}</div>
             <div className="prata text-2xl text-brand">
-              {p.price_min
-                ? fmtPrice(p.price_min, "ban") + (p.price_max ? " - " + fmtPrice(p.price_max, "ban") : "")
-                : "Giá thoả thuận"}
+              {p.price_min ? giaDuAn(p.price_min, p.price_max).replace(/^Từ /, "") : giaDuAn(null, p.price_max)}
             </div>
             {p.price_per_m2_text ? (
               <div className="text-xs text-[var(--ink-soft)] mb-4">{p.price_per_m2_text}</div>
             ) : <div className="mb-4" />}
-            <Row k="Chủ đầu tư" v={p.investor || "-"} />
+            <Row k="Chủ đầu tư" v={tenChuDauTu(p.investor) || "-"} />
             <Row k="Khu vực" v={[p.district, p.province].filter(Boolean).join(", ") || "-"} />
-            <Row k={related ? "Tin gợi ý cùng khu vực" : "Số tin đang bán"} v={String(listings.length)} />
+            <Row k={related ? "Tin gợi ý cùng khu vực" : "Tin đang đăng"} v={String(listings.length)} />
             <ProjectContact projectId={p.id} projectName={p.name} />
           </div>
         </div>

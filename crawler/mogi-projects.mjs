@@ -7,6 +7,7 @@
 //   node mogi-projects.mjs --seed-only: chỉ upsert từ projects.json có sẵn
 import fs from "node:fs";
 import { canonProvince } from "./chung.mjs";
+import { khoaTrung } from "./khoa-trung-du-an.mjs";
 import { pathToFileURL } from "node:url";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -333,28 +334,41 @@ async function seed(projects) {
   if (!url || !key) { console.error("Thiếu SUPABASE env -> bỏ qua seed"); return; }
   const sb = createClient(url, key, { auth: { persistSession: false } });
 
-  const { data: existing } = await sb.from("projects").select("id,slug");
-  const bySlug = new Map((existing || []).map((r) => [r.slug, r.id]));
-  let ins = 0, upd = 0;
+  // PHÂN TRANG: PostgREST cắt 1.000 dòng/lần mà bảng đã có ~2.400 dự án - bản cũ chỉ thấy 1.000 dòng đầu
+  const existing = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("projects").select("id,slug,name,district,status").order("id").range(from, from + 999);
+    if (error) { console.error("Đọc dự án cũ lỗi, bỏ qua seed:", error.message); return; }
+    existing.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  const bySlug = new Map(existing.map((r) => [r.slug, r]));
+  const daCoKhoa = new Map(existing.filter((r) => r.status === "published").map((r) => [khoaTrung(r.name, r.district), r.slug]));
+  let ins = 0, upd = 0, trung = 0;
   for (const p of projects) {
+    const cu = bySlug.get(p.slug);
+    const khoa = khoaTrung(p.name, p.district);
+    // dự án MỚI mà đã có bản cùng tên + quận (slug khác) -> không tạo bản trùng
+    if (!cu && daCoKhoa.has(khoa) && daCoKhoa.get(khoa) !== p.slug) { trung++; continue; }
     const row = {
       slug: p.slug, name: p.name, investor: p.investor, description: p.description,
       province: p.province, district: p.district, ward: p.ward, address: p.address,
       images: p.images || [], price_min: p.price_min, price_max: p.price_max,
       specs: p.specs || {}, handover: p.handover, source_url: p.source_url,
       price_per_m2_text: p.price_per_m2_text,
-      status: "published",
+      // admin đã ẩn / từ chối (hoặc bản trùng đã ẩn) thì GIỮ NGUYÊN, không bật lại mỗi lượt cào
+      status: cu && (cu.status === "hidden" || cu.status === "rejected") ? cu.status : "published",
       // geography(Point,4326): PostgREST nhận EWKT
       ...(p.lat != null && p.lng != null ? { geo: `SRID=4326;POINT(${p.lng} ${p.lat})` } : {}),
     };
-    const id = bySlug.get(p.slug);
+    const id = cu?.id;
     const { error } = id
       ? await sb.from("projects").update(row).eq("id", id)
       : await sb.from("projects").insert(row);
     if (error) console.error("  seed lỗi", p.slug, error.message);
-    else if (id) upd++; else ins++;
+    else if (id) upd++; else { ins++; daCoKhoa.set(khoa, p.slug); }
   }
-  console.error(`Seed dự án: ${ins} mới · ${upd} cập nhật`);
+  console.error(`Seed dự án: ${ins} mới · ${upd} cập nhật · ${trung} bỏ qua vì trùng tên + quận với dự án đã có`);
 }
 
 // Slug da co DU du lieu (co bang thong so) -> luot sau khoi tai lai chi tiet.
