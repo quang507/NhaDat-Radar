@@ -75,3 +75,22 @@ export function khoaTrungDuAn(ten: string | null | undefined, quan: string | nul
   const b = (x: string | null | undefined) => String(x ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/[^a-z0-9]+/g, "");
   return `${b(ten)}|${b(quan)}`;
 }
+
+export type MucTrang = { id: string; label: string };
+
+/**
+ * Thanh mục của trang dự án (kiểu Mogi: Hình ảnh | Giới thiệu | Thị trường | Mua bán - Cho thuê): CHỈ mục có nội dung thật,
+ * đúng thứ tự trên trang. Dự án "vỏ" (chỉ có tên + ảnh) không bị thanh mục dẫn tới khối trống.
+ */
+export function mucTrangDuAn(c: { moTa: boolean; tienIch: boolean; viTri: boolean; ban: boolean; thue: boolean; quanh: boolean; chuDauTu: boolean }): MucTrang[] {
+  const ds: [boolean, MucTrang][] = [
+    [c.moTa, { id: "gioi-thieu", label: "Giới thiệu" }],
+    [c.tienIch, { id: "tien-ich", label: "Tiện ích" }],
+    [c.viTri, { id: "vi-tri", label: "Vị trí" }],
+    [c.ban, { id: "dang-ban", label: "Đang bán" }],
+    [c.thue, { id: "cho-thue", label: "Cho thuê" }],
+    [c.quanh, { id: "tin-quanh", label: "Tin quanh dự án" }],
+    [c.chuDauTu, { id: "chu-dau-tu", label: "Chủ đầu tư" }],
+  ];
+  return ds.filter(([co]) => co).map(([, m]) => m);
+}

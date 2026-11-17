@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
-import { giaDuAn, tenChuDauTu, hangThongSo, khoaTrungDuAn } from "../../src/lib/du-an-hien-thi";
+import { giaDuAn, tenChuDauTu, hangThongSo, khoaTrungDuAn, mucTrangDuAn } from "../../src/lib/du-an-hien-thi";
 import { DU_AN_DA_GOP } from "../../src/lib/du-an-da-gop";
 import { khoaTrung } from "../../crawler/khoa-trung-du-an.mjs";
 
@@ -111,4 +111,26 @@ test("link cũ của dự án trùng đã xoá chuyển hướng sang dự án g
     expect(DU_AN_DA_GOP[den], "đích không được là một dự án đã xoá").toBeUndefined();
   }
   expect(doc("src/app/projects/[id]/page.tsx")).toContain("permanentRedirect(");
+});
+
+test("mucTrangDuAn: thanh mục chỉ có mục CÓ THẬT, đúng thứ tự trang", () => {
+  const het = { moTa: true, tienIch: true, viTri: true, ban: true, thue: true, quanh: true, chuDauTu: true };
+  expect(mucTrangDuAn(het).map((m) => m.id)).toEqual(["gioi-thieu", "tien-ich", "vi-tri", "dang-ban", "cho-thue", "tin-quanh", "chu-dau-tu"]);
+  expect(mucTrangDuAn({ ...het, moTa: false, tienIch: false, thue: false, quanh: false }).map((m) => m.label)).toEqual(["Vị trí", "Đang bán", "Chủ đầu tư"]);
+  expect(mucTrangDuAn({ moTa: false, tienIch: false, viTri: false, ban: false, thue: false, quanh: false, chuDauTu: false })).toEqual([]);
+});
+
+test("trang dự án kiểu Mogi: các mục có id khớp thanh mục, mục rỗng bị ẩn, bản đồ + dự án khác của chủ đầu tư", () => {
+  const ct = doc("src/app/projects/[id]/page.tsx");
+  for (const id of ["tong-quan", "gioi-thieu", "tien-ich", "vi-tri", "dang-ban", "cho-thue", "tin-quanh", "chu-dau-tu"]) expect(ct, id).toContain(`id="${id}"`);
+  expect(ct).toContain("<MucLucTrang");
+  expect(ct).toContain("mucTrangDuAn(");
+  expect(ct).toContain("ListingMap");
+  expect(ct).toContain('.ilike("investor"');
+  // hai bản ProjectContact: một trong thẻ tổng quan (điện thoại), một ở cột phải (máy tính)
+  expect(ct.match(/<ProjectContact/g)?.length).toBe(2);
+  const nav = doc("src/components/MucLucTrang.tsx");
+  expect(nav).toContain('addEventListener("scroll"');   // theo vị trí khi cuộn: mục cuối sáng được ở đáy trang
+  expect(nav).toContain("duoi-header");
+  expect(nav).toMatch(/min-h-11/);
 });
