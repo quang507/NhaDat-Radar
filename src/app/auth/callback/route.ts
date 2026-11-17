@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 function dichLoiAuth(msg: string): string {
   const m = msg.toLowerCase();
   if (m.includes("flow state") || m.includes("code verifier")) {
-    return "Phiên đăng nhập Google đã hết hạn hoặc bị gián đoạn, vui lòng bấm Đăng nhập bằng Google lại.";
+    return "Phiên đăng nhập Google đã hết hạn hoặc bị gián đoạn, vui lòng bấm Tiếp tục với Google lại.";
   }
   return msg || "Xác thực thất bại";
 }

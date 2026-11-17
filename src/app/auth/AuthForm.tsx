@@ -133,9 +133,6 @@ export default function AuthForm({
 
       {mode === "forgot" && (
         <form action={resetPassword} className="flex flex-col gap-3">
-          <p className="text-sm text-[var(--ink-soft)] text-center">
-            Nhập email đã đăng ký - chúng tôi sẽ gửi link đặt lại mật khẩu.
-          </p>
           <Field label="Email" name="email" type="email" placeholder="your@email.com" />
           <Turnstile />
           <button className="btn btn-primary w-full min-h-11" type="submit">Gửi link đặt lại mật khẩu</button>
@@ -169,12 +166,7 @@ export default function AuthForm({
           </button>
           {loiGoogle ? <div className="text-xs text-red-600 mt-2 text-center">{loiGoogle}</div> : null}
           {mode === "login" && (
-            <div className="mt-3 space-y-1 text-center">
-              <p className="text-[11px] text-[var(--ink-soft)] leading-relaxed">
-                Dùng SĐT từng để lại khi xem tin để vào tài khoản (không cần OTP).
-              </p>
-              <GhiChuDuLieu mucDich="đăng nhập nhanh bằng SĐT và đồng bộ tin yêu thích của bạn" />
-            </div>
+            <GhiChuDuLieu mucDich="đăng nhập và đồng bộ tin yêu thích" className="mt-3 text-center" />
           )}
         </>
       )}

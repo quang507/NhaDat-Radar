@@ -18,7 +18,9 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const r = e.request, u = new URL(r.url);
   if (r.mode !== "navigate" || r.method !== "GET" || u.origin !== location.origin) return;
-  if (u.pathname.startsWith("/auth") || u.pathname.startsWith("/api")) return;
+  // 17/11: KHÔNG bỏ qua (return) điều hướng nào ở đây. navigationPreload đang bật: trình duyệt đã gửi sẵn 1 request,
+  // không respondWith thì nó bỏ lượt đó rồi gửi thêm lượt nữa. Bản cũ bỏ qua /auth và /api -> /auth/callback?code=…
+  // bị gọi 2 lần, mã chỉ đổi được 1 lần nên lượt sau báo lỗi, khách phải bấm Google lần hai (tests/unit/sw-dieu-huong).
   e.respondWith((async () => {
     try { return (await e.preloadResponse) || (await fetch(r)); }
     catch { return (await caches.match(OFFLINE)) || Response.error(); }
