@@ -27,7 +27,7 @@ import { docToaDoWkb, khoangCachKm } from "@/lib/du-an";
 import { DU_AN_DA_GOP } from "@/lib/du-an-da-gop";
 import { ldJson, SITE_URL } from "@/lib/ld";
 import { NGUONG } from "@/lib/seo-index";
-import { catChu } from "@/lib/format";
+import { catChu, canonDistrict } from "@/lib/format";
 import { ChevronLeft, Building2, MapPin, ChevronDown, ChevronUp, Check } from "lucide-react";
 
 
@@ -142,7 +142,9 @@ export default async function ProjectDetail({
   if (!listings.length && (p.district || p.province)) {
     const { data: near } = await supabase
       .from("listings").select(LISTING_THE_COLS).eq("status", "published")
-      .ilike(p.district ? "district" : "province", `%${p.district || p.province}%`)
+      // 19/11: ilike "%…%" có ký tự đại diện đứng đầu không dùng được index -> quét cả bảng, timeout 3s (audit: ~25 lượt 5xx lúc 12:00).
+      // Tên quận trong DB đã chuẩn hoá (canonDistrict) nên so KHỚP CHÍNH XÁC, kèm biến thể ghi trong dự án.
+      .in(p.district ? "district" : "province", p.district ? [...new Set([p.district, canonDistrict(p.district)])] : [p.province as string])
       .not("images", "eq", "{}")
       .order("ai_score", { ascending: false, nullsFirst: false }).limit(8);
     listings = ((near ?? []) as Listing[]).map(cheSoTin);

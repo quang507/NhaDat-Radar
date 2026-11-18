@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { canonDistrict } from "@/lib/format";
 import { truyVanVoiRetry } from "@/lib/cols";
 import { kiemCayRpc } from "@/lib/cay-khu-vuc";
+import { nhoTam } from "@/lib/nho-tam";
 
 export type Deal = "ban" | "cho_thue";
 /** kind -> { ban, cho_thue } (trang /nha-dat-ban/[tinh]/[quan]/[loai] + sitemap) */
@@ -67,14 +68,18 @@ async function fetchAreas(): Promise<AreaTree> {
   );
 }
 
+// 19/11 (audit): rpc cay_khu_vuc bị Vercel gọi ~390 lần/ngày (3-5 giây/lần) dù cache Next 6 giờ -> nhớ thêm 10 phút trong
+// từng instance và gộp các lượt gọi đồng thời. Lượt lỗi không được nhớ.
+const fetchAreasNho = nhoTam(fetchAreas, 10 * 60_000);
+
 export const getAreas = unstable_cache(
-  fetchAreas,
+  fetchAreasNho,
   ["areas-v7"],
   { revalidate: 21600, tags: ["areas"] },
 );
 
 export const getAreasDaily = unstable_cache(
-  fetchAreas,
+  fetchAreasNho,
   ["areas-daily-v2"],
   { revalidate: 86400, tags: ["areas"] },
 );
