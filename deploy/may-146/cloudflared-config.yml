@@ -1,0 +1,8 @@
+tunnel: c8bff693-5906-4873-9d92-79f8812c0098
+credentials-file: C:\radar-web\cf\c8bff693-5906-4873-9d92-79f8812c0098.json
+ingress:
+  - hostname: www.nhadatradar.com
+    service: http://127.0.0.1:3000
+  - hostname: nhadatradar.com
+    service: http://127.0.0.1:3000
+  - service: http_status:404

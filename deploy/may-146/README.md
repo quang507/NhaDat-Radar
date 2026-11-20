@@ -39,15 +39,22 @@ Lệnh hay dùng (qua ssh, shell là cmd):
   chạy tay `npx playwright test tests/e2e/smoke.spec.ts --project=desktop` hoặc dựa vào chuông `Radar Canh production` (30 phút/lần).
 - Hết pause Vercel (19/12) mà dự án Vercel còn nối GitHub thì nó sẽ build lại mỗi lần push: nên ngắt kết nối Git hoặc xoá dự án Vercel.
 
-## Cloudflare Tunnel + DNS (làm một lần)
+## Cloudflare Tunnel + DNS (đã làm 20/11/2026)
 
-DNS hiện ở `vclouddns.com` (Vinahost). Tunnel chỉ gắn tên miền nằm trên Cloudflare nên phải chuyển DNS sang Cloudflare:
+Tên miền đăng ký ở **iNET** (portal.inet.vn); nameserver đã đổi từ `vclouddns.com` sang `ignacio.ns.cloudflare.com` / `saanvi.ns.cloudflare.com`.
+Cloudflare (gói Free, tài khoản đăng nhập bằng email chủ web): zone `nhadatradar.com` Active; bản ghi trỏ Vercel (`A 216.198.79.1`, `CNAME www`) đã xoá,
+giữ MX/TXT của Resend, xác thực Google và `_vercel`. Hai CNAME `www` và apex trỏ vào tunnel `radar-146` (id `c8bff693-5906-4873-9d92-79f8812c0098`).
 
-1. Cloudflare (gói Free) → **Add a domain** `nhadatradar.com` → giữ nguyên các bản ghi nó quét được (kiểm MX/TXT nếu có), **xoá** bản ghi trỏ Vercel
-   (`A 216.198.79.1`, `CNAME www → cname.vercel-dns.com`).
-2. Ở nơi quản lý tên miền (Vinahost) đổi **nameserver** từ `danang.vclouddns.com` / `hoian.vclouddns.com` sang 2 NS Cloudflare đã cho. Chờ Cloudflare báo **Active**.
-3. Trên máy 146: cài `cloudflared`, `cloudflared tunnel login` (mở link in ra, chọn `nhadatradar.com`), `cloudflared tunnel create radar-146`,
-   `cloudflared tunnel route dns radar-146 www.nhadatradar.com` và `... nhadatradar.com`, cấu hình ingress `http://127.0.0.1:3000`, `cloudflared service install`.
-4. (Nên) Cloudflare → Caching → Cache Rules: *Eligible for cache*, Edge TTL **Use cache-control header if present** cho `www.nhadatradar.com`
-   (trừ `/api/*`, `/auth*`, `/search*`, `/dashboard*`, `/admin*`): trang ISR của Next gửi `s-maxage`, Cloudflare giữ HTML nên máy 146 ít bị gọi.
-5. Apex → www: do `next.config.mjs` (redirect theo host) lo, không cần Redirect Rule.
+| Thứ | Ở đâu |
+|---|---|
+| `cloudflared.exe` | `C:	oolscloudflared.exe` (tải từ github.com/cloudflare/cloudflared, không tự cập nhật: `--no-autoupdate`) |
+| Cấu hình ingress | `C:adar-webcfconfig.yml` (bản gốc `cloudflared-config.yml` ở thư mục này): www + apex → `http://127.0.0.1:3000`, còn lại 404 |
+| Chứng chỉ tunnel (bí mật, KHÔNG commit) | `C:adar-webcfc8bff693-….json`; `cert.pem` ở `C:Users
+guye.cloudflared` |
+| Chạy | Task `Radar Tunnel` → `C:adar-webadar_tunnel.cmd` (SYSTEM, lúc khởi động máy, chết thì chạy lại sau 5 s); đăng ký bằng `dang-ky-tunnel.ps1` |
+| Log | `C:adar-weblogscloudflared.log` |
+
+Apex → www do `next.config.mjs` lo (308), không cần Redirect Rule. HTML hiện `cf-cache-status: DYNAMIC` (Cloudflare chưa giữ HTML): nếu máy 146 bị gọi nhiều,
+thêm Cache Rule (Eligible for cache, Edge TTL "Use cache-control header if present") cho `www.nhadatradar.com`, trừ `/api/*`, `/auth*`, `/search*`, `/dashboard*`, `/admin*`.
+Bộ lọc bot của app trả 403 cho User-Agent mặc định của curl: thử bằng `curl -A "Mozilla/5.0"`.
+Đổi/khôi phục: `cloudflared tunnel list`, `cloudflared tunnel route dns radar-146 <host>`; thêm host mới thì sửa `config.yml` rồi `schtasks /End` + `/Run` task `Radar Tunnel`.
