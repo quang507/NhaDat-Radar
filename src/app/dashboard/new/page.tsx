@@ -8,7 +8,7 @@ export default async function NewListingPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/auth?message=" + encodeURIComponent("Đăng nhập để đăng tin"));
+  if (!user) redirect("/auth?next=%2Fdashboard&message=" + encodeURIComponent("Đăng nhập để đăng tin"));
 
   // Gợi ý tỉnh/quận từ dữ liệu thật để tên nhập khớp DB (lọt bộ lọc + trang khu vực)
   // Cây khu vực cache 10' (lib/geo) - audit 16/8: bản cũ select 5.000 dòng mỗi lần mở form

@@ -139,7 +139,7 @@ export async function signInWithPhone(formData: FormData) {
   if (!kq.ok) {
     redirect(`/auth?mode=phone&error=${encodeURIComponent(kq.error)}${next ? `&next=${encodeURIComponent(next)}` : ""}`);
   }
-  redirect(next || "/dashboard");
+  redirect(next || "/");
 }
 
 export async function signIn(formData: FormData) {
@@ -151,7 +151,7 @@ export async function signIn(formData: FormData) {
     options: { captchaToken: captchaOf(formData) },
   });
   if (error) redirect(`/auth?error=${encodeURIComponent(viErr(error.message))}${next ? `&next=${encodeURIComponent(next)}` : ""}`);
-  redirect(next || "/dashboard");
+  redirect(next || "/");
 }
 
 export async function signUp(formData: FormData) {
@@ -181,8 +181,8 @@ export async function signUp(formData: FormData) {
     redirect("/auth?error=" + encodeURIComponent("Email này đã được đăng ký. Hãy đăng nhập (hoặc dùng Quên mật khẩu)."));
   }
 
-  // Nếu tắt "Confirm email" -> có session ngay, vào thẳng dashboard
-  if (data.session) redirect("/dashboard");
+  // Nếu tắt "Confirm email" -> có session ngay, về trang chủ
+  if (data.session) redirect("/");
   redirect(
     "/auth?message=" +
       encodeURIComponent(`Tài khoản đã tạo! Kiểm tra hộp thư ${email} và bấm link xác nhận, sau đó quay lại đăng nhập.`),
@@ -220,7 +220,7 @@ export async function updatePassword(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) redirect("/auth/doi-mat-khau?error=" + encodeURIComponent(viErr(error.message)));
-  redirect("/dashboard");
+  redirect("/");
 }
 
 export async function signOut() {

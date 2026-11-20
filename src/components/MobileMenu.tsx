@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "@/app/auth/actions";
+import NutDangXuat from "./NutDangXuat";
 import { HOTLINE, HOTLINE_ZALO } from "@/lib/hotline";
 import { usePhien } from "@/lib/supabase/lazy";
 import { useDongBangBack } from "@/lib/dong-bang-back";
@@ -12,7 +12,7 @@ import ThemeToggle from "./ThemeToggle";
 import {
   Menu, X, Home, KeyRound, Building2, Users, BarChart3,
   Newspaper, Sparkles, Calculator, Scale, Heart, Phone,
-  MessageCircle, User, LogOut, UserPlus
+  MessageCircle, User, LogOut, UserPlus, Plus
 } from "lucide-react";
 
 const LINKS = [
@@ -93,7 +93,8 @@ export default function MobileMenu() {
                 onClick={dongDeDi}
                 className="w-full btn btn-primary min-h-11 flex items-center justify-center gap-2 font-bold py-2.5 rounded-sm shadow-xs text-sm"
               >
-                <span>+ Đăng tin nhà đất miễn phí</span>
+                <Plus className="w-4 h-4" aria-hidden />
+                <span>Đăng tin nhà đất miễn phí</span>
               </Link>
             </div>
 
@@ -134,12 +135,10 @@ export default function MobileMenu() {
                     <User className="w-4 h-4 text-[var(--ink-faint)]" />
                     <span>Tài khoản của tôi</span>
                   </Link>
-                  <form action={signOut}>
-                    <button type="submit" className="flex items-center gap-1 min-h-11 px-2 text-xs font-semibold text-[var(--ink-soft)] hover:text-red-600">
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Đăng xuất</span>
-                    </button>
-                  </form>
+                  <NutDangXuat className="flex items-center gap-1 min-h-11 px-2 text-xs font-semibold text-[var(--ink-soft)] hover:text-red-600">
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Đăng xuất</span>
+                  </NutDangXuat>
                 </div>
               ) : (
                 <Link

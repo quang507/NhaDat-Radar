@@ -20,7 +20,7 @@ export default function AppointmentForm({ listingId, agentId }: { listingId: str
     setState("busy"); setErr("");
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/auth?message=" + encodeURIComponent("Đăng nhập để đặt lịch xem nhà.")); return; }
+    if (!user) { router.push("/auth?next=" + encodeURIComponent(window.location.pathname) + "&message=" + encodeURIComponent("Đăng nhập để đặt lịch xem nhà.")); return; }
     if (user.id === agentId) { setErr("Đây là tin của bạn."); setState("idle"); return; }
     const { error } = await supabase.from("appointments").insert({
       listing_id: listingId, buyer_id: user.id, agent_id: agentId,

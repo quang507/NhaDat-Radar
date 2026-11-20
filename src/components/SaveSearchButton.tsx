@@ -87,7 +87,7 @@ export default function SaveSearchButton({ filters, compact = false }: { filters
     const supabase = coCookiePhien() ? await layClient().catch(() => null) : null;
     const user = supabase ? (await supabase.auth.getUser()).data.user : null;
     if (!supabase || !user) {
-      router.push("/auth?message=" + encodeURIComponent("Đăng nhập để nhận email khi có tin mới khớp bộ lọc của bạn."));
+      router.push("/auth?next=" + encodeURIComponent(window.location.pathname + window.location.search) + "&message=" + encodeURIComponent("Đăng nhập để nhận email khi có tin mới khớp bộ lọc của bạn."));
       return;
     }
     const { error } = await supabase.from("saved_searches").insert({

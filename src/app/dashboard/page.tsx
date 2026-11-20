@@ -14,7 +14,7 @@ export default async function Dashboard() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/auth?message=" + encodeURIComponent("Đăng nhập để vào trang người bán"));
+  if (!user) redirect("/auth?next=%2Fdashboard&message=" + encodeURIComponent("Đăng nhập để vào trang người bán"));
 
   const [{ data }, { data: appts }, { data: leadRows }] = await Promise.all([
     supabase.from("listings").select(LISTING_PUBLIC_COLS).eq("agent_id", user.id).order("created_at", { ascending: false }).limit(100),

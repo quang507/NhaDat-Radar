@@ -19,7 +19,7 @@ export default async function AccountPage({
   const sp = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth?message=" + encodeURIComponent("Đăng nhập để xem tài khoản"));
+  if (!user) redirect("/auth?next=%2Faccount&message=" + encodeURIComponent("Đăng nhập để xem tài khoản"));
   // Migration 026 thu quyền đọc cột phone của authenticated (trước đó ai đăng nhập cũng đọc được SĐT
   // của MỌI user) -> hồ sơ của chính mình đọc qua RPC ho_so_cua_toi(). Chưa áp 026 thì RPC chưa có:
   // fallback select thường để trang không hỏng trong lúc chuyển giao.

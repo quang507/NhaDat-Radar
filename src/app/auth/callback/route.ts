@@ -16,9 +16,9 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const errorParam = url.searchParams.get("error_description") || url.searchParams.get("error");
-  const nextRaw = url.searchParams.get("next") ?? "/dashboard";
+  const nextRaw = url.searchParams.get("next") ?? "/";
   // chỉ chấp nhận đường dẫn nội bộ (chống open-redirect)
-  const next = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/dashboard";
+  const next = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "/";
 
   // Bảo đảm domain redirect khớp với host người dùng đang duyệt (tránh 308 redirect giữa apex và www làm mất cookie)
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
