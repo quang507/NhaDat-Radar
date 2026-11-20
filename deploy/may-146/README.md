@@ -66,3 +66,11 @@ Trước đây phát qua Tailscale Funnel (`nuc.tail19b567.ts.net:8443`); máy n
 Nay phát qua tunnel: ingress `anh.nhadatradar.com` -> `http://127.0.0.1:8780` (DNS CNAME do `cloudflared tunnel route dns radar-146 anh.nhadatradar.com`), Cloudflare tự cache ảnh.
 Bot đọc `RADAR_MEDIA_BASE_URL` từ `C:adaradar_env.cmd` (mặc định trong `crawler/zalo-bot.mjs` cũng là tên mới). 1.440 tin cũ đã đổi link trong DB (`listings.images`; `anh_bia`/`anh_the` do trigger tự tính lại).
 Tailscale Funnel :8443 vẫn bật nhưng không còn ai dùng: tắt được bằng `tailscale funnel --https=8443 off`.
+
+## Chặn máy dò lỗ hổng + theo dõi egress (21/11/2026)
+
+- **Cloudflare WAF (Security > Security rules > Custom rules, 1/5)**: quy tắc "Chan may do lo hong (php env yml git wp-)", hành động Block. Chặn đường dẫn kết thúc bằng `.php .env .yml .yaml .properties .old .bak .sql`, bắt đầu bằng `/.git /.env /.aws /.ssh /wp- /wordpress /phpmyadmin /cgi-bin`, hoặc chứa `/vendor/phpunit`, `phpinfo`, `/laravel/`.
+  Lý do: một IP dò lỗ hổng chiếm 61% request (5.990/24 giờ), mỗi lần máy 146 phải dựng trang 404 (0,2-0,9 s CPU). Web không có đường dẫn nào như vậy. Gỡ: xoá quy tắc trên Cloudflare. `/.well-known/` KHÔNG bị chặn.
+- **Egress Supabase theo giờ**: migration 050 (job `pg_cron` "ghi-egress-gio", phút 05 mỗi giờ) ghi tổng lượt gọi PostgREST theo nhóm + 30 lệnh gọi nhiều nhất vào `public.egress_snapshot` (30 ngày, chỉ owner đọc).
+  Xem theo giờ trong SQL editor: `select ts, nhom, them_luot, them_giay_db, left(chi_tiet, 90) from public.egress_theo_gio where them_luot > 0 order by ts desc, them_luot desc limit 50;`
+  Ước egress = lượt gọi x dung lượng nén 1 lượt (danh sách tìm kiếm ~8 KB, chi tiết tin ~13 KB, tin tương tự ~3,5 KB). Hạn mức: 5 GB/chu kỳ 08-08, trang usage: https://supabase.com/dashboard/org/djazbcahuljpevhuvuup/usage
