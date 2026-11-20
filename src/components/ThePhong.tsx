@@ -109,7 +109,7 @@ export default function ThePhong({ x }: { x: Listing }) {
               </svg>
             )}
           </button>
-          <Link href={`${href}#lien-he`} onClick={() => baoGA("ndr_bam_lien_he_the", { listing_id: x.id })} className="btn btn-primary flex-1 min-h-11 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 shadow-2xs">
+          <Link href={`${href}#lien-he`} onClick={() => baoGA("ndr_bam_lien_he_the", { listing_id: x.id })} className="btn btn-primary flex-1 min-w-0 !px-2 min-h-11 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 shadow-2xs">
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><rect x="3" y="4.5" width="14" height="12" rx="2" /><path d="M3 8.5h14M7 3v3M13 3v3" strokeLinecap="round" /></svg>
             Liên hệ
           </Link>

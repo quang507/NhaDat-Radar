@@ -89,7 +89,7 @@ const tuParams = (p: Record<string, string | undefined>): BoLoc =>
 
 const DanhSachTin = memo(function DanhSachTin({ items, choThue }: { items: Listing[]; choThue: boolean }) {
   return (
-    <div className={choThue ? "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3" : "flex flex-col gap-3"}>
+    <div className={choThue ? "grid grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(200px,1fr))] gap-3" : "flex flex-col gap-3"}>
       {items.map((x) => (choThue ? <ThePhong key={x.id} x={x} /> : <ListingRow key={x.id} x={x} />))}
     </div>
   );
@@ -761,7 +761,7 @@ export default function SearchClient({
 
       {/* ===== Kết quả + bản đồ ===== */}
       {/* cột phải lg+: bản đồ khi bật "Xem bản đồ", còn lại là sidebar Loại/Quận kèm số tin (kiểu Mogi, 29/9) */}
-      <div className={`grid gap-4 items-start ${showMap && mapItems.length > 0 ? "lg:grid-cols-[1fr_420px]" : dieuHuong || muaBan ? "lg:grid-cols-[minmax(0,1fr)_280px]" : ""}`}>
+      <div className={`grid gap-4 items-start ${showMap && mapItems.length > 0 ? "lg:grid-cols-[minmax(0,1fr)_420px]" : dieuHuong || muaBan ? "lg:grid-cols-[minmax(0,1fr)_280px]" : ""}`}>
         {/* min-w-0 BẮT BUỘC: mô tả trong ListingRow dùng line-clamp (-webkit-box) -> bề rộng nội tại = cả đoạn text
             chưa xuống dòng -> cột 1fr phình (đo được 2190px ở viewport 1400) đẩy cột bản đồ 420px ra NGOÀI màn hình.
             Sự cố 17/8: "Xem bản đồ" bấm không thấy gì. */}
