@@ -183,11 +183,11 @@ function ghepAnhMuon(khoaAnh, url) {
 // ---- GƯƠNG ẢNH VỀ KHO (21/8; 12/11 dời sang máy 146 để tránh trần Storage/Egress Supabase Free) ----
 // Ảnh tin Zalo đang trỏ thẳng link CDN Zalo (photo.talk.zdn.vn) - link đó CÓ HẠN, Zalo thu
 // hồi là tin trắng ảnh hàng loạt. Quét định kỳ: tin zalo nào còn ảnh CDN thì tải về thư mục
-// công khai `anh-zalo` trên máy 146 (Tailscale Funnel :8443) rồi thay link trong DB; nếu chạy
+// công khai `anh-zalo` trên máy 146 (phát qua https://anh.nhadatradar.com = Cloudflare Tunnel -> media-server :8780) rồi thay link trong DB; nếu chạy
 // ở máy không có thư mục media cục bộ thì dự phòng đẩy lên bucket `anh-zalo` Supabase.
 const KHO_ANH = "anh-zalo";
 const MEDIA_DIR = process.env.RADAR_MEDIA_DIR || "C:\\radar\\media";
-const MEDIA_BASE_URL = (process.env.RADAR_MEDIA_BASE_URL || "https://nuc.tail19b567.ts.net:8443").replace(/\/+$/, "");
+const MEDIA_BASE_URL = (process.env.RADAR_MEDIA_BASE_URL || "https://anh.nhadatradar.com").replace(/\/+$/, "");
 const laAnhCDN = (u) => /^https?:\/\//.test(u) && !u.includes("/storage/v1/object/public/") && !u.startsWith(`${MEDIA_BASE_URL}/`);
 let dangGuong = false;
 async function guongAnhVeKho(tatCa = false) {

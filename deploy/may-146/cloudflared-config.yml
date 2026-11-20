@@ -5,4 +5,7 @@ ingress:
     service: http://127.0.0.1:3000
   - hostname: nhadatradar.com
     service: http://127.0.0.1:3000
+  # ảnh bot Zalo lưu trên máy 146 (C:\radar\media\anh-zalo, server C:\radar\media-server.mjs, cache 1 năm)
+  - hostname: anh.nhadatradar.com
+    service: http://127.0.0.1:8780
   - service: http_status:404

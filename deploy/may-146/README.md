@@ -58,3 +58,11 @@ Apex → www do `next.config.mjs` lo (308), không cần Redirect Rule. **Cache 
 Thời hạn do chính app khai (`revalidate`): trang chủ 6 giờ, trang tin 24 giờ. Muốn tin mới lên trang chủ sớm hơn thì hạ `revalidate` trong `src/app/page.tsx` (không cần đụng Cloudflare). Kiểm: `curl -sI -A "Mozilla/5.0" https://www.nhadatradar.com/ | findstr cf-cache-status` (lần 2 trở đi phải là HIT; `/search`, `/auth` phải là DYNAMIC). Xả cache khi cần: Cloudflare → Caching → Configuration → Purge.
 Bộ lọc bot của app trả 403 cho User-Agent mặc định của curl: thử bằng `curl -A "Mozilla/5.0"`.
 Đổi/khôi phục: `cloudflared tunnel list`, `cloudflared tunnel route dns radar-146 <host>`; thêm host mới thì sửa `config.yml` rồi `schtasks /End` + `/Run` task `Radar Tunnel`.
+
+## Ảnh bot Zalo: anh.nhadatradar.com (từ 21/11/2026)
+
+Ảnh tin Zalo lưu ở `C:adarmediaanh-zalo<id><n>.webp`, phát bởi task `Radar Media Server` (`C:adarmedia-server.mjs`, 127.0.0.1:8780, Cache-Control 1 năm).
+Trước đây phát qua Tailscale Funnel (`nuc.tail19b567.ts.net:8443`); máy nào cài Tailscale thì Chrome hỏi quyền "Access other devices on your local network" vì Tailscale ép tên đó về địa chỉ 100.x.
+Nay phát qua tunnel: ingress `anh.nhadatradar.com` -> `http://127.0.0.1:8780` (DNS CNAME do `cloudflared tunnel route dns radar-146 anh.nhadatradar.com`), Cloudflare tự cache ảnh.
+Bot đọc `RADAR_MEDIA_BASE_URL` từ `C:adaradar_env.cmd` (mặc định trong `crawler/zalo-bot.mjs` cũng là tên mới). 1.440 tin cũ đã đổi link trong DB (`listings.images`; `anh_bia`/`anh_the` do trigger tự tính lại).
+Tailscale Funnel :8443 vẫn bật nhưng không còn ai dùng: tắt được bằng `tailscale funnel --https=8443 off`.
