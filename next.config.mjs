@@ -36,6 +36,9 @@ const nextConfig = {
   // Đẩy sang /search (giữ nguyên query string) - redirect chạy ở edge, không đụng cache của "/".
   async redirects() {
     return [
+      // 20/11 (chuyển sang máy 146, Cloudflare Tunnel): trước đây Vercel tự chuyển nhadatradar.com -> www ở tầng tên miền;
+      // giờ do Next làm để canonical/sitemap/Search Console vẫn chỉ có www.nhadatradar.com.
+      { source: "/:path*", has: [{ type: "host", value: "nhadatradar.com" }], destination: "https://www.nhadatradar.com/:path*", permanent: true },
       ...["deal", "kind", "province", "bedrooms", "priceMax", "q"].map((key) => ({
         source: "/",
         has: [{ type: "query", key }],

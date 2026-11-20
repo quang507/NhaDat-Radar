@@ -7,7 +7,7 @@ Tài liệu này là chỉ dẫn cốt lõi dành cho AI (Claude, Antigravity) v
 ## 1. TỔNG QUAN HỆ THỐNG & HẠ TẦNG (ARCHITECTURE)
 
 * **Frontend:** Next.js 15.1.x (App Router, React 19, TypeScript), **Tailwind CSS v3.4.17**.
-* **Hosting:** Vercel Global Edge CDN (Hỗ trợ Incremental Static Regeneration - ISR Caching).
+* **Hosting (từ 20/11/2026):** máy 146 chạy `next start` (127.0.0.1:3000) sau Cloudflare Tunnel, thay Vercel. Vercel Hobby khoá dự án 19/11-19/12/2026 vì vượt Fluid Active CPU 4h12/4h, ISR Writes 706K/200K, Fast Origin Transfer 10,39/10 GB (khách thật chỉ ~500K request/30 ngày: tốn do máy chủ tự dựng lại trang). ISR vẫn chạy (cache trên đĩa). Cài đặt, script, lệnh vận hành, cách làm Cloudflare: [`deploy/may-146/README.md`](deploy/may-146/README.md).
 * **Cơ sở dữ liệu & Auth:** Supabase PostgreSQL (`nalcvzwsescsxfzsxirg.supabase.co`) với Row Level Security (RLS).
 * **Kho dự án nguồn:** Supabase “AI Ơi Nhà Đất” `rqxmmqmctpklqcmbfxuj` (chỉ đọc).
 * **Crawler rổ hàng & Bot Zalo trên máy 146 (Windows PC khỏe hơn, từ 05/11/2026):** đã dời từ NUC Ubuntu cũ (`192.168.1.52`, `nuc-old` trên Tailscale) sang máy 146, chạy chung với GateMonitor.
@@ -106,13 +106,13 @@ Trong Next.js 15, chỉ cần 1 lời gọi `await cookies()` xuất hiện ở 
      GRANT SELECT (ten_cot_moi) ON public.listings TO anon, authenticated;
      ```
      Nếu quên chạy lệnh này, toàn bộ trang web sẽ bị sập với lỗi `42501 permission denied for table listings`.
-2. **Quy trình Deploy Vercel:**
-   * Luôn chạy `npm run build` kiểm tra trước khi commit/push: Trang chủ phải là **`○ (Static)`**, trang chi tiết tin phải là **`● (SSG / ISR)`**. Push vào nhánh `main` là Vercel tự động build và deploy lên production.
+2. **Quy trình Deploy (máy 146):**
+   * Luôn chạy `npm run build` kiểm tra trước khi commit/push: Trang chủ phải là **`○ (Static)`**, trang chi tiết tin phải là **`● (SSG / ISR)`**. Push vào nhánh `main` thì task `Radar Web deploy` trên máy 146 (5 phút/lần) tự `git fetch`, build và chạy lại nếu file web đổi (lỗi thì trả bản cũ + nhắn Telegram). Mỗi lần deploy server dừng ~1 phút; không còn preview theo PR.
 3. **Môi trường & Ngôn ngữ Script:**
    * Môi trường crawler và VPS không cài đặt Python. Mọi script tự động hóa, nhập dữ liệu, crawler bắt buộc viết bằng **Node.js** (`.mjs` hoặc `.js`).
    * Nhiều file trong dự án dùng định dạng xuống dòng **CRLF**, giữ nguyên format này khi chỉnh sửa.
 4. **Bảo mật biến môi trường:**
-   * Tuyệt đối không gửi giá trị mật khẩu hay private key qua chat. Mọi biến bí mật được quản lý tập trung trong Vercel Environment Variables và GitHub Secrets.
+   * Tuyệt đối không gửi giá trị mật khẩu hay private key qua chat. Biến bí mật của web nằm ở `C:adar-webNhaDat-Radar.env.production.local` trên máy 146 (không commit), của crawler/CI ở GitHub Secrets.
 5. **Quy chuẩn Phân phối Đa kênh & Marketing (Distribution SOP):**
    * Tuân thủ nghiêm ngặt [`docs/QUY-TRINH-PHAN-PHOI-MARKETING.md`](docs/QUY-TRINH-PHAN-PHOI-MARKETING.md) và [`docs/QUY-CHUAN-AUTOMATION-FB-ZALO.md`](docs/QUY-CHUAN-AUTOMATION-FB-ZALO.md).
    * Mọi nội dung xuất bản phải qua bộ lọc Humanizer (cấm em-dash `—`, cấm ngoặc giật tít AI `[...]`), cấm để link ngoài trong caption bài đăng (Threads thả link ở Reply đầu tiên, TikTok/Reels điều hướng link Bio). Hotline & Zalo duy nhất của Radar: **`0387 365 020`**.
