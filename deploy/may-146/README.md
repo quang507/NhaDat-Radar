@@ -54,7 +54,7 @@ guye.cloudflared` |
 | Chạy | Task `Radar Tunnel` → `C:adar-webadar_tunnel.cmd` (SYSTEM, lúc khởi động máy, chết thì chạy lại sau 5 s); đăng ký bằng `dang-ky-tunnel.ps1` |
 | Log | `C:adar-weblogscloudflared.log` |
 
-Apex → www do `next.config.mjs` lo (308), không cần Redirect Rule. HTML hiện `cf-cache-status: DYNAMIC` (Cloudflare chưa giữ HTML): nếu máy 146 bị gọi nhiều,
-thêm Cache Rule (Eligible for cache, Edge TTL "Use cache-control header if present") cho `www.nhadatradar.com`, trừ `/api/*`, `/auth*`, `/search*`, `/dashboard*`, `/admin*`.
+Apex → www do `next.config.mjs` lo (308), không cần Redirect Rule. **Cache Rule (bật 20/11/2026)**: Cloudflare → Caching → Cache Rules, rule "Giu HTML trang cong khai theo cache-control cua Next": Eligible for cache, Edge TTL "Use cache-control header if present, bypass cache if not", chỉ áp cho `www.nhadatradar.com` và KHÔNG áp cho `/api/`, `/auth`, `/search`, `/dashboard`, `/admin`, `/account`, `/tin-nhan`, `/_next/`, `/m/`.
+Thời hạn do chính app khai (`revalidate`): trang chủ 6 giờ, trang tin 24 giờ. Muốn tin mới lên trang chủ sớm hơn thì hạ `revalidate` trong `src/app/page.tsx` (không cần đụng Cloudflare). Kiểm: `curl -sI -A "Mozilla/5.0" https://www.nhadatradar.com/ | findstr cf-cache-status` (lần 2 trở đi phải là HIT; `/search`, `/auth` phải là DYNAMIC). Xả cache khi cần: Cloudflare → Caching → Configuration → Purge.
 Bộ lọc bot của app trả 403 cho User-Agent mặc định của curl: thử bằng `curl -A "Mozilla/5.0"`.
 Đổi/khôi phục: `cloudflared tunnel list`, `cloudflared tunnel route dns radar-146 <host>`; thêm host mới thì sửa `config.yml` rồi `schtasks /End` + `/Run` task `Radar Tunnel`.
