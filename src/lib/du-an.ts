@@ -69,15 +69,27 @@ export function goiYDuAn(ds: DuAnToaDo[], q: string, n = 6) {
     .sort((a, b) => b.s - a.s || a.p.name.length - b.p.name.length).slice(0, n).map((x) => x.p);
 }
 
+// Các cụm địa danh phổ thông trùng tên với dự án nhỏ (vd KDC Làng Đại Học ở Phước Kiển Nhà Bè dễ bắt nhầm Làng ĐHQG Thủ Đức/Dĩ An)
+const TEN_DIA_DANH_CHUNG = new Set(["lang dai hoc", "cho lon", "ben thanh", "hang xanh", "binh trieu", "an suong", "phu lam", "ba chieu"]);
+
 /** Tên dự án nằm TRONG một câu ("tìm trọ gần ny'ah bình tây dưới 4tr") - lấy khớp DÀI nhất, nguyên từ.
  *  Bỏ tên quá ngắn/chung chung (< 6 ký tự hoặc 1 từ) để "the sun", "green" không bắt nhầm câu thường. */
 export function duAnTrongCau(ds: DuAnToaDo[], cau: string): DuAnToaDo | null {
   const c = ` ${chuanTen(cau)} `;
-  let tot: DuAnToaDo | null = null, dai = 0;
+  let tot: DuAnToaDo | null = null, diemTot = 0;
   for (const p of ds) {
     const t = goc(p.name);
     if (t.length < 6 || !t.includes(" ")) continue;
-    if (t.length > dai && c.includes(` ${t} `)) { tot = p; dai = t.length; }
+    if (!c.includes(` ${t} `)) continue;
+    // "Làng Đại Học" ở Nhà Bè chỉ khớp khi khách nhắc rõ Nhà Bè / Phước Kiển / Lê Văn Lương
+    if (TEN_DIA_DANH_CHUNG.has(t)) {
+      const qDuAn = chuanTen(p.district || "");
+      if (!qDuAn || !c.includes(` ${qDuAn} `)) continue;
+    }
+    const q = p.district ? chuanTen(p.district.replace(/^(quan|huyen|thanh pho|tp|thi xa)\s+/i, "")) : "";
+    const congQuan = q && c.includes(` ${q} `) ? 20 : 0;
+    const diem = t.length + congQuan;
+    if (diem > diemTot) { tot = p; diemTot = diem; }
   }
   return tot;
 }

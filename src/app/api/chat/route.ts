@@ -12,8 +12,31 @@ import { lamSachTuKhoa, cacMucNoi, type BoLoc } from "@/lib/chat-tim";
 import { bocTruyVanBDS } from "@/lib/boc-truy-van";
 import { layTinTuongTu } from "@/lib/tuong-tu";
 import { cheSoVanBan } from "@/lib/doc-quyen";
-import { layDuAnToaDo, duAnTrongCau, chuanTen, khoangCachKm } from "@/lib/du-an";
+import { layDuAnToaDo, duAnTrongCau, chuanTen, khoangCachKm, type DuAnToaDo } from "@/lib/du-an";
+import { DIEM_NEO } from "@/lib/diem-neo";
 import { HOTLINE, HOTLINE_DISPLAY, HOTLINE_NAME } from "@/lib/hotline";
+
+// Điểm neo chiến lược & trường đại học có toạ độ GPS chuẩn để tìm bán kính 2-3km xuyên các lượt chat
+const DIEM_NEO_TOA_DO: DuAnToaDo[] = [
+  ...DIEM_NEO.map((d) => ({
+    id: `neo:${d.slug}`,
+    slug: d.slug,
+    name: d.ten.replace(/\s*\([^)]*\)\s*/g, "").trim(),
+    lat: d.lat,
+    lng: d.lng,
+    district: d.quanChinh.replace(/^(Thành phố|TP\.?|Quận|Huyện)\s+/i, "").trim(),
+    province: "Hồ Chí Minh",
+    address: null,
+  })),
+  { id: "neo:dh-hutech", slug: "dh-hutech", name: "ĐH Hutech", lat: 10.8016, lng: 106.7145, district: "Bình Thạnh", province: "Hồ Chí Minh", address: null },
+  { id: "neo:dh-ngoai-thuong", slug: "dh-ngoai-thuong", name: "ĐH Ngoại Thương", lat: 10.8069, lng: 106.7132, district: "Bình Thạnh", province: "Hồ Chí Minh", address: null },
+  { id: "neo:dh-van-lang", slug: "dh-van-lang", name: "ĐH Văn Lang", lat: 10.8275, lng: 106.7001, district: "Bình Thạnh", province: "Hồ Chí Minh", address: null },
+  { id: "neo:dh-bach-khoa", slug: "dh-bach-khoa", name: "ĐH Bách Khoa", lat: 10.7726, lng: 106.6579, district: "Quận 10", province: "Hồ Chí Minh", address: null },
+  { id: "neo:dh-ton-duc-thang", slug: "dh-ton-duc-thang", name: "ĐH Tôn Đức Thắng", lat: 10.7326, lng: 106.6998, district: "Quận 7", province: "Hồ Chí Minh", address: null },
+  { id: "neo:dh-cong-nghiep", slug: "dh-cong-nghiep", name: "ĐH Công Nghiệp", lat: 10.8222, lng: 106.6875, district: "Gò Vấp", province: "Hồ Chí Minh", address: null },
+  { id: "neo:dh-su-pham-ky-thuat", slug: "dh-su-pham-ky-thuat", name: "ĐH Sư Phạm Kỹ Thuật", lat: 10.8507, lng: 106.7719, district: "Thủ Đức", province: "Hồ Chí Minh", address: null },
+  { id: "neo:lang-dai-hoc-thu-duc", slug: "lang-dai-hoc-thu-duc", name: "Làng Đại Học Thủ Đức", lat: 10.8752, lng: 106.8007, district: "Dĩ An", province: "Bình Dương", address: null },
+];
 
 // %/_ là wildcard ilike, ",()" phá cú pháp .or() - cùng luật clean của /search (soát 21/8:
 // province/district/keyword từ output Gemini đi thẳng vào ilike không rửa)
@@ -29,9 +52,9 @@ const ngayVN = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-type ChatMsg = { role: "user" | "bot"; text: string };
+type ChatMsg = { role: "user" | "bot"; text: string; listingIds?: string[] };
 type Parsed = {
-  mode: "search" | "analyze" | "chat";
+  mode: "search" | "similar" | "project_info" | "analyze" | "chat";
   deal?: "ban" | "cho_thue" | null;
   kind?: string | null;
   province?: string | null;
@@ -40,41 +63,69 @@ type Parsed = {
   price_max?: number | null;
   bedrooms?: number | null;
   keyword?: string | null;
+  project_name?: string | null;
+  target_listing_index?: number | null;
   small_talk_reply?: string | null;
+  suggestions?: string[] | null;
 };
 
-const PARSE_PROMPT = `Bạn là TRỢ LÝ AI tư vấn tìm phòng & chốt lịch xem nhà của Radar Nhà Đất.
-Nhiệm vụ: Tư vấn nhiệt tình, bắt đúng nhu cầu của khách tìm phòng, gửi 3-5 lựa chọn phù hợp nhất và chốt giờ dẫn đi xem trực tiếp miễn phí.
-Hotline và Zalo tư vấn duy nhất của Radar: ${HOTLINE_DISPLAY} (${HOTLINE_NAME}).
+// Trích xuất nguyên bản từ AI Ơi Nhà Đất (mua_co_dinh_13-11-2026.docx + Tinh-cach-bot_13-11-2026.docx + prompts-AOND_16-11-2026_sau-SRS509.md)
+const KHOI_NHAN_VAT_VA_GIONG_AOND = `NHÂN VẬT: em là Trợ lý AI của NhaDat Radar (nhadatradar.com · Hotline/Zalo: ${HOTLINE_DISPLAY} - ${HOTLINE_NAME}), đang trò chuyện với khách tìm mua / thuê nhà đất. Điều quan trọng nhất của em là THẤU HIỂU và CHĂM SÓC khách như chăm người quen:
+- Nghe kỹ điều khách nói và đọc ra mong muốn, nỗi lo đằng sau (gấp hay thong thả, đang phân vân điều gì) — chỉ từ chính lời khách, không đoán thêm chi tiết khách chưa kể.
+- Đáp vào điều khách đang quan tâm trước, rồi mới tới việc của em; điều khách đã kể ở các tin trước thì dùng lại tự nhiên khi hợp, không nói ra là em đang nhớ.
+- Khách bận, do dự hay không vui thì nhẹ nhàng, không ép, không giục. Nếu khách hỏi là người thật hay máy: nói thật "Em là trợ lý AI của Radar Nhà Đất" trong 1 câu rồi tiếp việc khách hỏi.
 
-[QUY TẮC PHẢN HỒI (GIỌNG TỰ NHIÊN, NHƯNG LUÔN LÀ AI)]:
-0. Bạn là AI. KHÔNG BAO GIỜ tự nhận là người, nhân viên hay "bạn phụ trách". Nếu khách hỏi có phải người thật/bot không, trả lời rõ: "Dạ em là trợ lý AI của Radar" và đưa Hotline/Zalo duy nhất ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) để gặp nhân viên trực tiếp.
-1. KHÔNG chào hỏi vòng vo kiểu "Kính thưa quý khách", "Cảm ơn bạn đã liên hệ".
-2. Vào thẳng vấn đề tự nhiên: Xưng "em - anh/chị" (hoặc "em - mình").
-3. KỊCH BẢN CHỐT KHÁCH 3 BƯỚC:
-   - Bước 1 (Lắng nghe & Khớp phòng): Tóm tắt lại nhu cầu (Quận, Giá, Có gác/Ban công, Nuôi thú cưng không). Khi khách hỏi theo mã phòng RHxxxxxx, tra cứu chính xác theo dữ liệu rổ hàng.
-   - Bước 2 (Minh bạch chi phí): Luôn bóc tách đủ 5 khoản phí minh bạch (nói không với chi phí ẩn): 1. Tiền phòng (giá thuê), 2. Tiền điện, 3. Tiền nước, 4. Tiền gửi xe, 5. Tiền dịch vụ (phí quản lý/dịch vụ). Nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
-   - Bước 3 (Chốt giờ xem): Mục tiêu là giải đáp nhanh và chốt lịch hẹn dẫn khách xem phòng thực tế miễn phí: "Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện giờ nào hơn để em báo bạn phụ trách mở cửa sẵn đón mình qua xem thực tế ạ?"
-4. MỜI ĐỂ LẠI SỐ ĐIỆN THOẠI/ZALO: Mời để lại SĐT hoặc nhắn Zalo ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) để nhân viên Radar gửi vị trí Maps và video phòng thực tế.
+GIỌNG (chung cho mọi lượt):
+- Em là một môi giới trẻ đang HÀO HỨNG với nhu cầu của khách và căn em giới thiệu — vui vẻ, ấm áp, thật lòng, nhanh nhẹn, nhắn tự nhiên như với người quen, không phải nhân viên đọc kịch bản.
+- Khách đọc trên điện thoại nên em viết ngắn gọn, vào thẳng điều khách cần — văn nói tự nhiên, giọng miền Nam vừa phải ("nha", "nè", "luôn" — mỗi câu nhiều nhất 1 từ như vậy).
+- Nghe khách trước: khách hỏi thì trả lời trọn câu đó bằng dữ liệu thật trong DB rồi mới tới việc của em.
+- Mỗi lượt một vẻ: không lặp lại câu / ý đã nói ở lượt trước, không mở đầu hai lượt liền nhau bằng cùng mấy chữ. Gọi khách (anh/chị hoặc bạn) tự nhiên, không gắn vào mọi câu.
 
-Phân tích TIN NHẮN CUỐI của người dùng (kèm ngữ cảnh hội thoại) và trả về DUY NHẤT 1 JSON:
+BỐI CẢNH TƯ VẤN KHÁCH MUA / THUÊ & THU THẬP NHU CẦU (HỎI NHỎ GIỌT):
+- Mục tiêu: hiểu rõ chân dung & tiêu chí tìm kiếm của khách, lấy dữ liệu thật từ DB để khớp căn chính xác nhất và hỗ trợ khách hẹn đi xem nhà thực tế (hoặc lưu SĐT/Zalo của khách để chuyên viên gửi video thực tế & vị trí Maps).
+- HỎI NHỎ GIỌT (Tối đa MỘT câu hỏi mỗi lượt, bằng MỘT câu ngắn):
+  • Tầng 1 (Cốt lõi): Khu vực / Quận mong muốn, Tầm tài chính / Ngân sách dự kiến, Loại BĐS tìm kiếm.
+  • Đủ ba ý cốt lõi và có căn trong DB thì GỢI Ý CĂN TRƯỚC, câu hỏi mở (như đi làm/đi học ở đoạn nào, mấy người ở, khi nào tiện qua xem, hoặc xin SĐT/Zalo để gửi định vị Maps & video phòng) nằm ở CUỐI tin.
+  • Chưa đủ khu vực hoặc ngân sách thì gợi ý nhanh 2 mốc giá hoặc 2-3 khu vực điển hình rồi hỏi mở 1 câu ngắn.
+- QUY TẮC DỮ LIỆU DB:
+  • Tuyệt đối không bịa đặt căn ảo hoặc con số không có trong dữ liệu DB được cung cấp. Thứ trong DB của căn chưa ghi (ví dụ chưa ghi giá nước) thì nói thật là trên tin chưa ghi để bên em hỏi lại tòa nhà/chủ nhà.
+  • Khi khách xin bớt giá hoặc hỏi thời hạn hợp đồng ngắn hạn: giải thích nhẹ nhàng là giá niêm yết trên tin, khi đi xem thực tế ưng phòng bên em sẽ hỗ trợ thương lượng trực tiếp với chủ nhà.
+  • Nhấn mạnh tự nhiên khi hợp ngữ cảnh: "Radar dẫn xem miễn phí 100%, không thu phí môi giới".
+
+HIỂU TIẾNG NGHỀ & ĐỊA DANH (hiểu luôn, không hỏi lại nghĩa):
+- Tiền: tỏi = tỷ, củ = triệu, xị = trăm nghìn, 5t5 = 5,5 tỷ, 4tr5 = 4,5 triệu; TL / bớt lộc = thương lượng.
+- Địa chỉ & đường: dấu "/" (100/9, 12/5A) là số nhà trong hẻm (KHÔNG phải diện tích); 1 xuyệt / 2 xuyệt = hẻm rẽ 1-2 lần; MT = mặt tiền, HXH = hẻm xe hơi, CHDV = căn hộ dịch vụ, stu = studio.
+- Tên khu dân gian:
+  • Bcons City, đường Thống Nhất, Đông Hòa, Tân Lập, Làng Đại học Quốc gia (ĐHQG) = TP. Dĩ An, Bình Dương (giáp Thủ Đức).
+  • Bàu Cát, K300, Bảy Hiền, Lăng Cha Cả, Bà Quẹo = Tân Bình; cư xá Bắc Hải = Quận 10; Bàn Cờ, Đô Thành = Quận 3; Lữ Gia, Bình Thới = Quận 11; Phan Xích Long = Phú Nhuận.
+  • Bà Chiểu, Hàng Xanh, Thị Nghè, Văn Thánh, Thanh Đa, Miếu Nổi, đường D2 (Nguyễn Gia Trí) = Bình Thạnh; Đa Kao, Tân Định = Quận 1; Xóm Chiếu = Quận 4; Chợ Lớn = Quận 5; Phú Lâm, Bình Phú = Quận 6.
+  • Phú Mỹ Hưng, Him Lam, Kiều Đàm = Quận 7; Xóm Củi = Quận 8; Tên Lửa, An Lạc = Bình Tân; Cityland, Hạnh Thông Tây = Gò Vấp; Thảo Điền, An Phú, Sala, Vạn Phúc, Bình Triệu, Hiệp Bình = Thủ Đức; Trung Sơn = Bình Chánh; Ngã tư Ga, An Sương = Quận 12.
+- Kiến thức nghề: ô tô con cần hẻm >= 3-3.5m; diện tích chung cư trên sổ là thông thủy; nhà phố 4x16 = 64m² đất.`;
+
+const PARSE_PROMPT = `${KHOI_NHAN_VAT_VA_GIONG_AOND}
+
+=== BƯỚC 1: ĐỌC Ý KHÁCH THEO NGỮ CẢNH TOÀN CUỘC TRÒ CHUYỆN ===
+Đọc TIN NHẮN CUỐI của người dùng trong TOÀN BỘ NGỮ CẢNH HỘI THOẠI (nhớ mọi tiêu chí khu vực, đường, dự án, tầm giá, loại phòng khách đã nói ở các lượt trước cho đến khi khách đổi sang ý khác) và trả về DUY NHẤT 1 JSON:
 {
- "mode": "search"|"analyze"|"chat",
-   // search: tìm tin cụ thể (mua/thuê nhà theo tiêu chí)
-   // analyze: hỏi về THỊ TRƯỜNG - giá trung bình, khu nào rẻ/đắt, nên đầu tư đâu, so sánh khu vực, xu hướng
-   // chat: chào hỏi, hỏi cách dùng web, khác
- "deal": "ban"|"cho_thue"|null,
- "kind": "nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|null,
- "province": string|null,   // chuẩn hoá: "Hồ Chí Minh", "Hà Nội", "Đà Nẵng"... Mặc định ưu tiên Hồ Chí Minh nếu người dùng nhắc các quận như Tân Phú, Bình Tân, Quận 12, Gò Vấp, Tân Bình...
- "district": string|null,
- "price_min": number|null,  // VND: "2 tỷ"=2000000000, "5tr/tháng"=5000000
- "price_max": number|null,
- "bedrooms": number|null,
- "keyword": string|null,   // tên đường / dự án / địa danh nhỏ hơn quận. VIẾT CÓ DẤU CHUẨN kể cả khi người dùng gõ không dấu ("pham huu lau" -> "Phạm Hữu Lầu"); KHÔNG kèm chữ "đường", "phố", "hẻm", "gần"
- "small_talk_reply": string|null  // CHỈ khi mode=chat: trả lời tự nhiên, ngắn gọn, xưng em - anh/chị (vẫn là trợ lý AI, không tự nhận là người). Nếu khách hỏi phòng đang xem/mã phòng thì giải đáp thông tin bóc tách đủ 5 khoản phí minh bạch, nhấn mạnh "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào", chốt xem tối nay 18h30 hoặc chiều mai, và xin Zalo/SĐT để gửi vị trí Maps cùng video phòng thực tế (Hotline/Zalo: ${HOTLINE_DISPLAY} - ${HOTLINE_NAME}).
-}
-Không bịa. Giá quy về VND.
-Nếu có dòng "NGƯỜI DÙNG ĐANG XEM TIN" hoặc "NGƯỜI DÙNG ĐANG HỎI MÃ PHÒNG" và câu hỏi nói về chính tin đó ("phòng này", "căn này", "còn không", "giá bao nhiêu", "ở đâu", "phí sao", "có gần ... không", "cách ... bao xa", "đi qua ... mấy phút") -> mode "chat", small_talk_reply trả lời thẳng vào câu hỏi của khách (nếu hỏi vị trí/khoảng cách tới địa danh, đường, trường học, dự án thì dựa vào địa chỉ khu vực/tọa độ của tin để ước lượng khoảng cách & thời gian di chuyển thực tế), kèm thông tin giá/phí ngắn gọn, nhấn mạnh dẫn xem miễn phí 100% không thu phí cò, và mời để lại Zalo/SĐT hoặc nhắn Zalo ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) để gửi vị trí Maps cùng video phòng thực tế.`;
+  "mode": "search"|"similar"|"project_info"|"analyze"|"chat",
+    // search: khách tìm căn / lọc phòng theo khu vực, đường, dự án, tầm giá, loại phòng, hoặc đổi/bổ sung tiêu chí từ lượt trước ("Khu Bcons City đường Thống Nhất có căn nào dưới 8tr ko", "dưới 4 triệu thì sao", "có phòng gác lửng không", "còn bên Bình Thạnh thì sao")
+    // similar: khách đang xem 1 căn và muốn tìm các căn tương tự / giống căn này quanh đó ("gợi ý căn tương tự", "có căn nào giống vậy không")
+    // project_info: khách CHỈ hỏi thông tin giới thiệu về một dự án BĐS (chủ đầu tư, pháp lý, bàn giao, quy mô dự án) mà KHÔNG hỏi tìm căn/phòng hay mức giá thuê/mua
+    // analyze: hỏi thống kê giá trung bình thị trường, so sánh giá/m² các quận, tỷ suất cho thuê
+    // chat: hỏi chi tiết về CĂN ĐANG XEM hoặc CÁC CĂN VỪA GỢI Ý ("căn này có gần Bcons không", "căn đầu điện nước sao", "so sánh căn 1 và căn 2", "căn này còn trống không", "bớt giá được không"), để lại SĐT/hẹn lịch xem, hỏi kiến thức pháp lý/thủ tục, hoặc chào hỏi
+  "deal": "ban"|"cho_thue"|null,
+  "kind": "nha"|"dat"|"can_ho"|"mat_bang"|"phong_tro"|null,
+  "province": string|null,   // chuẩn hoá: "Hồ Chí Minh", "Bình Dương", "Đồng Nai", "Hà Nội", "Đà Nẵng"... (Dĩ An / Thuận An -> "Bình Dương")
+  "district": string|null,   // chuẩn hoá: "Dĩ An", "Bình Thạnh", "Quận 7", "Thủ Đức"... Kế thừa từ lượt trước nếu lượt này khách chỉ đổi giá/loại phòng
+  "price_min": number|null,  // VND: "2 tỷ"=2000000000, "5tr"=5000000. Kế thừa từ lượt trước nếu lượt này khách chỉ đổi khu vực
+  "price_max": number|null,
+  "bedrooms": number|null,
+  "keyword": string|null,    // tên đường / địa danh nhỏ hơn quận (CÓ DẤU CHUẨN, KHÔNG kèm chữ "đường", "phố", "hẻm", "gần", "khu")
+  "project_name": string|null, // tên dự án / chung cư cụ thể nếu khách đang tìm quanh dự án đó hoặc hỏi về dự án đó (vd "Bcons City", "Vinhomes Grand Park"). Kế thừa từ lượt trước nếu khách đang hỏi tiếp về khu dự án đó
+  "target_listing_index": number|null, // số thứ tự căn (1..5) trong CÁC CĂN VỪA GỢI Ý nếu khách hỏi về căn đó ("căn đầu"=1, "căn số 2"=2, "căn cuối"=5)
+  "small_talk_reply": string|null, // KHI mode="chat": viết câu trả lời tự nhiên theo đúng NHÂN VẬT & GIỌNG ở trên, lấy dữ liệu thật từ NGƯỜI DÙNG ĐANG XEM / CÁC CĂN VỪA GỢI Ý / KHOẢNG CÁCH DỰ ÁN / KIẾN THỨC NGHỀ để giải đáp trọn câu hỏi của khách, kèm tối đa 1 câu hỏi mở hoặc mời hẹn xem / để lại SĐT-Zalo nhận video & vị trí Maps.
+  "suggestions": string[]|null // 2-3 gợi ý câu hỏi ngắn gọn tiếp theo hợp ngữ cảnh
+}`;
 
 type TinDangXem = {
   id: string;
@@ -95,77 +146,6 @@ type TinDangXem = {
   lat?: number | null;
   lng?: number | null;
 };
-
-/** 11/11 (UX 3.4): Trả lời tức thì (<0.3s, không tốn lượt Gemini) khi khách đang xem 1 tin và hỏi trực tiếp về chính tin đó */
-function traLoiNhanhTinDangXem(t: TinDangXem, cauHoi: string): { reply: string; suggestions: string[] } | null {
-  // Bỏ qua câu hỏi trắng chữ URL để tránh khớp nhầm chuỗi trong đường dẫn
-  const cauSach = cauHoi.replace(/https?:\/\/\S+/gi, " ").trim();
-  if (/(tìm|kiếm|căn khác|phòng khác|tương tự|giá mềm|rẻ hơn|rẻ nhất|quận \d|bình thạnh|tân bình|gò vấp|quận 7|thủ đức|gần|cách|bao xa|mấy km|mấy phút|đi học|đi làm|trường|đại học|làng đại học|bệnh viện|chợ|siêu thị|metro|sân bay|bến xe|khu |đường )/i.test(cauSach)) {
-    return null;
-  }
-  const hoiTinNay = /(còn (trống|không|k|ko)|phòng này|căn này|tiền phòng|chi phí|điện|nước|gửi xe|xe|dịch vụ|quản lý|phí|bao nhiêu|giá|cọc|hợp đồng|thú cưng|nuôi|giờ|tư vấn|hẹn xem|xem (nhà|phòng)|ở đâu|địa chỉ|diện tích|nội thất|tiện ích|có gì)/i.test(cauSach);
-  if (!hoiTinNay) return null;
-
-  const rh = laRoHang(t);
-  const mp = maPhong(t.id);
-  const specs = t.specs || {};
-  const laySpec = (re: RegExp) => {
-    const hit = Object.entries(specs).find(([k, v]) => re.test(k) && v && String(v).trim() !== "-");
-    return hit ? String(hit[1]).trim() : null;
-  };
-  const gia = fmtPrice(t.price_vnd, t.deal);
-  const addrBase = String(t.address || "");
-  const addrLow = addrBase.toLowerCase();
-  const khuVuc = cheSoVanBan([
-    addrBase,
-    t.ward && !addrLow.includes(t.ward.toLowerCase()) ? t.ward : null,
-    t.district && !addrLow.includes(t.district.toLowerCase()) ? t.district : null,
-    t.province && !addrLow.includes(t.province.toLowerCase()) ? t.province : null,
-  ].filter(Boolean).join(", "));
-  const dong: string[] = [
-    rh
-      ? `Dạ tin "${cheSoVanBan(t.title)}" (Mã phòng ${mp}) đang được đơn vị quản lý xác nhận còn trống ạ.`
-      : `Dạ em gửi nhanh thông tin tin "${cheSoVanBan(t.title)}" anh/chị đang xem:`,
-    `• Giá & diện tích: ${gia}${t.area_m2 ? ` · ${t.area_m2} m²` : ""}`,
-    khuVuc ? `• Vị trí: ${khuVuc}` : "",
-  ].filter(Boolean);
-
-  if (t.deal === "cho_thue") {
-    const dien = laySpec(/^(tiền )?điện/i);
-    const nuoc = laySpec(/^(tiền )?nước/i);
-    const xe = laySpec(/(gửi|giữ|để) xe/i);
-    const dv = laySpec(/dịch vụ|quản lý|phí chung/i);
-    const coc = laySpec(/cọc/i);
-    const gio = laySpec(/giờ giấc/i);
-    const coPhiPhu = !!(dien || nuoc || xe || dv);
-    if (coPhiPhu) {
-      dong.push(
-        "📌 Chi phí hàng tháng:",
-        `1. Tiền phòng: ${gia}`,
-        `2. Điện: ${dien || "chưa ghi (nhắn Zalo để Radar hỏi tòa nhà)"}`,
-        `3. Nước: ${nuoc || "chưa ghi"}`,
-        `4. Gửi xe: ${xe || "chưa ghi"}`,
-        `5. Dịch vụ/Quản lý: ${dv || "chưa ghi"}`,
-      );
-    } else if (rh) {
-      dong.push(`📌 Chi phí điện, nước, gửi xe, dịch vụ chưa có bảng chi tiết trên tin này. Anh/chị nhắn Zalo ${HOTLINE_DISPLAY} để Radar hỏi tòa nhà báo trọn gói trước khi qua xem nhé.`);
-    }
-    if (coc || gio) {
-      dong.push(`• Điều khoản: ${[coc ? `Cọc ${coc}` : "", gio ? `Giờ giấc: ${gio}` : ""].filter(Boolean).join(" · ")}`);
-    }
-  }
-
-  dong.push(
-    rh
-      ? `Radar dẫn xem miễn phí 100%, không thu phí môi giới. Tối nay tầm 18h30 hoặc chiều mai anh/chị tiện qua xem thực tế lúc nào để em báo mở cửa ạ? Anh/chị nhắn Zalo ${HOTLINE_DISPLAY} kèm mã ${mp} hoặc để lại SĐT ngay tại đây nhé!`
-      : `Anh/chị cần Radar kiểm tra tình trạng hoặc lọc thêm căn tương tự cứ để lại SĐT hoặc nhắn Zalo ${HOTLINE_DISPLAY} (${HOTLINE_NAME}) nhé.`,
-  );
-
-  return {
-    reply: dong.join("\n"),
-    suggestions: ["Gợi ý căn tương tự", "Xem căn giá mềm hơn", "Liên hệ Hotline hỗ trợ"],
-  };
-}
 
 // Nhúng câu hỏi thành vector 768 chiều (gemini-embedding-001 - cùng model với listings.embedding và
 // projects.embedding chép từ kho AI Ơi). Xoay key khi 429. null nếu hết key / lỗi.
@@ -198,7 +178,7 @@ const TU_CHUNG_DU_AN = new Set(["the", "khu", "can", "ho", "nha", "pho", "dat", 
 function fallbackParse(text: string): Parsed {
   const t = text.toLowerCase();
   const q: Parsed = { mode: "search" };
-  if (/(giá trung bình|khu nào|quận nào|đầu tư|xu hướng|thị trường|so sánh|rẻ nhất|đắt nhất)/.test(t)) q.mode = "analyze";
+  if (/(giá trung bình|khu nào rẻ|quận nào rẻ|đầu tư đâu|xu hướng thị trường|tỷ suất cho thuê)/.test(t)) q.mode = "analyze";
   const b = bocTruyVanBDS(text);
   if (b.coKetQua) {
     if (b.loc.deal) q.deal = b.loc.deal;
@@ -212,6 +192,85 @@ function fallbackParse(text: string): Parsed {
     if (b.loc.keyword || b.loc.street) q.keyword = b.loc.keyword || b.loc.street;
   }
   return q;
+}
+
+/** Cộng dồn ngữ cảnh tìm kiếm xuyên suốt các lượt chat của khách (nhớ "tìm gần chỗ nào" + "với tầm giá nào" qua nhiều lượt cho đến khi khách đổi sang khu/ý khác) */
+function gopNguCanhHoiThoai(
+  messages: ChatMsg[],
+  tinDangXem: TinDangXem | null,
+  dsCanDaGui: TinDangXem[] = [],
+  dsDuAnVaNeo: DuAnToaDo[] = [],
+): { gop: Parsed; daTim: DuAnToaDo | null } {
+  const gop: Parsed = { mode: "search" };
+  let daTim: DuAnToaDo | null = null;
+  if (tinDangXem) {
+    gop.deal = tinDangXem.deal === "ban" ? "ban" : "cho_thue";
+  } else if (dsCanDaGui.length > 0) {
+    gop.deal = dsCanDaGui[0].deal === "ban" ? "ban" : "cho_thue";
+  }
+
+  for (const m of messages) {
+    if (m.role !== "user") continue;
+    const daTrongLuot = dsDuAnVaNeo.length ? duAnTrongCau(dsDuAnVaNeo, m.text) : null;
+    const b = bocTruyVanBDS(m.text);
+
+    if (daTrongLuot) {
+      daTim = daTrongLuot;
+      if (daTrongLuot.district) {
+        const dChuan = daTrongLuot.district.replace(/^(Thành phố|TP\.?|Quận|Huyện|Thị xã)\s+/i, "").trim();
+        if (gop.district && gop.district !== dChuan) gop.keyword = null;
+        gop.district = dChuan;
+      }
+      if (daTrongLuot.province) gop.province = daTrongLuot.province;
+    }
+
+    if (!b.coKetQua) continue;
+    if (b.loc.deal) gop.deal = b.loc.deal;
+    if (b.loc.kind) gop.kind = b.loc.kind;
+    if (b.loc.province) gop.province = b.loc.province;
+    if (b.loc.district) {
+      if (gop.district && gop.district !== b.loc.district) {
+        gop.keyword = null; // Đổi sang quận mới thì xoá tên đường của quận cũ
+      }
+      if (daTim && daTim.district && !daTrongLuot) {
+        const qDa = chuanTen(daTim.district.replace(/^(thanh pho|tp|quan|huyen|thi xa)\s+/i, ""));
+        const qMoi = chuanTen(b.loc.district.replace(/^(thanh pho|tp|quan|huyen|thi xa)\s+/i, ""));
+        if (qDa && qMoi && !qDa.includes(qMoi) && !qMoi.includes(qDa)) {
+          daTim = null; // Đổi sang quận khác thì bỏ mốc dự án/điểm neo cũ
+        }
+      }
+      gop.district = b.loc.district;
+    }
+    if (b.loc.price_min !== undefined || b.loc.price_max !== undefined || b.loc.price_approx !== undefined) {
+      gop.price_min = b.loc.price_min ?? null;
+      gop.price_max = b.loc.price_max ?? (b.loc.price_approx ? Math.round(b.loc.price_approx * 1.15) : null);
+    }
+    if (b.loc.bedrooms) gop.bedrooms = b.loc.bedrooms;
+    if (b.loc.keyword || b.loc.street) gop.keyword = b.loc.keyword || b.loc.street || null;
+  }
+
+  // Nếu các lượt trước đã gợi ý danh sách căn ở một quận cụ thể mà lượt này khách chỉ đổi giá ("dưới 5tr", "rẻ hơn")
+  if (!gop.district && dsCanDaGui.length > 0 && dsCanDaGui[0].district) {
+    gop.district = dsCanDaGui[0].district.replace(/^(Thành phố|TP\.?|Quận|Huyện|Thị xã)\s+/i, "").trim();
+    gop.province ||= dsCanDaGui[0].province;
+  }
+
+  const lastText = messages.filter((m) => m.role === "user").pop()?.text || "";
+  const refTin = tinDangXem || dsCanDaGui[0] || null;
+  if (refTin && /(quanh đây|gần đây|khu này|cùng khu|giá mềm|rẻ hơn|rẻ nhất|thấp hơn)/i.test(lastText)) {
+    gop.deal ||= refTin.deal === "ban" ? "ban" : "cho_thue";
+    gop.kind ||= refTin.kind;
+    gop.province ||= refTin.province;
+    gop.district ||= refTin.district;
+    if (/(giá mềm|rẻ hơn|rẻ nhất|thấp hơn)/i.test(lastText) && !bocTruyVanBDS(lastText).loc.price_max) {
+      const basePrice = gop.price_max || refTin.price_vnd;
+      if (basePrice) gop.price_max = Math.round(basePrice * 0.88);
+    }
+  }
+  if (/(giá trung bình|khu nào rẻ|quận nào rẻ|đầu tư đâu|xu hướng thị trường|tỷ suất cho thuê)/i.test(lastText)) {
+    gop.mode = "analyze";
+  }
+  return { gop, daTim };
 }
 
 // Thống kê thị trường theo quận từ data thật (giá/m² trung vị bán & thuê + tỷ suất cho thuê)
@@ -267,12 +326,18 @@ export async function POST(req: NextRequest) {
   // lịch sử không giới hạn độ dài -> đốt token Gemini)
   const messages: ChatMsg[] = (Array.isArray(body?.messages) ? body.messages : [])
     .filter((m) => !!m && typeof m === "object" && typeof m.text === "string")
-    .map((m): ChatMsg => ({ role: m.role === "user" ? "user" : "bot", text: m.text.slice(0, 1000) }))
-    .slice(-8);
+    .map((m): ChatMsg => ({
+      role: m.role === "user" ? "user" : "bot",
+      text: m.text.slice(0, 1000),
+      ...(Array.isArray(m.listingIds)
+        ? { listingIds: m.listingIds.filter((id): id is string => typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id)).slice(0, 5) }
+        : {}),
+    }))
+    .slice(-10);
   const last = messages.filter((m) => m.role === "user").pop()?.text?.slice(0, 1000);
   if (!last) return NextResponse.json({ reply: "Bạn muốn tìm nhà đất như thế nào ạ?" });
 
-  // Thu thập lead tự động khi khách để lại SĐT trong chat
+  // Thu thập lead tự động khi khách chủ động để lại SĐT trong chat
   const phoneMatch = last.match(SDT_TRONG_CAU);
   const sdt = phoneMatch ? "0" + phoneMatch[1].replace(/\D/g, "") : null;
   let daLuuLead = false;
@@ -285,7 +350,6 @@ export async function POST(req: NextRequest) {
       message: `[AI Chat] "${last}"`,
     };
     try {
-      // 2/11 (audit S3): leads không còn cho anon insert qua REST (038) -> ghi bằng service role sau khi đã kiểm SĐT
       const { error: errLead } = await createAdminClient().from("leads").insert(leadRow);
       if (!errLead) {
         daLuuLead = true;
@@ -297,29 +361,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 2/11: báo widget đã lưu lead (daLuuLead) ở MỌI câu trả lời sau bước này -> widget thôi mời để lại SĐT
   const traLoi = (o: Record<string, unknown>, init?: ResponseInit) =>
     NextResponse.json(daLuuLead ? { ...o, daLuuLead: true } : o, init);
 
-  // Nếu khách CHỈ để lại SĐT hoặc câu quá ngắn chỉ để liên hệ
-  if (daLuuLead && last.length < 50 && !/(tìm|mua|thuê|cần|quận|giá|tỷ|triệu|bán)/i.test(last)) {
-    return traLoi({
-      reply: `Dạ em đã ghi nhận số điện thoại ${sdt} của anh/chị rồi ạ! Chuyên viên NhaDat Radar sẽ liên hệ qua Điện thoại/Zalo để tư vấn và hỗ trợ xem nhà sớm nhất nhé 🏠\n\n📞 Cần hỗ trợ gấp: ${HOTLINE} (Hotline/Zalo)`,
-      listings: [],
-    });
-  }
-
-  // Quy tắc bán hàng (28/9): KHÔNG nhận bớt giá / không nói thời hạn hợp đồng qua tin nhắn -> mời qua xem
-  // phòng rồi thương lượng trực tiếp. Chặn trước Gemini để câu chốt luôn đúng kịch bản.
-  if (/(bớt|giảm giá|bot gia|thương lượng|fix giá|hợp đồng|hop dong|mấy tháng|bao nhiêu tháng|tối thiểu.*tháng)/i.test(last)) {
-    return traLoi({
-      reply: `${cauChotXemPhong("như trên tin")}
-📞 Hotline/Zalo: ${HOTLINE}`,
-      listings: [],
-    });
-  }
-
-  // 2/11 (audit S6): từ đây có thể gọi Gemini (nhúng câu, phân tích, trả lời) -> trần chung toàn hệ thống mỗi ngày
   if (!(await rateLimitChung(`gemini:ngay:${ngayVN()}`, TRAN_GEMINI_NGAY, 86_400_000))) {
     return traLoi({
       reply: `Trợ lý AI đang quá tải hôm nay, anh/chị nhắn Zalo hoặc gọi ${HOTLINE} để nhân viên Radar tìm phòng giúp mình ngay nhé.`,
@@ -327,25 +371,34 @@ export async function POST(req: NextRequest) {
     }, { status: 429 });
   }
 
-  // Tin khách đang xem (widget gửi kèm khi ở trang /listings/[id] hoặc khách dán trực tiếp link /listings/<uuid> vào khung chat)
+  // 1. Nhớ danh sách căn vừa gửi ở các lượt trước (dsCanDaGui) để khách hỏi tiếp ("căn đầu", "căn số 2", "căn đó điện nước sao") vẫn trả lời được từ DB
+  const lastBotWithListings = [...messages].reverse().find((m) => m.role === "bot" && m.listingIds && m.listingIds.length > 0);
+  let dsCanDaGui: TinDangXem[] = [];
+  if (lastBotWithListings?.listingIds?.length) {
+    const { data: rowsDaGui } = await createAnonClient()
+      .from("listings")
+      .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site,specs,amenities,lat,lng")
+      .in("id", lastBotWithListings.listingIds);
+    if (rowsDaGui?.length) {
+      const mapById = new Map(rowsDaGui.map((r) => [r.id as string, r as TinDangXem]));
+      dsCanDaGui = lastBotWithListings.listingIds.map((id) => mapById.get(id)).filter((x): x is TinDangXem => !!x);
+    }
+  }
+
+  // 2. Nạp dữ liệu căn khách đang xem từ DB (từ trang /listings/[id], link dán trong chat, hoặc mã RHxxxxxx)
   let dangXem = "";
   let tinDangXemData: TinDangXem | null = null;
   const linkListingMatch = last.match(/\/listings\/([0-9a-f-]{36})/i);
   const idDangXem = linkListingMatch ? linkListingMatch[1] : (typeof body.dangXem === "string" && /^[0-9a-f-]{36}$/i.test(body.dangXem) ? body.dangXem : null);
+
   if (idDangXem) {
     const { data } = await createAnonClient().from("listings")
       .select("id,title,price_vnd,deal,area_m2,bedrooms,district,province,ward,kind,address,source,source_site,specs,amenities,lat,lng").eq("id", idDangXem).eq("status", "published").maybeSingle();
-    if (data) {
-      tinDangXemData = data as TinDangXem;
-      const rh = laRoHang(data);
-      // địa chỉ công khai (rổ hàng/độc quyền đã che số nhà) - không bao giờ đưa địa chỉ thật cho AI
-      dangXem = `NGƯỜI DÙNG ĐANG XEM TIN: "${cheSoVanBan(data.title)}" - ${fmtPrice(data.price_vnd, data.deal)}${data.area_m2 ? `, ${data.area_m2}m²` : ""}, ${cheSoVanBan([data.address, data.ward, data.district, data.province].filter(Boolean).join(", "))}${rh ? `. Đây là phòng trống rổ hàng Radar, mã phòng ${maPhong(data.id)}, bảng phí: ${JSON.stringify(data.specs || {})}, hotline/Zalo duy nhất ${HOTLINE_DISPLAY} (${HOTLINE_NAME})` : ""}.`;
-    }
+    if (data) tinDangXemData = data as TinDangXem;
   }
 
-  // Tra cứu theo mã phòng RHxxxxxx (docs/QUY-TRINH-PHAN-PHOI-MARKETING.md)
   const rhMatch = last.match(/\b(RH[0-9a-fA-F]{6})\b/i) || last.match(/(?:mã|căn|phòng)\s*:?\s*([0-9a-fA-F]{6})\b/i);
-  if (rhMatch && !tinDangXemData) {
+  if (rhMatch && (!tinDangXemData || maPhong(tinDangXemData.id) !== (rhMatch[1].toUpperCase().startsWith("RH") ? rhMatch[1].toUpperCase() : `RH${rhMatch[1].toUpperCase()}`))) {
     const rawMa = rhMatch[1].toUpperCase();
     const maChuan = rawMa.startsWith("RH") ? rawMa : `RH${rawMa}`;
     const khoang = khoangIdTuMa(maChuan);
@@ -359,348 +412,302 @@ export async function POST(req: NextRequest) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (listingRh) {
-        tinDangXemData = listingRh as TinDangXem;
-        dangXem = `NGƯỜI DÙNG ĐANG HỎI MÃ PHÒNG ${maChuan}: "${cheSoVanBan(listingRh.title)}" - ${fmtPrice(listingRh.price_vnd, listingRh.deal)}${listingRh.area_m2 ? `, ${listingRh.area_m2}m²` : ""}, ${cheSoVanBan([listingRh.address, listingRh.ward, listingRh.district, listingRh.province].filter(Boolean).join(", "))}. Bảng phí chi tiết (bóc tách 5 khoản minh bạch, nói không với chi phí ẩn): ${JSON.stringify(listingRh.specs || {})}. Hotline/Zalo tư vấn duy nhất của Radar: ${HOTLINE_DISPLAY} (${HOTLINE_NAME}).`;
-      }
+      if (listingRh) tinDangXemData = listingRh as TinDangXem;
     }
   }
 
-  // Fast-path 11/11 (UX 3.4): hỏi về chính phòng đang xem / mã RHxxxxxx -> trả lời ngay từ DB, không đợi Gemini ~14s
-  if (tinDangXemData) {
-    const nhanh = traLoiNhanhTinDangXem(tinDangXemData, last);
-    if (nhanh) {
-      after(() => ghiSuKien({ loai: "chat", listingId: tinDangXemData!.id, noiDung: last, ketQua: 1 }));
-      return traLoi({ ...nhanh, listings: [] });
-    }
-  }
-
-  // Khách bấm chip hoặc hỏi tìm căn tương tự / quanh đây khi đang xem một tin
-  if (tinDangXemData && /(tương tự|tuong tu|giống|giong|căn khác|phòng khác|quanh đây|khu này còn không|gợi ý thêm)/i.test(last)) {
-    const tuongTu = await layTinTuongTu(tinDangXemData, 4);
-    if (tuongTu.length > 0) {
-      return traLoi({
-        reply: `Em tìm thấy ${tuongTu.length} căn cùng khu vực và tầm giá tương đương ở bên dưới nhé 🏠\n\nBạn muốn em hỗ trợ phương án nào tiếp theo?`,
-        suggestions: [
-          "Xem căn giá mềm hơn",
-          "Xem căn có hẻm xe hơi",
-          "Đặt lịch hẹn xem trực tiếp",
-        ],
-        listings: tuongTu.map((x) => ({
-          id: x.id,
-          title: x.title,
-          price: fmtPrice(x.price_vnd, x.deal),
-          meta: [x.lyDoGoiY, x.area_m2 ? `${x.area_m2}m²` : null, [x.ward, x.district].filter(Boolean).join(", ")].filter(Boolean).join(" · "),
-          image: cleanImages(x.images || [])[0] || null,
-        })),
-      });
-    }
-  }
-
-  // ===== DỰ ÁN (26/10): câu có tên dự án -> tìm tin QUANH dự án theo bán kính, hoặc trả lời dự án ở đâu / có gì =====
-  // Đi trước Gemini: số liệu lấy thẳng từ bảng projects + toạ độ, không để AI tự đoán vị trí dự án.
+  // 3. Nạp toạ độ dự án & điểm neo chiến lược + cộng dồn ngữ cảnh xuyên suốt các lượt chat ("gần chỗ nào" + "tầm giá nào")
   const dsDuAn = await layDuAnToaDo().catch(() => []);
-  let daTim = duAnTrongCau(dsDuAn, last);
-  // Không gõ đúng tên (sai chính tả, nhớ một phần: "chung cư hà đô quận 10") -> tìm theo NGHĨA bằng vector (035).
-  // Chỉ thử khi câu có dấu hiệu nói về dự án, và dự án tìm được phải có ít nhất 1 từ riêng xuất hiện trong câu -
-  // tránh "căn hộ gần quận 7" bị gán đại vào một dự án nào đó.
-  let vecCau: number[] | null = null;
-  const cnCau = ` ${chuanTen(last)} `;
-  if (!daTim && dsDuAn.length && /\s(du an|khu do thi|kdt|khu dan cu|kdc|chung cu|can ho|toa nha|gan|quanh|canh)\s/.test(cnCau)) {
-    vecCau = await nhungCau(last);
-    if (vecCau) {
-      // Top 5 thường sát điểm nhau ("chung cư hà đô quận 10": Đào Duy Từ Q10 .741 · HaDo Centrosa Q10 .739 ·
-      // Z751 Hà Đô Gò Vấp .735) -> chỉ nhận dự án có từ riêng nằm trong câu (so cả dạng viết liền: "ha do" ~ "HaDo"),
-      // cộng điểm khi quận của dự án trùng quận khách nhắc, rồi lấy điểm cao nhất.
-      const { data: khop } = await createAnonClient().rpc("match_projects", { query_embedding: vecCau, match_count: 5 });
-      // dạng viết liền CHỈ từ 2 từ đứng cạnh nhau ("ha do" -> "hado"); so chuỗi con tự do từng làm
-      // "canh" (Mỹ Cảnh) lọt trong "canho" (căn hộ) -> "căn hộ 2PN quận 7" bị gán nhầm dự án
-      const tuCau = cnCau.trim().split(" ");
-      const ghep2 = new Set(tuCau.slice(1).map((w, i) => tuCau[i] + w));
-      let tot = 0;
-      for (const k of (khop ?? []) as { id: string; similarity: number }[]) {
-        if (k.similarity < 0.7) break;
-        const p = dsDuAn.find((x) => x.id === k.id);
-        if (!p) continue;
-        const tuRieng = chuanTen(p.name).split(" ").filter((w) => w.length >= 2 && !TU_CHUNG_DU_AN.has(w));
-        const coTen = tuRieng.some((w) => cnCau.includes(` ${w} `) || ghep2.has(w));
-        if (!coTen) continue;
-        const quan = p.district ? chuanTen(p.district.replace(/\(.*\)/, "")) : "";
-        const diem = k.similarity + (quan && cnCau.includes(` ${quan} `) ? 0.05 : 0);
-        if (diem > tot) { tot = diem; daTim = p; }
-      }
+  const dsDuAnVaNeo = [...dsDuAn, ...DIEM_NEO_TOA_DO];
+  const { gop: nguCanhGop, daTim: daTimGop } = gopNguCanhHoiThoai(messages, tinDangXemData, dsCanDaGui, dsDuAnVaNeo);
+  let daTim = daTimGop;
+
+  if (tinDangXemData) {
+    const rh = laRoHang(tinDangXemData);
+    dangXem = `NGƯỜI DÙNG ĐANG XEM CĂN: "${cheSoVanBan(tinDangXemData.title)}" (Mã ${maPhong(tinDangXemData.id)}) - ${fmtPrice(tinDangXemData.price_vnd, tinDangXemData.deal)}${tinDangXemData.area_m2 ? `, ${tinDangXemData.area_m2}m²` : ""}, vị trí: ${cheSoVanBan([tinDangXemData.address, tinDangXemData.ward, tinDangXemData.district, tinDangXemData.province].filter(Boolean).join(", "))}${rh ? `, thuộc rổ hàng Radar đang trống` : ""}, chi tiết/bảng phí trong DB: ${JSON.stringify(tinDangXemData.specs || {})}, tiện ích: ${JSON.stringify(tinDangXemData.amenities || [])}.`;
+    if (daTim && tinDangXemData.lat && tinDangXemData.lng && daTim.lat && daTim.lng) {
+      const kmDa = khoangCachKm(daTim, { lat: Number(tinDangXemData.lat), lng: Number(tinDangXemData.lng) });
+      dangXem += ` Khoảng cách thực tế từ căn đang xem tới ${daTim.name} (${[daTim.district, daTim.province].filter(Boolean).join(", ")}) là khoảng ${kmDa < 1 ? Math.round(kmDa * 1000) + " m" : kmDa.toFixed(1) + " km"}.`;
     }
   }
-  const da = daTim;
-  const hoiChinhTinDangXem = Boolean(tinDangXemData && (linkListingMatch || /(phòng này|căn này|tin này|nhà này)/i.test(last)));
-  if (da && hoiChinhTinDangXem && tinDangXemData?.lat && tinDangXemData?.lng && da.lat && da.lng) {
-    const kmDa = khoangCachKm(da, { lat: Number(tinDangXemData.lat), lng: Number(tinDangXemData.lng) });
-    dangXem += ` Khoảng cách từ phòng đang xem tới dự án ${da.name} (${[da.district, da.province].filter(Boolean).join(", ")}) là khoảng ${kmDa < 1 ? Math.round(kmDa * 1000) + " m" : kmDa.toFixed(1) + " km"}.`;
+  if (dsCanDaGui.length > 0) {
+    const tómTắtĐãGửi = dsCanDaGui.map((c, idx) =>
+      `Căn số ${idx + 1} (${maPhong(c.id)}): "${cheSoVanBan(c.title)}" - ${fmtPrice(c.price_vnd, c.deal)}${c.area_m2 ? `, ${c.area_m2}m²` : ""}, vị trí: ${cheSoVanBan([c.address, c.ward, c.district, c.province].filter(Boolean).join(", "))}, phí/specs: ${JSON.stringify(c.specs || {})}, tiện ích: ${JSON.stringify(c.amenities || [])}`
+    ).join("\n");
+    dangXem += (dangXem ? "\n" : "") + `CÁC CĂN VỪA GỢI Ý Ở LƯỢT TRƯỚC:\n${tómTắtĐãGửi}`;
   }
-  if (da && !hoiChinhTinDangXem) {
-    const cn = ` ${chuanTen(last)} `;
-    const hoiQuanh = /\s(gan|quanh|canh|sat|ke ben|xung quanh|lan can|loanh quanh)\s/.test(cn);
-    const hoiThongTin = /\s(o dau|cho nao|vi tri|dia chi|chu dau tu|cdt|ban giao|tien ich|thong tin|review|co gi|phap ly|nam o)\s/.test(cn);
-    const hoiTin = hoiQuanh || (!hoiThongTin && /\s(tro|phong|thue|mua|can ho|nha|tim)\s/.test(cn));
-    if (hoiTin) {
-      const loc = bocTruyVanBDS(last).loc;
-      const deal = loc.deal || (/\s(tro|phong|thue)\s/.test(cn) ? "cho_thue" : null);
-      const tim = async (km: number) => {
-        const dLat = km / 111.32, dLng = km / (111.32 * Math.cos((da.lat * Math.PI) / 180));
-        let q = createAnonClient().from("listings")
-          .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,source,lat,lng") // 2/11 (audit P5): bỏ images của 600 dòng
-          .eq("status", "published")
-          .gte("lat", da.lat - dLat).lte("lat", da.lat + dLat).gte("lng", da.lng - dLng).lte("lng", da.lng + dLng);
-        if (deal) q = q.eq("deal", deal);
-        if (loc.kind && PROP[loc.kind]) q = q.eq("kind", loc.kind);
-        if (loc.price_max) q = q.lte("price_vnd", loc.price_max);
-        if (loc.price_min) q = q.gte("price_vnd", loc.price_min);
-        if (loc.bedrooms) q = q.gte("bedrooms", loc.bedrooms);
-        // lỗi thoáng qua của Supabase từng bị hiểu là "không có tin" -> nới bán kính oan; thử lại 1 lần.
-        // 600: khu trung tâm 2 km có thể vượt 300 tin, cắt bớt thì câu "có N tin" báo thiếu
-        let { data, error } = await q.limit(600);
-        if (error) ({ data, error } = await q.limit(600));
-        if (error) console.error("chat quanh du an:", error.message);
-        return (data ?? [])
-          .map((x) => ({ ...x, km: khoangCachKm(da, { lat: Number(x.lat), lng: Number(x.lng) }) }))
-          .filter((x) => x.km <= km).sort((a, b) => a.km - b.km);
-      };
-      // ít quá thì nới bán kính 2 -> 3 km, nói rõ cho khách
-      let km = 2, gan = await tim(km);
-      if (gan.length < 3) { km = 3; gan = await tim(km); }
-      const viTri = [da.district, da.province].filter(Boolean).join(", ");
-      const loai = deal === "cho_thue" ? "tin cho thuê" : deal === "ban" ? "tin bán" : "tin";
-      const href = `/search?${new URLSearchParams({ ...(deal ? { deal } : {}), ...(loc.price_max ? { priceMax: String(loc.price_max) } : {}), gan: `${da.lat.toFixed(6)},${da.lng.toFixed(6)}`, bk: String(km), gan_ten: da.name })}`;
-      // chỉ lấy ảnh cho 5 tin gửi về
-      const top5 = gan.slice(0, 5);
-      const anh = new Map<string, string[] | null>();
-      if (top5.length) {
-        const { data: dsAnh } = await createAnonClient().from("listings").select("id,images").in("id", top5.map((x) => x.id));
-        for (const r of dsAnh ?? []) anh.set(r.id as string, (r.images as string[] | null) ?? null);
-      }
-      after(() => ghiSuKien({ loai: "chat", listingId: null, noiDung: last, ketQua: gan.length }));
-      return traLoi({
-        reply: gan.length
-          ? `Quanh ${da.name} (${viTri}), trong bán kính ${km} km Radar đang có ${gan.length} ${loai} phù hợp. Em gửi ${Math.min(5, gan.length)} tin gần dự án nhất bên dưới - tin đầu tiên cách khoảng ${gan[0].km < 1 ? Math.round(gan[0].km * 1000) + " m" : gan[0].km.toFixed(1) + " km"}.`
-          : `Trong bán kính ${km} km quanh ${da.name} (${viTri}) hiện chưa có ${loai} khớp yêu cầu. Anh/chị để lại SĐT hoặc nhắn Zalo ${HOTLINE}, Radar tìm thêm phòng quanh dự án giúp mình nhé.`,
-        link: gan.length ? { href, label: `Xem cả ${gan.length} tin quanh ${da.name} trên bản đồ` } : null,
-        suggestions: [`${da.name} ở đâu, có gì?`, deal === "cho_thue" ? `Phòng dưới 4 triệu gần ${da.name}` : `Phòng trọ gần ${da.name}`, "Đặt lịch hẹn xem phòng"],
-        listings: top5.map((x) => ({
-          id: x.id, title: cheSoVanBan(x.title), price: fmtPrice(x.price_vnd, x.deal),
-          meta: [`cách ${x.km < 1 ? Math.round(x.km * 1000) + " m" : x.km.toFixed(1) + " km"}`, x.area_m2 ? `${x.area_m2}m²` : null, x.district].filter(Boolean).join(" · "),
-          image: cleanImages(anh.get(x.id) || [])[0] || null,
-        })),
-      });
-    }
-    // Hỏi thông tin dự án: trả lời từ dữ liệu thật, không qua AI (tránh bịa giá / tiện ích)
+  const tieuChiTichLuy = [
+    daTim ? `gần ${daTim.name}` : null,
+    nguCanhGop.keyword ? `đường/khu ${nguCanhGop.keyword}` : null,
+    nguCanhGop.district ? `quận/TP ${nguCanhGop.district}` : null,
+    nguCanhGop.province ? `tỉnh ${nguCanhGop.province}` : null,
+    nguCanhGop.deal ? (nguCanhGop.deal === "ban" ? "mua bán" : "thuê") : null,
+    nguCanhGop.kind ? `loại ${nguCanhGop.kind}` : null,
+    nguCanhGop.price_min ? `từ ${fmtPrice(nguCanhGop.price_min, nguCanhGop.deal || "cho_thue")}` : null,
+    nguCanhGop.price_max ? `tối đa ${fmtPrice(nguCanhGop.price_max, nguCanhGop.deal || "cho_thue")}` : null,
+  ].filter(Boolean).join(" · ");
+  if (tieuChiTichLuy) {
+    dangXem += (dangXem ? "\n" : "") + `TIÊU CHÍ ĐANG LỌC TÍCH LŨY QUA CÁC LƯỢT: ${tieuChiTichLuy}`;
+  }
+  if (daLuuLead && sdt) {
+    dangXem += (dangXem ? "\n" : "") + `HỆ THỐNG ĐÃ LƯU SỐ ĐIỆN THOẠI CỦA KHÁCH: ${sdt} (cảm ơn khách tự nhiên, báo chuyên viên Radar sẽ liên hệ qua Zalo/SĐT ${sdt} sớm nhất).`;
+  }
+
+  // ===== BƯỚC 1: AI ĐỌC Ý KHÁCH & BÓC TÁCH NGỮ CẢNH TOÀN CUỘC TRÒ CHUYỆN =====
+  const convo = (dangXem ? dangXem + "\n\n" : "") + messages.map((m) => `${m.role === "user" ? "Khách" : "Trợ lý"}: ${m.text}`).join("\n");
+
+  let parsed: Parsed | null = null;
+  const raw = await gemini(`${PARSE_PROMPT}\n\n--- HỘI THOẠI ---\n${convo}`);
+  if (raw) { try { parsed = JSON.parse(raw) as Parsed; } catch { /* fallback */ } }
+  parsed ??= { ...nguCanhGop };
+
+  // Nếu AI chỉ định khách đang hỏi căn thứ mấy trong dsCanDaGui (1..5)
+  if (parsed.target_listing_index && dsCanDaGui[parsed.target_listing_index - 1]) {
+    tinDangXemData = dsCanDaGui[parsed.target_listing_index - 1];
+  }
+
+  // Bổ sung dự phòng từ ngữ cảnh đã cộng dồn nếu AI bỏ trống trường lọc
+  if (nguCanhGop.deal && !parsed.deal) parsed.deal = nguCanhGop.deal;
+  if (nguCanhGop.kind && !parsed.kind) parsed.kind = nguCanhGop.kind;
+  if (nguCanhGop.district && !parsed.district) parsed.district = nguCanhGop.district;
+  if (nguCanhGop.province && !parsed.province) parsed.province = nguCanhGop.province;
+  if (nguCanhGop.price_max && !parsed.price_max) parsed.price_max = nguCanhGop.price_max;
+  if (nguCanhGop.price_min && !parsed.price_min) parsed.price_min = nguCanhGop.price_min;
+  if (nguCanhGop.bedrooms && !parsed.bedrooms) parsed.bedrooms = nguCanhGop.bedrooms;
+  if (nguCanhGop.keyword && !parsed.keyword) parsed.keyword = nguCanhGop.keyword;
+
+  // Nếu AI nhận diện tên dự án/điểm neo mới trong parsed.project_name
+  if (parsed.project_name && dsDuAnVaNeo.length) {
+    const daTuAI = duAnTrongCau(dsDuAnVaNeo, parsed.project_name);
+    if (daTuAI) daTim = daTuAI;
+  }
+
+  // ===== BƯỚC 2A: KHI MODE = "chat" (Trả lời chi tiết căn đang xem / căn vừa gửi / chào hỏi / đã lưu SĐT) =====
+  if (parsed.mode === "chat" && parsed.small_talk_reply) {
+    after(() => ghiSuKien({ loai: "chat", listingId: tinDangXemData?.id ?? null, noiDung: last, ketQua: 1 }));
+    return traLoi({
+      reply: parsed.small_talk_reply,
+      suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length
+        ? parsed.suggestions.slice(0, 3)
+        : ["Gợi ý căn tương tự", "Xem căn giá mềm hơn", "Đặt lịch hẹn xem nhà"],
+      listings: [],
+    });
+  }
+
+  // ===== BƯỚC 2B: KHI MODE = "project_info" (Hỏi thông tin dự án mà chưa lọc theo giá) =====
+  if (parsed.mode === "project_info" && daTim && !daTim.id.startsWith("neo:") && !parsed.price_max && !parsed.price_min) {
     const { data: p } = await createAnonClient().from("projects")
-      .select("name,investor,address,district,province,price_min,price_max,handover,amenities,specs").eq("id", da.id).maybeSingle();
+      .select("name,investor,address,district,province,price_min,price_max,handover,amenities,specs").eq("id", daTim.id).maybeSingle();
     if (p) {
-      const gia = p.price_min ? `Giá tham khảo từ ${fmtPrice(p.price_min, "ban")}${p.price_max ? ` - ${fmtPrice(p.price_max, "ban")}` : ""}.` : "Giá: chưa có số liệu công khai.";
-      const tienIch = ((p.amenities as string[] | null) || []).slice(0, 4);
-      const phapLy = (p.specs as Record<string, string> | null)?.["Pháp lý"];
+      const duLieuDuAn = JSON.stringify({
+        ten_du_an: p.name,
+        chu_dau_tu: p.investor,
+        vi_tri: p.address || [p.district, p.province].filter(Boolean).join(", "),
+        gia_tham_khao: p.price_min ? `${fmtPrice(p.price_min, "ban")}${p.price_max ? ` - ${fmtPrice(p.price_max, "ban")}` : ""}` : "chưa có số liệu công khai",
+        ban_giao: p.handover,
+        phap_ly: (p.specs as Record<string, string> | null)?.["Pháp lý"],
+        tien_ich: ((p.amenities as string[] | null) || []).slice(0, 6),
+      });
+      const aiReply = await gemini(
+        `${KHOI_NHAN_VAT_VA_GIONG_AOND}\n\n--- HỘI THOẠI ---\n${convo}\n\n--- DỮ LIỆU DỰ ÁN TRONG DB ---\n${duLieuDuAn}\n\nHãy viết lời trả lời tự nhiên cho câu hỏi mới nhất của khách dựa trên dữ liệu dự án ở trên (không bịa số liệu), rồi hỏi nhẹ xem khách đang tìm mua hay thuê căn ở khu vực này tầm giá bao nhiêu để em lọc căn đang mở cho khách xem.`,
+        { json: false },
+      );
       after(() => ghiSuKien({ loai: "chat", listingId: null, noiDung: last, ketQua: 1 }));
       return traLoi({
-        reply: [
-          `${p.name}${p.investor ? ` - chủ đầu tư ${p.investor}` : ""}.`,
-          `Vị trí: ${p.address || [p.district, p.province].filter(Boolean).join(", ")}.`,
-          gia,
-          p.handover ? `Bàn giao: ${p.handover}.` : null,
-          phapLy ? `Pháp lý: ${phapLy}.` : null,
-          tienIch.length ? `Tiện ích, kết nối nổi bật:\n• ${tienIch.join("\n• ")}` : null,
-          `(Thông tin tổng hợp từ nguồn công khai, chỉ để tham khảo.)`,
-        ].filter(Boolean).join("\n"),
-        link: { href: `/projects/${da.id}`, label: `Xem trang dự án ${p.name}` },
-        suggestions: [`Phòng trọ gần ${p.name}`, `Căn hộ bán quanh ${p.name}`, "Đặt lịch tư vấn"],
+        reply: aiReply || `${p.name}${p.investor ? ` (Chủ đầu tư: ${p.investor})` : ""} nằm tại ${p.address || [p.district, p.province].filter(Boolean).join(", ")}. Bạn đang tìm mua hay thuê căn quanh dự án này tầm giá bao nhiêu để mình lọc căn cho bạn xem nha?`,
+        link: { href: `/projects/${daTim.id}`, label: `Xem trang dự án ${p.name}` },
+        suggestions: [`Phòng trọ gần ${p.name}`, `Căn dưới 7 triệu gần ${p.name}`, "Đặt lịch tư vấn"],
         listings: [],
       });
     }
   }
 
-  const convo = (dangXem ? dangXem + "\n" : "") + messages.map((m) => `${m.role === "user" ? "Người dùng" : "Trợ lý"}: ${m.text}`).join("\n");
-
-  const fastParsed = fallbackParse(last);
-  // Nối ngữ cảnh tin đang xem khi khách bấm chip "Xem căn giá mềm hơn"
-  if (tinDangXemData && /(giá mềm|rẻ hơn|rẻ nhất|thấp hơn)/i.test(last)) {
-    fastParsed.mode = "search";
-    fastParsed.deal ||= (tinDangXemData.deal === "ban" ? "ban" : "cho_thue");
-    fastParsed.kind ||= tinDangXemData.kind;
-    fastParsed.province ||= tinDangXemData.province;
-    fastParsed.district ||= tinDangXemData.district;
-    if (tinDangXemData.price_vnd && !fastParsed.price_max) {
-      fastParsed.price_max = Math.round(tinDangXemData.price_vnd * 0.9);
-    }
-  }
-  const boLocNhanh = (!dangXem || (tinDangXemData && /(giá mềm|rẻ hơn)/i.test(last))) && fastParsed.mode === "search" && Boolean(fastParsed.district || ((fastParsed.price_max || fastParsed.price_min || fastParsed.bedrooms) && fastParsed.kind));
-
-  let parsed: Parsed | null = boLocNhanh ? fastParsed : null;
-  if (!parsed) {
-    const raw = await gemini(`${PARSE_PROMPT}\n\n--- HỘI THOẠI ---\n${convo}`);
-    if (raw) { try { parsed = JSON.parse(raw) as Parsed; } catch { /* fallback */ } }
-    parsed ??= fastParsed;
-  }
-
-  // Kế thừa parser tiếng Việt: bổ sung nếu Gemini bỏ sót giá hoặc quận/loại hình
-  const tuLuat = bocTruyVanBDS(last);
-  if (tuLuat.coKetQua) {
-    if (tuLuat.loc.deal && !parsed.deal) parsed.deal = tuLuat.loc.deal;
-    if (tuLuat.loc.kind && !parsed.kind) parsed.kind = tuLuat.loc.kind;
-    if (tuLuat.loc.district && !parsed.district) parsed.district = tuLuat.loc.district;
-    if (tuLuat.loc.province && !parsed.province) parsed.province = tuLuat.loc.province;
-    if (tuLuat.loc.price_max && !parsed.price_max) parsed.price_max = tuLuat.loc.price_max;
-    if (tuLuat.loc.price_min && !parsed.price_min) parsed.price_min = tuLuat.loc.price_min;
-    if (tuLuat.loc.bedrooms && !parsed.bedrooms) parsed.bedrooms = tuLuat.loc.bedrooms;
-    if (tuLuat.loc.keyword && !parsed.keyword) parsed.keyword = tuLuat.loc.keyword;
-    if (parsed.mode === "chat" && !hoiChinhTinDangXem && (tuLuat.loc.price_max || tuLuat.loc.district || tuLuat.loc.kind)) {
-      parsed.mode = "search";
-    }
-  }
-
-  // ===== Chat thường =====
-  if (parsed.mode === "chat") {
-    return traLoi({
-      reply: parsed.small_talk_reply ||
-        "Xin chào! Mình là trợ lý NhaDat Radar 🏠 Hỏi mình kiểu: “căn hộ 2PN dưới 3 tỷ ở Hà Nội”, hoặc “quận nào ở Hà Nội đáng đầu tư?”",
-      listings: [],
-    });
-  }
-
-  // ===== Phân tích thị trường bằng số liệu thật =====
+  // ===== BƯỚC 2C: KHI MODE = "analyze" (Phân tích thống kê thị trường từ DB thật) =====
   if (parsed.mode === "analyze") {
     const stats = await marketStats(parsed.province || null);
     if (!stats.length) {
-      return traLoi({ reply: "Chưa đủ dữ liệu cho khu vực này. Bạn thử hỏi về Hà Nội, Hồ Chí Minh hoặc Đà Nẵng nhé.", listings: [] });
+      return traLoi({ reply: "Chưa đủ dữ liệu thống kê cho khu vực này. Bạn thử hỏi về Hồ Chí Minh, Bình Dương, Hà Nội hoặc Đà Nẵng nhé.", listings: [] });
     }
     const fm = (v: number | null) => (v ? (v >= 1e6 ? (v / 1e6).toFixed(1) + "tr" : Math.round(v / 1e3) + "k") : "-");
     const table = stats
       .map((s) => `${s.district} (${s.province}): bán ${fm(s.ban_ppm2)}/m² · thuê ${fm(s.thue_ppm2)}/m²/th · yield ${s.yield_pct ?? "-"}%/năm · ${s.n} tin`)
       .join("\n");
     const reply = await gemini(
-      `Bạn là chuyên gia phân tích BĐS Việt Nam của NhaDat Radar. Người dùng hỏi: "${last}"
-SỐ LIỆU THẬT từ tin rao đang hiển thị trên sàn (giá/m² trung vị theo quận; yield = tỷ suất cho thuê gộp/năm):
-${table}
-
-Trả lời tiếng Việt 3-5 câu, TRÍCH SỐ LIỆU CỤ THỂ ở trên (không bịa số khác), nêu 2-3 khu vực đáng chú ý phù hợp câu hỏi, kết bằng 1 lưu ý ngắn (dữ liệu từ tin rao, chỉ tham khảo).`,
+      `${KHOI_NHAN_VAT_VA_GIONG_AOND}\n\n--- HỘI THOẠI ---\n${convo}\n\n--- SỐ LIỆU THỊ TRƯỜNG THẬT TỪ DB ---\n${table}\n\nTrả lời tiếng Việt 3-4 câu tự nhiên, TRÍCH SỐ LIỆU CỤ THỂ ở trên (không bịa số khác), nêu 2-3 khu vực đáng chú ý phù hợp câu hỏi của khách, rồi hỏi mở xem khách đang nhắm tìm căn ở quận nào để em lọc căn thực tế cho xem.`,
       { json: false },
     );
     return traLoi({
-      reply: reply || "Số liệu hiện có:\n" + table + "\n(Dữ liệu từ tin rao, chỉ mang tính tham khảo.)",
+      reply: reply || "Số liệu hiện có:\n" + table,
       listings: [],
     });
   }
 
-  // ===== Tìm tin =====
-  const supabase = createAnonClient();
-  // builder bị mutate khi gọi filter -> dựng mới cho mỗi truy vấn
-  const taoQ = (b: BoLoc) => {
-    let q = supabase
-      .from("listings")
-      .select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images,source")
-      .eq("status", "published");
-    if (b.deal) q = q.eq("deal", b.deal);
-    if (b.kind && PROP[b.kind]) q = q.eq("kind", b.kind);
-    if (b.province && sach(b.province)) q = q.ilike("province", `%${sach(b.province)}%`);
-    if (b.district && sach(b.district)) {
-      const d = sach(b.district);
-      q = LA_QUAN_SO.test(d) ? q.eq("district", d) : q.ilike("district", `%${d}%`);
-    }
-    if (b.price_min) q = q.gte("price_vnd", b.price_min);
-    if (b.price_max) q = q.lte("price_vnd", b.price_max);
-    if (b.bedrooms) q = q.gte("bedrooms", b.bedrooms);
-    // 30/9: từ khoá (tên đường/dự án) tìm cả tiêu đề + địa chỉ + phường + quận như trang /search -
-    // trước chỉ tìm tiêu đề nên "Phạm Hữu Lầu" trong địa chỉ bị bỏ sót
-    if (b.keyword) q = q.or(`title.ilike.%${b.keyword}%,address.ilike.%${b.keyword}%,ward.ilike.%${b.keyword}%,district.ilike.%${b.keyword}%`);
-    return q;
-  };
-  // Nới dần bộ lọc (bỏ giá -> bỏ loại -> bỏ từ khoá) trước khi dùng tìm ngữ nghĩa, và NÓI THẬT với khách
-  // là đang đưa tin gần đúng (lib/chat-tim). Rổ hàng Radar ưu tiên (3 rổ hàng : 2 tin khác trong 5 thẻ).
-  type TinChat = { id: string; title: string; price_vnd: number | null; area_m2: number | null; bedrooms: number | null; district: string | null; province: string | null; deal: string; kind: string; images: string[] | null; source: string | null };
+  // ===== BƯỚC 2D: KHI MODE = "similar" HOẶC "search" (Truy vấn DB tìm căn khớp ngữ cảnh) =====
+  type TinChat = { id: string; title: string; price_vnd: number | null; area_m2: number | null; bedrooms: number | null; district: string | null; province: string | null; ward?: string | null; address?: string | null; deal: string; kind: string; images: string[] | null; source: string | null; specs?: Record<string, string> | null; km?: number; lyDoGoiY?: string };
   let found: TinChat[] = [];
   let ghiChuNoi: string | null = null;
-  for (const { loc, ghiChu } of cacMucNoi({ ...parsed, keyword: lamSachTuKhoa(parsed.keyword) || null })) {
-    const [{ data: rh }, { data }] = await Promise.all([
-      taoQ(loc).eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(3),
-      taoQ(loc).neq("source", "ro_hang").order("ai_score", { ascending: false, nullsFirst: false }).limit(5),
-    ]);
-    found = tronRoHang(rh ?? [], data ?? [], 3).slice(0, 5);
-    if (found.length) { ghiChuNoi = ghiChu; break; }
+  let linkBanDo: { href: string; label: string } | null = null;
+  const supabase = createAnonClient();
+
+  // Nhánh 1: Tìm căn tương tự căn đang xem
+  if (parsed.mode === "similar" && tinDangXemData) {
+    const tuongTu = await layTinTuongTu(tinDangXemData, 4);
+    found = tuongTu as unknown as TinChat[];
   }
 
-  // Không có kết quả -> thử tìm NGỮ NGHĨA bằng pgvector (cần migration 003 + embed.mjs đã chạy)
+  // Nhánh 2: Nếu khách tìm quanh một dự án có toạ độ (daTim) và chưa đổi sang quận khác
+  const quanDuAn = daTim?.district ? chuanTen(daTim.district.replace(/^(thanh pho|tp|quan|huyen|thi xa)\s+/i, "")) : "";
+  const quanParsed = parsed.district ? chuanTen(parsed.district.replace(/^(thanh pho|tp|quan|huyen|thi xa)\s+/i, "")) : "";
+  const cungKhuDuAn = Boolean(daTim && (!quanParsed || !quanDuAn || quanDuAn.includes(quanParsed) || quanParsed.includes(quanDuAn)));
+
+  if (!found.length && daTim && cungKhuDuAn) {
+    const deal = parsed.deal || (parsed.price_max && parsed.price_max < 100_000_000 ? "cho_thue" : null);
+    const timQuanhDuAn = async (km: number, boLoai = false) => {
+      const dLat = km / 111.32, dLng = km / (111.32 * Math.cos((daTim!.lat * Math.PI) / 180));
+      let q = supabase.from("listings")
+        .select("id,title,price_vnd,area_m2,bedrooms,district,province,ward,address,deal,kind,source,specs,lat,lng")
+        .eq("status", "published")
+        .gte("lat", daTim!.lat - dLat).lte("lat", daTim!.lat + dLat).gte("lng", daTim!.lng - dLng).lte("lng", daTim!.lng + dLng);
+      if (deal) q = q.eq("deal", deal);
+      if (!boLoai && parsed.kind && PROP[parsed.kind]) q = q.eq("kind", parsed.kind);
+      if (parsed.price_max) q = q.lte("price_vnd", parsed.price_max);
+      if (parsed.price_min) q = q.gte("price_vnd", parsed.price_min);
+      if (parsed.bedrooms) q = q.gte("bedrooms", parsed.bedrooms);
+      let { data, error } = await q.limit(600);
+      if (error) ({ data, error } = await q.limit(600));
+      return (data ?? [])
+        .map((x) => ({ ...x, images: null as string[] | null, km: khoangCachKm(daTim!, { lat: Number(x.lat), lng: Number(x.lng) }) }))
+        .filter((x) => x.km <= km).sort((a, b) => a.km - b.km);
+    };
+    let km = 2, gan = await timQuanhDuAn(km);
+    if (gan.length < 3) { km = 3; gan = await timQuanhDuAn(km); }
+    if (gan.length === 0 && parsed.kind) { gan = await timQuanhDuAn(3, true); }
+    if (gan.length > 0) {
+      const top5 = gan.slice(0, 5);
+      const { data: dsAnh } = await supabase.from("listings").select("id,images").in("id", top5.map((x) => x.id));
+      const anhMap = new Map<string, string[] | null>();
+      for (const r of dsAnh ?? []) anhMap.set(r.id as string, (r.images as string[] | null) ?? null);
+      found = top5.map((x) => ({ ...x, images: anhMap.get(x.id) || null }));
+      const href = `/search?${new URLSearchParams({ ...(deal ? { deal } : {}), ...(parsed.price_max ? { priceMax: String(parsed.price_max) } : {}), gan: `${daTim.lat.toFixed(6)},${daTim.lng.toFixed(6)}`, bk: String(km), gan_ten: daTim.name })}`;
+      linkBanDo = { href, label: `Xem cả ${gan.length} căn quanh ${daTim.name} trên bản đồ` };
+    } else {
+      if (daTim.district && !parsed.district) parsed.district = daTim.district.replace(/^(Thành phố|TP\.?|Quận|Huyện|Thị xã)\s+/i, "").trim();
+      if (daTim.province && !parsed.province) parsed.province = daTim.province;
+    }
+  }
+
+  // Nhánh 3: Tìm theo bộ lọc khu vực / từ khoá / mức giá trong DB (nới dần qua cacMucNoi)
+  if (!found.length) {
+    const taoQ = (b: BoLoc) => {
+      let q = supabase
+        .from("listings")
+        .select("id,title,price_vnd,area_m2,bedrooms,district,province,ward,address,deal,kind,images,source,specs")
+        .eq("status", "published");
+      if (b.deal) q = q.eq("deal", b.deal);
+      if (b.kind && PROP[b.kind]) q = q.eq("kind", b.kind);
+      if (b.province && sach(b.province)) q = q.ilike("province", `%${sach(b.province)}%`);
+      if (b.district && sach(b.district)) {
+        const d = sach(b.district);
+        q = LA_QUAN_SO.test(d) ? q.eq("district", d) : q.ilike("district", `%${d}%`);
+      }
+      if (b.price_min) q = q.gte("price_vnd", b.price_min);
+      if (b.price_max) q = q.lte("price_vnd", b.price_max);
+      if (b.bedrooms) q = q.gte("bedrooms", b.bedrooms);
+      if (b.keyword) q = q.or(`title.ilike.%${b.keyword}%,address.ilike.%${b.keyword}%,ward.ilike.%${b.keyword}%,district.ilike.%${b.keyword}%`);
+      return q;
+    };
+    for (const { loc, ghiChu } of cacMucNoi({ ...parsed, keyword: lamSachTuKhoa(parsed.keyword) || null })) {
+      const [{ data: rh }, { data }] = await Promise.all([
+        taoQ(loc).eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(3),
+        taoQ(loc).neq("source", "ro_hang").order("ai_score", { ascending: false, nullsFirst: false }).limit(5),
+      ]);
+      found = tronRoHang((rh ?? []) as TinChat[], (data ?? []) as TinChat[], 3).slice(0, 5);
+      if (found.length) { ghiChuNoi = ghiChu; break; }
+    }
+  }
+
+  // Nhánh 4: Không có kết quả -> thử tìm NGỮ NGHĨA bằng pgvector
   if (!found.length) {
     try {
-      // dùng lại vector đã nhúng ở bước dự án (nếu có) - khỏi tốn thêm 1 lượt Gemini
-      const vec = vecCau ?? await nhungCau(last);
+      const vec = await nhungCau(last);
       if (vec) {
         const { data: matches } = await supabase.rpc("match_listings", { query_embedding: vec, match_count: 5 });
         const ids = (matches ?? []).filter((m: { similarity: number }) => m.similarity > 0.5).map((m: { id: string }) => m.id);
         if (ids.length) {
           const { data: sem } = await supabase
-            .from("listings").select("id,title,price_vnd,area_m2,bedrooms,district,province,deal,kind,images,source")
+            .from("listings").select("id,title,price_vnd,area_m2,bedrooms,district,province,ward,address,deal,kind,images,source,specs")
             .in("id", ids);
-          found = sem ?? [];
-          if (found.length) ghiChuNoi = "không có tin khớp đúng từ khoá - đây là các tin có nội dung gần giống";
+          found = (sem ?? []) as TinChat[];
+          if (found.length) ghiChuNoi = "chưa có căn khớp đúng 100% tiêu chí, đây là các căn gần giống nhất trong kho";
         }
       }
-    } catch { /* chưa có pgvector/embedding - bỏ qua */ }
+    } catch { /* bỏ qua */ }
   }
+
+  // ===== BƯỚC 3: AI VIẾT LỜI TƯ VẤN GỬI KHÁCH TỪ KẾT QUẢ DB THẬT (AOND mua_co_dinh + GIỌNG) =====
+  const tomTatKetQuaDB = found.length
+    ? found.map((x, i) => {
+        const kc = x.km !== undefined ? `, cách ${daTim?.name || "dự án"} ${x.km < 1 ? Math.round(x.km * 1000) + "m" : x.km.toFixed(1) + "km"}` : "";
+        return `Căn ${i + 1} (${maPhong(x.id)}): "${cheSoVanBan(x.title)}" - ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? `, ${x.area_m2}m²` : ""} tại ${cheSoVanBan([x.address, x.ward, x.district, x.province].filter(Boolean).join(", "))}${kc}${x.specs ? `, phí/specs: ${JSON.stringify(x.specs)}` : ""}`;
+      }).join("\n")
+    : "KHÔNG TÌM THẤY CĂN NÀO KHỚP TRONG KHO DB.";
+
+  const promptVietLoi = `${KHOI_NHAN_VAT_VA_GIONG_AOND}
+
+--- HỘI THOẠI ---
+${convo}
+
+--- KẾT QUẢ TÌM TRONG KHO DB LƯỢT NÀY ---
+${ghiChuNoi ? `(Lưu ý độ khớp: ${ghiChuNoi})\n` : ""}${tomTatKetQuaDB}
+
+=== NHIỆM VỤ BƯỚC 2: VIẾT LỜI GỬI KHÁCH ===
+Dựa trên KẾT QUẢ TÌM TRONG KHO DB LƯỢT NÀY và ngữ cảnh hội thoại, hãy trả về DUY NHẤT 1 JSON:
+{
+  "reply": string, // Lời tư vấn tự nhiên (2-3 câu ngắn gọn theo đúng NHÂN VẬT & GIỌNG): trả lời thẳng vào yêu cầu của khách bằng kết quả DB vừa tìm được (nêu điểm đáng chú ý của 1-2 căn đầu như vị trí/tầm giá/khoảng cách, không liệt kê lại cả 5 căn vì thẻ hình đã hiện sẵn bên dưới), rồi cuối câu hỏi mở 1 ý (như khách ưu tiên căn nào, đi học/đi làm ở đoạn nào, hoặc mời để lại SĐT/Zalo hay nhắn Zalo ${HOTLINE_DISPLAY} để nhận video thực tế & hẹn mở cửa xem miễn phí).
+  "suggestions": string[] // 3 gợi ý câu hỏi ngắn gọn tiếp theo hợp với kết quả vừa tìm được
+}`;
 
   let reply: string | null = null;
-  const suggestions: string[] = [];
-  if (found.length) {
-    const summary = found
-      .map((x, i) => `${i + 1}. ${x.title} - ${fmtPrice(x.price_vnd, x.deal)}${x.area_m2 ? `, ${x.area_m2}m²` : ""} (${[x.district, x.province].filter(Boolean).join(", ")})`)
-      .join("\n");
-    // 30/9: nói RÕ cho AI kết quả khớp đúng hay là tin gần đúng (đã nới lọc) - bản cũ để AI tự đoán nên
-    // có lúc đưa 5 phòng đúng đường mà vẫn trả lời "chưa có phòng trên đường này"
-    if (!boLocNhanh) {
-      reply = await gemini(
-        `Bạn là Trợ lý Tư vấn Tìm phòng & Chốt lịch xem nhà của Radar Nhà Đất. Người dùng hỏi: "${last}".
-Kết quả rổ hàng tìm được:
-${summary}
+  let suggestions: string[] = [];
+  const rawViet = await gemini(promptVietLoi);
+  if (rawViet) {
+    try {
+      const jViet = JSON.parse(rawViet) as { reply?: string; suggestions?: string[] };
+      if (jViet.reply) reply = jViet.reply;
+      if (Array.isArray(jViet.suggestions) && jViet.suggestions.length) {
+        suggestions = jViet.suggestions.slice(0, 3);
+      }
+    } catch { /* fallback nếu lỗi parse */ }
+  }
 
-${ghiChuNoi ? `LƯU Ý: kết quả gần đúng - ${ghiChuNoi}.` : "Kết quả khớp đúng yêu cầu."}
-
-QUY TẮC PHẢN HỒI (TRỢ LÝ AI RADAR - MINH BẠCH THEO LUẬT AI):
-- Xưng "em - anh/chị" thân thiện, tự nhiên, nhưng LUÔN giữ vai trò Trợ lý AI Radar (không bao giờ nhận là nhân viên hay môi giới thật).
-- Độ dài vừa phải (2-3 câu).
-- Tóm tắt nhanh rổ hàng tìm được, nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu phí môi giới".
-- Gợi ý khung giờ xem (tối nay 18h30 hoặc chiều mai) và xin Zalo/SĐT nếu khách muốn nhận định vị Maps, video phòng thực tế (hoặc gặp nhân viên qua Hotline/Zalo ${HOTLINE_DISPLAY} - ${HOTLINE_NAME}).
-- KHÔNG liệt kê lại danh sách tên nhà hay giá (vì các thẻ bên dưới đã hiển thị sẵn).`,
-        { json: false },
-      );
-    }
-    reply ||= ghiChuNoi
-      ? `Dạ em gửi anh/chị ${found.length} căn gần đúng tiêu chí (${ghiChuNoi}) ở bên dưới nhé. Radar dẫn xem miễn phí 100%, không thu phí môi giới. Anh/chị muốn xem căn nào cứ để lại SĐT/Zalo ngay tại đây để em gửi video thực tế & vị trí Maps liền ạ!`
-      : `Dạ em vừa lọc được ${found.length} căn trống khớp yêu cầu của mình ở bên dưới! Radar dẫn xem miễn phí 100%, không thu phí môi giới. Anh/chị thích căn nào cứ bấm xem chi tiết hoặc nhắn lại SĐT/Zalo để em gửi video thực tế và hẹn lịch xem nhé!`;
-    if (parsed?.district) {
-      suggestions.push(`Căn rẻ hơn ở ${parsed.district}`);
-      suggestions.push(`Hẻm xe hơi ở ${parsed.district}`);
+  if (!reply) {
+    reply = found.length
+      ? `Em vừa lọc được ${found.length} căn trong kho${ghiChuNoi ? ` (${ghiChuNoi})` : ""} ở bên dưới. Anh/chị xem thử ưng căn số mấy nhắn em kiểm tra chi tiết điện nước hoặc gửi video thực tế qua Zalo nhé!`
+      : `Hiện trong kho chưa có căn trống khớp sát mức này. Anh/chị đang ưu tiên đi làm/đi học ở đoạn đường nào hoặc có thể nới nhẹ ngân sách lên khoảng bao nhiêu để em lọc lại liền nha?`;
+  }
+  if (!suggestions.length) {
+    if (found.length) {
+      suggestions = ["Chi phí điện nước căn số 1", "So sánh căn 1 và căn 2", "Xem căn giá mềm hơn"];
     } else {
-      suggestions.push("Xem căn giá mềm hơn");
-      suggestions.push("Xem căn hẻm xe hơi");
-    }
-    suggestions.push("Đặt lịch hẹn xem nhà");
-  } else {
-    reply = "Dạ hiện tại bên em chưa có căn khớp đúng 100% mức này 😥 Anh/chị cho em xin Zalo hoặc SĐT để em theo dõi rổ hàng 1.400+ căn trống, có phòng mới bung em gửi video và định vị Maps qua liền cho mình nha! Hoặc anh/chị thử chọn nới khoảng tìm kiếm dưới đây giúp em nhé:";
-    if (parsed?.district) {
-      suggestions.push(`Tất cả tin tại ${parsed.district}`);
-      suggestions.push(`Nới giá tại ${parsed.district}`);
-    } else {
-      suggestions.push("Nới rộng mức giá");
-      suggestions.push("Tìm khu vực lân cận");
+      suggestions = ["Nới rộng mức giá", "Tìm khu vực lân cận", "Liên hệ Hotline hỗ trợ"];
     }
   }
 
-  // log câu hỏi + số kết quả (bảng su_kien, loai='chat') -> tab "Quan tâm" liệt kê câu bot trả lời hụt
   after(() => ghiSuKien({ loai: "chat", listingId: typeof body.dangXem === "string" ? body.dangXem : null, noiDung: last, ketQua: found.length }));
   return traLoi({
     reply,
     suggestions,
+    ...(linkBanDo ? { link: linkBanDo } : {}),
     listings: found.map((x) => ({
-      id: x.id, title: x.title, price: fmtPrice(x.price_vnd, x.deal),
-      meta: [x.area_m2 ? `${x.area_m2}m²` : null, x.bedrooms ? `${x.bedrooms}PN` : null, [x.district, x.province].filter(Boolean).join(", ")].filter(Boolean).join(" · "),
-      // cleanImages như mọi surface khác: bỏ link album facebook (không phải file ảnh, thẻ chat hiện ảnh vỡ) + nâng hi-res
+      id: x.id,
+      title: cheSoVanBan(x.title),
+      price: fmtPrice(x.price_vnd, x.deal),
+      meta: [
+        x.km !== undefined ? `cách ${x.km < 1 ? Math.round(x.km * 1000) + " m" : x.km.toFixed(1) + " km"}` : x.lyDoGoiY || null,
+        x.area_m2 ? `${x.area_m2}m²` : null,
+        x.bedrooms ? `${x.bedrooms}PN` : null,
+        [x.ward, x.district].filter(Boolean).join(", ") || [x.district, x.province].filter(Boolean).join(", "),
+      ].filter(Boolean).join(" · "),
       image: cleanImages(x.images || [])[0] || null,
     })),
   });

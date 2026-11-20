@@ -110,12 +110,34 @@ const LOAI_HINH: Array<{ re: RegExp; kind: BoLocBDS["kind"]; label: string; conf
   { re: /(^|[^a-z])(biet thu|villa|nha pho|nha cap 4|nha rieng|nha hem|nha)(?!\s*dat)(?![a-z])/, kind: "nha", label: "nhà", conf: 0.85 },
 ];
 
-// Danh sách Quận/Huyện TP.HCM & các tỉnh thành trọng điểm
-const QUAN_TPHCM: Array<[RegExp, string]> = [
-  [/binh thanh/, "Bình Thạnh"], [/tan binh/, "Tân Bình"], [/tan phu/, "Tân Phú"],
-  [/phu nhuan/, "Phú Nhuận"], [/go vap/, "Gò Vấp"], [/thu duc/, "Thủ Đức"],
-  [/binh tan/, "Bình Tân"], [/binh chanh/, "Bình Chánh"], [/nha be/, "Nhà Bè"],
-  [/hoc mon/, "Hóc Môn"], [/cu chi/, "Củ Chi"], [/can gio/, "Cần Giờ"],
+// Danh sách Quận/Huyện TP.HCM, khu vực dân gian (trích xuất từ AOND KIEN_THUC_NGHE), trường ĐH & điểm neo chiến lược
+const QUAN_TPHCM: Array<[RegExp, string, string?]> = [
+  [/binh thanh|\b(ba chieu|hang xanh|thi nghe|van thanh|thanh da|mieu noi|hutech|ngoai thuong|ftu|ftu2|uef|van lang|vlu|ung buou)\b/, "Bình Thạnh", "Hồ Chí Minh"],
+  [/tan binh|\b(bau cat|k300|bay hien|lang cha ca|ba queo|etown|tan son nhat|benh vien thong nhat|kcn tan binh)\b/, "Tân Bình", "Hồ Chí Minh"],
+  [/tan phu|\baeon tan phu\b/, "Tân Phú", "Hồ Chí Minh"],
+  [/phu nhuan|\bphan xich long\b/, "Phú Nhuận", "Hồ Chí Minh"],
+  [/go vap|\b(cityland|hanh thong tay|cong nghiep tphcm|dai hoc cong nghiep|\biuh\b)\b/, "Gò Vấp", "Hồ Chí Minh"],
+  [/thu duc|\b(thao dien|an phu|sala|van phuc|binh trieu|hiep binh|su pham ky thuat|spkt|hcmute|nong lam|\bnlu\b|\bfpt\b|\bfptu\b|khu cong nghe cao|vinhomes grand park)\b/, "Thủ Đức", "Hồ Chí Minh"],
+  [/binh tan|\b(ten lua|an lac)\b/, "Bình Tân", "Hồ Chí Minh"],
+  [/binh chanh|\btrung son\b/, "Bình Chánh", "Hồ Chí Minh"],
+  [/nha be|\bphuoc kien\b/, "Nhà Bè", "Hồ Chí Minh"],
+  [/hoc mon/, "Hóc Môn", "Hồ Chí Minh"],
+  [/cu chi/, "Củ Chi", "Hồ Chí Minh"],
+  [/can gio/, "Cần Giờ", "Hồ Chí Minh"],
+  [/\b(da kao|tan dinh|cau ong lanh|ben thanh|ba son)\b/, "Quận 1", "Hồ Chí Minh"],
+  [/\b(do thanh|ban co)\b/, "Quận 3", "Hồ Chí Minh"],
+  [/\bxom chieu\b/, "Quận 4", "Hồ Chí Minh"],
+  [/\b(khu nguoi hoa|cho lon|cho ray|khoa hoc tu nhien|khtn|hcmus|y duoc|\bump\b|su pham tphcm|hcmue)\b/, "Quận 5", "Hồ Chí Minh"],
+  [/\b(phu lam|binh phu)\b/, "Quận 6", "Hồ Chí Minh"],
+  [/\b(phu my hung|him lam|kieu dam|ton duc thang|tdtu|rmit|tan thuan)\b/, "Quận 7", "Hồ Chí Minh"],
+  [/\bxom cui\b/, "Quận 8", "Hồ Chí Minh"],
+  [/\b(cu xa bac hai|bac hai|bach khoa|hcmut|nhi dong 1|van hanh mall)\b/, "Quận 10", "Hồ Chí Minh"],
+  [/\b(cu xa lu gia|lu gia|binh thoi)\b/, "Quận 11", "Hồ Chí Minh"],
+  [/\b(nga tu ga|an suong|phan mem quang trung)\b/, "Quận 12", "Hồ Chí Minh"],
+  [/\b(di an|dong hoa|bcons)\b|\bthong nhat\b.*\blang dai hoc\b|\blang dai hoc\b.*\b(thong nhat|bcons|di an)\b/, "Dĩ An", "Bình Dương"],
+  [/\b(thuan an|lai thieu|vsip)\b/, "Thuận An", "Bình Dương"],
+  [/\bthu dau mot\b/, "Thủ Dầu Một", "Bình Dương"],
+  [/\bbien hoa\b/, "Biên Hòa", "Đồng Nai"],
 ];
 
 const TINH_THANH: Array<[RegExp, string]> = [
@@ -127,7 +149,7 @@ const TINH_THANH: Array<[RegExp, string]> = [
 ];
 
 const DUONG_RE = /(^|[^a-z])(mat tien duong|mt duong|hem duong|duong|pho)\s+([a-z0-9\s]{2,30})/i;
-const TU_DUNG_DUONG = /^(gia|q\d*|quan|phuong|p\d*|hxh|hxt|mt|hem|duoi|tren|khoang|tam|tu|den|pn|phong|dt|ban|mua|thue|can|tim|nha|dat|chung|cu|co|voi|gan)$/;
+const TU_DUNG_DUONG = /^(gia|q\d*|quan|phuong|p\d*|hxh|hxt|mt|hem|duoi|tren|khoang|tam|tu|den|pn|phong|dt|ban|mua|thue|can|tim|nha|dat|chung|cu|co|voi|gan|lang|khu|bcons|dhqg|truong|cho|benh|vien|khong|ko|k|nao)$/;
 
 /**
  * Bóc tách truy vấn ngôn ngữ tự nhiên tiếng Việt cho BĐS.
@@ -173,11 +195,11 @@ export function bocTruyVanBDS(qRaw: string): KetQuaBocTruyVan {
     conf.district = 0.95;
     if (!loc.province) loc.province = "Hồ Chí Minh";
   } else {
-    for (const [re, ten] of QUAN_TPHCM) {
+    for (const [re, ten, tinh] of QUAN_TPHCM) {
       if (re.test(t)) {
         loc.district = ten;
         conf.district = 0.95;
-        if (!loc.province) loc.province = "Hồ Chí Minh";
+        if (!loc.province) loc.province = tinh || "Hồ Chí Minh";
         break;
       }
     }
@@ -204,7 +226,8 @@ export function bocTruyVanBDS(qRaw: string): KetQuaBocTruyVan {
   }
 
   // Nếu giá dưới 100 triệu mà chưa rõ giao dịch -> 99% là thuê phòng/nhà theo tháng
-  if (!loc.deal && loc.price_approx && loc.price_approx < 100 * TR) {
+  const giaMoc = loc.price_approx || loc.price_max || loc.price_min;
+  if (!loc.deal && giaMoc && giaMoc < 100 * TR) {
     loc.deal = "cho_thue";
     conf.deal = 0.8;
   }
@@ -267,7 +290,7 @@ export function bocTruyVanBDS(qRaw: string): KetQuaBocTruyVan {
       const idx = t.indexOf(m[0]);
       if (idx >= 0) {
         const startCut = idx + m[1].length + m[2].length;
-        const streetRaw = q.slice(startCut, startCut + validWords.join(" ").length + 3).trim();
+        const streetRaw = q.slice(startCut).trimStart().split(/\s+/).slice(0, validWords.length).join(" ").replace(/[.,;?!]+$/, "").trim();
         if (streetRaw.length >= 2) {
           loc.street = streetRaw;
           loc.keyword = streetRaw;

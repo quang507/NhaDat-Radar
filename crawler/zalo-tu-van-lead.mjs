@@ -719,9 +719,19 @@ export async function timPhongPhuHop({ sb, nhuCau, limit = 2 }) {
 
     if (!Array.isArray(data) || !data.length) return [];
 
-    // Sắp xếp ưu tiên căn sát mức giá mục tiêu
+    // Sắp xếp ưu tiên căn khớp tên đường/địa danh (nếu có) rồi tới mức giá mục tiêu
     const mucTieu = giaDen || giaTu || 5_000_000;
-    const sorted = [...data].sort((a, b) => Math.abs((a.price_vnd || 0) - mucTieu) - Math.abs((b.price_vnd || 0) - mucTieu));
+    const duongKd = nhuCau?.duong ? boDau(nhuCau.duong).trim() : "";
+    const khopDuong = (r) => {
+      if (!duongKd) return 0;
+      const gop = boDau(`${r.title || ""} ${r.address || ""} ${r.ward || ""}`);
+      return gop.includes(duongKd) ? 1 : 0;
+    };
+    const sorted = [...data].sort((a, b) => {
+      const d = khopDuong(b) - khopDuong(a);
+      if (d !== 0) return d;
+      return Math.abs((a.price_vnd || 0) - mucTieu) - Math.abs((b.price_vnd || 0) - mucTieu);
+    });
     return sorted.slice(0, limit);
   } catch (err) {
     console.error("[timPhongPhuHop] Lỗi tra cứu DB:", err.message);

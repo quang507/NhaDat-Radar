@@ -42,8 +42,8 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
     dangXem
       ? {
           role: "bot",
-          text: "Xin chào, mình là trợ lý AI của Radar! Bạn đang xem tin bất động sản này 🏠\n\nBạn muốn tìm thêm các căn tương tự hay cần tư vấn & hẹn xem trực tiếp?",
-          suggestions: ["Gợi ý căn tương tự", "Căn này còn trống không?", "Tư vấn & hẹn xem nhà"],
+          text: "Chào bạn! Bạn cần kiểm tra chi tiết căn đang xem hay tìm thêm phòng cùng khu vực cứ nhắn mình nha.",
+          suggestions: ["Gợi ý căn tương tự", "Chi phí điện nước căn này", "Căn giá mềm hơn"],
         }
       : GREET_DEFAULT,
   ]);
@@ -75,7 +75,14 @@ export default function ChatPanel({ open, dangXem, onClose }: { open: boolean; d
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.filter((m) => !m.loi).map(({ role, text }) => ({ role, text })), dangXem }),
+        body: JSON.stringify({
+          messages: next.filter((m) => !m.loi).map(({ role, text, listings }) => ({
+            role,
+            text,
+            ...(listings?.length ? { listingIds: listings.map((l) => l.id).slice(0, 5) } : {}),
+          })),
+          dangXem,
+        }),
       });
       // 2/11 (audit M7): 5xx / trả HTML (timeout Vercel) -> báo lỗi kèm nút Thử lại, không nuốt thành "lỗi mạng"
       const j = await res.json().catch(() => null);

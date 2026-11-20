@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
-  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach, trichXuatDinhDanh, timPhongPhuHop,
+  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach, trichXuatDinhDanh, timPhongPhuHop, gopNhuCauHoiThoai,
 } from "../../crawler/zalo-tu-van-lead.mjs";
 import {
   tinhCanChi, tinhQuaiSo, traCuuPhongThuy, dinhDangPhongThuyChat, nhanDienCauHoiPhongThuy,
