@@ -119,6 +119,12 @@ export function factsTuTin(tin, roHang) {
   if (kv) f.khu_vuc = kv;
   const ti = [...new Set((tin.amenities || []).map((a) => TIEN_ICH[a]).filter(Boolean))];
   if (ti.length) f.tien_ich = ti.join(", ");
+  if (tin.description) {
+    const matchXungQuanh = tin.description.match(/(gần\s+[^.,;\n]{3,35}|cách\s+[^.,;\n]{3,35}|ngay\s+(chợ|siêu thị|trường|công viên|bệnh viện)[^.,;\n]{3,35})/gi);
+    if (matchXungQuanh && matchXungQuanh.length) {
+      f.tien_ich_xung_quanh = [...new Set(matchXungQuanh.map((s) => s.trim()))].slice(0, 3).join(", ");
+    }
+  }
   return f;
 }
 
@@ -229,9 +235,11 @@ const NHAN_KIEU = { anh: "[ảnh]", sticker: "[sticker]", giong_noi: "[tin tho�
 export const moTaTin = (chu, kieu) => (chu && String(chu).trim()) || NHAN_KIEU[kieu] || `[${kieu}]`;
 
 const NHAN = { gia: "Tiền phòng", dien_tich: "Diện tích", loai_phong: "Loại phòng", noi_that: "Nội thất", tien_ich: "Tiện ích",
-  khu_vuc: "Khu vực", dien: "Điện", nuoc: "Nước", phi_quan_ly: "Dịch vụ (Phí quản lý)", gui_xe: "Gửi xe", coc: "Tiền cọc" };
+  khu_vuc: "Khu vực", dien: "Điện", nuoc: "Nước", phi_quan_ly: "Dịch vụ (Phí quản lý)", gui_xe: "Gửi xe", coc: "Tiền cọc",
+  tien_ich_xung_quanh: "Tiện ích xung quanh" };
 const NHAN_EN = { gia: "Rent", dien_tich: "Area", loai_phong: "Room type", noi_that: "Furniture", tien_ich: "Amenities",
-  khu_vuc: "Area/district", dien: "Electricity", nuoc: "Water", phi_quan_ly: "Service fee", gui_xe: "Parking", coc: "Deposit" };
+  khu_vuc: "Area/district", dien: "Electricity", nuoc: "Water", phi_quan_ly: "Service fee", gui_xe: "Parking", coc: "Deposit",
+  tien_ich_xung_quanh: "Surrounding amenities" };
 
 export function taoPromptPhanLoai({ tin = [], facts = null, tinMoi }) {
   const lichSu = tin.slice(-11, -1).map((x) => `[${NHAN_VAI[x.vai] || x.vai}] ${moTaTin(x.chu, x.kieu)}`).join("\n") || "(chưa có)";
@@ -308,7 +316,7 @@ export const cauChao = (isEn, facts = null) => {
 };
 
 /** Phản hồi các sự kiện phi ngôn ngữ (cuộc gọi nhỡ, sticker/icon, tin nhắn thoại, ảnh) */
-export function cauPhanHoiPhiNgonNgu({ kieu, facts, isEn = false }) {
+export function cauPhanHoiPhiNgonNgu({ kieu, facts, isEn = false, tinGanNhat = "" }) {
   if (kieu === "cuoc_goi") {
     return isEn
       ? "Hi there! I missed your call because I was busy showing a room to a tenant. Could you please text me your rental requirements (district, budget) so I can assist you right away?"
@@ -328,15 +336,30 @@ export function cauPhanHoiPhiNgonNgu({ kieu, facts, isEn = false }) {
       : "Dạ mình đang ở ngoài đường hơi ồn nên chưa nghe rõ tin nhắn thoại á. Bạn nhắn tin chữ giúp mình nhu cầu tìm phòng (khu vực, ngân sách) để mình hỗ trợ liền nha!";
   }
   if (kieu === "anh") {
+    if (facts) {
+      const tg = String(tinGanNhat || "").toLowerCase();
+      if (/(nước|nuoc|khối)/i.test(tg) && facts.nuoc) {
+        return `Dạ tiền nước căn ${facts.ma} là ${facts.nuoc} á bạn, bạn cần mình hỗ trợ thêm chi phí nào hay muốn hẹn giờ qua xem phòng nha?`;
+      }
+      if (/(điện|dien|kwh|số điện)/i.test(tg) && facts.dien) {
+        return `Dạ tiền điện căn ${facts.ma} là ${facts.dien} nha bạn, chiều nay hoặc tối nay bạn tiện giờ nào ghé xem thực tế nha?`;
+      }
+      if (/(xe|gửi xe|giữ xe)/i.test(tg) && facts.gui_xe) {
+        return `Dạ phí gửi xe căn ${facts.ma} là ${facts.gui_xe} á bạn!`;
+      }
+      return isEn
+        ? `I received your photo of unit ${facts.ma}! Would you like to schedule a viewing?`
+        : `Dạ mình nhận được ảnh căn ${facts.ma} rồi ạ. Căn này đang trống sẵn, bạn có muốn hẹn qua xem thực tế không nha?`;
+    }
     return isEn
-      ? "I received your photo! Could you please share the room code or your requirements so I can check it for you?"
-      : "Dạ mình nhận được hình ảnh bạn gửi rồi ạ. Bạn gửi mình xin thêm mã phòng hoặc nhu cầu chi tiết để mình kiểm tra ngay nha!";
+      ? "I received your photo! Could you please share the district or budget you're looking for so I can assist you?"
+      : "Dạ mình nhận được hình ảnh bạn gửi rồi ạ. Bạn đang tìm phòng quanh khu vực nào tầm bao nhiêu tiền để mình kiểm tra phòng trống nha!";
   }
   return null;
 }
 
-export function goiYPhiNgonNgu({ kieu, facts, isEn = false }) {
-  const c1 = cauPhanHoiPhiNgonNgu({ kieu, facts, isEn });
+export function goiYPhiNgonNgu({ kieu, facts, isEn = false, tinGanNhat = "" }) {
+  const c1 = cauPhanHoiPhiNgonNgu({ kieu, facts, isEn, tinGanNhat });
   if (kieu === "cuoc_goi") {
     return [
       c1,
@@ -356,9 +379,13 @@ export function goiYPhiNgonNgu({ kieu, facts, isEn = false }) {
     ].filter(Boolean);
   }
   if (kieu === "anh") {
+    if (facts) {
+      const c2 = `Dạ căn ${facts.ma} hình thực tế đúng như ảnh á bạn, chiều nay hoặc tối nay bạn tiện giờ nào ghé xem phòng nha?`;
+      return [c1, c2].filter(Boolean);
+    }
     return [
       c1,
-      "Dạ căn phòng trong ảnh anh/chị muốn xem thực tế hay cần em check giá và các chi phí cụ thể ạ?",
+      "Dạ căn phòng trong ảnh bạn muốn tìm phòng tương tự tầm bao nhiêu tiền để mình gửi thêm mấy căn đẹp nha?",
     ].filter(Boolean);
   }
   return [c1].filter(Boolean);
@@ -437,26 +464,28 @@ const LY_DO_DOC = { nghi_bot: "khách nghi đang nói với bot", hen_xem: "khá
 export function soanThe({ h, phong, facts, pl, cung, muc, luc, botDaTraLoi = null }) {
   const ma = maThe(h.uid);
   const dau = muc === "khan" ? "🚨" : "💬";
-  const dong = [`${dau} ${ma} · ${h.ten || "Khách Zalo"}`];
+  const infoCan = facts ? ` (${facts.ma}${facts.gia ? ` · ${facts.gia}` : ""})` : "";
+  const dong = [`${dau} ${ma} · ${h.ten || "Khách Zalo"}${infoCan}`];
+
+  // Tình hình
   const lyDo = [...(cung?.ly_do || []).map((x) => LY_DO_DOC[x] || x), pl?.tom_tat].filter(Boolean);
-  if (lyDo.length) dong.push(`Tình hình: ${lyDo.join(" · ")}`);
-  if (facts && phong) {
-    const t = phong.tin;
-    dong.push(`Căn đang hỏi: ${facts.ma} · ${(t.title || "").slice(0, 50)} · ${facts.gia || ""}`);
+  if (lyDo.length) {
+    dong.push(`Tình hình: ${lyDo.join(" · ")}`);
   }
+
   const choTra = [];
-  for (let i = h.tin.length - 1; i >= 0 && h.tin[i].vai === "khach" && choTra.length < 3; i--) {
-    choTra.unshift(moTaTin(h.tin[i].chu, h.tin[i].kieu));
+  for (let i = h.tin.length - 1; i >= 0 && h.tin[i].vai === "khach" && choTra.length < 2; i--) {
+    const chu = moTaTin(h.tin[i].chu, h.tin[i].kieu);
+    if (chu) choTra.unshift(chu);
   }
-  if (choTra.length) dong.push("Khách:", ...choTra.map((c) => `  "${c.slice(0, 200)}"`));
+  if (choTra.length) dong.push("Khách:", ...choTra.map((c) => `  "${c.slice(0, 150)}"`));
+
   if (botDaTraLoi) {
-    dong.push(`Em đã nhắn lại: "${botDaTraLoi.slice(0, 250)}"`);
-    dong.push(`Anh tiếp quản tiếp nhé!`);
-  } else {
-    dong.push(`Anh tiếp quản tiếp nhé!`);
+    dong.push(`Bot đã rep: "${botDaTraLoi.slice(0, 150)}"`);
   }
+
   if (h.goi_y?.length) dong.push("Gợi ý:", ...h.goi_y.slice(0, 2).map((g, i) => `${i + 1}. ${g}`));
-  dong.push(`Gõ "${ma} <câu>" để nhắn khách · "${ma} 1" gửi gợi ý 1 · "${ma} nhận" để ngắt bot`);
+  dong.push(`👉 Gõ: ${ma} 1 (hoặc <câu>) · ${ma} nhận`);
   return dong.join("\n");
 }
 
@@ -509,10 +538,21 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
     if (phong) h.listing_id = phong.tin.id;
     const facts = phong ? factsTuTin(phong.tin, phong.roHang) : null;
     const cung = tinHieuCung(chu, kieu);
-    // người đang theo cuộc thì khỏi tốn lượt AI (bot im, thẻ không gửi); khách gửi ảnh/sticker không có chữ cũng vậy
+
+    // Tìm tin nhắn chữ gần nhất của khách (để làm ngữ cảnh khi khách gửi ảnh/sticker)
+    let tinChuGanNhat = "";
+    for (let i = h.tin.length - 1; i >= 0; i--) {
+      if (h.tin[i].vai === "khach" && h.tin[i].kieu === "chu" && h.tin[i].chu) {
+        tinChuGanNhat = h.tin[i].chu;
+        break;
+      }
+    }
+
+    // người đang theo cuộc thì khỏi tốn lượt AI (bot im, thẻ không gửi)
     const nguoiTrongCuoc = dangDoNguoi(h, luc) && luc - h.nguoi_luc < NGUOI_TRONG_CUOC_MS;
-    const pl = !nguoiTrongCuoc && chu
-      ? chuanHoaPhanLoai(await goiAI(taoPromptPhanLoai({ tin: h.tin, facts, tinMoi: chu })).catch(() => null))
+    const tinMoiAI = chu || (tinChuGanNhat ? `[${kieu}] (Khách vừa hỏi: "${tinChuGanNhat}")` : `[${kieu}]`);
+    const pl = !nguoiTrongCuoc && tinMoiAI
+      ? chuanHoaPhanLoai(await goiAI(taoPromptPhanLoai({ tin: h.tin, facts, tinMoi: tinMoiAI })).catch(() => null))
       : null;
 
     const qd = quyetDinh({ h, pl, cung, facts, luc, tuDong, cuaSoMoi, doiCan, kieu });
@@ -530,13 +570,22 @@ export function taoTuVan({ sb, kho, cong, goiAI, adminUid = ADMIN_ZALO_UID, tuDo
     }
     const nhap = facts && pl?.y_dinh === "hoi_thong_tin" ? soanTraLoiTuFacts(pl.hoi_ve, facts, pl.ngon_ngu === "en") : null;
     let danhSachGoiY = [...new Set([nhap, ...locNhapTheoNguCanh(pl?.goi_y || [], pl, h)].filter(Boolean))];
-    const ptCheck = nhanDienCauHoiPhongThuy(chu);
+    const ptCheck = nhanDienCauHoiPhongThuy(chu || tinChuGanNhat);
     if (ptCheck.laPhongThuy && ptCheck.namSinh) {
       const cauPt = dinhDangPhongThuyChat(ptCheck.namSinh, ptCheck.gioiTinh, ptCheck.huongNha);
       if (cauPt) danhSachGoiY.unshift(cauPt);
     }
     if (!danhSachGoiY.length && kieu !== "chu") {
-      danhSachGoiY = goiYPhiNgonNgu({ kieu, facts, isEn: pl?.ngon_ngu === "en" });
+      danhSachGoiY = goiYPhiNgonNgu({ kieu, facts, isEn: pl?.ngon_ngu === "en", tinGanNhat: tinChuGanNhat });
+    }
+    // Lưới an toàn: nếu khách vừa hỏi về nước/điện/xe mà gợi ý chưa có câu trả lời trực tiếp
+    if (facts && tinChuGanNhat) {
+      const tg = tinChuGanNhat.toLowerCase();
+      if (/(nước|nuoc|20k|khối)/i.test(tg) && facts.nuoc && !danhSachGoiY.some((g) => g.includes(facts.nuoc))) {
+        danhSachGoiY.unshift(`Dạ tiền nước căn ${facts.ma} là ${facts.nuoc} á bạn, chiều nay hoặc tối nay bạn tiện ghé xem phòng nha?`);
+      } else if (/(điện|dien|kwh)/i.test(tg) && facts.dien && !danhSachGoiY.some((g) => g.includes(facts.dien))) {
+        danhSachGoiY.unshift(`Dạ tiền điện căn ${facts.ma} là ${facts.dien} nha bạn, bạn muốn ghé xem thực tế không ạ?`);
+      }
     }
     h.goi_y = danhSachGoiY.slice(0, 3);
 

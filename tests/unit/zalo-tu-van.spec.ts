@@ -460,3 +460,66 @@ test("tinh hoa MOSO: tư vấn khuyết thông tin & 5 tiêu chuẩn chọn căn
   expect(tinGiaDinh).toContain("tối nay tầm 18h30 hoặc chiều mai");
 });
 
+test("khách gửi ảnh: thẻ admin gọn gàng, không gợi ý xin lại mã phòng khi đã có facts", async () => {
+  const KHACH = "5550002957";
+  const daGui: { thread: string; text: string; loai: string }[] = [];
+  const dem = new Map<string, ReturnType<typeof hoiThoaiMoi>>();
+  const kho = {
+    lay: async (uid: string) => dem.get(String(uid)) ?? (dem.set(String(uid), hoiThoaiMoi(uid)), dem.get(String(uid))!),
+    luu: async () => {},
+    timTheoMa: async (ma: string) => [...dem.keys()].filter((u) => u.endsWith(ma.slice(1))),
+    tatCa: () => [...dem.values()],
+  };
+  const cong = {
+    gui: async (thread: string, text: string, { loai }: { loai: string }) => { daGui.push({ thread: String(thread), text, loai }); return { ok: true }; },
+    laTiengVong: () => false,
+  };
+  const sbCoPhong: any = {
+    from: (table: string) => {
+      const q: any = {
+        select: () => q,
+        eq: () => q,
+        limit: () => Promise.resolve({ data: table === "listings" ? [TIN] : [RO_HANG], error: null }),
+        maybeSingle: () => Promise.resolve({ data: table === "listings" ? TIN : RO_HANG }),
+        then: (r: any) => r({ data: table === "listings" ? [TIN] : [RO_HANG], error: null }),
+      };
+      return q;
+    },
+  };
+  const tv = taoTuVan({
+    sb: sbCoPhong,
+    kho,
+    cong,
+    adminUid: "ADMIN",
+    tuDong: false,
+    now: () => SANG,
+    log: { log() {}, error() {} } as unknown as Console,
+    goiAI: async () => ({ y_dinh: "hoi_thong_tin", hoi_ve: ["nuoc"], do_tin_cay: 0.9, ngon_ngu: "vi", tom_tat: "Hỏi giá nước", goi_y: [] }),
+  });
+
+  // Giả lập khách đã liên kết với căn RH1A2B
+  dem.set(KHACH, { ...hoiThoaiMoi(KHACH), listing_id: TIN.id, ten: "Bao Thy" });
+  
+  // Tin 1: khách hỏi chữ
+  await tv.khachNhan({ uid: KHACH, ten: "Bao Thy", chu: "Nước là 20k 1 khối đúng hem", kieu: "chu" });
+  
+  // Tin 2: khách gửi ảnh tiếp theo
+  await tv.khachNhan({ uid: KHACH, ten: "Bao Thy", chu: "", kieu: "anh" });
+
+  const theAdmin = daGui.find((g) => g.thread === "ADMIN" && g.text.includes("K2957"));
+  expect(theAdmin).toBeDefined();
+
+  // Thẻ admin: dòng đầu có mã phòng & giá
+  expect(theAdmin!.text).toContain("K2957 · Bao Thy (RH1A2B3C · 4,2 triệu/tháng)");
+  // Không còn câu thừa "Anh tiếp quản tiếp nhé!"
+  expect(theAdmin!.text).not.toContain("Anh tiếp quản tiếp nhé!");
+  // Dòng hành động ngắn gọn
+  expect(theAdmin!.text).toContain("👉 Gõ: K2957 1 (hoặc <câu>) · K2957 nhận");
+
+  // Gợi ý: KHÔNG BAO GIỜ có câu máy móc "bạn gửi thêm mã phòng hoặc nhu cầu"
+  const goiY = dem.get(KHACH)!.goi_y as string[];
+  expect(goiY.length).toBeGreaterThan(0);
+  expect(goiY.join("\n")).not.toContain("bạn gửi thêm mã phòng");
+  expect(goiY.join("\n")).toContain("RH1A2B3C");
+});
+
