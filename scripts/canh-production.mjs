@@ -82,9 +82,9 @@ export async function kiemTra(goc) {
       loi.push(`Lỗi khi gọi trang tin ${pathTin} bằng trình duyệt: ${e.message}`);
     }
 
-    // Bot cào: phải 403
+    // Bot cào: phải 403 (thêm ?nocache=1 để bypass Cloudflare Edge Cache, kiểm tra thẳng middleware server gốc)
     try {
-      const resMeta = await fetch(`${base}${pathTin}`, {
+      const resMeta = await fetch(`${base}${pathTin}?nocache=1`, {
         headers: { "User-Agent": META_UA },
         signal: AbortSignal.timeout(20000),
       });
