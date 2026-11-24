@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
-  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach, trichXuatDinhDanh, timPhongPhuHop, gopNhuCauHoiThoai,
+  tinHieuCung, factsTuTin, soanTraLoiTuFacts, chuanHoaPhanLoai, quyetDinh, docLenhAdmin, taoTuVan, cauChao, locNhapTheoNguCanh, soanTinSanKhach, trichXuatDinhDanh, timPhongPhuHop,
 } from "../../crawler/zalo-tu-van-lead.mjs";
 import {
   tinhCanChi, tinhQuaiSo, traCuuPhongThuy, dinhDangPhongThuyChat, nhanDienCauHoiPhongThuy,
@@ -498,7 +498,7 @@ test("khách gửi ảnh: thẻ admin gọn gàng, không gợi ý xin lại mã
   });
 
   // Giả lập khách đã liên kết với căn RH1A2B
-  dem.set(KHACH, { ...hoiThoaiMoi(KHACH), listing_id: TIN.id, ten: "Bao Thy" });
+  dem.set(KHACH, { ...hoiThoaiMoi(KHACH), listing_id: TIN.id, ten: "Bao Thy" } as any);
   
   // Tin 1: khách hỏi chữ
   await tv.khachNhan({ uid: KHACH, ten: "Bao Thy", chu: "Nước là 20k 1 khối đúng hem", kieu: "chu" });

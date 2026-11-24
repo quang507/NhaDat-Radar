@@ -12,15 +12,16 @@ const AMEN_KEYS = ["ac", "parking", "security", "elevator", "corner", "near_mark
 
 // geo: cây Tỉnh -> [Quận] từ dữ liệu thật (server truyền xuống) để gợi ý - tin tự đăng phải khớp tên trong DB
 // thì mới lọt bộ lọc/trang khu vực (UX audit 16/8: "TP.HCM" gõ tay ≠ "Hồ Chí Minh").
-export default function ListingForm({ geo = {} }: { geo?: Record<string, string[]> }) {
+export default function ListingForm({ geo }: { geo?: Record<string, string[]> }) {
   const [state, formAction, pending] = useActionState(createListing, initial);
   const [deal, setDeal] = useState("ban");
   const [priceRaw, setPriceRaw] = useState("");
   const [province, setProvince] = useState("");
   const [phone, setPhone] = useState("");
   const parsed = parseVnd(priceRaw);
-  const provinces = Object.keys(geo).sort();
-  const districts = geo[province] || [];
+  const safeGeo = geo && typeof geo === "object" ? geo : {};
+  const provinces = Object.keys(safeGeo).sort();
+  const districts = safeGeo[province] || [];
 
   return (
     <form action={formAction} className="card rounded-lg p-6 flex flex-col gap-4 max-w-2xl">

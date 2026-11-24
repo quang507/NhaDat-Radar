@@ -42,8 +42,8 @@ const can = (id: string, district: string, price_vnd: number) => ({ id, district
 test("locCanKhop: chỉ giữ căn đúng quận và trong tầm giá, không có quận thì không gửi", () => {
   const ds = [can("a1111111-0000", "Quận 7", 9_000_000), can("b2222222-0000", "Quận 7", 20_000_000),
     can("c3333333-0000", "Quận 1", 9_500_000), can("d4444444-0000", "TP. Thủ Đức", 10_000_000)];
-  expect(locCanKhop(ds, { quan: ["Quận 7"], gia_tu: 8_000_000, gia_den: 10_000_000 }).map((c) => c.id)).toEqual(["a1111111-0000"]);
-  expect(locCanKhop(ds, { quan: ["Quận 2"], gia_tu: null, gia_den: null, tom_tat: "Khách cần studio" }).map((c) => c.id)).toEqual(["d4444444-0000"]);
+  expect(locCanKhop(ds, { quan: ["Quận 7"], gia_tu: 8_000_000, gia_den: 10_000_000 }).map((c: any) => c.id)).toEqual(["a1111111-0000"]);
+  expect(locCanKhop(ds, { quan: ["Quận 2"], gia_tu: null, gia_den: null, tom_tat: "Khách cần studio" }).map((c: any) => c.id)).toEqual(["d4444444-0000"]);
   expect(locCanKhop(ds, { quan: [], gia_tu: 8_000_000, gia_den: 10_000_000 })).toEqual([]);
   // không nói loại căn, không nói giá -> quá mơ hồ, không gửi
   expect(locCanKhop(ds, { quan: ["Quận 7"], gia_tu: null, gia_den: null })).toEqual([]);
@@ -53,7 +53,7 @@ test("locCanKhop: khớp đúng số phòng ngủ (lỗi chạy thử 14/11: kh�
   const loai = (id: string, l: string, gia: number) => ({ ...can(id, "TP. Thủ Đức", gia), specs: { "Loại phòng": l } });
   const ds = [loai("g1", "Gác lửng", 4_000_000), loai("p1", "1 Phòng ngủ", 9_700_000),
     loai("p2", "2 Phòng ngủ", 15_000_000), loai("p3", "3 Phòng ngủ", 30_000_000)];
-  const ids = (tom_tat: string) => locCanKhop(ds, { quan: ["Thủ Thiêm", "Quận 2"], gia_tu: null, gia_den: null, tom_tat }).map((c) => c.id);
+  const ids = (tom_tat: string) => locCanKhop(ds, { quan: ["Thủ Thiêm", "Quận 2"], gia_tu: null, gia_den: null, tom_tat }).map((c: any) => c.id);
   expect(ids("Khách Canada tìm thuê căn hộ 3-4 phòng ngủ khu Thủ Thiêm")).toEqual(["p3"]);
   expect(ids("Khách tìm 2PN Vista Verde nội thất cơ bản")).toEqual(["p2"]);
   expect(ids("Khách cần studio hoặc gác")).toEqual(["g1"]);

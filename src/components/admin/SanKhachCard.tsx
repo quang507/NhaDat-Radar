@@ -9,7 +9,7 @@ export default function SanKhachCard({ binhLuan, tinNhan, url }: { binhLuan: str
   const chep = async (t: string, ten: string) => {
     try { await navigator.clipboard.writeText(t); setDa(ten); setTimeout(() => setDa(""), 2500); } catch { /* chặn clipboard */ }
   };
-  const nut = "rounded px-2.5 py-1.5 text-xs font-semibold";
+  const nut = "rounded-md px-3 py-2 text-xs font-semibold min-h-11 inline-flex items-center justify-center";
   return (
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={() => chep(binhLuan, "bl")} className={`${nut} bg-blue-600 text-white hover:bg-blue-700`}>
@@ -18,7 +18,7 @@ export default function SanKhachCard({ binhLuan, tinNhan, url }: { binhLuan: str
       <button type="button" onClick={() => chep(tinNhan, "tn")} className={`${nut} bg-emerald-600 text-white hover:bg-emerald-700`}>
         {da === "tn" ? "✓ Đã chép" : "✉ Chép tin nhắn"}
       </button>
-      {url && <a href={url} target="_blank" rel="noopener noreferrer" className={`${nut} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50`}>Mở bài ↗</a>}
+      {url && <a href={url} target="_blank" rel="noopener noreferrer" className={`${nut} border border-[var(--line-strong)] bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--surface-2)]`}>Mở bài ↗</a>}
     </div>
   );
 }

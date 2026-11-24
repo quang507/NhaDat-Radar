@@ -28,26 +28,26 @@ export default function DangBaiCard({ tieuDe, noiDung, anh, phu }: { tieuDe: str
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col gap-2">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-4 shadow-xs flex flex-col gap-2">
       <div className="flex items-start gap-2">
         <div className="min-w-0">
-          <div className="font-semibold text-sm text-slate-800 truncate">{tieuDe}</div>
-          {phu && <div className="text-[11px] text-slate-500 truncate" title={phu}>🔒 {phu}</div>}
+          <div className="font-semibold text-sm text-[var(--ink)] truncate">{tieuDe}</div>
+          {phu && <div className="text-[11px] text-[var(--ink-soft)] truncate" title={phu}>🔒 {phu}</div>}
         </div>
       </div>
       {anh.length > 0 && (
         <div className="flex gap-1 overflow-x-auto">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {anh.slice(0, 6).map((u) => <img key={u} src={u} alt="" className="h-16 w-20 shrink-0 rounded object-cover" loading="lazy" />)}
+          {anh.slice(0, 6).map((u) => <img key={u} src={u} alt="" className="h-16 w-20 shrink-0 rounded-xs object-cover" loading="lazy" />)}
         </div>
       )}
-      <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-2 text-[11px] leading-relaxed text-slate-700">{noiDung}</pre>
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-md bg-[var(--surface-2)] p-2 text-[11px] leading-relaxed text-[var(--ink-soft)] border border-[var(--line)]">{noiDung}</pre>
       <div className="flex gap-2">
-        <button onClick={chep} className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700">
+        <button onClick={chep} className="flex-1 rounded-md bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 min-h-11">
           {daChep ? "✓ Đã chép" : "📋 Sao chép bài đăng"}
         </button>
         {anh.length > 0 && (
-          <button onClick={taiAnh} disabled={dangTai} className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+          <button onClick={taiAnh} disabled={dangTai} className="flex-1 rounded-md border border-[var(--line-strong)] px-3 py-2 text-xs font-bold text-[var(--ink)] hover:bg-[var(--surface-2)] disabled:opacity-60 min-h-11">
             {dangTai ? "Đang tải…" : `⬇ Tải ${anh.length} ảnh`}
           </button>
         )}

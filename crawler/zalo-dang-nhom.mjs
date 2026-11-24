@@ -224,12 +224,13 @@ try {
   fs.rmSync(dir, { recursive: true, force: true });
 }
 
-if (loi && /kh?ng t?n t?i|kh?ng c? quy?n|tr??ng nh?m/i.test(loi)) {
+const loiNhomRoi = /không tồn tại|khong ton tai|không có quyền|khong co quyen|trưởng nhóm|truong nhom|phó nhóm|pho nhom|khoá chat|khoa chat|chỉ quản trị|chi quan tri|giải tán|giai tan|bị chặn|bi chan|không thể gửi|khong the gui/i;
+if (loi && loiNhomRoi.test(loi)) {
   g.loai = "da_roi";
   ghiJson(FILE_NHOM, cfg);
   tt.homNay = [...daDangHomNay, g.id];
   ghiJson(FILE_TT, tt);
-  console.warn(`[${bayGio}] Nh?m "${g.ten}" ?? r?i ho?c kho? chat (${loi}) -> chuy?n da_roi, kh?ng d?ng 24h`);
+  console.warn(`[${bayGio}] Nhóm "${g.ten}" đã rời hoặc khoá chat (${loi}) -> chuyển da_roi, không dừng 24h`);
   process.exit(0);
 }
 if (loi) {
