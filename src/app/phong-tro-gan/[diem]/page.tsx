@@ -32,8 +32,9 @@ import {
 
 export const revalidate = 43200;
 
+// Trả [] = dựng lần đầu khi có người mở rồi cache ISR, tránh quét toạ độ đồng loạt gây timeout Supabase lúc build.
 export async function generateStaticParams() {
-  return DIEM_NEO.map((d) => ({ diem: d.slug }));
+  return [];
 }
 
 type DiemNeoSummary = {

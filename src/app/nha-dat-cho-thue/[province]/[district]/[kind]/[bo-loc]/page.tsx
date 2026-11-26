@@ -2,32 +2,15 @@
 // SEO Audit §4.5: thay thế query ?quan= / ?priceMax= bằng URL tĩnh chuẩn ISR để Google index các tổ hợp nhiều phòng.
 export const revalidate = 43200;
 
+// Trả [] = dựng lần đầu khi có người mở rồi cache ISR (như route [kind]/page.tsx), tránh bắn hàng trăm truy vấn song song làm nghẽn Supabase lúc build.
 export async function generateStaticParams() {
-  try {
-    const { counts } = await getAreas();
-    const params: { province: string; district: string; kind: string; "bo-loc": string }[] = [];
-    for (const [p, c] of Object.entries(counts)) {
-      const pSlug = slugify(p);
-      for (const [d, dc] of Object.entries(c.districts)) {
-        if ((dc.kinds?.phong_tro?.cho_thue ?? 0) >= NGUONG.boLoc) {
-          const dSlug = slugify(d);
-          for (const boLoc of Object.keys(BO_LOC_SEO)) {
-            params.push({ province: pSlug, district: dSlug, kind: "phong-tro", "bo-loc": boLoc });
-          }
-        }
-      }
-    }
-    return params;
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 import { notFound } from "next/navigation";
 import AreaLanding, { areaMeta } from "@/components/AreaLanding";
-import { getAreas } from "@/lib/geo";
-import { slugify, kindFromSlug } from "@/lib/slug";
-import { BO_LOC_SEO, boLocTuSlug, NGUONG } from "@/lib/seo-index";
+import { kindFromSlug } from "@/lib/slug";
+import { boLocTuSlug } from "@/lib/seo-index";
 
 type Params = { params: Promise<{ province: string; district: string; kind: string; "bo-loc": string }> };
 

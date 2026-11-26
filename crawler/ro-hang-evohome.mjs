@@ -170,13 +170,18 @@ if (PARTNER === "hifriendz") {
   } catch { console.warn("Không đọc được crawler/private/evohome.json - không lọc trùng EvoHome"); }
 }
 const daThem = new Set();
+const daThemKhoa = new Set(); // Chống trùng các phòng giống hệt nhau (cùng quận + đường + giá + diện tích) trong cùng đối tác
+const anhBiaDaDung = new Set(); // Xoay ảnh bìa nếu nhiều phòng khác giá/diện tích trong cùng toà nhà dùng chung bộ ảnh
 for (const x of dsNhap) {
   if (!x.source_post_id || !x.price_vnd || daThem.has(x.source_post_id)) continue;
   let gia = Number(x.price_vnd) || 0;
   if (gia > 0 && gia < 1000) gia = Math.round(gia * 1e6);
   gia = Math.round(gia);
   if (!gia) continue;
+  const khoa = khoaTrung({ ...x, price_vnd: gia });
+  if (daThemKhoa.has(khoa)) continue;
   daThem.add(x.source_post_id);
+  daThemKhoa.add(khoa);
 
   const specs = x.specs || {};
   const dauDiaChi = gon(String(x.address || "").split(",")[0]);
@@ -198,7 +203,14 @@ for (const x of dsNhap) {
     .replace(/\n{3,}/g, "\n\n").trim()
     + `\n\n💬 Giá niêm yết ${giaTrieu(gia)}/tháng. Anh/chị qua xem phòng thực tế, ưng ý Radar hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà.`;
 
-  const anh = (x.images || []).filter(laAnh).slice(0, 20);
+  let anh = (x.images || []).filter(laAnh).slice(0, 20);
+  // Nếu ảnh bìa đầu tiên đã bị phòng khác trong cùng toà nhà dùng, xoay sang ảnh tiếp theo chưa dùng để thẻ trên web không bị trùng ảnh bìa
+  if (anh.length > 1 && anhBiaDaDung.has(anh[0])) {
+    const idxKhac = anh.findIndex((u) => !anhBiaDaDung.has(u));
+    const xoay = idxKhac > 0 ? idxKhac : (daThem.size % anh.length);
+    if (xoay > 0) anh = [...anh.slice(xoay), ...anh.slice(0, xoay)];
+  }
+  if (anh[0]) anhBiaDaDung.add(anh[0]);
   const cuRow = cu.get(x.source_post_id);
   const id = cuRow?.id || crypto.randomUUID();
     const vid = (x.images || []).filter(laVideo).slice(0, 2);

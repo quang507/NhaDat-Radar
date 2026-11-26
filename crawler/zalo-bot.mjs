@@ -259,10 +259,12 @@ async function guongAnhVeKho(tatCa = false) {
   } catch (e) { console.error("guongAnhVeKho:", e.message); }
   finally { dangGuong = false; }
 }
-// khởi động: quét TOÀN BỘ tin zalo cũ một lần (bù ~60 tin đã đăng bằng link CDN),
-// sau đó 5 phút/lượt chỉ quét tin 2 ngày gần nhất (ảnh đến muộn đã ghép xong trước đó)
-setTimeout(() => guongAnhVeKho(true), 15_000);
-setInterval(() => guongAnhVeKho(false), 5 * 60_000);
+// 26/11: Đã tắt tự động tải ảnh tin nhóm Zalo về ổ cứng máy 146 (tránh làm đầy ổ C và không lấy tin rác từ nhóm Zalo nữa).
+// Chỉ chạy gương ảnh khi được bật tường minh qua ZALO_MIRROR_IMAGES=1.
+if (process.env.ZALO_MIRROR_IMAGES === "1") {
+  setTimeout(() => guongAnhVeKho(true), 15_000);
+  setInterval(() => guongAnhVeKho(false), 5 * 60_000);
+}
 
 // Tên quận có thật trong DB [[tỉnh, quận, số tin]] - để quy "Gò Vấp" (Gemini) về "Quận Gò Vấp" (quanTheoDB).
 // Đếm lại 6 giờ/lần; rpc lỗi thì dùng bản cũ (lần đầu lỗi -> rỗng, tin vẫn lưu với tên đã canonDistrict).
@@ -277,10 +279,28 @@ async function layDemQuan() {
 }
 
 // Lưu 1 BĐS vào DB (dùng cho cả DM đăng tin lẫn tin bóc từ group)
+const daLuuGanDay = new Map(); // khoa -> timestamp
 async function saveListing(L, text, { fromGroup, images, khoaAnh } = {}) {
   // 29/10: chuẩn hoá tỉnh/quận như merge.mjs - trước ghi nguyên văn Gemini, DB tách "Gò Vấp" khỏi "Quận Gò Vấp"
   const province = canonProvince(L.province ?? null);
   const quan = quanTheoDB(L.district, province, await layDemQuan());
+  const titleStr = (L.title || text.slice(0, 80)).trim();
+  const normKey = `${titleStr.toLowerCase().replace(/[^a-z0-9à-ỹ]+/gi, " ").trim().slice(0, 45)}|${quan.district || ""}|${L.price_vnd || ""}`;
+  if (daLuuGanDay.has(normKey) && Date.now() - daLuuGanDay.get(normKey) < 7 * 864e5) {
+    return { error: { message: "tin trùng lặp trong bộ nhớ" }, id: null };
+  }
+  const { data: trungDB } = await sb
+    .from("listings")
+    .select("id")
+    .eq("status", "published")
+    .ilike("title", `${titleStr.slice(0, 35)}%`)
+    .gte("created_at", new Date(Date.now() - 7 * 864e5).toISOString())
+    .limit(1);
+  if (trungDB && trungDB.length > 0) {
+    daLuuGanDay.set(normKey, Date.now());
+    return { error: { message: "tin đã tồn tại trong 7 ngày qua" }, id: null };
+  }
+  daLuuGanDay.set(normKey, Date.now());
   const { data, error } = await sb.from("listings").insert({
     source: fromGroup ? "zalo_miniapp" : "zalo_oa",
     source_site: fromGroup ? "zalo_group" : "zalo_bot",
@@ -675,26 +695,10 @@ function startListener() {
     }
     if (isSelf) return;
     if (BO_QUA_NHOM.has(String(fromId))) return;
-
-    // Khoá ghép ảnh-với-chữ: group phải kèm NGƯỜI GỬI (uidFrom) - không thì ảnh của người A
-    // đang chat cùng lúc bị ghép vào tin của người B.
-    const khoaAnh = d.uidFrom ? `${fromId}|${d.uidFrom}` : null;
-
-    // Sự kiện ẢNH: nhớ lại BẤT KỂ có chú thích hay không (bản cũ chỉ nhớ khi không có chữ).
-    // Nếu là ảnh về MUỘN của tin vừa lưu (Zalo gửi chữ trước, album sau) thì đắp thẳng vào tin.
-    if (laAnh && khoaAnh) {
-      let url = raw.href || raw.oriUrl || raw.hdUrl || raw.normalUrl || raw.thumbUrl || raw.thumb || null;
-      if (url) url = String(url).replace(/(zdn\.vn)\/jpg\//, "$1/");
-      if (url && !ghepAnhMuon(khoaAnh, String(url))) {
-        nhoAnh(khoaAnh, String(url));
-        console.log(`← [${khoaAnh}] +1 ảnh (đang giữ chờ ghép)`);
-      }
-    }
     if (!text) return;
 
-    // CHỈ CÀO TIN TỪ GROUP:
-    console.log(`← (group ${fromId}) ${text.slice(0, 60)}`);
-    await harvestGroup(text, layAnh(khoaAnh), khoaAnh);
+    // 26/11: Tắt lấy tin BĐS từ nhóm Zalo lên web (tránh môi giới spam trùng lặp & làm đầy ổ cứng máy 146).
+    // Trong nhóm Zalo, bot CHỈ lắng nghe để săn khách tìm phòng & môi giới tìm hàng.
     if (d.uidFrom && String(d.uidFrom) !== ADMIN_ZALO_UID) {
       const msgId = d.msgId || d.id || ev.msgId || null;
       const cliMsgId = d.cliMsgId || d.msgId || d.id || null;
