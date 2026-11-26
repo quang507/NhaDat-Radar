@@ -74,7 +74,14 @@ export function areaH1(deal: Deal, province: string, district: string | null, n:
   return `${DEAL_WORD[deal]} ${what} ${where} - ${so} tin`;
 }
 export function areaTitle(deal: Deal, province: string, district: string | null, n: number, kind?: string | null) {
-  return `${areaH1(deal, province, district, n, kind)}, cập nhật ${ngayVN()} | NhaDat Radar`;
+  const where = district ? tenKhuVucGon(district) : province;
+  if (deal === "cho_thue" && kind === "phong_tro") {
+    return `Phòng Trọ ${where} - Video Thật, Rõ Phí | Radar`;
+  }
+  if (deal === "cho_thue" && kind === "can_ho") {
+    return `Căn Hộ Dịch Vụ ${where} - Video Thật, Rõ Phí | Radar`;
+  }
+  return `${areaH1(deal, province, district, n, kind)}, cập nhật ${ngayVN()} | Radar`;
 }
 
 /** Số tin của một khu vực (có thể lọc theo loại BĐS) - dùng cho metadata + sitemap */
@@ -125,7 +132,7 @@ export async function areaMeta(
   const n = areaCount(r.area, deal, r.district, kind);
   const so = n.toLocaleString("vi-VN");
   const description = deal === "cho_thue" && (kind === "phong_tro" || kind === "can_ho" || !kind)
-    ? `${so} ${kind === "can_ho" ? "căn hộ dịch vụ, studio" : "phòng trọ, căn hộ mini"} cho thuê tại ${where}: ảnh thật, giá rõ ràng, phòng trống đã xác thực. Studio, gác lửng, duplex, có máy lạnh, giờ tự do. Bấm xem số, hẹn xem phòng miễn phí - cập nhật mỗi ngày.`
+    ? `${so} ${kind === "can_ho" ? "căn hộ dịch vụ, studio" : "phòng trọ, căn hộ mini"} cho thuê tại ${where}: video quay thật 100%, rõ 5 khoản phí (điện, nước, xe). Phòng trống xác thực, giờ tự do, hẹn xem miễn phí qua Radar.`
     : `${so} tin ${hanhDong} ${what} tại ${where}: giá phổ biến và trung vị theo m², xu hướng giá, cảnh báo giá lệch, dấu hiệu môi giới/chính chủ và nguồn của từng tin. Cập nhật hằng ngày trên NhaDat Radar.`;
   const nguong = kind ? NGUONG.loai : r.district ? NGUONG.quan : NGUONG.tinh;
   if (trang > 1) {

@@ -39,8 +39,8 @@ export async function generateMetadata({
   const u = getDaiHocBySlug(slug);
   if (!u) return {};
 
-  const title = `Phòng Trọ Gần ĐH ${u.tenVietTat} (${u.ten}) Giá Rẻ, Mới Nhất 2026`;
-  const description = `Danh sách phòng trọ, căn hộ mini, studio cho thuê gần trường ${u.ten}. Mức giá trung bình ${u.mucGiaTB}. Các khu vực thuê tốt nhất: ${u.khuVucThueTot.join(", ")}.`;
+  const title = `Phòng Trọ Gần ĐH ${u.tenVietTat} - Video Thật, Rõ Phí | Radar`;
+  const description = `Phòng trọ, căn hộ mini gần trường ${u.ten}. Video thật 100%, rõ 5 khoản phí điện nước xe, giá từ ${u.mucGiaTB}. Hẹn xem phòng miễn phí!`;
 
   return {
     title,

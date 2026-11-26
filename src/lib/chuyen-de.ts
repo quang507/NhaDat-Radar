@@ -29,8 +29,8 @@ export const DANH_SACH_CHUYEN_DE: Record<string, ChuyenDeSEO> = {
   "phong-tro-duoi-3-trieu": {
     slug: "phong-tro-duoi-3-trieu",
     title: "Phòng Trọ Dưới 3 Triệu TP.HCM",
-    metaTitle: "Phòng Trọ Dưới 3 Triệu TP.HCM - Giá Rẻ, Chính Chủ, Mới Nhất 2026",
-    metaDesc: "Tổng hợp phòng trọ dưới 3 triệu tại TP.HCM. Đầy đủ tiện ích, có gác lửng, WC riêng, giờ giấc tự do, an ninh tốt. Tin đăng xác minh chính chủ, cập nhật mỗi ngày.",
+    metaTitle: "Phòng Trọ Dưới 3 Triệu TP.HCM - Video Thật, Rõ Phí | Radar",
+    metaDesc: "Danh sách phòng trọ dưới 3 triệu tại TP.HCM. Video thật 100%, minh bạch điện nước xe, có gác lửng, WC riêng, giờ tự do, an ninh tốt. Xem ngay!",
     h1: "Phòng Trọ Dưới 3 Triệu TP.HCM Giá Rẻ, Chính Chủ",
     leadText: "Danh sách phòng trọ cho thuê phân khúc bình dân dưới 3 triệu đồng/tháng tại TP.HCM, phù hợp cho học sinh, sinh viên và người mới đi làm cần tối ưu chi phí sinh hoạt.",
     deal: "cho_thue",
@@ -56,8 +56,8 @@ export const DANH_SACH_CHUYEN_DE: Record<string, ChuyenDeSEO> = {
   "phong-tro-co-gac-lung": {
     slug: "phong-tro-co-gac-lung",
     title: "Phòng Trọ Có Gác Lửng TP.HCM",
-    metaTitle: "Cho Thuê Phòng Trọ Có Gác Lửng TP.HCM - Rộng Rãi, Sạch Sẽ, Giá Tốt",
-    metaDesc: "Tìm phòng trọ có gác lửng cao, không đụng đầu tại TP.HCM. Không gian sinh hoạt rộng rãi, tách biệt chỗ ngủ và khu nấu ăn. Giá từ 2.5 - 5 triệu/tháng.",
+    metaTitle: "Phòng Trọ Gác Lửng TP.HCM - Gác Cao, Video Thật | Radar",
+    metaDesc: "Phòng trọ gác lửng đúc cao thoáng tại TP.HCM. Video quay thật, rõ 5 khoản phí, tách biệt chỗ ngủ và bếp nấu, giờ giấc tự do. Hẹn xem phòng miễn phí!",
     h1: "Phòng Trọ Có Gác Lửng Rộng Rãi Tại TP.HCM",
     leadText: "Tổng hợp các mẫu phòng trọ có gác lửng đúc kiên cố, trần cao thoáng đãng tại TP.HCM. Thiết kế tối ưu không gian sinh hoạt, tách biệt khu vực ngủ và tiếp khách, phù hợp cho 2-3 người ở cùng.",
     deal: "cho_thue",
@@ -83,8 +83,8 @@ export const DANH_SACH_CHUYEN_DE: Record<string, ChuyenDeSEO> = {
   "can-ho-mini-full-noi-that": {
     slug: "can-ho-mini-full-noi-that",
     title: "Căn Hộ Mini Full Nội Thất TP.HCM",
-    metaTitle: "Căn Hộ Mini Full Nội Thất TP.HCM - Studio Đẹp, Giờ Giấc Tự Do",
-    metaDesc: "Thuê căn hộ mini, studio dịch vụ full nội thất cao cấp tại TP.HCM: giường nệm, tủ áo, máy lạnh, tủ lạnh, máy giặt, bếp riêng, thang máy, an ninh 24/7.",
+    metaTitle: "Căn Hộ Mini Full Nội Thất TP.HCM - Video Thật | Radar",
+    metaDesc: "Thuê căn hộ mini, studio dịch vụ full nội thất TP.HCM. Video thật 100%, rõ 5 khoản phí, có sẵn máy lạnh, tủ lạnh, bếp riêng, giờ tự do. Xem ngay!",
     h1: "Căn Hộ Mini / Studio Full Nội Thất TP.HCM",
     leadText: "Tuyển chọn căn hộ mini, studio dịch vụ và duplex trang bị trọn gói nội thất hiện đại tại các quận trung tâm TP.HCM. Khách thuê chỉ cần xách vali vào ở, giờ giấc tự do, bảo vệ 24/7.",
     deal: "cho_thue",

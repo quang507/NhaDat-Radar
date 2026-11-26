@@ -140,8 +140,8 @@ export async function generateMetadata({
   const { tongTin: n, giaTrungVi } = await layPhongQuanhDiem(diem);
   const giaTB = giaTrungVi !== "-" ? giaTrungVi : "giá tốt";
 
-  const title = `Phòng Trọ Gần ${d.ten}: ${n} Phòng Trong ${d.banKinhKm}km Giá Từ ${giaTB} | NhaDat Radar`;
-  const description = `Danh sách ${n} phòng trọ, căn hộ mini, studio cho thuê gần ${d.ten} (${d.quanChinh}). Giá trung vị ${giaTB}, bán kính ${d.banKinhKm}km. 5 khoản phí minh bạch, ảnh thật, hẹn xem miễn phí qua Radar.`;
+  const title = `Phòng Trọ Gần ${d.ten}: ${n} Phòng Giá Từ ${giaTB} - Video Thật | Radar`;
+  const description = `Danh sách ${n} phòng trọ, căn hộ mini cho thuê gần ${d.ten} (${d.quanChinh}). Bán kính ${d.banKinhKm}km, giá từ ${giaTB}. Video thật 100%, rõ 5 khoản phí, xem phòng miễn phí qua Radar.`;
 
   return {
     title,
