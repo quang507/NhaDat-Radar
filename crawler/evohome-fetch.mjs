@@ -141,19 +141,13 @@ const out = units.map((u) => {
   const soNguoi = u.room_maxPeoples ? `Tối đa ${u.room_maxPeoples} người` : "-";
   const thuCung = u.room_hasPet === true ? "Được nuôi" : u.room_hasPet === false ? "Không cho nuôi" : "-";
   const gioGiac = u.roomActivityHours === "FREE" || u.room_sharedOwner === false ? "Tự do" : "-";
+  // 27/11: Bỏ lặp lại chi phí và điều khoản trong mô tả vì web đã có Bảng 5 khoản phí & Điều khoản riêng
   const moTa = [
     `🏠 Cho thuê ${loai} tại ${site.name || ""}, ${phuong ? phuong + ", " : ""}${quan}, TP.HCM.`,
-    `• Diện tích: ${dt ? dt + " m²" : "Rộng rãi thoáng mát"}`,
-    `• Giá thuê: ${tien(gia)}/tháng`,
-    u.depositPrice ? `• Tiền cọc: ${tien(u.depositPrice)}` : "",
     "✨ TIỆN NGHI PHÒNG:",
     ...(tn.length ? tn.map((t) => `• ${t}`) : ["• Đầy đủ tiện nghi cơ bản"]),
-    "⚡ CHI PHÍ DỊCH VỤ:",
-    u.electricityPrice ? `• Điện: ${so(u.electricityPrice)} đ/kWh` : "",
-    u.waterPrice ? `• Nước: ${so(u.waterPrice)} đ/người/tháng` : "",
-    guiXe !== "-" ? `• Gửi xe: ${guiXe}` : "",
-    u.managementPrice ? `• Phí quản lý: ${so(u.managementPrice)} đ/phòng` : "",
-    u.washingMachinePrice ? `• Giặt sấy: ${so(u.washingMachinePrice)} đ/người` : "",
+    "",
+    "💬 Anh/chị qua xem phòng thực tế, ưng ý Radar hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà.",
   ].filter(Boolean).join("\n");
   return {
     source_post_id: u.id,

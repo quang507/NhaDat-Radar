@@ -47,7 +47,7 @@ import PhoneReveal from "@/components/PhoneReveal";
 import SourceBadge from "@/components/SourceBadge";
 import TuVanRadar from "@/components/TuVanRadar";
 import RichText from "@/components/RichText";
-import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheSoTin } from "@/lib/doc-quyen";
+import { laTinDocQuyen, cheSoVanBan, cheSoNha, cheSoTin, locMoTaTrungLap } from "@/lib/doc-quyen";
 import { laRoHang, tenNguon, tenTrang, tagGiuPhong, maPhong } from "@/lib/ro-hang";
 import { nhanTienIch } from "@/lib/tien-ich";
 import { HOTLINE, HOTLINE_ZALO } from "@/components/TuVanRadar";
@@ -873,9 +873,10 @@ export default async function ListingDetail({
           <div className="card rounded-lg p-5">
             <h3 className="font-bold mb-3">Mô tả</h3>
             {/* 17/8: trước dùng whitespace-pre-line -> tin dài (nhất là bài FB) thành khối chữ liền.
-                RichText tách đoạn, và bài nào có "- " thì thành gạch đầu dòng cho dễ quét. */}
+                RichText tách đoạn, và bài nào có "- " thì thành gạch đầu dòng cho dễ quét.
+                27/11: Tin rổ hàng có bảng Chi phí & Điều khoản riêng -> lọc bỏ các đoạn lặp chi phí/điều khoản trong mô tả */}
             <MoTaThuGon>
-              <RichText text={cheSoVanBan(x.description, docQuyen)} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
+              <RichText text={cheSoVanBan(roHang ? locMoTaTrungLap(x.description) : x.description, docQuyen)} className="[&_p]:text-[var(--ink)] [&_p]:text-base [&_li]:text-base" />
             </MoTaThuGon>
           </div>
           <div id="phan-tich-gia" className="scroll-mt-28" />

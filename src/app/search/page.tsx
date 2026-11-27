@@ -249,19 +249,22 @@ const timKiemCoCache = unstable_cache(
 
   // Sắp xếp chủ động (giá, diện tích, điểm...): lấy thẳng đoạn của trang
   if (!tronMacDinh) {
-    const [{ data, error: e1 }, { count: newToday, error: e2 }, { count: total, error: e3 }] = await Promise.all([query.range(tu, tu + MOI_TRANG - 1), newTodayQuery, totalQuery]);
-    neuLoi(e1, e2, e3);
-    return { listings: gon((data ?? []) as Listing[]), newToday: newToday ?? 0, total: total ?? 0, trang };
+    const [{ data, error: e1 }, { count: newToday }, { count: total }] = await Promise.all([query.range(tu, tu + MOI_TRANG - 1), newTodayQuery, totalQuery]);
+    neuLoi(e1);
+    return { listings: gon((data ?? []) as Listing[]), newToday: newToday ?? 0, total: total ?? (data?.length || 0), trang };
   }
 
   // Mặc định: trộn rổ hàng 2:1 (lib/ro-hang). Đếm 2 bên trước -> biết trang này cần đoạn nào của mỗi bên
   // (oTronRoHang) -> tải đúng 2 đoạn đó, nhịp trộn liền mạch qua các trang.
+  // 26/11: Đếm count không được làm sập trang tìm kiếm nếu Postgres timeout (57014) trên gói Free.
   const [{ count: newToday, error: e1 }, { count: total, error: e2 }, { count: soRh, error: e3 }] = await Promise.all([
     newTodayQuery, totalQuery,
     applyFilters(supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "published")).eq("source", "ro_hang"),
   ]);
-  neuLoi(e1, e2, e3);
-  const R = soRh ?? 0, K = Math.max(0, (total ?? 0) - R);
+  if (e1) console.warn("[search] newToday count error:", e1.message);
+  if (e2) console.warn("[search] total count error:", e2.message);
+  if (e3) console.warn("[search] soRh count error:", e3.message);
+  const R = soRh ?? 0, K = Math.max(0, (total ?? 100) - R);
   const o = oTronRoHang(R, K, tu, MOI_TRANG);
   const [{ data: khac, error: e4 }, { data: rh, error: e5 }] = await Promise.all([
     o.khacSo ? query.neq("source", "ro_hang").range(o.khacTu, o.khacTu + o.khacSo - 1) : Promise.resolve({ data: [] as Listing[], error: null }),

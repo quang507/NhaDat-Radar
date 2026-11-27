@@ -106,14 +106,24 @@ export default function PhongTroDaiHocIndexPage() {
               className="group bg-[var(--surface-1)] hover:bg-[var(--surface-2)] border border-[var(--border)] hover:border-brand/40 rounded-xl p-5 transition-all duration-200 flex flex-col justify-between shadow-xs hover:shadow-md"
             >
               <div>
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <span className="inline-block px-2.5 py-0.5 text-xs font-bold rounded-md bg-brand/10 text-brand">
-                    {u.tenVietTat}
-                  </span>
-                  <span className="text-xs text-[var(--text-3)] flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-brand" />
-                    {u.quan.join(", ")}
-                  </span>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand/15 to-emerald-500/20 border border-brand/25 text-brand flex items-center justify-center shrink-0 font-extrabold text-xs tracking-tight shadow-xs group-hover:scale-105 group-hover:bg-brand group-hover:text-white transition-all duration-200">
+                    {u.tenVietTat.length <= 5 ? u.tenVietTat : u.tenVietTat.slice(0, 4)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-block px-2 py-0.5 text-[11px] font-bold rounded-md bg-brand/10 text-brand">
+                        {u.tenVietTat}
+                      </span>
+                      <span className="text-[11px] text-[var(--text-3)] flex items-center gap-1 shrink-0">
+                        <MapPin className="w-3 h-3 text-brand" />
+                        {u.quan[0]}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-[var(--text-3)] truncate mt-1">
+                      Khu vực: {u.quan.join(", ")}
+                    </div>
+                  </div>
                 </div>
 
                 <h3 className="text-base font-bold text-[var(--text-1)] group-hover:text-brand transition-colors line-clamp-2">

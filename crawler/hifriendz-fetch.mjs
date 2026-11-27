@@ -296,15 +296,14 @@ function chuanHoa(r, p) {
   const dkLines = Object.entries(dk)
     .filter(([k]) => !/hợp đồng/i.test(k))
     .map(([k, v]) => `• ${k}: ${v}`);
+  // 27/11: Bỏ lặp lại chi phí và điều khoản trong mô tả vì web đã có Bảng 5 khoản phí & Điều khoản riêng
   const moTa = [
     `🏠 Cho thuê ${loai} tại ${[duong, phuong, quan, tinh].filter(Boolean).join(", ")}.`,   // importer đổi "<đường>" -> "khu vực <đường>"
-    `• Diện tích: ${dt ? dt + " m²" : "Rộng rãi thoáng mát"}`,
-    `• Giá thuê: ${tien(r.price)}/tháng`,
     r.availableDate ? `• Nhận phòng từ: ${r.availableDate}` : "",
-    ...(phiLines.length ? ["📌 CHI PHÍ DỊCH VỤ:", ...phiLines] : []),
-    ...(dkLines.length ? ["📋 ĐIỀU KHOẢN:", ...dkLines] : []),
     "✨ TIỆN NGHI PHÒNG:",
     ...(tn.length ? tn.map((t) => `• ${t}`) : ["• Đầy đủ tiện nghi cơ bản"]),
+    "",
+    "💬 Anh/chị qua xem phòng thực tế, ưng ý Radar hỗ trợ thương lượng giá và hợp đồng tốt nhất với chủ nhà.",
   ].filter(Boolean).join("\n");
   const anh = (r.media || []).filter((m) => m.type === "image").map((m) => m.url);
   const video = [

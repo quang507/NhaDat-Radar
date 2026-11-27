@@ -34,6 +34,48 @@ export function cheSoNha(s: string | null | undefined) {
   return String(s || "").trim().replace(/^\d[\d/\-a-zA-Z]*\s+/, "*** ");
 }
 
+/**
+ * Lọc bỏ các khối lặp lại (Chi phí dịch vụ, Điều khoản cọc/giờ giấc/thú cưng, Giá/Diện tích lặp)
+ * trong phần Mô tả của rổ hàng, vì các thông tin này ĐÃ CÓ widget riêng (Bảng 5 khoản phí & Điều khoản thuê).
+ * Giữ lại: đặc điểm phòng, tiện nghi nội thất, vị trí & lời mời xem phòng thực tế.
+ */
+export function locMoTaTrungLap(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const lines = String(raw).split(/\r?\n/);
+  const out: string[] = [];
+  let skippingBlock = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Bắt đầu khối chi phí dịch vụ hoặc điều khoản thuê (đã có bảng riêng)
+    if (
+      /^(?:📌|⚡|📋|📝|\p{Emoji})?\s*(?:chi phí dịch vụ|chi phí|bảng phí|điều khoản|quy định)/iu.test(trimmed)
+    ) {
+      skippingBlock = true;
+      continue;
+    }
+
+    // Đang trong khối bị bỏ: nếu là dòng bullet hoặc dòng trống thì bỏ qua
+    if (skippingBlock) {
+      if (trimmed.startsWith("•") || trimmed.startsWith("-") || !trimmed) {
+        continue;
+      }
+      // Đã sang khối nội dung khác (ví dụ ✨ TIỆN NGHI, 💬 Lời nhắn...)
+      skippingBlock = false;
+    }
+
+    // Bỏ các dòng lặp lại diện tích / giá thuê ở đầu mô tả
+    if (/^[•-]\s*(?:diện tích|giá thuê|giá|nhận phòng từ):/iu.test(trimmed)) {
+      continue;
+    }
+
+    out.push(line);
+  }
+
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 // Bản đã che SĐT (tiêu đề + mô tả) của một tin (mọi nguồn, từ 2/11). Dùng NGAY SAU truy vấn ở server
 // trước khi đưa danh sách xuống client component - dữ liệu truyền xuống (RSC payload) nằm trong HTML,
 // che ở chỗ hiển thị thôi là số vẫn lộ trong mã trang (audit 22/9).
