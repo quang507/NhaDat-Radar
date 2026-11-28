@@ -1747,9 +1747,19 @@ export default async function AdminPage({
 
     return (
       <AdminShell>
-        <div className="mb-4">
-          <h1 className="text-xl font-bold text-slate-800">Xác Minh Môi Giới & Chủ Nhà</h1>
-          <p className="text-xs text-slate-500">Hồ sơ người bán chuyên nghiệp trên sàn</p>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">Xác Minh Môi Giới & Chủ Nhà</h1>
+            <p className="text-xs text-slate-500">Hồ sơ người bán chuyên nghiệp trên sàn</p>
+          </div>
+          {/* 28/11: mục "Người Bán" bỏ khỏi menu công khai (Nav, MobileMenu), admin vào trang /agents từ đây */}
+          <Link
+            href="/agents"
+            target="_blank"
+            className="inline-flex min-h-11 items-center rounded-sm border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            Xem trang Người bán ›
+          </Link>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

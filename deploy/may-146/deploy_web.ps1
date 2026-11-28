@@ -74,6 +74,16 @@ try {
     exit 1
   }
   Ghi ('build xong sau {0}s' -f $giay)
+  # 28/11: GIU file JS/CSS cua cac ban build truoc. Cloudflare giu HTML cu (trang tinh s-maxage 1 nam, ISR co
+  # stale-while-revalidate) ma HTML cu tro toi chunk ten cu; build moi xoa chunk cu -> 404 -> ChunkLoadError
+  # "Application error" (CI 28/11 bat duoc o /tinh-lai-vay: chunks/app/page-b31f9b2a18183ae0.js tra 404).
+  # Chep chunk cu con thieu sang ban moi (/XC /XN /XO: khong ghi de file trung ten), don file cu hon 30 ngay.
+  if (Test-Path "$repo\.next-prev\static") {
+    robocopy "$repo\.next-prev\static" "$repo\.next\static" /E /XC /XN /XO /NFL /NDL /NJH /NJS /NP | Out-Null
+    $han = (Get-Date).AddDays(-30)
+    Get-ChildItem "$repo\.next\static" -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $han } | Remove-Item -Force -ErrorAction SilentlyContinue
+    Ghi 'giu chunk JS/CSS cu tu ban truoc (toi da 30 ngay)'
+  }
   schtasks /Run /TN 'Radar Web' | Out-Null
   if (ThuTrang) {
     Ghi ('OK: web chay lai tai commit ' + $moi.Substring(0, 7))

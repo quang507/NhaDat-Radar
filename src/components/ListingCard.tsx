@@ -76,12 +76,14 @@ export default function ListingCard({ x }: { x: Listing }) {
       <div className="p-4 flex flex-col gap-2 flex-1">
         {/* Price & Price/m² */}
         <div className="flex items-baseline justify-between gap-2">
-          <div className="flex items-baseline gap-2">
-            <span className="text-brand font-extrabold text-xl leading-none tracking-tight">{fmtPrice(x.price_vnd, x.deal)}</span>
+          {/* 28/11 (CI tests/ui bo-cuc): giá dài + giá/m² ép nhãn "Lệch giá" vỡ 2 dòng ở 375px -> nhãn không co/xuống dòng,
+              giá/m² tự rớt dòng khi chật */}
+          <div className="flex flex-wrap items-baseline gap-x-2 min-w-0">
+            <span className="text-brand font-extrabold text-xl leading-none tracking-tight whitespace-nowrap">{fmtPrice(x.price_vnd, x.deal)}</span>
             {ppm2 && <span className="text-xs text-[var(--ink-faint)] font-semibold">{ppm2}</span>}
           </div>
           {x.price_flag && (
-            <span className="inline-flex items-center gap-1 text-overline font-bold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/70 dark:border-amber-800/60" title="Giá có độ lệch đáng chú ý so với mặt bằng">
+            <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 text-overline font-bold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/70 dark:border-amber-800/60" title="Giá có độ lệch đáng chú ý so với mặt bằng">
               <AlertCircle className="w-3 h-3" />
               Lệch giá
             </span>
