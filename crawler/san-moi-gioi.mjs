@@ -151,7 +151,7 @@ export function soanTheMoiGioi({ senderName, tenNhom, text, nhuCau, canKhop, ma,
   dong.push(`Căn Radar khớp:`, ...canKhop.map((c) => `• ${moTaCan(c)}`));
   if (daGui) {
     dong.push(`✓ Bot đã tự gửi câu mời hợp tác qua tin riêng 1-1.`);
-    dong.push(`Gõ "${ma} 1" gửi lại · "${ma} <câu>" để nhắn thêm.`);
+    dong.push(`(Muốn nhắn thêm gõ: "${ma} <câu>")`);
   } else if (gioDem) {
     dong.push(`🌙 Đang giờ nghỉ đêm (22h-7h) nên bot chưa tự gửi tin.`);
     dong.push(`Gõ "${ma} 1" gửi câu mời hợp tác soạn sẵn · "${ma} <câu>" để tự nhắn.`);

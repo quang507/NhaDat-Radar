@@ -262,14 +262,9 @@ export default async function Home() {
             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform opacity-70 group-hover:opacity-100" />
           </Link>
 
-          <h1 className={`heading-1 mb-2.5 sm:mb-3 text-[var(--ink)] tracking-tight text-balance ${hasFilter ? "text-xl md:text-2xl" : "text-h2 sm:!text-3xl md:!text-4xl"}`}>
+          <h1 className={`heading-1 mb-3.5 sm:mb-4 text-[var(--ink)] tracking-tight text-balance ${hasFilter ? "text-xl md:text-2xl" : "text-h2 sm:!text-3xl md:!text-4xl"}`}>
             Sàn Nhà Đất &amp; Phòng Trọ <span className="text-brand">Xác Minh Thực Tế</span>
           </h1>
-          {/* mobile: ẩn đoạn giới thiệu - để ô tìm kiếm lên màn hình đầu (ZEN: gọn trên điện thoại) */}
-          <p className="hidden sm:block text-base text-[var(--ink-soft)] mb-5 max-w-2xl leading-relaxed">
-            {/* 3/11: bỏ "video thực tế, định vị chuẩn xác, cam kết giá từ chủ nhà" - không đúng cho tin cào web/nhóm Zalo */}
-            {vn(totalPublished)} tin nhà đất từ {sourceCount} nguồn ở {districtCount} quận/huyện. Phòng gắn nhãn xác minh do đơn vị quản lý xác nhận còn trống.
-          </p>
           <HeroTimKiem chip={chip} places={goiY} />
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-3.5 sm:mt-5 text-xs">

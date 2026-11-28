@@ -66,10 +66,10 @@ test("thẻ admin và câu mời hợp tác: có mã K, mã phòng, link, không
   expect(the).toContain("RHA1B2C3");
   expect(the).toContain('"K1234 1"');
 
-  // Kiểm tra trường hợp bot tự động gửi câu mời hợp tác (daGui = true)
+  // Kiểm tra trường hợp bot tự động gửi câu mời hợp tác (daGui = true): tuyệt đối không còn dòng lệnh bắt gõ
   const theDaGui = soanTheMoiGioi({ senderName: "Jenny", tenNhom: "CĐ Môi Giới", text: "Khách em cần studio Q7 9tr", nhuCau: { tom_tat: "Studio Q7 khoảng 9 triệu" }, canKhop, ma: "K1234", daGui: true });
   expect(theDaGui).toContain("Bot đã tự gửi câu mời hợp tác qua tin riêng 1-1");
-  expect(theDaGui).toContain('"K1234 1"');
+  expect(theDaGui).not.toContain('"K1234 1"');
 
   const moi = soanTinHopTac({ senderName: "Jenny", canKhop });
   expect(moi).toContain("https://nhadatradar.com/listings/a1b2c3d4-e5f6-0000-0000-000000000000");
