@@ -18,7 +18,7 @@ import PriceTrend from "@/components/PriceTrend";
 import { cheSoTin } from "@/lib/doc-quyen";
 import { tronRoHang } from "@/lib/ro-hang";
 import { ldJson, SITE_URL } from "@/lib/ld";
-import { NGUONG, robotsTheoSoTin, BO_LOC_SEO, boLocTuSlug, TIN_MOI_TRANG, TRANG_TINH_TOI_DA, type BoLocSlug } from "@/lib/seo-index";
+import { NGUONG, robotsTheoSoTin, robotsTrangLoaiQuan, canTinBu, TIN_BU_TOI_DA, BO_LOC_SEO, boLocTuSlug, TIN_MOI_TRANG, TRANG_TINH_TOI_DA, type BoLocSlug } from "@/lib/seo-index";
 import { DIEM_NEO } from "@/lib/diem-neo";
 import { DANH_SACH_CHUYEN_DE } from "@/lib/chuyen-de";
 import { BarChart3 } from "lucide-react";
@@ -147,7 +147,7 @@ export async function areaMeta(
     title: areaTitle(deal, r.province, r.district, n, kind),
     description,
     alternates: { canonical: basePath },
-    robots: robotsTheoSoTin(n, nguong),
+    robots: kind && r.district ? robotsTrangLoaiQuan(n, areaCount(r.area, deal, r.district), true) : robotsTheoSoTin(n, nguong),
   };
 }
 
@@ -350,6 +350,12 @@ export default async function AreaLanding({
   // tin độc quyền hiện ở dải riêng đầu danh sách (chỉ ở trang 1 chưa phân trang) -> loại khỏi list thường cho khỏi lặp
   const idsDocQuyen = trang === 1 ? new Set(locDocQuyen(hienRows, 6).map((t) => t.id)) : new Set<string>();
   const show = trang === 1 ? hienRows.filter((r) => !idsDocQuyen.has(r.id)).slice(0, TIN_MOI_TRANG) : hienRows;
+  // 28/11: trang loại BĐS trong quận đang ít tin -> bù tin loại khác cùng quận (khớp robotsTrangLoaiQuan ở metadata).
+  // Dùng lại cache tin cấp quận (cùng khoá với trang quận) nên thường không tốn thêm truy vấn.
+  const tinBu = trang === 1 && !boLocSlug && district && kind && canTinBu(total, true)
+    ? ((await layTinKhuVuc(deal, province, district, null)).hien as Listing[])
+        .filter((x) => x.kind !== kind).slice(0, TIN_BU_TOI_DA).map(cheSoTin)
+    : [];
   const baseUrl = areaPath(deal, province, district, kind);
   const coPhanTrangTinh = deal === "cho_thue" && !!district && !!kind && !boLocSlug;
   const searchHref = `/search?deal=${deal}&province=${encodeURIComponent(province)}${district ? `&district=${encodeURIComponent(district)}` : ""}${kind ? `&kind=${kind}` : ""}`;
@@ -585,6 +591,18 @@ export default async function AreaLanding({
           <div className="mt-4 text-center"><Link href={searchHref} rel="nofollow" className="btn">Xem thêm {(total - show.length).toLocaleString("vi-VN")} tin</Link></div>
         ) : null}
       </section>
+
+      {/* Trang loại BĐS ít tin: tin loại khác cùng quận (28/11) */}
+      {tinBu.length && district ? (
+        <section className="mt-6">
+          <div className="flex items-baseline justify-between gap-3 mb-1">
+            <h2 className="font-bold">Tin {deal === "ban" ? "bán" : "cho thuê"} khác tại {tenKhuVucGon(district)}</h2>
+            <Link href={areaPath(deal, province, district)} className="text-sm text-brand font-semibold">Xem tất cả {areaCount(area, deal, district).toLocaleString("vi-VN")} tin ›</Link>
+          </div>
+          <p className="text-sm text-[var(--ink-soft)] mb-3">{kindWord} ở {tenKhuVucGon(district)} hiện còn ít tin. Bạn xem thêm các loại khác cùng khu vực, Radar cập nhật mỗi ngày.</p>
+          <div className="flex flex-col gap-3">{tinBu.map((x) => <ListingRow key={x.id} x={x} />)}</div>
+        </section>
+      ) : null}
 
       {/* Khối kích hoạt Lead: Săn nhà / phòng hộ qua Zalo */}
       <SanPhongHoCTA
