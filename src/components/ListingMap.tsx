@@ -38,6 +38,7 @@ export default function ListingMap({
   // 27/10 (anh Quang): đã thu nhỏ tìm lân cận 1 lần thì các pin GIỮ LẠI khi phóng to về, kéo sang vùng khác thì
   // tải thêm pin vùng đó (cộng dồn, không xoá vùng cũ). Trước lần thu nhỏ đầu tiên bản đồ vẫn chỉ có pin chính.
   const [daTim, setDaTim] = useState(false);
+  const [customQuery, setCustomQuery] = useState("");
 
   const targetDeal = deal === "cho_thue" ? "cho_thue" : "ban";
   const nhanDeal = targetDeal === "cho_thue" ? "phòng trọ & thuê" : "bán";
@@ -202,44 +203,110 @@ export default function ListingMap({
   };
 
   return (
-    <div className="relative w-full h-[460px]">
-      <div ref={ref} className="w-full h-full rounded-sm border border-[var(--line)] overflow-hidden z-0 bg-[var(--bg)]" />
-      {!daVe && <KhungChoBanDo />}
+    <div className="space-y-3">
+      <div className="relative w-full h-[460px]">
+        <div ref={ref} className="w-full h-full rounded-sm border border-[var(--line)] overflow-hidden z-0 bg-[var(--bg)]" />
+        {!daVe && <KhungChoBanDo />}
 
-      {/* Thanh trợ giúp / trạng thái BĐS lân cận góc dưới bên trái */}
-      {daVe && (
-        <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 pointer-events-auto">
-          <button
-            type="button"
-            onClick={handleToggleZoom}
-            aria-label={daTim ? "Về lại vị trí tin này" : `Thu nhỏ bản đồ để xem BĐS ${nhanDeal} xung quanh`}
-            className="min-h-11 flex items-center gap-2 px-3 py-2 rounded bg-[var(--surface)] border border-[var(--line)] shadow-sm hover:border-brand text-xs text-[var(--ink)] font-medium transition cursor-pointer select-none"
+        {/* Thanh trợ giúp / trạng thái BĐS lân cận góc dưới bên trái */}
+        {daVe && (
+          <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 pointer-events-auto">
+            <button
+              type="button"
+              onClick={handleToggleZoom}
+              aria-label={daTim ? "Về lại vị trí tin này" : `Thu nhỏ bản đồ để xem BĐS ${nhanDeal} xung quanh`}
+              className="min-h-11 flex items-center gap-2 px-3 py-2 rounded bg-[var(--surface)] border border-[var(--line)] shadow-sm hover:border-brand text-xs text-[var(--ink)] font-medium transition cursor-pointer select-none"
+            >
+              {loadingNearby ? (
+                <span className="text-[var(--ink-soft)] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
+                  <span>Đang tìm BĐS {nhanDeal} quanh đây…</span>
+                </span>
+              ) : daTim ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                  <span className="font-semibold">
+                    {nearbyCount > 0 ? `${nearbyCount} BĐS ${nhanDeal} trên bản đồ` : `Chưa có thêm BĐS ${nhanDeal} trong vùng này`}
+                  </span>
+                  <span className="text-[var(--ink-soft)] flex items-center gap-1 ml-1 border-l border-[var(--line)] pl-2">
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Vị trí cũ</span>
+                  </span>
+                </span>
+              ) : (
+                <span className="text-[var(--ink-soft)] hover:text-brand flex items-center gap-1.5">
+                  <Search className="w-3.5 h-3.5 text-brand" />
+                  <span>Thu nhỏ xem BĐS {nhanDeal} xung quanh</span>
+                </span>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Tiện ích quanh đây & Ô tìm kiếm địa điểm tùy ý */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[var(--ink-soft)] font-medium mr-1">Quanh đây:</span>
+          {[
+            ["Trường học", "trường học"],
+            ["Bệnh viện", "bệnh viện"],
+            ["Chợ / siêu thị", "chợ siêu thị"],
+            ["Bến xe buýt", "trạm xe buýt"],
+          ].map(([label, q]) => (
+            <a
+              key={q}
+              href={`https://www.google.com/maps/search/${encodeURIComponent(q)}/@${lat},${lng},15z`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 rounded-sm border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:text-brand hover:border-brand transition"
+            >
+              {label}
+            </a>
+          ))}
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-1.5 rounded-sm border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:text-brand hover:border-brand transition"
           >
-            {loadingNearby ? (
-              <span className="text-[var(--ink-soft)] flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
-                <span>Đang tìm BĐS {nhanDeal} quanh đây…</span>
-              </span>
-            ) : daTim ? (
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                <span className="font-semibold">
-                  {nearbyCount > 0 ? `${nearbyCount} BĐS ${nhanDeal} trên bản đồ` : `Chưa có thêm BĐS ${nhanDeal} trong vùng này`}
-                </span>
-                <span className="text-[var(--ink-soft)] flex items-center gap-1 ml-1 border-l border-[var(--line)] pl-2">
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Vị trí cũ</span>
-                </span>
-              </span>
-            ) : (
-              <span className="text-[var(--ink-soft)] hover:text-brand flex items-center gap-1.5">
-                <Search className="w-3.5 h-3.5 text-brand" />
-                <span>Thu nhỏ xem BĐS {nhanDeal} xung quanh</span>
-              </span>
-            )}
-          </button>
+            Chỉ đường
+          </a>
         </div>
-      )}
+
+        {/* Ô tìm kiếm địa điểm tùy ý đo khoảng cách & đường đi */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = customQuery.trim();
+            if (!q) return;
+            window.open(
+              `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${encodeURIComponent(q)}`,
+              "_blank",
+              "noopener,noreferrer"
+            );
+          }}
+          className="flex items-center gap-1.5 w-full sm:w-auto mt-1 sm:mt-0"
+        >
+          <div className="relative flex-1 sm:w-60">
+            <input
+              type="text"
+              value={customQuery}
+              onChange={(e) => setCustomQuery(e.target.value)}
+              placeholder="Tìm nơi khác (ĐH Luật, cty...)"
+              className="w-full h-8 pl-7 pr-2 text-xs rounded-sm border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] placeholder:text-[var(--ink-soft)] focus:outline-none focus:border-brand transition"
+            />
+            <Search className="w-3.5 h-3.5 text-[var(--ink-soft)] absolute left-2 top-2 pointer-events-none" />
+          </div>
+          <button
+            type="submit"
+            disabled={!customQuery.trim()}
+            className="h-8 px-3 text-xs font-medium rounded-sm bg-brand text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1 select-none"
+          >
+            <span>Tìm đường</span>
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

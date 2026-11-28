@@ -18,7 +18,7 @@ import { createClient } from "@supabase/supabase-js";
 import { qualityGate, BDS_KEYWORD, PHONE_RE, AREA_HINT } from "./quality-gate.mjs";
 import { canonProvince, quanTheoDB } from "./chung.mjs";
 import { taoTuVan, ADMIN_ZALO_UID, BOT_TU_DONG_TRA_LOI_KHACH, soanTinSanKhach, timPhongPhuHop, TIEN_ICH, maPhong } from "./zalo-tu-van-lead.mjs";
-import { taoKhoHoiThoai, maThe } from "./zalo-hoi-thoai.mjs";
+import { taoKhoHoiThoai, maThe, themTin } from "./zalo-hoi-thoai.mjs";
 import { laBaiMoiGioiTimHang, SYS_MG, timCanChoMoiGioi, soanTinHopTac, soanTheMoiGioi, khoaTrung } from "./san-moi-gioi.mjs";
 import { taoCongGui, trongGioIm } from "./zalo-gui.mjs";
 import { laBaiTimPhong, SYS_TIM, SCHEMA_TIM, chuanHoaNhuCau } from "./khach-tim.mjs";
@@ -426,7 +426,7 @@ try {
   }
 } catch { /* không bắt buộc nếu chưa có file */ }
 
-// ---- KHÁCH CỦA MÔI GIỚI (14/11): "Khách em cần 1PN Q2 10tr" -> khớp rổ hàng -> thẻ admin, KHÔNG tự nhắn ----
+// ---- KHÁCH CỦA MÔI GIỚI: "Khách em cần 1PN Q2 10tr" -> khớp rổ hàng -> tự gửi tin hợp tác + báo admin ----
 const daBaoMoiGioi = new Map(); // khoaTrung -> ms
 const lichSuTheMG = [];         // [ms]
 const MAX_THE_MG_NGAY = Number(process.env.ZALO_MAX_THE_MG_NGAY || 25);
@@ -456,13 +456,51 @@ async function sanKhachMoiGioi({ groupId, senderId, senderName, text }) {
     return;
   }
 
-  // Ghi hội thoại để admin gõ "K1234 1" là bot gửi câu mời hợp tác (gợi ý 1) cho môi giới qua acc Radar
+  // Ghi hội thoại & lưu câu gợi ý
   const h = await khoHoiThoai.lay(senderId);
   if (senderName) h.ten = senderName;
-  h.goi_y = [soanTinHopTac({ senderName, canKhop })];
+  const tinMoi = soanTinHopTac({ senderName, canKhop });
+  h.goi_y = [tinMoi];
   await khoHoiThoai.luu(h);
 
-  const r = await congGui.gui(ADMIN_ZALO_UID, soanTheMoiGioi({ senderName, tenNhom: nhomInfo?.ten, text, nhuCau, canKhop, ma: maThe(senderId) }), { loai: "admin" });
+  // Tự động gửi tin riêng cho môi giới (ngoài giờ nghỉ đêm)
+  let daGui = false;
+  let lyDoLoi = "";
+  const gioDem = trongGioIm(nowMs, [22, 7]);
+
+  if (!gioDem) {
+    try {
+      const guiRes = await congGui.gui(senderId, tinMoi, { loai: "khach_tu_dong", type: "0" });
+      if (guiRes?.ok !== false) {
+        daGui = true;
+        themTin(h, "bot", tinMoi, "chu", nowMs);
+        await khoHoiThoai.luu(h);
+        console.log(`  ✓ Đã tự động gửi câu mời hợp tác cho ${senderName || senderId}`);
+      } else {
+        lyDoLoi = guiRes?.lyDo || "bị chặn";
+        console.error(`  (tự gửi tin hợp tác bị chặn: ${lyDoLoi})`);
+      }
+    } catch (e) {
+      lyDoLoi = e.message;
+      console.error("  (lỗi gửi tin hợp tác:", e.message, ")");
+    }
+  } else {
+    console.log(`  (đang giờ nghỉ đêm 22h-7h, tạm giữ câu mời, không tự nhắn)`);
+  }
+
+  const theAdmin = soanTheMoiGioi({
+    senderName,
+    tenNhom: nhomInfo?.ten,
+    text,
+    nhuCau,
+    canKhop,
+    ma: maThe(senderId),
+    daGui,
+    gioDem,
+    lyDoLoi,
+  });
+
+  const r = await congGui.gui(ADMIN_ZALO_UID, theAdmin, { loai: "admin" });
   if (r?.ok === false) console.error(`  (thẻ admin không gửi được: ${r.lyDo})`);
   else { lichSuTheMG.push(nowMs); console.log(`  ✓ báo admin ${canKhop.length} căn khớp (${lichSuTheMG.length}/${MAX_THE_MG_NGAY} thẻ hôm nay)`); }
 }

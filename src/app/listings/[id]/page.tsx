@@ -1014,17 +1014,7 @@ export default async function ListingDetail({
               <span>{diaChiDayDu(docQuyen ? cheSoNha(x.address) : x.address, x.district, x.province)}</span>
             </div>
             {x.lat != null && x.lng != null ? (
-              <>
-                <ListingMap lat={x.lat} lng={x.lng} title={x.title} deal={x.deal} currentId={x.id} priceVnd={x.price_vnd} />
-                {/* Tiện ích quanh đây (ISO 9241-110): mở Google Maps tìm quanh toạ độ - không cần API trả phí */}
-                <div className="flex flex-wrap gap-2 mt-3 text-xs">
-                  <span className="text-[var(--ink-soft)] self-center">Quanh đây:</span>
-                  {[["Trường học", "trường học"], ["Bệnh viện", "bệnh viện"], ["Chợ / siêu thị", "chợ siêu thị"], ["Bến xe buýt", "trạm xe buýt"]].map(([label, q]) => (
-                    <a key={q} href={`https://www.google.com/maps/search/${encodeURIComponent(q)}/@${x.lat},${x.lng},15z`} target="_blank" rel="noopener" className="btn !py-1.5 !px-2.5 text-xs">{label}</a>
-                  ))}
-                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}`} target="_blank" rel="noopener" className="btn !py-1.5 !px-2.5 text-xs">Chỉ đường</a>
-                </div>
-              </>
+              <ListingMap lat={x.lat} lng={x.lng} title={x.title} deal={x.deal} currentId={x.id} priceVnd={x.price_vnd} />
             ) : (
               <div className="h-56 rounded-xl grid place-items-center text-[var(--ink-soft)] bg-[var(--bg)] border border-[var(--line)] text-sm">
                 <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-slate-400" /> Tin này chưa có toạ độ chính xác</span>

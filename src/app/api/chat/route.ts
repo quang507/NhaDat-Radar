@@ -76,10 +76,13 @@ const KHOI_NHAN_VAT_VA_GIONG_AOND = `NHÂN VẬT: em là Trợ lý AI của NhaD
 - Khách bận, do dự hay không vui thì nhẹ nhàng, không ép, không giục. Nếu khách hỏi là người thật hay máy: nói thật "Em là trợ lý AI của Radar Nhà Đất" trong 1 câu rồi tiếp việc khách hỏi.
 
 GIỌNG (chung cho mọi lượt):
-- Em là một môi giới trẻ đang HÀO HỨNG với nhu cầu của khách và căn em giới thiệu — vui vẻ, ấm áp, thật lòng, nhanh nhẹn, nhắn tự nhiên như với người quen, không phải nhân viên đọc kịch bản.
-- Khách đọc trên điện thoại nên em viết ngắn gọn, vào thẳng điều khách cần — văn nói tự nhiên, giọng miền Nam vừa phải ("nha", "nè", "luôn" — mỗi câu nhiều nhất 1 từ như vậy).
-- Nghe khách trước: khách hỏi thì trả lời trọn câu đó bằng dữ liệu thật trong DB rồi mới tới việc của em.
-- Mỗi lượt một vẻ: không lặp lại câu / ý đã nói ở lượt trước, không mở đầu hai lượt liền nhau bằng cùng mấy chữ. Gọi khách (anh/chị hoặc bạn) tự nhiên, không gắn vào mọi câu.
+- SIÊU NGẮN GỌN (1-2 CÂU): Khách đọc trên điện thoại nên em nhắn cực ngắn, vào thẳng trọng tâm, KHÔNG viết bài văn thuyết minh, KHÔNG mở bài thân bài kết bài.
+- DỄ THƯƠNG & TỰ NHIÊN: Văn nói tự nhiên của người thật Sài Gòn ("dạ", "nè", "nha", "á bạn", "nghía thử"), vui vẻ, gần gũi như bạn bè gợi ý cho nhau. TUYỆT ĐỐI CẤM văn mẫu AI sến súa ("viên ngọc quý", "thiên đường an cư", "không chỉ... mà còn...", "lựa chọn hoàn hảo").
+- TRẢ LỜI THẲNG TRỌNG TÂM: Khách hỏi gì đáp nấy bằng dữ liệu thật trong DB:
+  • Khách hỏi loại hình (chung cư hay khu xây cho thuê): Nói thẳng là căn hộ dịch vụ xây riêng cho thuê / căn hộ mini, nêu ưu điểm thực tế (mới tinh, có thang máy, giờ tự do, an ninh khóa vân tay, không chung chủ, chi phí minh bạch).
+  • Khách hỏi số tầng / view: Báo số tầng, khen thực tế (tầng cao thoáng mát, đón gió, ban công rộng).
+  • Cuối câu rủ xem phòng nhẹ nhàng hoặc hỏi mở 1 câu ngắn: "Chiều nay hay mai bạn tiện ghé nghía thử phòng nha", "Nhìn ngoài ưng mắt hơn trên hình á!".
+- Mỗi lượt một vẻ, không lặp lại câu/ý đã nói ở lượt trước. Gọi khách (anh/chị hoặc bạn) tự nhiên, không gắn vào mọi câu.
 
 BỐI CẢNH TƯ VẤN KHÁCH MUA / THUÊ & THU THẬP NHU CẦU (HỎI NHỎ GIỌT):
 - Mục tiêu: hiểu rõ chân dung & tiêu chí tìm kiếm của khách, lấy dữ liệu thật từ DB để khớp căn chính xác nhất và hỗ trợ khách hẹn đi xem nhà thực tế (hoặc lưu SĐT/Zalo của khách để chuyên viên gửi video thực tế & vị trí Maps).
@@ -618,10 +621,40 @@ export async function POST(req: NextRequest) {
     };
     for (const { loc, ghiChu } of cacMucNoi({ ...parsed, keyword: lamSachTuKhoa(parsed.keyword) || null })) {
       const [{ data: rh }, { data }] = await Promise.all([
-        taoQ(loc).eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(3),
-        taoQ(loc).neq("source", "ro_hang").order("ai_score", { ascending: false, nullsFirst: false }).limit(5),
+        taoQ(loc).eq("source", "ro_hang").order("first_seen_at", { ascending: false }).limit(10),
+        taoQ(loc).neq("source", "ro_hang").order("ai_score", { ascending: false, nullsFirst: false }).limit(10),
       ]);
-      found = tronRoHang((rh ?? []) as TinChat[], (data ?? []) as TinChat[], 3).slice(0, 5);
+
+      // Khử trùng lặp theo tòa nhà / địa chỉ để tránh lặp nhiều phòng cùng 1 tòa (vd: 3 phòng cùng ở Lê Tuấn Mậu)
+      const locTrungToa = (ds: TinChat[]) => {
+        const seen = new Set<string>();
+        const out: TinChat[] = [];
+        for (const c of ds) {
+          const diaChi = [c.address, c.ward, c.district].filter(Boolean).join(" ").toLowerCase().replace(/\s+/g, " ");
+          const tieuDe = (c.title || "").toLowerCase().replace(/^(studio|gác lửng|duplex|1 phòng ngủ|2 phòng ngủ|\d+m²|\d+\s*m2)\s*[-–—]?\s*/gi, "").trim();
+          const k = diaChi.length > 5 ? diaChi : tieuDe;
+          if (k && seen.has(k)) continue;
+          if (k) seen.add(k);
+          out.push(c);
+        }
+        return out;
+      };
+
+      // Sắp xếp ưu tiên: nếu khách tìm mức giá tối đa (price_max), ưu tiên căn diện tích lớn và giá sát ngân sách
+      const sapXepUuTien = (ds: TinChat[]) => {
+        if (!loc.price_max) return ds;
+        return [...ds].sort((a, b) => {
+          const dtA = a.area_m2 || 0, dtB = b.area_m2 || 0;
+          if (Math.abs(dtA - dtB) >= 10) return dtB - dtA; // Ưu tiên căn rộng hơn
+          const diffA = Math.abs((a.price_vnd || 0) - loc.price_max!);
+          const diffB = Math.abs((b.price_vnd || 0) - loc.price_max!);
+          return diffA - diffB;
+        });
+      };
+
+      const roHangLoc = locTrungToa(sapXepUuTien((rh ?? []) as TinChat[]));
+      const thuongLoc = locTrungToa(sapXepUuTien((data ?? []) as TinChat[]));
+      found = tronRoHang(roHangLoc, thuongLoc, 3).slice(0, 5);
       if (found.length) { ghiChuNoi = ghiChu; break; }
     }
   }
@@ -663,7 +696,7 @@ ${ghiChuNoi ? `(Lưu ý độ khớp: ${ghiChuNoi})\n` : ""}${tomTatKetQuaDB}
 === NHIỆM VỤ BƯỚC 2: VIẾT LỜI GỬI KHÁCH ===
 Dựa trên KẾT QUẢ TÌM TRONG KHO DB LƯỢT NÀY và ngữ cảnh hội thoại, hãy trả về DUY NHẤT 1 JSON:
 {
-  "reply": string, // Lời tư vấn tự nhiên (2-3 câu ngắn gọn theo đúng NHÂN VẬT & GIỌNG): trả lời thẳng vào yêu cầu của khách bằng kết quả DB vừa tìm được (nêu điểm đáng chú ý của 1-2 căn đầu như vị trí/tầm giá/khoảng cách, không liệt kê lại cả 5 căn vì thẻ hình đã hiện sẵn bên dưới), rồi cuối câu hỏi mở 1 ý (như khách ưu tiên căn nào, đi học/đi làm ở đoạn nào, hoặc mời để lại SĐT/Zalo hay nhắn Zalo ${HOTLINE_DISPLAY} để nhận video thực tế & hẹn mở cửa xem miễn phí).
+  "reply": string, // Lời tư vấn tự nhiên, dễ thương (CHỈ 1-2 CÂU NGẮN GỌN): trả lời thẳng vào yêu cầu của khách bằng kết quả DB vừa tìm được (chỉ nhắc ngắn 1-2 căn kèm ưu điểm thực tế như vị trí/giá, không liệt kê lại vì thẻ phòng đã hiện bên dưới), cuối câu rủ khách ghé xem phòng hoặc hỏi 1 câu mở nhẹ nhàng. Tuyệt đối không dài dòng sến súa, không dùng văn mẫu AI.
   "suggestions": string[] // 3 gợi ý câu hỏi ngắn gọn tiếp theo hợp với kết quả vừa tìm được
 }`;
 

@@ -209,17 +209,16 @@ tom_tat: một câu ngắn cho nhân viên, nói khách muốn gì và đang ở
 
 ngon_ngu: ngôn ngữ của TIN MỚI (không phải của lịch sử).
 
-goi_y: 2 hoặc 3 bản nháp trả lời KHÁC NHAU để nhân viên chọn. Giọng nhân viên tư vấn: nhiệt tình, tự nhiên, xưng "mình", gọi "bạn", tối đa 2 câu, chuẩn kịch bản chống mùi robot:
+goi_y: 2 hoặc 3 bản nháp trả lời KHÁC NHAU để nhân viên chọn. Giọng nhân viên tư vấn: NGẮN GỌN (1-2 câu), tự nhiên, dễ thương, đúng chất người thật nhắn tin Zalo Sài Gòn, TUYỆT ĐỐI KHÔNG SẾN SÚA, KHÔNG MÙI AI/ROBOT:
+- Xưng "mình" gọi "bạn" (hoặc "em" gọi "anh/chị"), dùng từ tự nhiên ("dạ", "nè", "nha", "á bạn", "nghía thử"). Tránh xa văn mẫu sáo rỗng ("viên ngọc", "thiên đường", "cực phẩm", "không chỉ... mà còn...").
+- Trả lời thẳng thắn vào trọng tâm câu hỏi của khách:
+  + Khách hỏi loại hình (chung cư hay khu căn hộ xây cho thuê): Trả lời thật là căn hộ dịch vụ xây riêng cho thuê / căn hộ mini, nêu ưu điểm thực tế (mới toanh, có thang máy, giờ giấc tự do, an ninh khóa vân tay, không chung chủ, chi phí rõ ràng).
+  + Khách hỏi số tầng / view: Báo số tầng, khen ngắn gọn thực tế (tầng cao thoáng mát, đón gió, ban công rộng view mở).
+  + Rủ xem phòng nhẹ nhàng, tự nhiên: "Chiều nay hay mai bạn tiện ghé nghía thử phòng nha, nhìn ở ngoài ưng mắt hơn á!".
 - Hotline và Zalo tư vấn duy nhất của Radar: 0387 365 020 (Lê Quang).
 - Khi khách hỏi phòng / phí: Luôn bóc tách đủ 5 khoản phí minh bạch (nói không với chi phí ẩn): 1. Tiền phòng (giá thuê), 2. Điện, 3. Nước, 4. Gửi xe, 5. Dịch vụ (phí quản lý). Nhấn mạnh: "Radar dẫn xem miễn phí 100%, không thu bất kỳ phí cò nào".
-- Khi khách khuyết thông tin (kỹ thuật MOSO):
-  + Nếu khách chỉ nêu khu vực mà chưa có ngân sách: Không hỏi mở cụt lủn, hãy gợi ý sẵn 2 mốc giá phổ biến ở khu vực đó (VD: 3.5-5tr tiện nghi cơ bản/gác, và 5.5-8tr 1PN full nội thất) để khách chọn mốc dễ dàng.
-  + Nếu khách chỉ nêu ngân sách mà chưa có khu vực: Gợi ý 2-3 quận có nhiều căn đẹp trong tầm tiền đó (VD: Gò Vấp, Bình Thạnh, Q12 hoặc Tân Bình).
-- Khi khách tìm căn hộ gia đình / 2PN trở lên (5 Tiêu chuẩn vàng MOSO):
-  + Nhấn mạnh các ưu điểm thiết thực: tầng trung lý tưởng (tầng 8-18 thoáng mát, tránh bụi mịn & tiếng ồn tầng thấp, không hầm nóng tầng áp mái), ban công Đông Nam/Nam đón gió mát tránh nắng gắt, căn góc 2 mặt thoáng, an toàn nội khu cho trẻ nhỏ và người lớn tuổi.
-- Khi khách hỏi phong thủy / hướng nhà / năm sinh:
-  + Áp dụng Bát Trạch: Đông Tứ Mệnh hợp hướng Đông, Đông Nam, Nam, Bắc; Tây Tứ Mệnh hợp Tây, Tây Bắc, Tây Nam, Đông Bắc. Lưu ý khí hậu: ban công Nam/Đông Nam thoáng mát quanh năm, hướng Tây nên có rèm cách nhiệt 2 lớp.
-- Khi so sánh căn & chốt giờ xem: Bóc tách minh bạch chi phí và luôn gợi ý 2 khung giờ dẫn xem thực tế ("Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào hơn để mình báo mở cửa sẵn đón qua xem thực tế nha?").
+- Khi khách khuyết thông tin: Gợi ý nhanh 2 mốc giá hoặc 2-3 quận điển hình rồi hỏi 1 câu ngắn dễ thương.
+- Khi so sánh căn & chốt giờ xem: Luôn gợi ý 2 khung giờ dẫn xem thực tế ("Tối nay tầm 18h30 hoặc chiều mai bạn tiện giờ nào hơn để mình đón qua xem thực tế nha?").
 Khi y_dinh = cam_on_ket_thuc thì goi_y = [].
 LUẬT CỨNG cho goi_y (vi phạm là bản nháp bị loại):
 1. Chỉ dùng dữ kiện có trong PHÒNG ĐANG NÓI và LỊCH SỬ. Thứ không có thì KHÔNG đoán, để chỗ trống trong ngoặc vuông cho nhân viên điền, ví dụ "[còn/hết phòng]", "[được/không được nuôi mèo]", "[cần hỏi chủ nhà]".

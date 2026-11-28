@@ -142,14 +142,25 @@ export function soanTinHopTac({ senderName, canKhop }) {
 }
 
 /** Thẻ báo Zalo admin */
-export function soanTheMoiGioi({ senderName, tenNhom, text, nhuCau, canKhop, ma }) {
+export function soanTheMoiGioi({ senderName, tenNhom, text, nhuCau, canKhop, ma, daGui = false, gioDem = false, lyDoLoi = "" }) {
   const dong = [
     `🤝 Môi giới có khách: ${senderName || "?"}${tenNhom ? ` · nhóm ${tenNhom}` : ""}`,
     `"${String(text || "").replace(/\s+/g, " ").trim().slice(0, 220)}"`,
   ];
   if (nhuCau?.tom_tat) dong.push(`Nhu cầu: ${nhuCau.tom_tat}`);
   dong.push(`Căn Radar khớp:`, ...canKhop.map((c) => `• ${moTaCan(c)}`));
-  dong.push(`Gõ "${ma} 1" gửi câu mời hợp tác soạn sẵn · "${ma} <câu>" để tự nhắn.`);
+  if (daGui) {
+    dong.push(`✓ Bot đã tự gửi câu mời hợp tác qua tin riêng 1-1.`);
+    dong.push(`Gõ "${ma} 1" gửi lại · "${ma} <câu>" để nhắn thêm.`);
+  } else if (gioDem) {
+    dong.push(`🌙 Đang giờ nghỉ đêm (22h-7h) nên bot chưa tự gửi tin.`);
+    dong.push(`Gõ "${ma} 1" gửi câu mời hợp tác soạn sẵn · "${ma} <câu>" để tự nhắn.`);
+  } else if (lyDoLoi) {
+    dong.push(`⚠️ Tự gửi tin riêng lỗi (${lyDoLoi}).`);
+    dong.push(`Gõ "${ma} 1" gửi câu mời hợp tác soạn sẵn · "${ma} <câu>" để tự nhắn.`);
+  } else {
+    dong.push(`Gõ "${ma} 1" gửi câu mời hợp tác soạn sẵn · "${ma} <câu>" để tự nhắn.`);
+  }
   return dong.join("\n");
 }
 
