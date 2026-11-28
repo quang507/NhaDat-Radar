@@ -25,6 +25,10 @@ Các script gốc nằm ở thư mục này (`deploy/may-146/`); bản chạy th
 Lệnh hay dùng (qua ssh, shell là cmd):
 - Trạng thái: `schtasks /Query /TN "Radar Web"` · `type C:\radar-web\logs\web.log` · `type C:\radar-web\logs\deploy.log`
 - Ép build lại: `powershell -ExecutionPolicy Bypass -File C:\radar-web\deploy_web.ps1 -Ep`
+- Cập nhật script deploy sau khi sửa ở repo (task chạy bản `C:\radar-web\deploy_web.ps1`, không phải bản trong repo):
+  `copy /Y C:\radar-web\NhaDat-Radar\deploy\may-146\deploy_web.ps1 C:\radar-web\deploy_web.ps1`
+- Từ 28/11 `deploy_web.ps1` giữ lại file JS/CSS (`.next\static`) của các bản build trước tối đa 30 ngày: Cloudflare
+  còn giữ HTML cũ trỏ tới chunk tên cũ, xoá chunk là khách gặp "Application error" (ChunkLoadError).
 - Khởi động lại server: `schtasks /End /TN "Radar Web"` rồi `schtasks /Run /TN "Radar Web"`
 - Thử cục bộ: `curl.exe -s -o NUL -w "%{http_code}\n" http://127.0.0.1:3000/`
 

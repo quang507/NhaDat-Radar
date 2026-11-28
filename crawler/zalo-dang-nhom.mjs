@@ -42,6 +42,9 @@ const THU = process.argv.includes("--thu");
 const HOTLINE = "0387365020";            // = src/lib/hotline.ts
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL && !/localhost|127\.0\.0\.1/.test(process.env.NEXT_PUBLIC_SITE_URL)
   ? process.env.NEXT_PUBLIC_SITE_URL : "https://nhadatradar.com").replace(/\/$/, "");
+// 28/11: đánh dấu khách từ nhóm Zalo (GA4 + cột nguon của su_kien). Giá trị CỐ ĐỊNH, không gắn id nhóm:
+// Cloudflare tính query vào khoá cache, mỗi biến thể là một bản cache riêng. Trang tin đã có canonical nên SEO không đổi.
+const UTM = "utm_source=zalo&utm_medium=nhom&utm_campaign=dang-nhom";
 const TINH = ["Hồ Chí Minh", "Bình Dương", "Bà Rịa - Vũng Tàu"];
 
 const gio = () => new Date().toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });   // "2026-10-29 08:30:00"
@@ -166,7 +169,7 @@ function noiDung(x) {
     chiPhi.length ? `🧾 ${chiPhi.join(" · ")}` : "",
     s["Nội thất"] ? `🛋 Nội thất: ${String(s["Nội thất"]).replace(/^Nội thất\s*/i, "").toLowerCase()}` : "",
     `🔑 Mã: ${maPhong(x.id)}`,
-    `👉 Xem đủ ảnh, vị trí, chi phí: ${SITE}/listings/${x.id}`,
+    `👉 Xem đủ ảnh, vị trí, chi phí: ${SITE}/listings/${x.id}?${UTM}`,
     `📞 Zalo/Hotline Radar: ${HOTLINE} (nhắn mã phòng để hẹn xem)`,
   ].filter(Boolean).join("\n");
 }

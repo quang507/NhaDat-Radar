@@ -33,6 +33,20 @@ test("deploy/may-146: server chỉ nghe 127.0.0.1 và tự chạy lại; deploy 
   for (const m of ["src", "public", "data", "next.config.mjs", "package.json", "package-lock.json", "tailwind.config.ts", "postcss.config.mjs", "tsconfig.json"]) expect(bo, "vercel-bo-qua.sh thiếu " + m).toContain(m);
 });
 
+test("deploy/may-146: giữ chunk JS/CSS của bản build trước (HTML cũ trong cache Cloudflare vẫn chạy)", () => {
+  const ps = doc("deploy/may-146/deploy_web.ps1");
+  // chép chunk cũ còn thiếu sang bản mới, KHÔNG ghi đè file trùng tên, rồi dọn file quá hạn
+  expect(ps).toMatch(/robocopy "\$repo\\\.next-prev\\static" "\$repo\\\.next\\static" \/E \/XC \/XN \/XO/);
+  expect(ps).toMatch(/AddDays\(-30\)/);
+  // phải chạy SAU khi build thành công và TRƯỚC khi bật lại server
+  const iBuildXong = ps.indexOf("build xong sau");
+  const iGiu = ps.indexOf('.next-prev\\static"');
+  const iRun = ps.indexOf("schtasks /Run", iBuildXong);
+  expect(iBuildXong).toBeGreaterThan(0);
+  expect(iGiu).toBeGreaterThan(iBuildXong);
+  expect(iGiu).toBeLessThan(iRun);
+});
+
 test("CLAUDE.md ghi hosting mới, không còn dặn 'Vercel tự deploy'", () => {
   const c = doc("CLAUDE.md");
   expect(c).toContain("deploy/may-146/README.md");

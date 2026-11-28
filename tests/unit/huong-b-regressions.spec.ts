@@ -57,6 +57,11 @@ test("sitemap khu vực: lỗi database trả 503, không trả sitemap rút g�
   expect(s).not.toContain("ít nhất vẫn có trang tĩnh");
 });
 
+test("sitemap khu vực không khai trang mà robots.txt cấm bot", () => {
+  const s = doc("src/app/sitemap-khu-vuc.xml/route.ts");
+  for (const p of ['"/thong-ke"', '"/agents"', '"/search"', '"/auth"', '"/yeu-thich"']) expect(s, p).not.toContain(p);
+});
+
 test("trang tin: truy vấn lỗi thì ném; chỉ notFound khi tin thật sự không có; không chuyển hướng mù", () => {
   const s = doc("src/app/listings/[id]/page.tsx");
   expect(s).toMatch(/const pub = await layTinCongKhai\(id\);/);

@@ -14,6 +14,26 @@ export function robotsTheoSoTin(n: number, nguong: number) {
   return n >= nguong ? { index: true, follow: true } : { index: false, follow: true };
 }
 
+/** Số tin bù tối đa (tin loại khác cùng quận) hiện dưới trang loại BĐS trong quận đang ít tin. */
+export const TIN_BU_TOI_DA = 12;
+
+/**
+ * 28/11 (Search Console): "Cho thuê nhà Quận 4" có 765 lượt hiển thị, vị trí 12,6 thì tụt còn 1 tin -> noindex,
+ * Google gỡ dần trang đang lên hạng; sitemap (cache riêng) vẫn khai trang đó -> cảnh báo "noindex".
+ * Trang LOẠI BĐS TRONG QUẬN còn ít nhất 1 tin vẫn index nếu cả quận đủ tin để bù (khối "tin khác cùng quận"),
+ * tức trang luôn hiện đủ NGUONG.loai tin. Hết hẳn tin (0) thì route vẫn chuyển về trang cha như cũ.
+ * Sitemap KHÔNG đổi (vẫn đòi nLoai >= NGUONG.loai) -> mọi URL sitemap khai đều index được.
+ */
+export function canTinBu(nLoai: number, laLoaiTrongQuan: boolean): boolean {
+  return laLoaiTrongQuan && nLoai >= 1 && nLoai < NGUONG.loai;
+}
+
+export function robotsTrangLoaiQuan(nLoai: number, nQuan: number, laLoaiTrongQuan: boolean) {
+  if (!canTinBu(nLoai, laLoaiTrongQuan)) return robotsTheoSoTin(nLoai, NGUONG.loai);
+  const nBu = Math.min(Math.max(nQuan - nLoai, 0), TIN_BU_TOI_DA);
+  return robotsTheoSoTin(nLoai + nBu, NGUONG.loai);
+}
+
 export const BO_LOC_SEO = {
   "duoi-3-trieu": { nhan: "dưới 3 triệu", priceMax: 3_000_000 },
   "duoi-4-trieu": { nhan: "dưới 4 triệu", priceMax: 4_000_000 },

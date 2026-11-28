@@ -12,7 +12,9 @@ export const revalidate = 43200;
 
 export async function GET() {
   const muc: MucSitemap[] = [
-    "", "/projects", "/agents", "/thong-ke", "/dinh-gia", "/tinh-lai-vay", "/lap-phong",
+    // 28/11: bỏ /agents và /thong-ke - robots.ts cấm bot vào 2 trang này (hướng B), để trong sitemap thì
+    // Search Console báo "URL đã gửi bị chặn bởi robots.txt".
+    "", "/projects", "/dinh-gia", "/tinh-lai-vay", "/lap-phong",
     "/thue-hay-mua", "/ban", "/huong-dan/mua", "/huong-dan/ban", "/nha-dat-ban", "/nha-dat-cho-thue", "/tin-tuc",
     "/gioi-thieu", "/lien-he", "/chinh-sach-bao-mat", "/dieu-khoan-su-dung",
   ].map((p) => ({ url: SITE + p, changefreq: "daily", priority: p === "" ? 1 : 0.7 }));

@@ -10,7 +10,7 @@ import { useDongBangBack } from "@/lib/dong-bang-back";
 import { LinkTheoDoi } from "./TheoDoi";
 import ThemeToggle from "./ThemeToggle";
 import {
-  Menu, X, Home, KeyRound, Building2, Users, BarChart3,
+  Menu, X, Home, KeyRound, Building2, BarChart3,
   Newspaper, Sparkles, Calculator, Scale, Heart, Phone,
   MessageCircle, User, LogOut, UserPlus, Plus
 } from "lucide-react";
@@ -19,7 +19,6 @@ const LINKS = [
   { href: "/nha-dat-ban", label: "Mua Bán", icon: Home },
   { href: "/nha-dat-cho-thue", label: "Cho Thuê", icon: KeyRound },
   { href: "/projects", label: "Dự án", icon: Building2 },
-  { href: "/agents", label: "Người Bán", icon: Users },
   { href: "/thong-ke", label: "Thống kê", icon: BarChart3 },
   { href: "/tin-tuc", label: "Tin tức", icon: Newspaper },
   { href: "/dinh-gia", label: "Định Giá AI", icon: Sparkles, highlight: true },
